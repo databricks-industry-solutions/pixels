@@ -42,7 +42,7 @@ from setuptools import find_packages
 setup(
     name='databricks-pixel',
     version=VERSION,
-    packages=find_packages(where=".", include=["databricks"]),
+    packages=find_packages(exclude=['tests']),
     extras_require={
         'spark': ['pyspark>=3.0.0']
     },
