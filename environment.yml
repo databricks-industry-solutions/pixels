@@ -1,0 +1,21 @@
+name: ObjectFrames
+channels:
+  - defaults
+dependencies:
+  - ca-certificates=2021.1.19=hecd8cb5_0
+  - certifi=2020.12.5=py37hecd8cb5_0
+  - libcxx=10.0.0=1
+  - libedit=3.1.20191231=h1de35cc_1
+  - libffi=3.3=hb1e8313_2
+  - ncurses=6.2=h0a44026_1
+  - openssl=1.1.1j=h9ed2024_0
+  - pip=21.0.1=py37hecd8cb5_0
+  - python=3.7.9=h26836e1_0
+  - readline=8.1=h9ed2024_0
+  - setuptools=52.0.0=py37hecd8cb5_0
+  - sqlite=3.33.0=hffcf06c_0
+  - tk=8.6.10=hb0a8c7a_0
+  - wheel=0.36.2=pyhd3eb1b0_0
+  - xz=5.2.5=h1de35cc_0
+  - zlib=1.2.11=h1de35cc_3
+prefix: /Users/douglas.moore/anaconda3/envs/ObjectFrames
