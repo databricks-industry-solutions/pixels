@@ -28,6 +28,9 @@ class ObjectFrames(pyspark.sql.dataframe.DataFrame):
             .repartition(self._partitions)
         )
 
+    def isStreaming(self):
+        return False
+
     def _repr_html_(self):
         """Display state as html"""
         return self.toDF().toPandas()._repr_html_()
@@ -45,6 +48,7 @@ if __name__ == "__main__":
         '\n',
         df.count()
         )
-    print(df.take(10))
+    #print(df.take(10))
     #print(o._repr_html_())
-    #print(o.__repr__())
+    print(o.__repr__())
+    print(o.isStreaming())
