@@ -23,7 +23,7 @@ class ObjectFrames(DataFrame):
         return ObjectFrames(df)
 
 if __name__ == "__main__":
-    from ObjectFrames import ObjectFrames
+    import ObjectFrames
     from pyspark.sql import SparkSession
 
     spark = (SparkSession
@@ -32,7 +32,7 @@ if __name__ == "__main__":
                 .config('spark.ui.enabled','false')
                 .getOrCreate())
     path = 'dbfs:/mnt/databricks-datasets-private/HLS/melanoma/training/data/'
-    df = ObjectFrames.catalog(spark, path)
+    df = ObjectFrames.ObjectFrames.catalog(spark, path)
     print(
         '\n',
         df.count()
