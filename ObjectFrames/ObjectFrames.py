@@ -1,5 +1,5 @@
 import pyspark
-class ObjectFrames():
+class ObjectFrames(pyspark.sql.dataframe.DataFrame):
 
     def __init__(self, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64):
         """
