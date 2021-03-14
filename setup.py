@@ -42,15 +42,9 @@ from setuptools import find_packages
 setup(
     name='databricks-pixel',
     version=VERSION,
-    packages=find_packages(exclude=['tests']),
-    extras_require={
-        'spark': ['pyspark>=3.0.0']
-    },
-    python_requires='>=3.5,<3.9',
-    install_requires=[
-        'pandas>=0.23.2',
-    ],
-
+    packages=find_packages(),
+    platforms=['any'],
+    python_requires='>=3.5',
     author="Databricks",
     author_email="pixel@databricks.com",
     license='http://www.apache.org/licenses/LICENSE-2.0',
@@ -63,10 +57,4 @@ setup(
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    classifiers=[
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-    ],
 )
