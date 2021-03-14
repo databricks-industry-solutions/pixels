@@ -1,54 +1,43 @@
-import pyspark
-class ObjectFrames(pyspark.sql.dataframe.DataFrame):
+from pyspark.sql import DataFrame
+class ObjectFrames(DataFrame):
 
-    def __init__(self, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64):
+    def __init__(self, df):
+        super(self.__class__, self).__init__(df._jdf, df.sql_ctx)
+
+    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
         """
             Init
         """
-        self._path = path
-        self._pattern = pattern
-        self._partitions = partitions
-        self._recurse = str(recurse).lower()
-
-    def toDF(self) -> pyspark.sql.dataframe.DataFrame:
-        from pyspark.sql import SparkSession
-
-        spark = (SparkSession
-            .builder
-            .appName("ObjectFrames")
-            .config('spark.ui.enabled','false')
-            .getOrCreate())
-        return (
-            spark.read
+        _path = path
+        _pattern = pattern
+        _partitions = partitions
+        _recurse = str(recurse).lower()
+        df = (spark.read
             .format("binaryFile")
-            .option("pathGlobFilter",      self._pattern)
-            .option("recursiveFileLookup", self._recurse)
-            .load(self._path)
+            .option("pathGlobFilter",      _pattern)
+            .option("recursiveFileLookup", _recurse)
+            .load(path)
             .drop('content')
-            .repartition(self._partitions)
+            .repartition(_partitions)     
         )
-
-    def isStreaming(self):
-        return False
-
-    def _repr_html_(self):
-        """Display state as html"""
-        return self.toDF().toPandas()._repr_html_()
-    
-    def __repr__(self):
-        return self.toDF().__repr__()
+        return ObjectFrames(df)
 
 if __name__ == "__main__":
     from ObjectFrames import ObjectFrames
+    from pyspark.sql import SparkSession
 
-    image_path = 'dbfs:/mnt/databricks-datasets-private/HLS/melanoma/training/data/'
-    o = ObjectFrames(image_path)
-    df = o.toDF()
+    spark = (SparkSession
+                .builder
+                .appName("ObjectFrames")
+                .config('spark.ui.enabled','false')
+                .getOrCreate())
+    path = 'dbfs:/mnt/databricks-datasets-private/HLS/melanoma/training/data/'
+    df = ObjectFrames.catalog(spark, path)
     print(
         '\n',
         df.count()
         )
-    #print(df.take(10))
-    #print(o._repr_html_())
-    print(o.__repr__())
-    print(o.isStreaming())
+    print(df.take(10))
+    print(df._repr_html_())
+    print(df.__repr__())
+    print(df.isStreaming)
