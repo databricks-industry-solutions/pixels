@@ -1,12 +1,11 @@
 from pyspark.sql import DataFrame
-class ObjectFrames(DataFrame):
+from databricks.pixel.objects import ObjectFrames
 
-    def __init__(self, df):
-        super(self.__class__, self).__init__(df._jdf, df.sql_ctx)
+class Catalog:
 
     def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
         """
-            Init
+            Catalog the objects
         """
         _path = path
         _pattern = pattern
@@ -23,21 +22,12 @@ class ObjectFrames(DataFrame):
         return ObjectFrames(df)
 
 if __name__ == "__main__":
-    import ObjectFrames
     from pyspark.sql import SparkSession
-
     spark = (SparkSession
                 .builder
                 .appName("ObjectFrames")
                 .config('spark.ui.enabled','false')
                 .getOrCreate())
-    path = 'dbfs:/mnt/databricks-datasets-private/HLS/melanoma/training/data/'
-    df = ObjectFrames.ObjectFrames.catalog(spark, path)
-    print(
-        '\n',
-        df.count()
-        )
-    print(df.take(10))
-    print(df._repr_html_())
-    print(df.__repr__())
-    print(df.isStreaming)
+    df1 = spark.createDataFrame([[1],[2],[3]],"a int")
+    df = objects.ObjectFrames(df1)
+    print(df.take(5))
