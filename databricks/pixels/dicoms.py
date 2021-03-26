@@ -76,7 +76,7 @@ class DicomFrames(ObjectFrames):
             DicomFrames(self._df
                 .withColumn("relative_path", f.regexp_replace(inputCol, basePath+"(.*)$",r"$1"))
                 .withColumn("local_path", f.regexp_replace(inputCol,"^dbfs:(.*$)",r"/dbfs$1"))
-                .withColumn("extension",f.regexp_replace(inputCol, "\.(\w+)$", r"$1"))
+                .withColumn("extension",f.regexp_replace(inputCol, ".*\.(\w+)$", r"$1"))
                 .withColumn("path_tags",
                             f.split(
                             f.regexp_replace(
