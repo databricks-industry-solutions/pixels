@@ -3,8 +3,8 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from pyspark.sql.functions import udf, col
-@udf("dict")
-def dicom_meta_udf(path:str):
+@("dict")
+def dicom_meta_(path:str):
     with dcmread(path) as ds:
         js = ds.to_json_dict()
         # remove binary images
@@ -33,6 +33,6 @@ class DicomMetaExtractor(Transformer):
         return _transform_impl(df, self.inputCol, self.outputCol)
 
     def _transform_impl(df, inputCol, outputCol):
-         return (df.withColumn(outputCol,self.dicom_meta_udf(col(inputCol))))
+         return (df.withColumn(outputCol,self.dicom_meta_(col(inputCol))))
 
 
