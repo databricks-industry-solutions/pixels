@@ -1,24 +1,19 @@
 import unittest
 
-def get_spark():
-    from pyspark.sql import SparkSession
-    return (SparkSession
-                .builder
-                .appName("ObjectFrames")
-                .config('spark.ui.enabled','false')
-                .getOrCreate()
-                )
+from spark import get_spark
+spark = get_spark()
+
+path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
 
 class TestCatalog(unittest.TestCase):
 
     def test_catalog_class(self):
-        from databricks.pixel import Catalog
+        from databricks.pixels import Catalog
         assert Catalog
     
     def test_catalog_load(self):
-        from databricks.pixel import Catalog
-        path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
-        spark = get_spark()
+        from databricks.pixels import Catalog
+
         df = Catalog.catalog(spark, path)
         count = df.count()
         assert 60 == count

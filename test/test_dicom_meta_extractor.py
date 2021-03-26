@@ -6,7 +6,7 @@ spark = get_spark()
 path = 'dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns'
 
 def get_object_frame(spark):
-    from databricks.pixel import Catalog
+    from databricks.pixels import Catalog
 
     df = Catalog.catalog(spark, path)
     return df
@@ -14,18 +14,18 @@ def get_object_frame(spark):
 class TestDicomFrames(unittest.TestCase):
 
     def test_dicom_class(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         assert DicomFrames
 
     def test_dicom_init(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
         count = dicom_df.count()
         self.assertEqual(170, count)
 
     def test_dicom_describe(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
         results = dicom_df.describe()
@@ -33,7 +33,7 @@ class TestDicomFrames(unittest.TestCase):
         print('->'*20, results)
 
     def test_dicom_repr_html(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
@@ -42,7 +42,7 @@ class TestDicomFrames(unittest.TestCase):
         print(response)
 
     def test_dicom_columns(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
         response = dicom_df.columns
@@ -50,7 +50,7 @@ class TestDicomFrames(unittest.TestCase):
         print(response)
 
     def test_dicom_to_dicom_frames(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
         df2 = dicom_df.withMeta()
@@ -59,7 +59,7 @@ class TestDicomFrames(unittest.TestCase):
         print(response)
 
     def test_dicom_to_dicom_meta(self):
-        from databricks.pixel import DicomFrames
+        from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
         df2 = dicom_df.withMeta()

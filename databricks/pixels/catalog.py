@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame
-from databricks.pixel.objects import ObjectFrames
+from databricks.pixels import ObjectFrames
 
 class Catalog:
 

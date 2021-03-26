@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame
-from databricks.pixel import ObjectFrames
+from databricks.pixels import ObjectFrames
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
 from pyspark.sql import functions as f
