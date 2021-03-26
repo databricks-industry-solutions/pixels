@@ -22,16 +22,16 @@ import sys
 from setuptools import setup
 from os import path
 
-DESCRIPTION = "Pixel: pyspark dataframes for image processing"
+DESCRIPTION = "Pixels: pyspark dataframes for image (and object) processing"
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
 try:
-    exec(open('databricks/pixel/version.py').read())
+    exec(open('databricks/pixels/version.py').read())
 except IOError:
-    print("Failed to load Pixel version file for packaging. You must be in Pixel root dir.",
+    print("Failed to load pixels version file for packaging. You must be in pixels root dir.",
           file=sys.stderr)
     sys.exit(-1)
 VERSION = __version__  # noqa
@@ -40,19 +40,19 @@ import setuptools
 from setuptools import find_packages
 
 setup(
-    name='databricks-pixel',
+    name='databricks-pixels',
     version=VERSION,
     packages=find_packages(),
     platforms=['any'],
     python_requires='>=3.5',
     author="Databricks",
-    author_email="pixel@databricks.com",
+    author_email="pixels@databricks.com",
     license='http://www.apache.org/licenses/LICENSE-2.0',
     url="https://github.com/databrickslabs/pixel",
     project_urls={
-        'Bug Tracker': 'https://github.com/databrickslabs/pixel/issues',
-        'Documentation': 'https://databricks-pixel.readthedocs.io/',
-        'Source Code': 'https://github.com/databrickslabs/pixel'
+        'Bug Tracker': 'https://github.com/databrickslabs/pixels/issues',
+        'Documentation': 'https://databricks-pixels.readthedocs.io/',
+        'Source Code': 'https://github.com/databrickslabs/pixels'
     },
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
