@@ -54,8 +54,6 @@ class DicomFrames(ObjectFrames):
         for i in images:
             path = i[0].replace('dbfs:','/dbfs')
             ds = dcmread(path)
-
-            plt.subplot(1,1,0)
             plt.imshow(ds.pixel_array, cmap="gray")
         
         plt.show()
