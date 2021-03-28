@@ -2,6 +2,11 @@ import unittest
 
 class TestClassLoader(unittest.TestCase):
 
+    def test_databricks_pixels(self):
+        import databricks.pixels
+        s = databricks.pixels.__doc__
+        self.assertIsNotNone(s)
+    
     def test_object_frames(self):
         from databricks.pixels import ObjectFrames
         print(type(ObjectFrames))

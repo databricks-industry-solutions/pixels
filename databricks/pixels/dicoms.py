@@ -44,12 +44,13 @@ class DicomFrames(ObjectFrames):
                 return 4
         return -1
 
-    def plot(self, images):
-        """ Given list of [path,tags[]] plot the images """
+    def plot(self):
+        """This function plots the Dicom images from the driver node."""
         import matplotlib.pyplot as plt
 
         fig = plt.figure(figsize=(20,20))  # sets the window to 8 x 6 inches
 
+        images = self._df.select('local_path').collect()
         for i in images:
             path = i[0].replace('dbfs:','/dbfs')
             ds = dcmread(path)
