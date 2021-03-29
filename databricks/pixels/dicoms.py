@@ -5,6 +5,9 @@ from pydicom.errors import InvalidDicomError
 from pyspark.sql import functions as f
 
 from pyspark.sql.functions import udf, col
+import uuid
+import matplotlib.pyplot as plt
+import gdcm
 
 
 class DicomFrames(ObjectFrames):
@@ -25,10 +28,23 @@ class DicomFrames(ObjectFrames):
                 'path': path
             })
 
+    def dicom_plot(local_path:str, figsize=(20.0,20.0)) -> str:
+        """Plot dicom image to file in dbfs:/FileStore/plots folder then return translated path to plot"""
+        try:
+            ds = dcmread(local_path)
+            fig, ax = plt.subplots()
+            ax.imshow(ds.pixel_array, cmap="gray")
+            plot_file = F"{str(uuid.uuid4())}.png"
+            plt.savefig(F"/dbfs/FileStore/plots/pixels/{plot_file}", format='PNG')
+            plt.close()
+            return (F'<div class="figure"><img src="files/plots/pixels/{plot_file}"></div>')
+        except Exception as err:
+            return F"input: {local_path} {str(err)}"
 
     def __init__(self, df):
         super(self.__class__, self).__init__(df)
         self._df = df
+
 
     def _get_loc(self, tags) -> int:
         """ Imaage positioning logic for mamagrams. """
@@ -45,20 +61,13 @@ class DicomFrames(ObjectFrames):
         return -1
 
     def plot(self):
-        """This function plots the Dicom images from the driver node."""
-        import matplotlib.pyplot as plt
+        """This function runs a distributed plotting function over all Dicom images."""
 
-        fig = plt.figure(figsize=(20,20))  # sets the window to 8 x 6 inches
+        dicom_plot_udf = udf(DicomFrames.dicom_plot)
 
-        images = self._df.select('local_path').collect()
-        for i in images:
-            path = i[0].replace('dbfs:','/dbfs')
-            ds = dcmread(path)
-            plt.imshow(ds.pixel_array, cmap="gray")
-        
-        plt.show()
-        plt.close()
-    
+        lst = self._df.withColumn('plot',dicom_plot_udf(col('local_path'))).select('plot').collect()
+        return ('\n'.join(map(lambda x: x[0], lst)))
+
     def toDF(self) -> DataFrame:
         return self._df
 
