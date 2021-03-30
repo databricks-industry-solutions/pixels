@@ -1,5 +1,6 @@
 from pyspark.sql import DataFrame
 from databricks.pixels import ObjectFrames
+import gdcm
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
 from pyspark.sql import functions as f
@@ -7,11 +8,23 @@ from pyspark.sql import functions as f
 from pyspark.sql.functions import udf, col
 import uuid
 import matplotlib.pyplot as plt
-import gdcm
+
+import numpy as np
 
 
 class DicomFrames(ObjectFrames):
     """ Specialized Dicom Image frame data structure """
+    def __init__(self, df):
+        super(self.__class__, self).__init__(df)
+        self._df = df
+
+    class DicomPlotResult():
+        def __init__(self, html):
+            self._html = html
+
+        def _repr_html_(self):
+            return self._html
+
     def dicom_meta(path:str) -> dict:
         try:
             with dcmread(path) as ds:
@@ -21,6 +34,9 @@ class DicomFrames(ObjectFrames):
                     del js['60003000']
                 if '7FE00010' in js:
                     del js['7FE00010']
+                a = ds.pixel_array
+                js['img_min'] = np.min(a)
+                js['img_max'] = np.max(a)
                 return str(js)
         except InvalidDicomError as err:
             return str({
@@ -34,17 +50,13 @@ class DicomFrames(ObjectFrames):
             ds = dcmread(local_path)
             fig, ax = plt.subplots()
             ax.imshow(ds.pixel_array, cmap="gray")
+            plt.title(local_path)
             plot_file = F"{str(uuid.uuid4())}.png"
             plt.savefig(F"/dbfs/FileStore/plots/pixels/{plot_file}", format='PNG')
             plt.close()
             return (F'<div class="figure"><img src="files/plots/pixels/{plot_file}"></div>')
         except Exception as err:
             return F"input: {local_path} {str(err)}"
-
-    def __init__(self, df):
-        super(self.__class__, self).__init__(df)
-        self._df = df
-
 
     def _get_loc(self, tags) -> int:
         """ Imaage positioning logic for mamagrams. """
@@ -61,12 +73,12 @@ class DicomFrames(ObjectFrames):
         return -1
 
     def plot(self):
-        """This function runs a distributed plotting function over all Dicom images."""
+        """plot runs a distributed plotting function over all Dicom images."""
 
         dicom_plot_udf = udf(DicomFrames.dicom_plot)
 
         lst = self._df.withColumn('plot',dicom_plot_udf(col('local_path'))).select('plot').collect()
-        return ('\n'.join(map(lambda x: x[0], lst)))
+        return DicomFrames.DicomPlotResult('\n'.join(map(lambda x: x[0], lst)))
 
     def toDF(self) -> DataFrame:
         return self._df

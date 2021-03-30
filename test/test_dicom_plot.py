@@ -16,9 +16,9 @@ class TestDicomFramesPlot(unittest.TestCase):
     def test_dicom_plot(self):
         from databricks.pixels import DicomFrames
         dcm_df = DicomFrames(get_object_frame(spark).limit(4))
-        html = dcm_df.withMeta().plot()
-        self.assertIsNotNone(html)
-        print(html)
+        result = dcm_df.withMeta().plot()
+        self.assertIsNotNone(result)
+        print(result._repr_html_())
 
 if __name__ == '__main__':
     import sys, os
