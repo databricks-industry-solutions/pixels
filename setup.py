@@ -22,6 +22,10 @@ import sys
 from setuptools import setup
 from os import path
 
+import os
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 DESCRIPTION = "Pixels: pyspark dataframes for image (and object) processing"
 
 this_directory = path.abspath(path.dirname(__file__))
@@ -39,12 +43,15 @@ VERSION = __version__  # noqa
 import setuptools
 from setuptools import find_packages
 
+
+
 setup(
     name='databricks-pixels',
     version=VERSION,
     packages=find_packages(),
     platforms=['any'],
     python_requires='>=3.5',
+    install_requires=required,
     author="Databricks",
     author_email="pixels@databricks.com",
     license='http://www.apache.org/licenses/LICENSE-2.0',
