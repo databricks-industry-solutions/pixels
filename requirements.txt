@@ -1,5 +1,5 @@
 python==3.7.*
 pandas
 pydicom
-pilllow
+Pillow
 matplotlib
