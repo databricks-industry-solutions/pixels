@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     print(sys.path)
 
-    from databricks.pixel import *
+    from databricks.pixels import *
 
     spark = (SparkSession
                 .builder

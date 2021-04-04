@@ -6,7 +6,12 @@ class TestClassLoader(unittest.TestCase):
         import databricks.pixels
         s = databricks.pixels.__doc__
         self.assertIsNotNone(s)
-    
+
+    def test_plot_result(self):
+        from databricks.pixels import PlotResult
+        print(type(PlotResult))
+        print(PlotResult.__module__)
+
     def test_object_frames(self):
         from databricks.pixels import ObjectFrames
         print(type(ObjectFrames))

@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.pythonPath": "/Users/douglas.moore/anaconda3/envs/pixels/bin/python"
+	}
+}
