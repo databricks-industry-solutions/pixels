@@ -14,13 +14,12 @@ def get_object_frame(spark):
 class TestDicomFramesPlot(unittest.TestCase):
 
     def test_dicom_result(self):
-        if False:
+        if True:
             from databricks.pixels import PlotResult
             res = PlotResult(['/dbfs/FileStore/plots/pixels/abc.png','/dbfs/FileStore/efg.png'])
             self.assertIsNotNone(res)
             self.assertIsNotNone(res._repr_html_())
             self.assertIn('abc',res._repr_html_())
-
             print(res._repr_html_())
 
     def test_dicom_plot(self):
