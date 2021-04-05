@@ -38,7 +38,7 @@ def dicom_plot_udf(local_path:str, figsize=(20.0,20.0)) -> str:
         ds = dcmread(local_path)
         fig, ax = plt.subplots()
         ax.imshow(ds.pixel_array, cmap=cmap)
-        plt.title(local_path[-14])
+        plt.title(local_path[-14:])
         plot_file = F"{str(uuid.uuid4())}.{extension}"
         save_file = F"{save_folder}/{plot_file}"
         plt.savefig(save_file, format=fmt)

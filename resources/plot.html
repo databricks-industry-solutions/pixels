@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport"="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="plot.css">
+</head>
+<body>
+
+<!-- MAIN (Center website) -->
+<div class="main">
+<h2>Dicoms</h2>
+<div id="myBtnContainer">
+  <button class="btn active" onclick="filterSelection('all')"> Show all</button>
+  <button class="btn" onclick="filterSelection('nature')"> Nature</button>
+  <button class="btn" onclick="filterSelection('cars')"> Cars</button>
+  <button class="btn" onclick="filterSelection('people')"> People</button>
+</div>
+<div id="myModal" class="modal" class="close" onclick="document.getElementById('myModal').style.display='none'">
+ <img class="modal-content" id="img01">
+ <div id="caption"></div>
+</div>
+<!-- Portfolio Gallery Grid -->
+<div class="row">
+    <div class="column nature content"><img alt="01" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/34954928-9ad8-45e7-95de-ed521beb620d.png"></div>
+    <div class="column nature content"><img alt="02" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/7f371e16-732c-4e5b-a394-40651527cec7.png"></div>
+    <div class="column nature content"><img alt="03" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/cbbc5ea2-a0af-4b89-8b35-248d7ab15276.png"></div>
+    <div class="column nature content"><img alt="04" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/16d5e866-677e-408b-8395-f20633af2a3b.png"></div>
+    <div class="column nature content"><img alt="05" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/429d10dc-7c8c-4fa5-9bd5-b9f1400f6b2f.png"></div>
+    <div class="column cars content">  <img alt="06" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/3d629ffd-e675-46b1-920b-7301432e2b9b.png"></div>
+    <div class="column cars content">  <img alt="07" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/02221900-0676-4125-ade2-4e637b677070.png"></div>
+    <div class="column cars content">  <img alt="08" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/5d624c75-48e0-4a02-85fb-aa4ab102bffd.png"></div>
+    <div class="column cars content">  <img alt="09" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/58027740-bd9a-4cb4-82e7-14865798a6d0.png"></div>
+    <div class="column cars content">  <img alt="10" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/5ff70b43-64eb-4544-9cb1-b53f92e28b9b.png"></div>
+    <div class="column people content"><img alt="11" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/e0362470-ff71-4a14-8296-1de19d0bec92.png"></div>
+    <div class="column people content"><img alt="12" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/4b13e0e7-6951-4d05-b2dd-280e5a39e720.png"></div>
+    <div class="column people content"><img alt="13" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/6ccc3b4d-721c-4586-99b0-efaa63ebb21b.png"></div>
+    <div class="column people content"><img alt="14" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/ad734dfa-ad21-48d7-b4ac-8784145cba3a.png"></div>
+    <div class="column people content"><img alt="15" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/e7f7beda-be00-4189-8657-243448153015.png"></div>
+    <div class="column nature content"><img alt="16" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/5ade0e18-0423-4a79-8f19-3ae04d2b6a1c.png"></div>
+    <div class="column nature content"><img alt="17" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/aeb83114-3612-487f-b103-03f946e33a72.png"></div>
+    <div class="column nature content"><img alt="18" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/57193a39-4648-4b3a-84b7-0f93c18a576d.png"></div>
+    <div class="column nature content"><img alt="19" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/ace1b6c1-7893-4131-9e7c-1a15f8e4c002.png"></div>
+    <div class="column nature content"><img alt="20" style="width:100%;" src="https://demo.cloud.databricks.com/files/plots/pixels/3a148a87-0149-4973-9c63-36af60728607.png"></div>
+</div>
+<!-- END GRID -->
+
+<!-- END MAIN -->
+</div>
+<script src="plot.js"></script>
+</body>
+</html>
