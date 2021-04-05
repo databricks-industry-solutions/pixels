@@ -71,10 +71,8 @@
 
   .row {
     margin: 5px -16px;
-/*  
     overflow-y: auto;
-    height: 1000px;
-*/
+    height: 600px;
   }
   
   /* Add padding BETWEEN each column */
