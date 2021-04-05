@@ -1,4 +1,5 @@
 from pyspark.sql.functions import udf
+import numpy
 
 @udf
 def dicom_meta_udf(path:str) -> dict:
@@ -14,8 +15,8 @@ def dicom_meta_udf(path:str) -> dict:
             if '7FE00010' in js:
                 del js['7FE00010']
             a = ds.pixel_array
-            js['img_min'] = np.min(a)
-            js['img_max'] = np.max(a)
+            js['img_min'] = numpy.min(a)
+            js['img_max'] = numpy.max(a)
             return str(js)
     except InvalidDicomError as err:
         return str({
