@@ -21,12 +21,19 @@ class PlotResult():
     def __init__(self, files):
         assert isinstance(files,list)
         self._files = files
+        relative_path = F"./resources/plot.html"
+        import os
+        path = os.path.abspath(relative_path)
+        with open(path,'r') as f:
+            self._html_template = f.read()
+        print(path)
+        print(self._html_template)
 
     def _repr_html_(self):
         base_url = get_base_url()
-        html = ""
+        row_src = ""
         for file in self._files:
             if 'FileStore' in file:
                 _src = file.replace('/dbfs/FileStore','files')
-                html = html + F'<div class="figure"><img src="{base_url}/{_src}"></div>\n' 
-        return html
+                row_src = row_src + F'<div class="column content"><img alt="{file}" src="{base_url}/{_src}"></div>\n' 
+        return self._html_template.format(row_src=row_src)

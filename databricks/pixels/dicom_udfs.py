@@ -4,6 +4,7 @@ from pyspark.sql.functions import udf
 def dicom_meta_udf(path:str) -> dict:
     from pydicom import dcmread
     from pydicom.errors import InvalidDicomError
+    import numpy as np
     try:
         with dcmread(path) as ds:
             js = ds.to_json_dict()
