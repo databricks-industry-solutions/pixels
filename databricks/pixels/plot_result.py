@@ -50,7 +50,7 @@ class PlotResult():
         tag_set = set([item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist])
         button_src = ""
         for b in tag_set:
-            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"> Nature</button>\n'''
+            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')">{b}</button>\n'''
         return button_src
 
     def _get_rows(self):
