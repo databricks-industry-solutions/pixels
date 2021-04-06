@@ -46,20 +46,40 @@ class PlotResult():
         self.init_plot_js()
         self.init_plot_css()
 
-    def _repr_html_(self):
+    def _get_buttons(self):
+        tag_set = set([item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist])
+        button_src = ""
+        for b in tag_set:
+            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"> Nature</button>\n'''
+        return button_src
+
+    def _get_rows(self):
         base_url = get_base_url()
         row_src = ""
-        for file in self._files:
+        for item in self._files:
+            file = item[0]
+            tags = item[1]
             if 'FileStore' in file:
+                tag_str = ' '.join(tags)
                 _src = file.replace('/dbfs/FileStore','files')
-                row_src = row_src + F'<div class="column content"><img src="{base_url}/{_src}"></div>\n' 
+                row_src = row_src + F'<div class="column {tag_str} content"><img src="{base_url}/{_src}"><p>{tag_str}</p></div>\n'
+        return row_src
+  
+    def _repr_html_(self):
+        """Render results as HTML. This method called by notebook if found"""
+       
         return self._html_template.format(
-                plot_css=self._plot_css,
-                plot_js =self._plot_js,
-                row_src =row_src
+                plot_css   = self._plot_css,
+                plot_js    = self._plot_js,
+                button_src = self._get_buttons(),
+                row_src    = self._get_rows()
             )
 
 if __name__ == "__main__":
-    pr = PlotResult(['/dbfs/FileStore/plots/pixels/abc.png','/dbfs/FileStore/efg.png'])
+    items = [('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient4927/4927.RIGHT_CC.dcm',
+        ['benigns', 'patient4927', '4927', 'RIGHT', 'CC']),
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0786/0786.RIGHT_CC.dcm',
+        ['benigns', 'patient0786', '0786', 'RIGHT', 'CC'])]
+    pr = PlotResult(items)
     html = pr._repr_html_()
     print(html)

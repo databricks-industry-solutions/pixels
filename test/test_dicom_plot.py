@@ -12,9 +12,21 @@ def get_object_frame(spark):
     return df
 
 class TestDicomFramesPlot(unittest.TestCase):
+    items = [('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient4927/4927.RIGHT_CC.dcm',
+  ['benigns', 'patient4927', '4927', 'RIGHT', 'CC']),
+ ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0786/0786.RIGHT_CC.dcm',
+  ['benigns', 'patient0786', '0786', 'RIGHT', 'CC'])]
+    
+    def test_dicom_buttons(self):
+        if True:
+            from databricks.pixels import PlotResult
+            res = PlotResult(TestDicomFramesPlot.items)
+            self.assertIsNotNone(res)
+            self.assertIsNotNone(res._get_buttons)
+            print(res._get_buttons)
 
     def test_dicom_result(self):
-        if True:
+        if False:
             from databricks.pixels import PlotResult
             res = PlotResult(['/dbfs/FileStore/plots/pixels/abc.png','/dbfs/FileStore/efg.png'])
             self.assertIsNotNone(res)
@@ -23,10 +35,19 @@ class TestDicomFramesPlot(unittest.TestCase):
             print(res._repr_html_())
 
     def test_dicom_plot(self):
-        if True:
+        if False:
             from databricks.pixels import DicomFrames
             dcm_df = DicomFrames(get_object_frame(spark).limit(4))
             result = dcm_df.withMeta().plot()
+            print(result)
+            self.assertIsNotNone(result)
+            print(result._repr_html_())
+
+    def test_dicom_plotx(self):
+        if True:
+            from databricks.pixels import DicomFrames
+            dcm_df = DicomFrames(get_object_frame(spark).limit(4))
+            result = dcm_df.withMeta().plotx()
             print(result)
             self.assertIsNotNone(result)
             print(result._repr_html_())

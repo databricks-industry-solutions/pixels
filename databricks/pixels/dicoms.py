@@ -51,6 +51,14 @@ class DicomFrames(ObjectFrames):
             ).select('plot').collect()
         return PlotResult([y for y in map(lambda x: x[0], lst)])
 
+    def plotx(self):
+        """plot runs a distributed plotting function over all Dicom images."""
+        lst = self._df.withColumn(
+                'plot',
+                dicom_plot_udf(col('local_path'))
+            ).select('plot','path_tags').collect()
+        return PlotResult([y for y in map(lambda x: (x[0],x[1]), lst)])
+
 if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(__file__)+"/../..")
     from databricks.pixels import DicomFrames
