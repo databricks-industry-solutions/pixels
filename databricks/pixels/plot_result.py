@@ -48,24 +48,25 @@ class PlotResult():
 
     def _get_buttons(self):
         from collections import Counter
+        lst = [item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist]
+        count = len(lst)
+        tag_set = set(lst)
+        c = Counter(lst).most_common(20)
+        print('c',c)
 
-        tag_set = set([item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist])
-    
         start = c[0][1]
-        l_size = len(lst)
-        print(start)
-        button_src = '<div class="panel">'
+        l_size = len(self._files)
 
+        print(start, l_size, count)
+        button_src = ''
         for i,v in enumerate(c):
-            if v[1] < start:
-                b = v[0]
-                l = 100*(v[1]/l_size)
-                l = 0
-                style_str = ' style="z-index: -1; background:yellow; height=3px; width:{l}%"'
-                button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"><div{style_str}>{b}</div></button>\n'''
-            else:
-                l_size = l_size - v[1]
-            button_src = button_src + '</div'
+            #if v[1] < start:
+            b = v[0]
+            l = 100*(v[1]/l_size) # frequency
+            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"><div class="gauge" style="width:{l:.1f}%">{b}</div></button>\n'''
+            #else:
+            #    l_size = l_size - v[1]
+            button_src = button_src + ' '
         return button_src
 
     def _get_rows(self):
@@ -91,10 +92,20 @@ class PlotResult():
             )
 
 if __name__ == "__main__":
-    items = [('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient4927/4927.RIGHT_CC.dcm',
-        ['benigns', 'patient4927', '4927', 'RIGHT', 'CC']),
+    items = [
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient4927/4927.RIGHT_CC.dcm',
+            ['benigns', 'patient4927', '4927', 'RIGHT', 'CC']),
         ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0786/0786.RIGHT_CC.dcm',
-        ['benigns', 'patient0786', '0786', 'RIGHT', 'CC'])]
+            ['benigns', 'patient0786', '0786', 'RIGHT', 'CC']),
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0786/0786.LEFT_CC.dcm',
+            ['benigns', 'patient0786', '0786', 'LEFT', 'CC']),
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0787/0787.LEFT_CC.dcm',
+            ['benigns', 'patient0787', '0787', 'RIGHT', 'CC']),
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0788/0788.LEFT_CC.dcm',
+            ['benigns', 'patient0788', '0788', 'RIGHT', 'CC']),
+        ('/dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0789/0789.LEFT_CC.dcm',
+            ['benigns', 'patient0789', '0789', 'RIGHT', 'CC']),
+        ]
     pr = PlotResult(items)
     html = pr._repr_html_()
     print(html)

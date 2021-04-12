@@ -11,20 +11,19 @@
 <!-- MAIN (Center website) -->
 <div class="main">
 <h2>Dicoms</h2>
-<div id="myBtnContainer">
-  <button class="btn active" onclick="filterSelection('all')"> Show all</button>
-{button_src}
-</div>
 <div id="myModal" class="modal" class="close" onclick="document.getElementById('myModal').style.display='none'">
  <img class="modal-content" id="img01">
  <div id="caption"></div>
+</div>
+<div id="myBtnContainer" class="btn-panel">
+  <button class="btn active" onclick="filterSelection('all')"> Show all</button>
+{button_src}
 </div>
 <!-- Portfolio Gallery Grid -->
 <div class="row">
   {row_src}
 </div>
 <!-- END GRID -->
-
 <!-- END MAIN -->
 </div>
 <script>
