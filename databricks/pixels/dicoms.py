@@ -22,7 +22,7 @@ class DicomFrames(ObjectFrames):
     def _with_meta(self, outputCol = 'meta', inputCol = 'local_path'):
         return DicomFrames(self._df.withColumn(outputCol,dicom_meta_udf(col(inputCol))))
 
-    def _with_path_meta(self, basePath:str = 'dbfs:/', inputCol:str = 'path'):
+    def _with_path_meta(self, basePath:str = 'dbfs:/', inputCol:str = 'path', num_trailing_path_items:int = 5):
         """ User overridable """
         return (
             DicomFrames(self._df
@@ -38,8 +38,8 @@ class DicomFrames(ObjectFrames):
                                             r"$1,"),
                                         ","
                                     ),
-                                    -1,
-                                    5
+                                    -num_trailing_path_items,
+                                    num_trailing_path_items
                                 )
                             )
                 )
