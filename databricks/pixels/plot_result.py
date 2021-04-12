@@ -47,10 +47,25 @@ class PlotResult():
         self.init_plot_css()
 
     def _get_buttons(self):
+        from collections import Counter
+
         tag_set = set([item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist])
-        button_src = ""
-        for b in tag_set:
-            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')">{b}</button>\n'''
+    
+        start = c[0][1]
+        l_size = len(lst)
+        print(start)
+        button_src = '<div class="panel">'
+
+        for i,v in enumerate(c):
+            if v[1] < start:
+                b = v[0]
+                l = 100*(v[1]/l_size)
+                l = 0
+                style_str = ' style="z-index: -1; background:yellow; height=3px; width:{l}%"'
+                button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"><div{style_str}>{b}</div></button>\n'''
+            else:
+                l_size = l_size - v[1]
+            button_src = button_src + '</div'
         return button_src
 
     def _get_rows(self):
@@ -66,7 +81,7 @@ class PlotResult():
         return row_src
   
     def _repr_html_(self):
-        """Render results as HTML. This method called by notebook if found"""
+        """Render results as HTML. This method called by notebook if found on object"""
        
         return self._html_template.format(
                 plot_css   = self._plot_css,

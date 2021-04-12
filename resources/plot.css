@@ -113,10 +113,13 @@ img.modal-content {
 
 .content {
   background-color: rgb(37, 136, 50);
-  color:bisque;
   padding: 10px;
   color: #333;
   size: 14pt;
+}
+
+.content p {
+  color:bisque;
 }
 
 /* The "show" class is added to the filtered elements */
