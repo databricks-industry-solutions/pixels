@@ -51,8 +51,8 @@ var modalImg = document.getElementById("img01"); // Place image in modal
 var captionText = document.getElementById("caption"); // Use alt for caption
 
 function showImg(url){
-    console.log(url)
-    console.log(modal)
+    #console.log(url)
+    #console.log(modal)
     modal.style.display = "block";
     modalImg.src = url;      
     //captionText.innerHTML = ele.alt;

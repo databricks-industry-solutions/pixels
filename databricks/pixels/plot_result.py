@@ -45,28 +45,31 @@ class PlotResult():
         self.init_plot_html()
         self.init_plot_js()
         self.init_plot_css()
+        self.most_common_limit = 14
 
-    def _get_buttons(self):
+    def _get_buttons(self) -> str:
+        """
+        Turns path_tags into facets into buttons
+            input: self._files
+            returns: button html source code
+        """
+        n_files = len(self._files)
+        # look for files and path tags
+        if  (n_files <= 0 or len(self._files[0]) <= 1):
+            return ''
+
         from collections import Counter
         lst = [item for sublist in [y for y in map(lambda x: x[1], self._files)] for item in sublist]
-        count = len(lst)
-        tag_set = set(lst)
-        c = Counter(lst).most_common(20)
-        print('c',c)
+        c = Counter(lst).most_common(self.most_common_limit)
 
         start = c[0][1]
-        l_size = len(self._files)
-
-        print(start, l_size, count)
+        print("start {}, l_size {}".format(start, n_files))
         button_src = ''
         for i,v in enumerate(c):
-            #if v[1] < start:
             b = v[0]
-            l = 100*(v[1]/l_size) # frequency
-            button_src = button_src + F'''  <button class="btn" onclick="filterSelection('{b}')"><div class="gauge" style="width:{l:.1f}%">{b}</div></button>\n'''
-            #else:
-            #    l_size = l_size - v[1]
-            button_src = button_src + ' '
+            l = 100.0*(v[1]/n_files) # frequency %
+            button_src = button_src + \
+                F'''<div class="btn"><div class="gauge" style="height:{l}%;"></div><button onclick="filterSelection('{b}')">{b}</button></div>'''
         return button_src
 
     def _get_rows(self):
