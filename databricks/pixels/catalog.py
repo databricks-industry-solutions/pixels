@@ -27,6 +27,16 @@ class Catalog:
                 
             )
 
+    def save(df:DataFrame, path="dbfs:/object_catalog/objects", database="objects_catalog", table="objects", mode="append", mergeSchema = "true"):
+        return (
+            df.write
+                .format("delta")
+                .mode(mode)
+                .option("path",path)
+                .option("mergeSchema", mergeSchema)
+                .saveAsTable(f"{database}.{table}")
+        )
+
     def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
         """
             Catalog the objects

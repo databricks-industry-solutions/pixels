@@ -23,7 +23,7 @@ class DicomFrames(ObjectFrames):
         return DicomFrames(self._df.withColumn(outputCol,dicom_meta_udf(col(inputCol))))
     
     def withMeta(self):
-        return self._with_path_meta()._with_meta()
+        return self._with_meta()
 
     def plot(self):
         """plot runs a distributed plotting function over all Dicom images."""
