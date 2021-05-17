@@ -15,7 +15,7 @@
 
 # MAGIC %md ## Setup
 # MAGIC Depends on:
-# MAGIC - gdcm from conda-forge (use initscript to install)
+# MAGIC - gdcm from conda-forge (use init script to install)
 # MAGIC - databricks_pixels python package
 
 # COMMAND ----------
@@ -25,7 +25,7 @@
 
 # COMMAND ----------
 
-#%pip install -r requirements.txt
+# MAGIC %pip install pydicom
 
 # COMMAND ----------
 
@@ -38,7 +38,7 @@ version.__version__
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog, DicomFrames
+from databricks.pixels import Catalog
 df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
 
 # COMMAND ----------
@@ -123,6 +123,7 @@ plots
 # MAGIC - ???? to patch images (size_x, size_y, stride_x, stride_y)
 # MAGIC - Wrapper to create image catalog
 # MAGIC - Generate identity for each file
+# MAGIC - Move path_tags from dicoms.py to objects.py
 # MAGIC ---
 # MAGIC - De-identify header information
 # MAGIC - De-identify embedded text
