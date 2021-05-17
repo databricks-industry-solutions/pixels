@@ -17,7 +17,7 @@ def dicom_meta_udf(path:str) -> dict:
             a = ds.pixel_array
             js['img_min'] = np.min(a)
             js['img_max'] = np.max(a)
-            js['img_avg'] = np.avg(a)
+            js['img_avg'] = np.average(a)
             return str(js)
     except InvalidDicomError as err:
         return str({
