@@ -17,6 +17,7 @@ class TestCatalog(unittest.TestCase):
         df = Catalog.catalog(spark, path)
         count = df.count()
         assert 60 == count
+        assert 7 == len(df.columns)
         
         print(df.columns)
         print(df.show())
