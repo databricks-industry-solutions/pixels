@@ -5,21 +5,32 @@
 # MAGIC - Delta lake & Delta Engine accelerate metadata research.
 # MAGIC - Delta lake (optionally) to speed up small file processing
 # MAGIC - Mix of Spark and Python processing
-# MAGIC - Uses pydicom python package as core library
+# MAGIC - Uses `pydicom` python package as core library
 # MAGIC 
-# MAGIC tags: douglas moore, dicom, dcm, pre-processing, visualization, repos, python, package, image catalog, mamograms
+# MAGIC author: douglas moore
+# MAGIC 
+# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, package, image catalog, mamograms
 
 # COMMAND ----------
 
 # MAGIC %md ## Setup
+# MAGIC Depends on:
+# MAGIC - gdcm from conda-forge (use initscript to install)
+# MAGIC - databricks_pixels python package
 
 # COMMAND ----------
 
 # %conda install -c conda-forge gdcm -y
+# use cluster init script
 
 # COMMAND ----------
 
 #%pip install -r requirements.txt
+
+# COMMAND ----------
+
+from databricks.pixels import version
+version.__version__
 
 # COMMAND ----------
 
@@ -28,10 +39,10 @@
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
+df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
 
 # COMMAND ----------
 
-df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
 display(df)
 
 # COMMAND ----------
@@ -63,14 +74,11 @@ dcm_df.createOrReplaceTempView("dicom_images")
 
 # COMMAND ----------
 
-# MAGIC %sql select meta:img_min, meta:img_max from dicom_images where array_contains( path_tags, 'patient7747' )
-
-# COMMAND ----------
-
 # DBTITLE 1,Analyze Dicom metadata
 # MAGIC %sql
 # MAGIC SELECT meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path 
-# MAGIC FROM dicom_images 
+# MAGIC FROM dicom_images
+# MAGIC WHERE array_contains( path_tags, 'patient7747' )
 # MAGIC order by patient_name
 
 # COMMAND ----------
@@ -79,7 +87,7 @@ dcm_df.createOrReplaceTempView("dicom_images")
 
 # COMMAND ----------
 
-dcm_df_filtered = dcm_df.filter('meta:img_max < 1000')
+dcm_df_filtered = dcm_df.filter('meta:img_max < 1000').repartition(64)
 dcm_df_filtered.count()
 
 # COMMAND ----------
@@ -90,6 +98,48 @@ dcm_df_filtered.count()
 
 plots = DicomFrames(dcm_df_filtered).plotx()
 plots
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Canonical storage format in delta
+# MAGIC 1 - ImageType
+# MAGIC 
+# MAGIC 2 - BinaryType
+# MAGIC 
+# MAGIC 3 - ArrayType
+# MAGIC 
+# MAGIC bytearray
+# MAGIC numpy
+# MAGIC png
+# MAGIC jpg - lossless
+# MAGIC TFRecord
+
+# COMMAND ----------
+
+# MAGIC %md ## TODO
+# MAGIC - Transformer to scale & filter images (down sampling)
+# MAGIC - Explode slices
+# MAGIC - ???? to patch images (size_x, size_y, stride_x, stride_y)
+# MAGIC - Wrapper to create image catalog
+# MAGIC - Generate identity for each file
+# MAGIC ---
+# MAGIC - De-identify header information
+# MAGIC - De-identify embedded text
+# MAGIC - Tech Debt: Move path tags to base class
+# MAGIC - Figure out why some images are blank and have max value >> 255
+# MAGIC - Merge with annotations
+# MAGIC - Flow into canonical DL pipeline
+# MAGIC - Build resolver for SMB:, CIFS:, https, sftp:...
+# MAGIC - Optimize plotx to avoid creating duplicate plotfiles
+# MAGIC - Scale test plotx
+# MAGIC - Write .dcm function from dataframe
+# MAGIC - Option to inline .dcm file
+# MAGIC - Test performance w/ .dcm inlined and not inlined
+# MAGIC - Test performance w/ patch inlined and not inlined
+# MAGIC - Move into databricks github
+# MAGIC - Heatmap
+# MAGIC - Customer supplied transformer
 
 # COMMAND ----------
 
