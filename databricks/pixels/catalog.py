@@ -27,12 +27,19 @@ class Catalog:
                 
             )
 
-    def save(df:DataFrame, path="dbfs:/object_catalog/objects", database="objects_catalog", table="objects", mode="append", mergeSchema = "true"):
+    def save(df:DataFrame, 
+        path:str = "dbfs:/object_catalog/objects", 
+        database:str ="objects_catalog", 
+        table:str ="objects", 
+        mode:str ="append", 
+        mergeSchema:bool = True, 
+        hasBinary:bool = False):
+        """Save Catalog dataframe to Delta table for later fast recall."""
         return (
             df.write
                 .format("delta")
                 .mode(mode)
-                .option("path",path)
+                .option("path", path)
                 .option("mergeSchema", mergeSchema)
                 .saveAsTable(f"{database}.{table}")
         )
