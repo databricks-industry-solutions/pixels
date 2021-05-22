@@ -2,7 +2,8 @@ from pyspark.sql.functions import udf
 import numpy as np
 
 @udf
-def dicom_meta_udf(path:str) -> dict:
+def dicom_meta_udf(path:str, deep:bool = True) -> dict:
+    """Extract metadata from header of dicom image file"""
     from pydicom import dcmread
     from pydicom.errors import InvalidDicomError
     import numpy as np
@@ -14,10 +15,15 @@ def dicom_meta_udf(path:str) -> dict:
                 del js['60003000']
             if '7FE00010' in js:
                 del js['7FE00010']
-            a = ds.pixel_array
-            js['img_min'] = np.min(a)
-            js['img_max'] = np.max(a)
-            js['img_avg'] = np.average(a)
+
+            if deep:
+                a = ds.pixel_array
+                a.flags.writeable = False
+                js['hash'] = hash(a.data.tobytes())
+                js['img_min'] = np.min(a)
+                js['img_max'] = np.max(a)
+                js['img_avg'] = np.average(a)
+            
             return str(js)
     except InvalidDicomError as err:
         return str({
