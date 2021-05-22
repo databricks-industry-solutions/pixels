@@ -1,17 +1,11 @@
 # Databricks notebook source
-# %conda install -c conda-forge gdcm -y
-
-# COMMAND ----------
-
-#%pip install -r requirements.txt
-
-# COMMAND ----------
-
-#%pip freeze
-
-# COMMAND ----------
-
 # MAGIC %pip install pydicom
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog
+df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/").repartition(64)
+display(df)
 
 # COMMAND ----------
 
@@ -19,12 +13,11 @@ import pydicom
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog
+
 
 # COMMAND ----------
 
-df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/").repartition(64)
-display(df)
+
 
 # COMMAND ----------
 
@@ -356,3 +349,67 @@ for item in files:
         _src = file.replace('/dbfs/FileStore','files')
         row_src = row_src + F'<div class="column {tag_str} content"><img src="{base_url}/{_src}"><p>tags: {tag_str}</p></div>\n' 
 print(row_src)
+
+# COMMAND ----------
+
+# MAGIC %fs ls dbfs:/databricks-datasets/med-images/camelyon16/
+
+# COMMAND ----------
+
+# MAGIC %md ## Test N
+
+# COMMAND ----------
+
+# MAGIC %pip install pydicom
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog
+path = "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/"
+df = Catalog.catalog(spark, path)
+display(df)
+
+# COMMAND ----------
+
+type(df)
+
+# COMMAND ----------
+
+from pyspark.sql.dataframe import DataFrame
+
+def save(df:DataFrame, path="dbfs:/object_catalog/objects", database="objects_catalog", table="objects", mode="append", mergeSchema = "true"):
+    return (
+        df.write
+            .format("delta")
+            .mode(mode)
+            .option("path",path)
+            .option("mergeSchema", mergeSchema)
+            .saveAsTable(f"{database}.{table}")
+    )
+
+# COMMAND ----------
+
+save(df, database="default", mode="overwrite")
+
+# COMMAND ----------
+
+# MAGIC %sql select * from default.objects
+
+# COMMAND ----------
+
+from databricks.pixels import DicomFrames
+from pyspark.sql import functions as F
+dcm_df = DicomFrames(df).withMeta()
+display(dcm_df)
+
+# COMMAND ----------
+
+save(dcm_df, database="default", mode="append")
+
+# COMMAND ----------
+
+# MAGIC %sql select * from default.objects
+
+# COMMAND ----------
+
+
