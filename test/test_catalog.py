@@ -5,6 +5,7 @@ spark = get_spark()
 
 class TestCatalog(unittest.TestCase):
     test_path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
+    test_path = "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/"
     
     def test_catalog_class(self):
         from databricks.pixels import Catalog
@@ -15,7 +16,7 @@ class TestCatalog(unittest.TestCase):
 
         df = Catalog.catalog(spark, self.test_path)
         count = df.count()
-        self.assertEqual(60, count )
+        self.assertEqual(170, count )
         self.assertEqual (8, len(df.columns))
         
         print(df.columns)

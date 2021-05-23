@@ -3,7 +3,7 @@ import unittest
 from spark import get_spark
 spark = get_spark()
 
-path = 'dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns'
+path = "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns"
 
 
 class TestUtils(unittest.TestCase):
@@ -27,9 +27,9 @@ class TestUtils(unittest.TestCase):
         r = utils.to_image(png)
         print(r)
 
-    test_get_image_spark(self):
+    def test_get_image_spark(self):
         from databricks.pixels import Catalog
-        o_df = Catalog.catalog(path)
+        o_df = Catalog.catalog(spark, path=path)
 
     
 if __name__ == '__main__':
