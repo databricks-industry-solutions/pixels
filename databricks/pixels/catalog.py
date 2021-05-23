@@ -34,12 +34,13 @@ class Catalog:
         return ObjectFrames(df)
 
     def save(df:DataFrame, 
-        path:str = "dbfs:/object_catalog/objects", 
+        path:str = "dbfs:/user/hive/warehouse/objects_catalog.db/objects", 
         database:str ="objects_catalog", 
         table:str ="objects", 
         mode:str ="append", 
         mergeSchema:bool = True, 
-        hasBinary:bool = False):
+        hasBinary:bool = False,
+        userMetadata = None):
         """Save Catalog dataframe to Delta table for later fast recall."""
         return (
             df.write
@@ -47,6 +48,9 @@ class Catalog:
                 .mode(mode)
                 .option("path", path)
                 .option("mergeSchema", mergeSchema)
+                .option("delta.autoOptimize.optimizeWrite","true")
+                .option("delta.autoOptimize.autoCompact","true")
+                .option("userMetadata",userMetadata)
                 .saveAsTable(f"{database}.{table}")
         )
 

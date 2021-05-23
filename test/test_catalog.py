@@ -23,6 +23,13 @@ class TestCatalog(unittest.TestCase):
         print(df.columns)
         print(df.show())
 
+    def test_catalog_save(self):
+        from databricks.pixels import Catalog
+
+        df = Catalog.catalog(spark, self.test_path)
+        r = Catalog.save(df,mode="overwrite",userMetadata="Integration Test")
+        print(r)
+
 
 if __name__ == '__main__':
     import sys, os
