@@ -2,7 +2,53 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from databricks.pixels import ObjectFrames
 
+# dfZipWithIndex helper function
+from pyspark.sql.types import LongType, StructField, StructType
+
 class Catalog:
+
+    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
+        """
+            Catalog the objects
+            parms:
+                spark - Spark context
+                path  - Root location of objects
+                pattern - file name pattern
+                recurse - True means recurse folder structure
+                partitions - Default # of partitions
+        """
+        _path = path
+        _pattern = pattern
+        _partitions = partitions
+        _recurse = str(recurse).lower()
+        df = (spark.read
+            .format("binaryFile")
+            .option("pathGlobFilter",      _pattern)
+            .option("recursiveFileLookup", _recurse)
+            .load(path)
+            .drop('content')
+            .repartition(_partitions)     
+        )
+        df = Catalog._with_path_meta(df)
+        df = Catalog.dfZipWithIndex(spark, df)
+        return ObjectFrames(df)
+
+    def save(df:DataFrame, 
+        path:str = "dbfs:/object_catalog/objects", 
+        database:str ="objects_catalog", 
+        table:str ="objects", 
+        mode:str ="append", 
+        mergeSchema:bool = True, 
+        hasBinary:bool = False):
+        """Save Catalog dataframe to Delta table for later fast recall."""
+        return (
+            df.write
+                .format("delta")
+                .mode(mode)
+                .option("path", path)
+                .option("mergeSchema", mergeSchema)
+                .saveAsTable(f"{database}.{table}")
+        )
 
     def _with_path_meta(df, basePath:str = 'dbfs:/', inputCol:str = 'path', num_trailing_path_items:int = 5):
         """ break path up into usable information """
@@ -27,50 +73,34 @@ class Catalog:
                 
             )
 
-    def save(df:DataFrame, 
-        path:str = "dbfs:/object_catalog/objects", 
-        database:str ="objects_catalog", 
-        table:str ="objects", 
-        mode:str ="append", 
-        mergeSchema:bool = True, 
-        hasBinary:bool = False):
-        """Save Catalog dataframe to Delta table for later fast recall."""
-        return (
-            df.write
-                .format("delta")
-                .mode(mode)
-                .option("path", path)
-                .option("mergeSchema", mergeSchema)
-                .saveAsTable(f"{database}.{table}")
-        )
+    def dfZipWithIndex (spark, df, offset=1, colName="rowId"):
+        '''
+            Ref: https://stackoverflow.com/questions/30304810/dataframe-ified-zipwithindex
+            Enumerates dataframe rows is native order, like rdd.ZipWithIndex(), but on a dataframe 
+            and preserves a schema
 
-    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
-        """
-            Catalog the objects
-        """
-        _path = path
-        _pattern = pattern
-        _partitions = partitions
-        _recurse = str(recurse).lower()
-        df = (spark.read
-            .format("binaryFile")
-            .option("pathGlobFilter",      _pattern)
-            .option("recursiveFileLookup", _recurse)
-            .load(path)
-            .drop('content')
-            .repartition(_partitions)     
-        )
-        df = Catalog._with_path_meta(df)
-        return ObjectFrames(df)
+            :param df: source dataframe
+            :param offset: adjustment to zipWithIndex()'s index
+            :param colName: name of the index column
+        '''
+
+        new_schema = StructType(
+                        [StructField(colName,LongType(),True)]        # new added field in front
+                        + df.schema.fields                            # previous schema
+                    )
+
+        zipped_rdd = df.rdd.zipWithIndex()
+
+        new_rdd = zipped_rdd.map(lambda row: ([row[1] +offset] + list(row[0])))
+        #from pyspark.sql.session import SparkSession
+        #s = SparkSession.builder.appName("pixels").getOrCreate()
+        return spark.createDataFrame(new_rdd, new_schema)
+
 
 if __name__ == "__main__":
-    from pyspark.sql import SparkSession
-
-    spark = (SparkSession
-                .builder
-                .appName("ObjectFrames")
-                .config('spark.ui.enabled','false')
-                .getOrCreate())
-    df1 = spark.createDataFrame([[1],[2],[3]],"a int")
-    df = ObjectFrames(df1)
-    print(df.take(5))
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(__file__)+"/../..")
+    from databricks.pixels import Catalog
+    c = Catalog()
+    #c.catalog("dbfs:/tmp")

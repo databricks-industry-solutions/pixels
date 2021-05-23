@@ -3,10 +3,11 @@ import unittest
 from spark import get_spark
 spark = get_spark()
 
-path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
+
 
 class TestCatalog(unittest.TestCase):
-
+    test_path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
+    
     def test_catalog_class(self):
         from databricks.pixels import Catalog
         assert Catalog
@@ -14,14 +15,13 @@ class TestCatalog(unittest.TestCase):
     def test_catalog_load(self):
         from databricks.pixels import Catalog
 
-        df = Catalog.catalog(spark, path)
+        df = Catalog.catalog(spark, self.test_path)
         count = df.count()
-        assert 60 == count
-        assert 7 == len(df.columns)
+        self.assertEqual(60, count )
+        self.assertEqual (8, len(df.columns))
         
         print(df.columns)
         print(df.show())
-
 
 
 if __name__ == '__main__':
