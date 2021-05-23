@@ -2,3 +2,4 @@ pandas
 pydicom
 Pillow
 matplotlib
+pyarrow

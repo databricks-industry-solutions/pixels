@@ -3,7 +3,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from pyspark.sql.functions import udf, col
-@("dict")
+@udf("dict")
 def dicom_meta_(path:str):
     with dcmread(path) as ds:
         js = ds.to_json_dict()

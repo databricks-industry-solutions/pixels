@@ -3,8 +3,6 @@ import unittest
 from spark import get_spark
 spark = get_spark()
 
-
-
 class TestCatalog(unittest.TestCase):
     test_path = 'dbfs:/databricks-datasets/med-images/camelyon16/'
     

@@ -1,5 +1,4 @@
-from pyspark.sql.functions import udf
-import numpy as np
+from pyspark.sql.functions import spark_partition_id, udf
 
 @udf
 def dicom_meta_udf(path:str, deep:bool = True) -> dict:
@@ -64,3 +63,6 @@ def dicom_plot_udf(local_path:str, figsize=(20.0,20.0)) -> str:
         err_str = F"input: {local_path}, save_file: {save_file} err: {str(err)}"
         print(err_str)
         return err_str
+
+if "__main__" == __name__:
+    x = dicom_meta_udf

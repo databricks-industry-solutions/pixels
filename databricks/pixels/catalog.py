@@ -96,8 +96,6 @@ class Catalog:
         zipped_rdd = df.rdd.zipWithIndex()
 
         new_rdd = zipped_rdd.map(lambda row: ([row[1] +offset] + list(row[0])))
-        #from pyspark.sql.session import SparkSession
-        #s = SparkSession.builder.appName("pixels").getOrCreate()
         return spark.createDataFrame(new_rdd, new_schema)
 
 
