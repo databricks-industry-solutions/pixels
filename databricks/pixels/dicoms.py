@@ -11,10 +11,11 @@ import numpy as np
 class DicomFrames(ObjectFrames):
     """ Specialized Dicom Image frame data structure """
 
-    def __init__(self, df):
+    def __init__(self, df, withMeta = True, inputCol = 'local_path', outputCol = 'meta'):
+        if withMeta:
+            df =  df.withColumn(outputCol,dicom_meta_udf(col(inputCol)))
         super(self.__class__, self).__init__(df)
         self._df = df
-
 
     def toDF(self) -> DataFrame:
         return self._df

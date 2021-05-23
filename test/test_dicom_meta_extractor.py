@@ -66,7 +66,15 @@ class TestDicomFrames(unittest.TestCase):
         response = df2.select('meta').take(1)[0]
         self.assertIsNotNone(response)
         print(response)
-        spark.stop()
+    
+    def test_dicom_to_dicom_meta_constructor(self):
+        from databricks.pixels import DicomFrames
+        o_df = get_object_frame(spark)
+        dicom_df = DicomFrames(o_df, withMeta=True)
+        self.assertTrue('meta' in dicom_df.columns,dicom_df.columns)
+        response = dicom_df.select('meta').take(1)[0]
+        self.assertIsNotNone(response)
+        print(response)
     
 if __name__ == '__main__':
     import sys, os
