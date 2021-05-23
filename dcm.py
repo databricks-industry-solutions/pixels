@@ -25,7 +25,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install pydicom
+# MAGIC %pip install pydicom Pillow
 
 # COMMAND ----------
 
@@ -38,7 +38,7 @@ version.__version__
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog
+from databricks.pixels import Catalog, DicomFrames
 df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
 
 # COMMAND ----------
@@ -76,7 +76,7 @@ dcm_df.createOrReplaceTempView("dicom_images")
 
 # DBTITLE 1,Analyze Dicom metadata
 # MAGIC %sql
-# MAGIC SELECT meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path 
+# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path 
 # MAGIC FROM dicom_images
 # MAGIC WHERE array_contains( path_tags, 'patient7747' )
 # MAGIC order by patient_name
@@ -101,6 +101,35 @@ plots
 
 # COMMAND ----------
 
+# MAGIC %md ## TODO
+# MAGIC - Transformer to scale & filter images (down sampling)
+# MAGIC - Explode slices
+# MAGIC - Transformer to patch images (size_x, size_y, stride_x, stride_y)
+# MAGIC - Inline .data
+# MAGIC - ~~Wrapper to create image catalog~~
+# MAGIC - ~~Generate identity for each file~~
+# MAGIC ---
+# MAGIC - Add to Image catalog
+# MAGIC - De-identify header information
+# MAGIC - De-identify text embedded in image
+# MAGIC - ~~Tech Debt: Move path tags to base class~~
+# MAGIC - Figure out why some images are blank and have max value >> 255
+# MAGIC - Merge with annotations
+# MAGIC - Flow into canonical DL pipeline
+# MAGIC - Build resolver for S3:, S3a:, SMB:, CIFS:, https, sftp:...
+# MAGIC - Optimize plotx to avoid creating duplicate plotfiles
+# MAGIC - Scale test plotx
+# MAGIC - Write .dcm function from dataframe
+# MAGIC - Option to inline .dcm file
+# MAGIC - Test performance w/ .dcm inlined and not inlined
+# MAGIC - Test performance w/ patch inlined and not inlined
+# MAGIC - Move into databricks github
+# MAGIC - Heatmap
+# MAGIC - Customer supplied transformer
+# MAGIC - Catalog behaviours (merge catalog, copy from/to, ...)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Canonical storage format in delta
 # MAGIC 1 - ImageType
@@ -114,33 +143,6 @@ plots
 # MAGIC png
 # MAGIC jpg - lossless
 # MAGIC TFRecord
-
-# COMMAND ----------
-
-# MAGIC %md ## TODO
-# MAGIC - Transformer to scale & filter images (down sampling)
-# MAGIC - Explode slices
-# MAGIC - ???? to patch images (size_x, size_y, stride_x, stride_y)
-# MAGIC - Wrapper to create image catalog
-# MAGIC - Generate identity for each file
-# MAGIC - Move path_tags from dicoms.py to objects.py
-# MAGIC ---
-# MAGIC - De-identify header information
-# MAGIC - De-identify embedded text
-# MAGIC - Tech Debt: Move path tags to base class
-# MAGIC - Figure out why some images are blank and have max value >> 255
-# MAGIC - Merge with annotations
-# MAGIC - Flow into canonical DL pipeline
-# MAGIC - Build resolver for SMB:, CIFS:, https, sftp:...
-# MAGIC - Optimize plotx to avoid creating duplicate plotfiles
-# MAGIC - Scale test plotx
-# MAGIC - Write .dcm function from dataframe
-# MAGIC - Option to inline .dcm file
-# MAGIC - Test performance w/ .dcm inlined and not inlined
-# MAGIC - Test performance w/ patch inlined and not inlined
-# MAGIC - Move into databricks github
-# MAGIC - Heatmap
-# MAGIC - Customer supplied transformer
 
 # COMMAND ----------
 
