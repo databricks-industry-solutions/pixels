@@ -23,7 +23,7 @@ class TestDicomFrames(unittest.TestCase):
         dicom_df = DicomFrames(o_df)
         df2 = dicom_df.withMeta()
         self.assertIn('meta',df2.columns)
-        count = df2.count()[0][0]
+        count = df2.count()
         response = df2.select('meta').take(1)[0]
         self.assertIsNotNone(response)
         print(response)
