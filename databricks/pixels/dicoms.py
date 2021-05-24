@@ -3,7 +3,6 @@ from pyspark.sql import functions as f
 from pyspark.sql.functions import udf, col
 from databricks.pixels import ObjectFrames
 from databricks.pixels import PlotResult
-#from databricks.pixels.dicom_udfs import dicom_meta_udf
 from databricks.pixels.dicom_udfs import dicom_plot_udf
 
 import numpy as np
@@ -70,6 +69,7 @@ def dcm_meta(pdfs: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
                       del js['7FE00010']
 
                   a = ds.pixel_array
+                  message_str = F"pdf: {pdf.to_json()}"
                   pdf_meta = pd.DataFrame({
                       'shape_x': [np.int32(a.shape[0])],
                       'shape_y': [np.int32(a.shape[1])],
@@ -79,6 +79,7 @@ def dcm_meta(pdfs: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
                       'img_avg': [np.average(a)],
                       'meta':    [str(js)],
                       'data':    [a.tobytes()],
+                      'message': [message_str]
                   })
                   yield pdf_meta
             except InvalidDicomError as err:
@@ -87,4 +88,4 @@ def dcm_meta(pdfs: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
                         'path': local_path
                     })
 
-dcm_meta_schema = "shape_x INT, shape_y INT, dtype STRING, img_min DOUBLE, img_max DOUBLE, img_avg DOUBLE, meta STRING, data BINARY"
+dcm_meta_schema = "shape_x INT, shape_y INT, dtype STRING, img_min DOUBLE, img_max DOUBLE, img_avg DOUBLE, meta STRING, data BINARY, message STRING"
