@@ -71,8 +71,8 @@ def dcm_meta(pdfs: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
 
                   a = ds.pixel_array
                   pdf_meta = pd.DataFrame({
-                      'shape_x': [a.shape[0]],
-                      'shape_y': [a.shape[1]],
+                      'shape_x': [np.int32(a.shape[0])],
+                      'shape_y': [np.int32(a.shape[1])],
                       'dtype':   [str(a.dtype)],
                       'img_min': [np.min(a)],
                       'img_max': [np.max(a)],
