@@ -1,20 +1,12 @@
 from pyspark.ml.pipeline import Transformer
-import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from pyspark.sql.functions import udf, col
-@udf("dict")
-def dicom_meta_(path:str):
-    with dcmread(path) as ds:
-        js = ds.to_json_dict()
-        # remove binary images
-        del js['60003000']
-        del js['7FE00010']
-        return js
+from pyspark.sql.functions import col
+from databricks.pixels.dicom_udfs import dicom_meta_udf
 
 class DicomMetaExtractor(Transformer):
     # Day extractor inherit of property of Transformer 
-    def __init__(self, inputCol='path', outputCol='meta', basePath='dbfs:/'):
+    def __init__(self, inputCol='local_path', outputCol='meta', basePath='dbfs:/'):
         self.inputCol = inputCol #the name of your columns
         self.outputCol = outputCol #the name of your output column
         self.basePath = basePath
@@ -30,9 +22,13 @@ class DicomMetaExtractor(Transformer):
             raise Exception('DicomMetaExtractor input type %s did not match input type StringType' % field.dataType)
     def _transform(self, df):
         self.check_input_type(df.schema)
-        return _transform_impl(df, self.inputCol, self.outputCol)
+        return self._transform_impl(df, self.inputCol, self.outputCol)
 
-    def _transform_impl(df, inputCol, outputCol):
-         return (df.withColumn(outputCol,self.dicom_meta_(col(inputCol))))
+    def _transform_impl(self, df, inputCol, outputCol):
+        print("calling dicom_meta_")
+        return (df.withColumn(outputCol, dicom_meta_udf(col(inputCol))))
 
 
+    
+if __name__ == '__main__':
+    exit

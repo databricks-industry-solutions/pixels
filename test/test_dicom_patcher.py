@@ -40,8 +40,9 @@ class TestDicomPatcher(unittest.TestCase):
 
     def test_dicom_patcher(self):
         from databricks.pixels import DicomFrames
-        from pyspark.ml import Pipeline
+        
         from databricks.pixels import DicomPatcher
+        from pyspark.ml import Pipeline
 
         patcher = DicomPatcher()
         pipeline = Pipeline(stages=[patcher])
