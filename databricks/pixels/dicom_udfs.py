@@ -1,5 +1,5 @@
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BinaryType
 from pyspark.sql.functions import udf
+import pandas as pd
 
 @udf
 def dicom_meta_udf(path:str, deep:bool = True) -> dict:
@@ -66,6 +66,21 @@ def dicom_plot_udf(local_path:str, figsize=(20.0,20.0)) -> str:
         return err_str
 
 
+"""
+def patcher_input(pdf):
+    for i in range(pdf.shape[0]):
+        (
+            yield
+                pdf['local_path'][i],
+                i
+        )
+"""
+
+from typing import Iterator
+import pandas as pd
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BinaryType
+
+
 dicom_patcher_schema = StructType([
     StructField('local_path',StringType(),False),
     StructField('offset_x',IntegerType(),False),
@@ -74,10 +89,30 @@ dicom_patcher_schema = StructType([
     StructField('patch',BinaryType(),False)
 ])
 
-def patcher_input(pdf):
-    for i in range(pdf.shape[0]):
-        (
-            yield
-                pdf['local_path'][i],
-                i
-        )
+#
+# mapInPandas UDF
+#
+def dicom_patcher(meta: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
+    def patcher_input(pdf):
+        for i in range(pdf.shape[0]):
+            (
+                yield
+                    pdf['local_path'][i],
+                    pdf['width'][i],
+                    pdf['height'][i],
+                    pdf['x_size'][i],
+                    pdf['x_size'][i],
+                    pdf['x_stride'][i],
+                    pdf['y_stride'][i]
+            )
+    print("dicom_patcher call")
+    j = 0
+    for pdf in meta:
+      for local_path, width, height, x_size, y_size, x_stride, y_stride, i in patcher_input(pdf):
+          for offset_x in range(0, width, x_stride):
+              for offset_y in range(0,height, y_stride):
+                  patch = b"bytes"
+                  yield local_path, offset_x, offset_y, i, patch
+
+
+

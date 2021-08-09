@@ -1,11 +1,4 @@
-from os import pipe
 import unittest
-
-import unittest
-
-from spark import get_spark
-spark = get_spark()
-
 
 from spark import get_spark
 spark = get_spark()
@@ -65,5 +58,12 @@ class TestDicomPatcher(unittest.TestCase):
 if __name__ == '__main__':
     import sys, os
     # fix sys path to include adjacent source code
-    sys.path.insert(0, os.path.dirname(__file__)+"/..")
+
+    dirname = os.path.abspath(os.path.dirname(__file__))
+    p = os.path.abspath(os.path.join(dirname, '..'))
+    sys.path.insert(0, p)
+
+    p = os.path.abspath(os.path.join(dirname, '../databricks/pixels'))
+    sys.path.insert(0, p)
+    print(']]]]]',sys.path)
     unittest.main()

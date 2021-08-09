@@ -1,11 +1,8 @@
 from pyspark.ml.pipeline import Transformer
-import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from pyspark.sql.functions import udf, col
-from typing import Iterator
-import pandas as pd
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BinaryType
+from pyspark.ml.util import *
+from databricks.pixels.dicom_udfs import dicom_patcher, dicom_patcher_schema
 
 class DicomPatcher(Transformer):
     # Day extractor inherit of property of Transformer 
@@ -38,41 +35,5 @@ class DicomPatcher(Transformer):
         return DicomPatcher._transform_impl(df, self._inputCol, self._outputCol)
 
     def _transform_impl(df, inputCol, outputCol):
-         return df.mapInPandas(dicom_patcher, dicom_patcher_schema)
-
-#
-# mapInPandas UDF
-#
-def dicom_patcher(meta: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
-    j = 0
-    for pdf in meta:
-      for local_path, width, height, x_size, y_size, x_stride, y_stride, i in patcher_input(pdf):
-          for offset_x in range(0, width, x_stride):
-              for offset_y in range(0,height, y_stride):
-                  patch = b"bytes"
-                  yield local_path, offset_x, offset_y, i, patch
-
-dicom_patcher_schema = StructType([
-    StructField('local_path',StringType(),False),
-    StructField('offset_x',IntegerType(),False),
-    StructField('offset_y',IntegerType(),False),
-    StructField('i',IntegerType(),False),
-    StructField('patch',BinaryType(),False)
-])
-
-def patcher_input(pdf):
-    for i in range(pdf.shape[0]):
-        (
-            yield
-                pdf['local_path'][i],
-                pdf['width'][i],
-                pdf['height'][i],
-                pdf['x_size'][i],
-                pdf['x_size'][i],
-                pdf['x_stride'][i],
-                pdf['y_stride'][i]
-        )
-
-
-if "__main__" == __name__:
-    0
+        print("calling map")
+        return df.mapInPandas(dicom_patcher, schema=dicom_patcher_schema)
