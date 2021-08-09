@@ -1,6 +1,6 @@
 from pandas.core.frame import DataFrame
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import lit
+from pyspark.sql.functions import lit, pandas_udf
 import pyspark.sql.types as t
 
 from pyspark.ml.util import *
@@ -17,7 +17,6 @@ dicom_patcher_schema = StructType([
     StructField('i',IntegerType(),False),
     StructField('patch',BinaryType(),False)
 ])
-
 #
 # mapInPandas UDF
 #
@@ -32,16 +31,26 @@ def dicom_patcher(meta: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
                     pdf['size_x'][i],
                     pdf['size_y'][i],
                     pdf['stride_x'][i],
-                    pdf['stride_y'][i]
+                    pdf['stride_y'][i],
+                    i
             )
     print("dicom_patcher call")
     j = 0
     for pdf in meta:
       for local_path, width, height, x_size, y_size, x_stride, y_stride, i in patcher_input(pdf):
-          for offset_x in range(0, width, x_stride):
-              for offset_y in range(0,height, y_stride):
-                  patch = b"bytes"
-                  yield local_path, offset_x, offset_y, i, patch
+        pdx = pd.DataFrame(columns=['local_path','offset_x','offset_y','i','patch'])
+        for offset_x in range(0, width, x_stride):
+          for offset_y in range(0,height, y_stride):
+            patch = b"bytes"
+            print('append')
+            pdx.append({
+              'local_path':  'blbblblblb', 
+              'offset_x':  123, 
+              'offset_y':  456, 
+              'i':         5,
+              'patch':     b'bpatch'},
+              ignore_index=True, verify_integrity=True)
+        yield pdx
 
 
 class DicomPatcher(Transformer):
@@ -56,17 +65,7 @@ class DicomPatcher(Transformer):
         self._size_y = size_y
         self._stride_x = stride_x
         self._stride_y = stride_y
-        self.to_str(self)
-
-    def to_str(self):
         print(self._inputCol, self._outputCol, self._basePath, self._size_x, self._size_y, self._stride_x, self._stride_y)
-
-    def this():
-        #define an unique ID
-        this(Identifiable.randomUID("DicomPatcher"))
-
-    def copy(extra):
-        defaultCopy(extra)
 
     def check_input_type(self, schema):
         field = schema[self._inputCol]
@@ -76,21 +75,19 @@ class DicomPatcher(Transformer):
 
     def _transform(self, df):
         self.check_input_type(df.schema)
-
-        return DicomPatcher._transform_impl(
-            (df
-                .withColumn('local_path',lit("dbfs:/tmp"))  # TODO fix
-                .withColumn('width',lit(4000))              # TODO fix
-                .withColumn('height',lit(6000))             # TODO fix
-                .withColumn('size_x',lit(self._size_x))
-                .withColumn('size_y',lit(self._size_y))
-                .withColumn('stride_x',lit(self._size_x))
-                .withColumn('stride_y',lit(self._size_y))
-            ),
-            self._inputCol, 
-            self._outputCol)
-
-    @staticmethod
-    def _transform_impl(df:DataFrame, inputCol:str, outputCol:str):
-        print("calling map", df)
-        return df.mapInPandas(dicom_patcher, schema=dicom_patcher_schema)
+        try:
+            return (df
+                    .withColumn('local_path',lit("dbfs:/tmp"))  # TODO fix
+                    .withColumn('width',lit(4000))              # TODO fix
+                    .withColumn('height',lit(6000))             # TODO fix
+                    .withColumn('size_x',lit(self._size_x))
+                    .withColumn('size_y',lit(self._size_y))
+                    .withColumn('stride_x',lit(self._size_x))
+                    .withColumn('stride_y',lit(self._size_y))
+                    .mapInPandas(dicom_patcher, schema=dicom_patcher_schema)
+            )
+        except Exception as err:
+            return str({
+                'error': str(err),
+                'module': 'dicom_xform_patcher'
+            })
