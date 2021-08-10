@@ -37,6 +37,7 @@ def dicom_patcher(meta: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
     print("dicom_patcher call")
     j = 0
     for pdf in meta:
+      print(meta)
       for local_path, width, height, x_size, y_size, x_stride, y_stride, i in patcher_input(pdf):
         pdx = pd.DataFrame(columns=['local_path','offset_x','offset_y','i','patch'])
         for offset_x in range(0, width, x_stride):
@@ -55,9 +56,14 @@ def dicom_patcher(meta: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
 
 class DicomPatcher(Transformer):
     # Day extractor inherit of property of Transformer 
-    def __init__(self, 
+    def __init__(
+        self, 
         size_x:int = 512, size_y:int = 512, stride_x:int = 512, stride_y:int = 512,
-        inputCol:str = 'path', outputCol:str = 'patch', basePath:str = 'dbfs:/'):
+        inputCol:str = 'path', outputCol:str = 'patch', 
+        basePath:str = 'dbfs:/', 
+        patcher = dicom_patcher,
+        patcher_schema = dicom_patcher_schema
+        ):
         self._inputCol = inputCol #the name of your columns
         self._outputCol = outputCol #the name of your output column
         self._basePath = basePath
@@ -65,6 +71,8 @@ class DicomPatcher(Transformer):
         self._size_y = size_y
         self._stride_x = stride_x
         self._stride_y = stride_y
+        self._patcher  = patcher
+        self._patcher_schema = patcher_schema
         print(self._inputCol, self._outputCol, self._basePath, self._size_x, self._size_y, self._stride_x, self._stride_y)
 
     def check_input_type(self, schema):
@@ -84,7 +92,7 @@ class DicomPatcher(Transformer):
                     .withColumn('size_y',lit(self._size_y))
                     .withColumn('stride_x',lit(self._size_x))
                     .withColumn('stride_y',lit(self._size_y))
-                    .mapInPandas(dicom_patcher, schema=dicom_patcher_schema)
+                    .mapInPandas(self._patcher, schema=self._patcher_schema)
             )
         except Exception as err:
             return str({

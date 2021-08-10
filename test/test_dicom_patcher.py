@@ -15,7 +15,6 @@ class TestDicomPatcher(unittest.TestCase):
     def test_dicom_patcher2(self):
         from databricks.pixels import DicomFrames
         from databricks.pixels import DicomPatcher
-        from pyspark.ml import Pipeline
 
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
