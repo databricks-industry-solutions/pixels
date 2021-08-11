@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import shape
 from pyspark.ml.pipeline import Transformer
 import pyspark.sql.types as t
 
