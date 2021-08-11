@@ -1,35 +1,6 @@
 from pyspark.sql.functions import udf
 import pandas as pd
 
-@udf
-def dicom_meta_udf(path:str, deep:bool = True) -> dict:
-    """Extract metadata from header of dicom image file"""
-    from pydicom import dcmread
-    from pydicom.errors import InvalidDicomError
-    import numpy as np
-    try:
-        with dcmread(path) as ds:
-            js = ds.to_json_dict()
-            # remove binary images
-            if '60003000' in js:
-                del js['60003000']
-            if '7FE00010' in js:
-                del js['7FE00010']
-
-            if deep:
-                a = ds.pixel_array
-                a.flags.writeable = False
-                js['hash'] = hash(a.data.tobytes())
-                js['img_min'] = np.min(a)
-                js['img_max'] = np.max(a)
-                js['img_avg'] = np.average(a)
-            
-            return str(js)
-    except InvalidDicomError as err:
-        return str({
-            'error': str(err),
-            'path': path
-        })
 
 @udf
 def dicom_plot_udf(local_path:str, figsize=(20.0,20.0)) -> str:
