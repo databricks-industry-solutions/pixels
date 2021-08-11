@@ -48,7 +48,7 @@ class TestDicomFrames(unittest.TestCase):
         model = pipeline.fit(dicom_df)
         fit_df = model.transform(dicom_df)
         #print(fit_df.count())
-        response = fit_df.select('meta').take(1)[0]
+        response = fit_df.select('meta').take(1)[0]['meta']
         self.assertIsNotNone(response)
         print(response)
 
