@@ -21,20 +21,21 @@ class PlotResult():
     """ Result holder object to get triggered by notebook's display.
     This class is responisble for formatting the HTML of the result. """
 
+    basepath = "./databricks/pixels/resources"
     def init_plot_css(self):
-        relative_path = F"./resources/plot.css"
+        relative_path = F"{PlotResult.basepath}/plot.css"
         path = os.path.abspath(relative_path)
         with open(path, 'r') as f:
             self._plot_css = f.read()
 
     def init_plot_js(self):
-        relative_path = F"./resources/plot.js"
+        relative_path = F"{PlotResult.basepath}/plot.js"
         path = os.path.abspath(relative_path)
         with open(path, 'r') as f:
             self._plot_js = f.read()
 
     def init_plot_html(self):
-        relative_path = F"./resources/plot.html"
+        relative_path = F"{PlotResult.basepath}/plot.html"
         path = os.path.abspath(relative_path)
         with open(path, 'r') as f:
             self._html_template = f.read()
