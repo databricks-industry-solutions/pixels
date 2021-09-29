@@ -4,8 +4,8 @@
 # MAGIC - Scale up Image processing over multiple-cores and nodes
 # MAGIC - Delta lake & Delta Engine accelerate metadata research.
 # MAGIC - Delta lake (optionally) to speed up small file processing
-# MAGIC - Mix of Spark and Python processing
-# MAGIC - Uses `pydicom` python package as core library
+# MAGIC - Mix of Spark and Python scale out processing
+# MAGIC - Core libray `pydicom`, a well maintained 'standard' python package for processing Dicom files.
 # MAGIC 
 # MAGIC author: douglas moore
 # MAGIC 
@@ -17,15 +17,16 @@
 # MAGIC Depends on:
 # MAGIC - gdcm from conda-forge (use init script to install)
 # MAGIC - databricks_pixels python package
+# MAGIC - %conda depends on DBR 8.4ML
 
 # COMMAND ----------
 
-# %conda install -c conda-forge gdcm -y
-# use cluster init script
+# MAGIC %conda install -c conda-forge gdcm -y
+# MAGIC # use cluster init script
 
 # COMMAND ----------
 
-# MAGIC %pip install pydicom Pillow
+# MAGIC %pip install git+https://github.com/dmoore247/pixels.git@patcher
 
 # COMMAND ----------
 
@@ -35,11 +36,28 @@ version.__version__
 # COMMAND ----------
 
 # MAGIC %md ## Load Dicom Images
+# MAGIC ```
+# MAGIC %sh wget ftp://dicom.offis.uni-oldenburg.de/pub/dicom/images/ddsm/benigns_01.zip
+# MAGIC %sh unzip benigns_01.zip
+# MAGIC %sh cp -r ./benigns /dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/
+# MAGIC ```
 
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
 df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+# MAGIC %fs ls dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0186/
+
+# COMMAND ----------
+
+df.count()
 
 # COMMAND ----------
 
@@ -56,17 +74,58 @@ display(dcm_df)
 
 # COMMAND ----------
 
+# MAGIC %md ## Save and explore the metadata
+
+# COMMAND ----------
+
+# DBTITLE 1,Save Metadata as a 'object metadata catalog'
+dcm_df.write.format('delta').option('mergeSchema','true').mode('overwrite').saveAsTable('douglas_moore_silver.meta_catalog')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT rowid, meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
+# MAGIC FROM douglas_moore_silver.meta_catalog
+# MAGIC WHERE array_contains( path_tags, 'patient7747' )
+# MAGIC order by patient_name
+
+# COMMAND ----------
+
+# MAGIC %md ## Alternate metadata extraction using a Transformer
+
+# COMMAND ----------
+
+# DBTITLE 1,Use a Transformer for metadata extraction
+from databricks.pixels import DicomMetaExtractor
+meta = DicomMetaExtractor()
+meta_df = meta.transform(df)
+display(meta_df)
+
+# COMMAND ----------
+
+meta_df.persist().createOrReplaceTempView("meta_1")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
+# MAGIC FROM meta_1
+
+# COMMAND ----------
+
 # MAGIC %md ## Save Image (metadata) Catalog
 
 # COMMAND ----------
 
-dcm_df.write.format("delta").mode("overwrite").save("/tmp/douglas_moore/dcm_catalog")
+# MAGIC %sql show databases like '*douglas*'
 
 # COMMAND ----------
 
-# DBTITLE 1,Read and cache metadata from storage
-dcm_df = spark.read.format("delta").load("/tmp/douglas_moore/dcm_catalog")
-dcm_df.createOrReplaceTempView("dicom_images")
+meta_df.write.format("delta").mode("overwrite").saveAsTable("douglas_moore_silver.meta_catalog")
+
+# COMMAND ----------
+
+# MAGIC %sql describe douglas_moore_silver.meta_catalog
 
 # COMMAND ----------
 
@@ -76,8 +135,8 @@ dcm_df.createOrReplaceTempView("dicom_images")
 
 # DBTITLE 1,Analyze Dicom metadata
 # MAGIC %sql
-# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path 
-# MAGIC FROM dicom_images
+# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
+# MAGIC FROM douglas_moore_silver.meta_catalog
 # MAGIC WHERE array_contains( path_tags, 'patient7747' )
 # MAGIC order by patient_name
 
