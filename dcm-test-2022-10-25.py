@@ -27,7 +27,7 @@
 # MAGIC 
 # MAGIC author: douglas.moore@databricks.com
 # MAGIC 
-# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, package, image catalog, mamograms
+# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms
 
 # COMMAND ----------
 
@@ -36,11 +36,6 @@
 # MAGIC - gdcm from conda-forge (use init script to install)
 # MAGIC - databricks_pixels python package
 # MAGIC - %conda depends on DBR 8.4ML
-
-# COMMAND ----------
-
-#%conda install -c conda-forge gdcm -y
-# use cluster init script
 
 # COMMAND ----------
 
@@ -195,10 +190,6 @@ dcm_df_filtered.count()
 
 plots = DicomFrames(dcm_df_filtered).plotx()
 plots
-
-# COMMAND ----------
-
-str(plots)
 
 # COMMAND ----------
 
