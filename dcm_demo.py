@@ -36,11 +36,13 @@
 # MAGIC - gdcm from conda-forge (use init script to install)
 # MAGIC - databricks_pixels python package
 # MAGIC - %conda depends on DBR 8.4ML
+# MAGIC - %conda has been depricated (licensing issue), use init script
 
 # COMMAND ----------
 
-# MAGIC %conda install -c conda-forge gdcm -y
-# MAGIC # use cluster init script
+# MAGIC %sh cat /dbfs/databricks/init_scripts/gdcm-install.sh
+# MAGIC 
+# MAGIC # use cluster init script to install conda dependencies
 
 # COMMAND ----------
 
@@ -53,7 +55,7 @@ version.__version__
 
 # COMMAND ----------
 
-# MAGIC %md ## Load Dicom Images
+# MAGIC %md ## Load Dicom Images from source
 # MAGIC ```
 # MAGIC %sh wget ftp://dicom.offis.uni-oldenburg.de/pub/dicom/images/ddsm/benigns_01.zip
 # MAGIC %sh unzip benigns_01.zip
@@ -62,12 +64,12 @@ version.__version__
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog, DicomFrames
-df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
+# MAGIC %md ## Catalog the image files
 
 # COMMAND ----------
 
-
+from databricks.pixels import Catalog, DicomFrames
+df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
 
 # COMMAND ----------
 
