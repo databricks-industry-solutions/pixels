@@ -65,7 +65,7 @@ function init() {
             // put small block image into Modal area.
             console.log(e)
             if (e.toElement) {
-              src = e.toElement.currentSrc
+              src = e.target.currentSrc
               console.log(src)
               modal.style.display = "block";
               modalImg.src = src;
