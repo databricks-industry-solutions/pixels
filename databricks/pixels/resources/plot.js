@@ -64,10 +64,12 @@ function init() {
         images[i].firstElementChild.addEventListener("click", function(e){
             // put small block image into Modal area.
             console.log(e)
-            src = e.toElement.currentSrc
-            console.log(src)
-            modal.style.display = "block";
-            modalImg.src = src;   
+            if (e.toElement) {
+              src = e.toElement.currentSrc
+              console.log(src)
+              modal.style.display = "block";
+              modalImg.src = src;
+            }
          })
     }
     url = ''
