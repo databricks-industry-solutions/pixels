@@ -31,7 +31,7 @@
 # MAGIC 
 # MAGIC author: douglas.moore@databricks.com
 # MAGIC 
-# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms
+# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
 
 # COMMAND ----------
 
@@ -40,10 +40,6 @@
 # MAGIC - python-gdcm which provides the compiled gdcm library
 # MAGIC - pydicom for a python wrapper around Dicom files and the gdcm library.
 # MAGIC - databricks_pixels python package
-
-# COMMAND ----------
-
-# MAGIC %fs ls s3://hls-eng-data-public/data/
 
 # COMMAND ----------
 
@@ -136,7 +132,7 @@ dcm_df.write.format('delta').option('mergeSchema','true').mode('overwrite').save
 
 # COMMAND ----------
 
-# MAGIC %md ## Alternate metadata extraction using a Transformer
+# MAGIC %md # Alternate metadata extraction using a Transformer
 
 # COMMAND ----------
 
@@ -192,12 +188,19 @@ dcm_df_filtered.count()
 
 # COMMAND ----------
 
-# MAGIC %md ## Display Dicom Images
+# MAGIC %md # Display Dicom Images
 
 # COMMAND ----------
 
 plots = DicomFrames(dcm_df_filtered).plotx()
+
+# COMMAND ----------
+
 plots
+
+# COMMAND ----------
+
+# MAGIC %md # Appendix
 
 # COMMAND ----------
 
@@ -246,4 +249,4 @@ plots
 
 # COMMAND ----------
 
-# MAGIC %md ## Appendix
+
