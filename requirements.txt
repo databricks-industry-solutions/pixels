@@ -3,3 +3,4 @@ pydicom
 Pillow
 matplotlib
 pyarrow
+python-gdcm==3.0.19
