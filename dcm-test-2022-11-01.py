@@ -43,27 +43,19 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install python-gdcm git+https://github.com/dmoore247/pixels.git@patcher
+# MAGIC %pip install python-gdcm==3.0.19 git+https://github.com/dmoore247/pixels.git@patcher
 
 # COMMAND ----------
 
 import gdcm
-print(gdcm.GDCM_VERSION)
-
-# COMMAND ----------
-
 from databricks.pixels import version
-version.__version__
+print(gdcm.GDCM_VERSION, version.__version__)
 
 # COMMAND ----------
 
-# MAGIC %md ## Load Dicom Images
-# MAGIC If you need sample Dicom Images of Mamograms
-# MAGIC ```
-# MAGIC %sh wget ftp://dicom.offis.uni-oldenburg.de/pub/dicom/images/ddsm/benigns_01.zip
-# MAGIC %sh unzip benigns_01.zip
-# MAGIC %sh cp -r ./benigns /dbfs/FileStore/shared_uploads/douglas.moore@databricks.com/
-# MAGIC ```
+dbutils.widgets.text("path", "s3:// or /dbfs/mnt/...")
+path = dbutils.widgets.get("path")
+print(path)
 
 # COMMAND ----------
 
@@ -71,7 +63,11 @@ version.__version__
 
 # COMMAND ----------
 
-# MAGIC %fs ls dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/patient0186/
+# MAGIC %sh ls /dbfs/mnt/databricks-datasets-private/HLS/dicom/images/ddsm
+
+# COMMAND ----------
+
+display(dbutils.fs.ls(path))
 
 # COMMAND ----------
 
@@ -82,7 +78,7 @@ version.__version__
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
-catalog_df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
+catalog_df = Catalog.catalog(spark, path)
 
 # COMMAND ----------
 
@@ -108,8 +104,8 @@ catalog_df.rdd.getNumPartitions()
 
 # COMMAND ----------
 
-# DBTITLE 1,Run the metadata extraction
-dcm_df = DicomFrames(catalog_df).withMeta()
+# DBTITLE 1,Run the Dicom metadata extraction
+dcm_df = DicomFrames(catalog_df.filter("extension='dcm'")).withMeta()
 display(dcm_df)
 
 # COMMAND ----------
