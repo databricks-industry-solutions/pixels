@@ -1,6 +1,7 @@
 pandas
-pydicom
+pydicom==2.3.0
 Pillow
 matplotlib
 pyarrow
 python-gdcm==3.0.19
+s3fs==2022.10.0
