@@ -35,27 +35,12 @@
 
 # COMMAND ----------
 
-# MAGIC %md ## Setup
-# MAGIC Depends on:
-# MAGIC - python-gdcm which provides the compiled gdcm library
-# MAGIC - pydicom for a python wrapper around Dicom files and the gdcm library.
-# MAGIC - databricks_pixels python package
-
-# COMMAND ----------
-
 # DBTITLE 1,Install requirements if this notebook is part of the Repo
 # MAGIC %pip install -r requirements.txt
 
 # COMMAND ----------
 
-# MAGIC %load_ext autoreload
-
-# COMMAND ----------
-
-# MAGIC %autoreload 2
-
-# COMMAND ----------
-
+# DBTITLE 1,Collect raw input path and catalog table
 dbutils.widgets.text("path", "s3:// or /dbfs/mnt/...", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
 dbutils.widgets.text("table", "<catalog>.<schema>.<table>", label="2.0 Catalog Schema Table to store object metadata into")
 
@@ -83,9 +68,6 @@ display(dbutils.fs.ls(path))
 
 from databricks.pixels import Catalog, DicomFrames
 catalog_df = Catalog.catalog(spark, path)
-
-# COMMAND ----------
-
 display(catalog_df)
 
 # COMMAND ----------
@@ -127,10 +109,15 @@ catalog_df.count()
 # COMMAND ----------
 
 # DBTITLE 1,Use a Transformer for metadata extraction
-from databricks.pixels import DicomMetaExtractor
+from databricks.pixels import DicomMetaExtractor # The transformer
 meta = DicomMetaExtractor()
-meta_df = meta.transform(catalog_df.repartition(10_429))
+meta_df = meta.transform(catalog_df.repartition(10_000))
 Catalog.save(meta_df, table=table, mode="overwrite")
+display(spark.table(table))
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
@@ -178,55 +165,6 @@ plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_p
 # COMMAND ----------
 
 plots
-
-# COMMAND ----------
-
-# MAGIC %md # Appendix
-
-# COMMAND ----------
-
-# MAGIC %md ## TODO
-# MAGIC - Transformer to scale & filter images (down sampling)
-# MAGIC - Explode slices
-# MAGIC - Transformer to patch images (size_x, size_y, stride_x, stride_y)
-# MAGIC - Inline .data
-# MAGIC - ~~Wrapper to create image catalog~~
-# MAGIC - ~~Generate identity for each file~~
-# MAGIC ---
-# MAGIC - Add to Image catalog
-# MAGIC - De-identify header information
-# MAGIC - De-identify text embedded in image
-# MAGIC - ~~Tech Debt: Move path tags to base class~~
-# MAGIC - Figure out why some images are blank and have max value >> 255
-# MAGIC - Merge with annotations
-# MAGIC - Flow into canonical DL pipeline
-# MAGIC - Build resolver for S3:, S3a:, SMB:, CIFS:, https, sftp:...
-# MAGIC - Optimize plotx to avoid creating duplicate plotfiles
-# MAGIC - Scale test plotx
-# MAGIC - Write .dcm function from dataframe
-# MAGIC - Option to inline .dcm file
-# MAGIC - Test performance w/ .dcm inlined and not inlined
-# MAGIC - Test performance w/ patch inlined and not inlined
-# MAGIC - Move into databricks github
-# MAGIC - Heatmap
-# MAGIC - Customer supplied transformer
-# MAGIC - Catalog behaviours (merge catalog, copy from/to, ...)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Canonical storage format in delta
-# MAGIC 1 - ImageType
-# MAGIC 
-# MAGIC 2 - BinaryType
-# MAGIC 
-# MAGIC 3 - ArrayType
-# MAGIC 
-# MAGIC bytearray
-# MAGIC numpy
-# MAGIC png
-# MAGIC jpg - lossless
-# MAGIC TFRecord
 
 # COMMAND ----------
 
