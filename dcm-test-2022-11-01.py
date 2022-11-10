@@ -43,27 +43,34 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install python-gdcm==3.0.19 git+https://github.com/dmoore247/pixels.git@patcher
+# DBTITLE 1,Install requirements if this notebook is part of the Repo
+# MAGIC %pip install -r requirements.txt
 
 # COMMAND ----------
 
 import gdcm
 from databricks.pixels import version
-print(gdcm.GDCM_VERSION, version.__version__)
+import pydicom
+print(gdcm.GDCM_VERSION, pydicom.__version__, version.__version__)
 
 # COMMAND ----------
 
-dbutils.widgets.text("path", "s3:// or /dbfs/mnt/...")
+#dbutils.widgets.removeAll()
+
+# COMMAND ----------
+
+dbutils.widgets.text("path", "s3:// or /dbfs/mnt/...", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
+dbutils.widgets.text("table", "<catalog>.<schema>.<table>", label="2.0 Catalog Schema Table to store object metadata into")
+
 path = dbutils.widgets.get("path")
-print(path)
+table = dbutils.widgets.get("table")
+
+spark.conf.set('c.table',table)
+print(path, table)
 
 # COMMAND ----------
 
 # MAGIC %md ### List a few sample raw Dicom files on cloud storage
-
-# COMMAND ----------
-
-# MAGIC %sh ls /dbfs/mnt/databricks-datasets-private/HLS/dicom/images/ddsm
 
 # COMMAND ----------
 
@@ -78,15 +85,39 @@ display(dbutils.fs.ls(path))
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
-catalog_df = Catalog.catalog(spark, path)
-
-# COMMAND ----------
-
-catalog_df.count()
+catalog_df = Catalog.catalog(spark, path, )
+catalog_df = Catalog.catalog(spark, path, partitions=10_000)
 
 # COMMAND ----------
 
 display(catalog_df)
+
+# COMMAND ----------
+
+# MAGIC %md ## Save and explore the metadata
+
+# COMMAND ----------
+
+# DBTITLE 1,Save Metadata as a 'object metadata catalog'
+Catalog.save(catalog_df, catalog="main", database="douglas_moore_silver", table="object_metadata")
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+# MAGIC %md ## Load Catalog from Delta Lake
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog
+catalog_df = Catalog.load(spark, table="main.douglas_moore_silver.object_metadata")
+display(catalog_df)
+
+# COMMAND ----------
+
+catalog_df.count()
 
 # COMMAND ----------
 
@@ -99,54 +130,31 @@ display(catalog_df)
 
 # COMMAND ----------
 
-# DBTITLE 1,The amount of parallelism
-catalog_df.rdd.getNumPartitions()
-
-# COMMAND ----------
-
-# DBTITLE 1,Run the Dicom metadata extraction
-dcm_df = DicomFrames(catalog_df.filter("extension='dcm'")).withMeta()
-display(dcm_df)
-
-# COMMAND ----------
-
-# MAGIC %md ## Save and explore the metadata
-
-# COMMAND ----------
-
-# DBTITLE 1,Save Metadata as a 'object metadata catalog'
-dcm_df.write.format('delta').option('mergeSchema','true').mode('overwrite').saveAsTable('douglas_moore_silver.meta_catalog')
-
-# COMMAND ----------
-
-# DBTITLE 1,Query the metadata table using the JSON notation
-# MAGIC %sql
-# MAGIC SELECT rowid, meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
-# MAGIC FROM douglas_moore_silver.meta_catalog
-# MAGIC WHERE array_contains( path_tags, 'patient7747' )
-# MAGIC order by patient_name
-
-# COMMAND ----------
-
-# MAGIC %md # Alternate metadata extraction using a Transformer
-
-# COMMAND ----------
-
 # DBTITLE 1,Use a Transformer for metadata extraction
 from databricks.pixels import DicomMetaExtractor
 meta = DicomMetaExtractor()
-meta_df = meta.transform(catalog_df)
-display(meta_df)
+meta_df = meta.transform(catalog_df.repartition(10_000))
+Catalog.save(meta_df, catalog="main", database="douglas_moore_silver", table="object_metadata")
 
 # COMMAND ----------
 
-meta_df.persist().createOrReplaceTempView("meta_1")
+# MAGIC %sql 
+# MAGIC select count(1) from ${c.table}
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
-# MAGIC FROM meta_1
+# MAGIC SELECT meta:['00100010'].Value[0].Alphabetic as patient_name, meta:hash, meta:img_min, meta:img_max, path, meta
+# MAGIC FROM ${c.table}
+
+# COMMAND ----------
+
+# DBTITLE 1,Query the object metadata table using the JSON notation
+# MAGIC %sql
+# MAGIC SELECT rowid, meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
+# MAGIC FROM ${c.table}
+# MAGIC WHERE array_contains( path_tags, 'patient7747' )
+# MAGIC order by patient_name
 
 # COMMAND ----------
 
@@ -181,6 +189,10 @@ meta_df.write.format("delta").mode("overwrite").saveAsTable("douglas_moore_silve
 
 dcm_df_filtered = dcm_df.filter('meta:img_max < 1000').repartition(64)
 dcm_df_filtered.count()
+
+# COMMAND ----------
+
+filtered_df = spark.sql('select * from ')
 
 # COMMAND ----------
 

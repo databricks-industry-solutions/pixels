@@ -33,8 +33,12 @@ class Catalog:
         df = Catalog.dfZipWithIndex(spark, df)
         return ObjectFrames(df)
 
+    def load(spark, table:str) -> DataFrame:
+      return ObjectFrames(spark.table(table))
+   
     def save(df:DataFrame, 
-        path:str = "dbfs:/user/hive/warehouse/objects_catalog.db/objects", 
+        path:str = None,
+        catalog:str = "hive_metastore",
         database:str ="objects_catalog", 
         table:str ="objects", 
         mode:str ="append", 
@@ -42,16 +46,20 @@ class Catalog:
         hasBinary:bool = False,
         userMetadata = None):
         """Save Catalog dataframe to Delta table for later fast recall."""
+        options = {}
+        options['mergeSchema'] = mergeSchema
+        options['delta.autoOptimize.optimizeWrite'] = "true"
+        options["delta.autoOptimize.autoCompact"] = "true"
+        if None != userMetadata:
+          options["userMetadata"] = userMetadata
+        if None != path:
+          options["path"] = path
         return (
             df.write
                 .format("delta")
                 .mode(mode)
-                .option("path", path)
-                .option("mergeSchema", mergeSchema)
-                .option("delta.autoOptimize.optimizeWrite","true")
-                .option("delta.autoOptimize.autoCompact","true")
-                .option("userMetadata",userMetadata)
-                .saveAsTable(f"{database}.{table}")
+                .options(**options)
+                .saveAsTable(f"{catalog}.{database}.{table}")
         )
 
     def _with_path_meta(df, basePath:str = 'dbfs:/', inputCol:str = 'path', num_trailing_path_items:int = 5):

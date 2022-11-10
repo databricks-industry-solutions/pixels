@@ -4,14 +4,27 @@ import pyspark.sql.types as t
 
 from pyspark.sql.functions import col, udf
 
+
 @udf
-def dicom_meta_udf(local_path:str, deep:bool = True) -> dict:
-    """Extract metadata from header of dicom image file"""
+def dicom_meta_udf(path:str, deep:bool = True) -> dict:
+    """Extract metadata from header of dicom image file
+      path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
+    """
     from pydicom import dcmread
     from pydicom.errors import InvalidDicomError
     import numpy as np
+    import s3fs
+    fs = s3fs.S3FileSystem()
+
     try:
-        with dcmread(local_path) as ds:
+        if path.startswith("s3://"):
+            """Read from S3 directly"""
+            fs = s3fs.S3FileSystem()
+            fp = fs.open(path)
+        else:
+          """Read from local filesystem"""
+          fp = open(path, 'rb')
+        with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:
             js = ds.to_json_dict()
             # remove binary images
             if '60003000' in js:
@@ -30,13 +43,12 @@ def dicom_meta_udf(local_path:str, deep:bool = True) -> dict:
                 js['img_shape_y'] = a.shape[1]
             
             return str(js)
-    except InvalidDicomError as err:
+    except Exception as err:
         return str({
             'error': str(err),
-            'local_path': local_path
+            'local_path': path
         })
-
-
+        
 class DicomMetaExtractor(Transformer):
     # Day extractor inherit of property of Transformer 
     def __init__(self, inputCol='local_path', outputCol='meta', basePath='dbfs:/'):
