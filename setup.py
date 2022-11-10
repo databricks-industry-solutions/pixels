@@ -43,8 +43,6 @@ VERSION = __version__  # noqa
 import setuptools
 from setuptools import find_packages
 
-
-
 setup(
     name='databricks-pixels',
     version=VERSION,
@@ -55,7 +53,7 @@ setup(
     author="Databricks",
     author_email="pixels@databricks.com",
     license='http://www.apache.org/licenses/LICENSE-2.0',
-    url="https://github.com/databrickslabs/pixel",
+    url="https://github.com/databrickslabs/pixels",
     project_urls={
         'Bug Tracker': 'https://github.com/databrickslabs/pixels/issues',
         'Documentation': 'https://databricks-pixels.readthedocs.io/',
@@ -64,4 +62,5 @@ setup(
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
+    package_data={'databricks': ['pixels/resources/*']},
 )

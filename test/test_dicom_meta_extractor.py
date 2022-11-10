@@ -1,13 +1,11 @@
 import unittest
 
 from spark import get_spark
-spark = get_spark()
-
 path = 'dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns'
 
-def get_object_frame(spark):
+def get_object_frame():
     from databricks.pixels import Catalog
-
+    spark = get_spark()
     df = Catalog.catalog(spark, path)
     return df
 
@@ -16,6 +14,45 @@ class TestDicomFrames(unittest.TestCase):
     def test_dicom_class(self):
         from databricks.pixels import DicomFrames
         assert DicomFrames
+
+    def test_dicom_class(self):
+        from databricks.pixels import DicomMetaExtractor
+        assert DicomMetaExtractor
+
+    def test_dicom_to_dicom_meta_xform(self):
+        from databricks.pixels import DicomFrames
+        from databricks.pixels import DicomMetaExtractor
+        o_df = get_object_frame()
+        dicom_df = DicomFrames(o_df)
+        metadata_extractor = DicomMetaExtractor()
+
+        o_df = get_object_frame()
+        dicom_df = DicomFrames(o_df)
+
+        fit_df = metadata_extractor.transform(dicom_df)
+        print(fit_df.count())
+
+    def test_dicom_to_dicom_meta(self):
+        from databricks.pixels import DicomFrames
+        from databricks.pixels import DicomMetaExtractor
+        o_df = get_object_frame()
+        dicom_df = DicomFrames(o_df)
+        metadata_extractor = DicomMetaExtractor()
+        from pyspark.ml import Pipeline
+
+        pipeline = Pipeline(stages=[metadata_extractor])
+
+        o_df = get_object_frame()
+        dicom_df = DicomFrames(o_df)
+
+        model = pipeline.fit(dicom_df)
+        fit_df = model.transform(dicom_df)
+        #print(fit_df.count())
+        response = fit_df.select('meta').take(1)[0]['meta']
+        self.assertIsNotNone(response)
+        print(response)
+
+"""  disable tests 
 
     def test_dicom_to_dicom_meta(self):
         from databricks.pixels import DicomFrames
@@ -28,7 +65,7 @@ class TestDicomFrames(unittest.TestCase):
         self.assertIsNotNone(response)
         print(response)
 
-"""  disable tests   
+  
     def test_dicom_to_dicom_meta_constructor(self):
         from databricks.pixels import DicomFrames
         o_df = get_object_frame(spark)

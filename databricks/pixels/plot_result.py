@@ -21,27 +21,28 @@ class PlotResult():
     """ Result holder object to get triggered by notebook's display.
     This class is responisble for formatting the HTML of the result. """
 
+    basepath = "./databricks/pixels/resources"
+    import os
+
     def init_plot_css(self):
-        relative_path = F"./resources/plot.css"
-        path = os.path.abspath(relative_path)
-        with open(path, 'r') as f:
+        with open(self._path_css, 'r') as f:
             self._plot_css = f.read()
 
     def init_plot_js(self):
-        relative_path = F"./resources/plot.js"
-        path = os.path.abspath(relative_path)
-        with open(path, 'r') as f:
+        with open(self._path_js, 'r') as f:
             self._plot_js = f.read()
 
     def init_plot_html(self):
-        relative_path = F"./resources/plot.html"
-        path = os.path.abspath(relative_path)
-        with open(path, 'r') as f:
+        with open(self._path_html, 'r') as f:
             self._html_template = f.read()
 
     def __init__(self, files):
         assert isinstance(files,list)
         self._files = files
+        self.root = os.path.dirname(os.path.abspath(__file__))
+        self._path_css  = os.path.join(self.root,'resources/plot.css')
+        self._path_js   = os.path.join(self.root,'resources/plot.js')
+        self._path_html = os.path.join(self.root,'resources/plot.html')
         self.init_plot_html()
         self.init_plot_js()
         self.init_plot_css()
@@ -112,3 +113,6 @@ if __name__ == "__main__":
     pr = PlotResult(items)
     html = pr._repr_html_()
     print(html)
+
+if __name__ == '__main__':
+    print(F">>>>>>>>>>>{__file__}")

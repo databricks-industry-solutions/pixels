@@ -1,11 +1,4 @@
-from os import pipe
 import unittest
-
-import unittest
-
-from spark import get_spark
-spark = get_spark()
-
 
 from spark import get_spark
 spark = get_spark()
@@ -22,7 +15,6 @@ class TestDicomPatcher(unittest.TestCase):
     def test_dicom_patcher2(self):
         from databricks.pixels import DicomFrames
         from databricks.pixels import DicomPatcher
-        from pyspark.ml import Pipeline
 
         o_df = get_object_frame(spark)
         dicom_df = DicomFrames(o_df)
@@ -47,8 +39,9 @@ class TestDicomPatcher(unittest.TestCase):
 
     def test_dicom_patcher(self):
         from databricks.pixels import DicomFrames
-        from pyspark.ml import Pipeline
+        
         from databricks.pixels import DicomPatcher
+        from pyspark.ml import Pipeline
 
         patcher = DicomPatcher()
         pipeline = Pipeline(stages=[patcher])
@@ -65,5 +58,12 @@ class TestDicomPatcher(unittest.TestCase):
 if __name__ == '__main__':
     import sys, os
     # fix sys path to include adjacent source code
-    sys.path.insert(0, os.path.dirname(__file__)+"/..")
+
+    dirname = os.path.abspath(os.path.dirname(__file__))
+    p = os.path.abspath(os.path.join(dirname, '..'))
+    sys.path.insert(0, p)
+
+    p = os.path.abspath(os.path.join(dirname, '../databricks/pixels'))
+    sys.path.insert(0, p)
+    print(']]]]]',sys.path)
     unittest.main()

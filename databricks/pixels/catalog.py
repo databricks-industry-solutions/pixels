@@ -7,51 +7,59 @@ from pyspark.sql.types import LongType, StructField, StructType
 
 class Catalog:
 
-    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True, partitions:int = 64) -> DataFrame:
+    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True) -> DataFrame:
         """
-            Catalog the objects
+            Catalog the objects and files
             parms:
                 spark - Spark context
                 path  - Root location of objects
                 pattern - file name pattern
                 recurse - True means recurse folder structure
-                partitions - Default # of partitions
         """
         _path = path
         _pattern = pattern
-        _partitions = partitions
         _recurse = str(recurse).lower()
         df = (spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      _pattern)
             .option("recursiveFileLookup", _recurse)
             .load(path)
-            .drop('content')
-            .repartition(_partitions)     
+            .drop('content')    
         )
         df = Catalog._with_path_meta(df)
         df = Catalog.dfZipWithIndex(spark, df)
         return ObjectFrames(df)
 
+    def load(spark, table:str) -> DataFrame:
+      """
+        Load Object catalog into Spark Dataframe
+      """
+      return ObjectFrames(spark.table(table))
+   
     def save(df:DataFrame, 
-        path:str = "dbfs:/user/hive/warehouse/objects_catalog.db/objects", 
-        database:str ="objects_catalog", 
-        table:str ="objects", 
+        path:str = None,
+        table:str ="hive_metastore.objects_catalog.objects", 
         mode:str ="append", 
         mergeSchema:bool = True, 
         hasBinary:bool = False,
         userMetadata = None):
-        """Save Catalog dataframe to Delta table for later fast recall."""
+        """
+          Save Catalog dataframe to Delta table for later fast recall using .load()
+        """
+        options = {}
+        options['mergeSchema'] = mergeSchema
+        options['delta.autoOptimize.optimizeWrite'] = "true"
+        options["delta.autoOptimize.autoCompact"] = "true"
+        if None != userMetadata:
+          options["userMetadata"] = userMetadata
+        if None != path:
+          options["path"] = path
         return (
             df.write
                 .format("delta")
                 .mode(mode)
-                .option("path", path)
-                .option("mergeSchema", mergeSchema)
-                .option("delta.autoOptimize.optimizeWrite","true")
-                .option("delta.autoOptimize.autoCompact","true")
-                .option("userMetadata",userMetadata)
-                .saveAsTable(f"{database}.{table}")
+                .options(**options)
+                .saveAsTable(table)
         )
 
     def _with_path_meta(df, basePath:str = 'dbfs:/', inputCol:str = 'path', num_trailing_path_items:int = 5):

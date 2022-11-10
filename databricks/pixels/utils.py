@@ -23,6 +23,3 @@ def to_image(data:bytes):
             ImageSchema.ocvTypes['CV_8UC4'],
             imgx.tobytes()
           ]}
-
-from pyspark.sql.functions import udf 
-dicom_meta_udf = udf(to_image)

@@ -63,9 +63,13 @@ function init() {
     for (i=0; i < images.length; i++) {
         images[i].firstElementChild.addEventListener("click", function(e){
             // put small block image into Modal area.
-            src = e.toElement.currentSrc
-            modal.style.display = "block";
-            modalImg.src = src;   
+            console.log(e)
+            if (e.target) {
+              src = e.target.currentSrc
+              console.log(src)
+              modal.style.display = "block";
+              modalImg.src = src;
+            }
          })
     }
     url = ''

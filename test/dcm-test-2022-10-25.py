@@ -19,32 +19,40 @@
 # MAGIC ---
 # MAGIC ## About databricks.pixels
 # MAGIC - Use `databricks.pixels` python package for simplicity
+# MAGIC   - Catalog your images
+# MAGIC   - Extract Metadata
+# MAGIC   - Display thumbnails
+# MAGIC   
 # MAGIC - Scale up Image processing over multiple-cores and nodes
 # MAGIC - Delta lake & Delta Engine accelerate metadata research.
 # MAGIC - Delta lake (optionally) to speed up small file processing
 # MAGIC - Mix of Spark and Python scale out processing
-# MAGIC - Core library `pydicom`, a well maintained 'standard' python package for processing Dicom files.
+# MAGIC - Core libraries `python-gdcm` `pydicom`, well maintained 'standard' python packages for processing Dicom files.
 # MAGIC 
 # MAGIC author: douglas.moore@databricks.com
 # MAGIC 
-# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, package, image catalog, mamograms
+# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms
 
 # COMMAND ----------
 
 # MAGIC %md ## Setup
 # MAGIC Depends on:
-# MAGIC - gdcm from conda-forge (use init script to install)
+# MAGIC - python-gdcm which provides the compiled gdcm library
+# MAGIC - pydicom for a python wrapper around Dicom files and the gdcm library.
 # MAGIC - databricks_pixels python package
-# MAGIC - %conda depends on DBR 8.4ML
 
 # COMMAND ----------
 
-# MAGIC %conda install -c conda-forge gdcm -y
-# MAGIC # use cluster init script
+# MAGIC %fs ls s3://hls-eng-data-public/data/
 
 # COMMAND ----------
 
-# MAGIC %pip install git+https://github.com/dmoore247/pixels.git@patcher
+# MAGIC %pip install python-gdcm git+https://github.com/dmoore247/pixels.git@patcher
+
+# COMMAND ----------
+
+import gdcm
+print(gdcm.GDCM_VERSION)
 
 # COMMAND ----------
 
@@ -54,6 +62,7 @@ version.__version__
 # COMMAND ----------
 
 # MAGIC %md ## Load Dicom Images
+# MAGIC If you need sample Dicom Images of Mamograms
 # MAGIC ```
 # MAGIC %sh wget ftp://dicom.offis.uni-oldenburg.de/pub/dicom/images/ddsm/benigns_01.zip
 # MAGIC %sh unzip benigns_01.zip
@@ -62,12 +71,7 @@ version.__version__
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog, DicomFrames
-df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
-
-# COMMAND ----------
-
-
+# MAGIC %md ### List a few sample raw Dicom files on cloud storage
 
 # COMMAND ----------
 
@@ -75,19 +79,41 @@ df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databr
 
 # COMMAND ----------
 
-df.count()
+# MAGIC %md ## Catalog the files
+# MAGIC `databricks.pixels.Catalog` just looks at the file metadata
+# MAGIC The Catalog function recursively list all files, parsing the path and filename into a dataframe. This dataframe can be saved into a file 'catalog'. This file catalog can be the basis of further annotations
 
 # COMMAND ----------
 
-display(df)
+from databricks.pixels import Catalog, DicomFrames
+catalog_df = Catalog.catalog(spark, "dbfs:/FileStore/shared_uploads/douglas.moore@databricks.com/benigns/")
+
+# COMMAND ----------
+
+catalog_df.count()
+
+# COMMAND ----------
+
+display(catalog_df)
 
 # COMMAND ----------
 
 # MAGIC %md ## Extract Metadata from the Dicom images
+# MAGIC Using the Catalog dataframe, we can now open each Dicom file and extract the metadata from the Dicom file header. This operation runs in parallel, speeding up processing. The resulting `dcm_df` does not in-line the entire Dicom file. Dicom files tend to be larger so we process Dicom files only by reference.
+# MAGIC 
+# MAGIC Under the covers we use PyDicom and gdcm to parse the Dicom files
+# MAGIC 
+# MAGIC The Dicom metadata is extracted into a JSON string formatted column named `meta`
 
 # COMMAND ----------
 
-dcm_df = DicomFrames(df).withMeta()
+# DBTITLE 1,The amount of parallelism
+catalog_df.rdd.getNumPartitions()
+
+# COMMAND ----------
+
+# DBTITLE 1,Run the metadata extraction
+dcm_df = DicomFrames(catalog_df).withMeta()
 display(dcm_df)
 
 # COMMAND ----------
@@ -101,6 +127,7 @@ dcm_df.write.format('delta').option('mergeSchema','true').mode('overwrite').save
 
 # COMMAND ----------
 
+# DBTITLE 1,Query the metadata table using the JSON notation
 # MAGIC %sql
 # MAGIC SELECT rowid, meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
 # MAGIC FROM douglas_moore_silver.meta_catalog
@@ -116,7 +143,7 @@ dcm_df.write.format('delta').option('mergeSchema','true').mode('overwrite').save
 # DBTITLE 1,Use a Transformer for metadata extraction
 from databricks.pixels import DicomMetaExtractor
 meta = DicomMetaExtractor()
-meta_df = meta.transform(df)
+meta_df = meta.transform(catalog_df)
 display(meta_df)
 
 # COMMAND ----------
@@ -135,15 +162,11 @@ meta_df.persist().createOrReplaceTempView("meta_1")
 
 # COMMAND ----------
 
-# MAGIC %sql show databases like '*douglas*'
-
-# COMMAND ----------
-
 meta_df.write.format("delta").mode("overwrite").saveAsTable("douglas_moore_silver.meta_catalog")
 
 # COMMAND ----------
 
-# MAGIC %sql describe douglas_moore_silver.meta_catalog
+# MAGIC %sql describe extended douglas_moore_silver.meta_catalog
 
 # COMMAND ----------
 
