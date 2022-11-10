@@ -48,14 +48,11 @@
 
 # COMMAND ----------
 
-import gdcm
-from databricks.pixels import version
-import pydicom
-print(gdcm.GDCM_VERSION, pydicom.__version__, version.__version__)
+# MAGIC %load_ext autoreload
 
 # COMMAND ----------
 
-#dbutils.widgets.removeAll()
+# MAGIC %autoreload 2
 
 # COMMAND ----------
 
@@ -78,15 +75,14 @@ display(dbutils.fs.ls(path))
 
 # COMMAND ----------
 
-# MAGIC %md ## Catalog the files
+# MAGIC %md ## Catalog the objects and files
 # MAGIC `databricks.pixels.Catalog` just looks at the file metadata
 # MAGIC The Catalog function recursively list all files, parsing the path and filename into a dataframe. This dataframe can be saved into a file 'catalog'. This file catalog can be the basis of further annotations
 
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
-catalog_df = Catalog.catalog(spark, path, )
-catalog_df = Catalog.catalog(spark, path, partitions=10_000)
+catalog_df = Catalog.catalog(spark, path)
 
 # COMMAND ----------
 
@@ -99,11 +95,11 @@ display(catalog_df)
 # COMMAND ----------
 
 # DBTITLE 1,Save Metadata as a 'object metadata catalog'
-Catalog.save(catalog_df, catalog="main", database="douglas_moore_silver", table="object_metadata")
+Catalog.save(catalog_df, table=table, mode="overwrite")
 
 # COMMAND ----------
 
-
+# MAGIC %sql select count(*) from ${c.table}
 
 # COMMAND ----------
 
@@ -112,7 +108,7 @@ Catalog.save(catalog_df, catalog="main", database="douglas_moore_silver", table=
 # COMMAND ----------
 
 from databricks.pixels import Catalog
-catalog_df = Catalog.load(spark, table="main.douglas_moore_silver.object_metadata")
+catalog_df = Catalog.load(spark, table=table)
 display(catalog_df)
 
 # COMMAND ----------
@@ -133,8 +129,12 @@ catalog_df.count()
 # DBTITLE 1,Use a Transformer for metadata extraction
 from databricks.pixels import DicomMetaExtractor
 meta = DicomMetaExtractor()
-meta_df = meta.transform(catalog_df.repartition(10_000))
-Catalog.save(meta_df, catalog="main", database="douglas_moore_silver", table="object_metadata")
+meta_df = meta.transform(catalog_df.repartition(10_429))
+Catalog.save(meta_df, table=table, mode="overwrite")
+
+# COMMAND ----------
+
+# MAGIC %md ## Analyze Metadata
 
 # COMMAND ----------
 
@@ -158,41 +158,13 @@ Catalog.save(meta_df, catalog="main", database="douglas_moore_silver", table="ob
 
 # COMMAND ----------
 
-# MAGIC %md ## Save Image (metadata) Catalog
-
-# COMMAND ----------
-
-meta_df.write.format("delta").mode("overwrite").saveAsTable("douglas_moore_silver.meta_catalog")
-
-# COMMAND ----------
-
-# MAGIC %sql describe extended douglas_moore_silver.meta_catalog
-
-# COMMAND ----------
-
-# MAGIC %md ## Analyze Metadata
-
-# COMMAND ----------
-
-# DBTITLE 1,Analyze Dicom metadata
-# MAGIC %sql
-# MAGIC SELECT meta:hash, meta:['00100010'].Value[0].Alphabetic as patient_name, meta:img_min, meta:img_max, path, meta
-# MAGIC FROM douglas_moore_silver.meta_catalog
-# MAGIC WHERE array_contains( path_tags, 'patient7747' )
-# MAGIC order by patient_name
-
-# COMMAND ----------
-
 # MAGIC %md ## Filter Dicom Images
 
 # COMMAND ----------
 
-dcm_df_filtered = dcm_df.filter('meta:img_max < 1000').repartition(64)
+from databricks.pixels import Catalog
+dcm_df_filtered = Catalog.load(spark, table=table).filter('meta:img_max < 1000').repartition(1000)
 dcm_df_filtered.count()
-
-# COMMAND ----------
-
-filtered_df = spark.sql('select * from ')
 
 # COMMAND ----------
 
@@ -200,7 +172,12 @@ filtered_df = spark.sql('select * from ')
 
 # COMMAND ----------
 
-plots = DicomFrames(dcm_df_filtered).plotx()
+from databricks.pixels import DicomFrames
+plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_path").plotx()
+
+# COMMAND ----------
+
+plots._files
 
 # COMMAND ----------
 

@@ -25,7 +25,7 @@ class DicomFrames(ObjectFrames):
         return self._with_meta()
 
     def plot(self):
-        """plot runs a distributed plotting function over all Dicom images."""
+        """plot runs a distributed plotting function over all Dicom images returning plot."""
         lst = self._df.withColumn(
                 'plot',
                 dicom_plot_udf(col('local_path'))
@@ -33,7 +33,7 @@ class DicomFrames(ObjectFrames):
         return PlotResult([y for y in map(lambda x: x[0], lst)])
 
     def plotx(self):
-        """plot runs a distributed plotting function over all Dicom images."""
+        """plot runs a distributed plotting function over all Dicom images returning plot and path_tags."""
         lst = self._df.withColumn(
                 'plot',
                 dicom_plot_udf(col('local_path'))
