@@ -177,10 +177,6 @@ plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_p
 
 # COMMAND ----------
 
-plots._files
-
-# COMMAND ----------
-
 plots
 
 # COMMAND ----------
