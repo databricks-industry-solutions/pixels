@@ -3,11 +3,11 @@
 #
 # Copyright (C) 2021 Databricks, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Databricks License;
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://github.com/databricks-industry-solutions/pixels/blob/main/LICENSE
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -52,12 +52,12 @@ setup(
     install_requires=required,
     author="Databricks",
     author_email="pixels@databricks.com",
-    license='http://www.apache.org/licenses/LICENSE-2.0',
+    license='https://github.com/databricks-industry-solutions/pixels/blob/main/LICENSE',
     url="https://github.com/databrickslabs/pixels",
     project_urls={
-        'Bug Tracker': 'https://github.com/databrickslabs/pixels/issues',
+        'Bug Tracker': 'https://github.com/databricks-industry-solutions/pixels/issues',
         'Documentation': 'https://databricks-pixels.readthedocs.io/',
-        'Source Code': 'https://github.com/databrickslabs/pixels'
+        'Source Code': 'https://github.com/databricks-industry-solutions/pixels'
     },
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,

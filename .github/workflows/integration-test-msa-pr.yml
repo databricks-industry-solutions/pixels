@@ -1,0 +1,45 @@
+name: MSA integration test PR
+on:
+ pull_request:
+
+jobs:
+ run-databricks-notebook:
+   runs-on: ubuntu-latest
+   steps:
+     - name: Checkout repo
+       uses: actions/checkout@v2
+     - name: Run a databricks notebook
+       uses: databricks/run-notebook@v0
+       with:
+         local-notebook-path: RUNME.py
+         git-commit: ${{ github.event.pull_request.head.sha }}
+         databricks-host: https://adb-984752964297111.11.azuredatabricks.net
+         databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_MSA }}
+         new-cluster-json: >
+           {
+             "num_workers": 0,
+             "spark_version": "10.4.x-scala2.12",
+             "node_type_id": "Standard_DS3_v2",
+             "azure_attributes": {
+                  "availability": "ON_DEMAND_AZURE"
+                            },
+             "spark_conf": {
+                  "spark.master": "local[*, 4]",
+                  "spark.databricks.cluster.profile": "singleNode"
+              },
+              "custom_tags": {
+                  "ResourceClass": "SingleNode"
+              }
+                            
+           }
+         notebook-params-json: >
+           {
+            "run_job": "True"
+           }
+         access-control-list-json: >
+           [
+             {
+               "group_name": "users",
+               "permission_level": "CAN_VIEW"
+             }
+           ]

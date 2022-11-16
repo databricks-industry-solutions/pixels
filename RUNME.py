@@ -3,7 +3,7 @@
 # MAGIC 🎉
 # MAGIC 
 # MAGIC **Steps**
-# MAGIC 1. Simply attach this notebook to a cluster with DBR 11.0 and above, and hit Run-All for this notebook. A multi-step job and the clusters used in the job will be created for you and hyperlinks are printed on the last block of the notebook. 
+# MAGIC 1. Simply attach this notebook to a cluster and hit `Run all` for this notebook. A multi-step job and the clusters used in the job will be created for you and hyperlinks are printed on the last block of the notebook. 
 # MAGIC 
 # MAGIC 2. Run the accelerator notebooks: Feel free to explore the multi-step job page and **run the Workflow**, or **run the notebooks interactively** with the cluster to see how this solution accelerator executes. 
 # MAGIC 
@@ -37,34 +37,22 @@ job_json = {
         "max_concurrent_runs": 1,
         "tags": {
             "usage": "solacc_testing",
-            "group": "SOLACC"
+            "group": "HLS"
         },
         "tasks": [
             {
-                "job_cluster_key": "sample_solacc_cluster",
+                "job_cluster_key": "pixels_cluster",
                 "notebook_task": {
-                    "notebook_path": f"01_Introduction_And_Setup"
+                    "notebook_path": f"01-dcm-demo"
                 },
-                "task_key": "sample_solacc_01"
-            },
-            {
-                "job_cluster_key": "sample_solacc_cluster",
-                "notebook_task": {
-                    "notebook_path": f"02_Analysis"
-                },
-                "task_key": "sample_solacc_02",
-                "depends_on": [
-                    {
-                        "task_key": "sample_solacc_01"
-                    }
-                ]
+                "task_key": "pixels_01"
             }
         ],
         "job_clusters": [
             {
-                "job_cluster_key": "sample_solacc_cluster",
+                "job_cluster_key": "pixels_cluster",
                 "new_cluster": {
-                    "spark_version": "10.4.x-cpu-ml-scala2.12",
+                    "spark_version": "11.3.x-cpu-ml-scala2.12",
                 "spark_conf": {
                     "spark.databricks.delta.formatCheck.enabled": "false"
                     },

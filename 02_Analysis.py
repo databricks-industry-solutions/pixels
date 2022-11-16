@@ -1,2 +1,0 @@
-# Databricks notebook source
-
