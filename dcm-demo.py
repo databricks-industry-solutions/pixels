@@ -40,19 +40,25 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install git+https://github.com/databricks-industry-solutions/pixels.git@migrate-to-db
+token = dbutils.secrets.get("dm-creds", "github")
+
+# COMMAND ----------
+
+# MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git@migrate-to-db
 
 # COMMAND ----------
 
 # DBTITLE 1,Collect raw input path and catalog table
 dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
 dbutils.widgets.text("table", "<catalog>.<schema>.<table>", label="2.0 Catalog Schema Table to store object metadata into")
+dbutils.widgets.dropdown("mode",defaultValue="overwrite",choices=["overwrite","append"], label="3.0 Update mode on object metadata table")
 
 path = dbutils.widgets.get("path")
 table = dbutils.widgets.get("table")
+write_mode = dbutils.widgets.get("mode")
 
 spark.conf.set('c.table',table)
-print(path, table)
+print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
@@ -84,7 +90,7 @@ display(catalog_df)
 # COMMAND ----------
 
 # DBTITLE 1,Save Metadata as a 'object metadata catalog'
-Catalog.save(catalog_df, table=table, mode="overwrite")
+Catalog.save(catalog_df, table=table, mode=write_mode)
 
 # COMMAND ----------
 
@@ -119,7 +125,7 @@ catalog_df.count()
 from databricks.pixels import DicomMetaExtractor # The transformer
 meta = DicomMetaExtractor()
 meta_df = meta.transform(catalog_df.repartition(10_000))
-Catalog.save(meta_df, table=table, mode="overwrite")
+Catalog.save(meta_df, table=table, mode=write_mode)
 display(spark.table(table))
 
 # COMMAND ----------
@@ -171,4 +177,5 @@ plots
 
 # COMMAND ----------
 
-
+# MAGIC %md
+# MAGIC done
