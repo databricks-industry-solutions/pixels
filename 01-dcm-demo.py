@@ -1,4 +1,9 @@
 # Databricks notebook source
+# MAGIC %md 
+# MAGIC You may find this solution accelerator at https://github.com/databricks-industry-solutions/pixels. 
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC 
 # MAGIC # Scale Dicom based image processing
