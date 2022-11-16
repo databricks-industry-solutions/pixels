@@ -36,7 +36,11 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install requirements if this notebook is part of the Repo
-# MAGIC %pip install -r requirements.txt
+#%pip install -r requirements.txt
+
+# COMMAND ----------
+
+# MAGIC %pip install git+https://github.com/databricks-industry-solutions/pixels.git@migrate-to-db
 
 # COMMAND ----------
 
@@ -56,7 +60,10 @@ print(path, table)
 
 # COMMAND ----------
 
-display(dbutils.fs.ls(path))
+if path.startswith("s3"):
+  display(dbutils.fs.ls(path))
+else:
+  display(dbutils.fs.ls(F"file:///{path}"))
 
 # COMMAND ----------
 
@@ -114,10 +121,6 @@ meta = DicomMetaExtractor()
 meta_df = meta.transform(catalog_df.repartition(10_000))
 Catalog.save(meta_df, table=table, mode="overwrite")
 display(spark.table(table))
-
-# COMMAND ----------
-
-
 
 # COMMAND ----------
 
