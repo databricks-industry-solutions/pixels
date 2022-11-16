@@ -41,7 +41,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Collect raw input path and catalog table
-dbutils.widgets.text("path", "s3:// or /dbfs/mnt/...", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
+dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
 dbutils.widgets.text("table", "<catalog>.<schema>.<table>", label="2.0 Catalog Schema Table to store object metadata into")
 
 path = dbutils.widgets.get("path")
