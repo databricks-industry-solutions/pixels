@@ -46,7 +46,7 @@ token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 # COMMAND ----------
 
 # DBTITLE 1,Install requirements
-# MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git@migrate-to-db
+# MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git
 
 # COMMAND ----------
 
