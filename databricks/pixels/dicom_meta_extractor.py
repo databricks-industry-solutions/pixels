@@ -16,7 +16,7 @@ def dicom_meta_udf(path:str, deep:bool = True) -> dict:
     import s3fs
     fs = s3fs.S3FileSystem()
 
-    try:
+    #try:
         if path.startswith("s3://"):
             """Read from S3 directly"""
             fs = s3fs.S3FileSystem()
@@ -43,11 +43,11 @@ def dicom_meta_udf(path:str, deep:bool = True) -> dict:
                 js['img_shape_y'] = a.shape[1]
             
             return str(js)
-    except Exception as err:
-        return str({
-            'error': str(err),
-            'local_path': path
-        })
+    #except Exception as err:
+    #    return str({
+    #        'error': str(err),
+    #        'path': path
+    #    })
         
 class DicomMetaExtractor(Transformer):
     # Day extractor inherit of property of Transformer 

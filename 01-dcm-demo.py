@@ -130,6 +130,53 @@ catalog_df.count()
 
 # COMMAND ----------
 
+meta_df.limit(10).display()
+
+# COMMAND ----------
+
+def dicom_meta_udf(path:str, deep:bool = True) -> dict:
+    """Extract metadata from header of dicom image file
+      path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
+    """
+    from pydicom import dcmread
+    from pydicom.errors import InvalidDicomError
+    import numpy as np
+    import s3fs
+
+    if path.startswith("s3://"):
+        """Read from S3 directly"""
+        fs = s3fs.S3FileSystem(anon=True)
+        fp = fs.open(path)
+    else:
+      """Read from local filesystem"""
+      fp = open(path, 'rb')
+    with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:
+        js = ds.to_json_dict()
+        # remove binary images
+        if '60003000' in js:
+            del js['60003000']
+        if '7FE00010' in js:
+            del js['7FE00010']
+
+        if deep:
+            a = ds.pixel_array
+            a.flags.writeable = False
+            js['hash'] = hash(a.data.tobytes())
+            js['img_min'] = np.min(a)
+            js['img_max'] = np.max(a)
+            js['img_avg'] = np.average(a)
+            js['img_shape_x'] = a.shape[0]
+            js['img_shape_y'] = a.shape[1]
+
+        return str(js)
+
+# COMMAND ----------
+
+pathx = "s3://hls-eng-data-public/dicom/ddsm/normals/patient4506/4506.LEFT_CC.dcm"
+dicom_meta_udf(pathx)
+
+# COMMAND ----------
+
 # DBTITLE 1,Use a Transformer for metadata extraction
 from databricks.pixels import DicomMetaExtractor # The transformer
 meta = DicomMetaExtractor()
