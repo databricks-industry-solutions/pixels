@@ -40,8 +40,13 @@
 
 # COMMAND ----------
 
+# MAGIC %load_ext autoreload
+# MAGIC %autoreload 2
+
+# COMMAND ----------
+
 # DBTITLE 1,This token is no longer needed once this repo becomes public - when that happens please adjust the block below
-token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat") 
+token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
@@ -50,7 +55,7 @@ token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
-# DBTITLE 1,Collect raw input path and catalog table
+# DBTITLE 1,Collect input parameters
 dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
 dbutils.widgets.text("table", "hive_metastore.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
 dbutils.widgets.dropdown("mode",defaultValue="overwrite",choices=["overwrite","append"], label="3.0 Update mode on object metadata table")
@@ -64,24 +69,6 @@ print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
-# DBTITLE 1,Reinitiate the database we use for this accelerator
-database_name = table.split(".")[1]
-spark.sql(f"DROP DATABASE IF EXISTS {database_name} CASCADE")
-spark.sql(f"CREATE DATABASE {database_name}")
-
-# COMMAND ----------
-
-# MAGIC %md ### List a few sample raw Dicom files on cloud storage
-
-# COMMAND ----------
-
-if path.startswith("s3"):
-  display(dbutils.fs.ls(path))
-else:
-  display(dbutils.fs.ls(F"file:///{path}"))
-
-# COMMAND ----------
-
 # MAGIC %md ## Catalog the objects and files
 # MAGIC `databricks.pixels.Catalog` just looks at the file metadata
 # MAGIC The Catalog function recursively list all files, parsing the path and filename into a dataframe. This dataframe can be saved into a file 'catalog'. This file catalog can be the basis of further annotations
@@ -89,8 +76,13 @@ else:
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
-catalog_df = Catalog.catalog(spark, path)
+catalog = Catalog(spark, path=path, table=table)
+catalog_df = catalog.catalog()
 display(catalog_df)
+
+# COMMAND ----------
+
+str(catalog)
 
 # COMMAND ----------
 
@@ -99,7 +91,7 @@ display(catalog_df)
 # COMMAND ----------
 
 # DBTITLE 1,Save Metadata as a 'object metadata catalog'
-Catalog.save(catalog_df, table=table, mode=write_mode)
+catalog.save(catalog_df, mode=write_mode)
 
 # COMMAND ----------
 
@@ -112,7 +104,7 @@ Catalog.save(catalog_df, table=table, mode=write_mode)
 # COMMAND ----------
 
 from databricks.pixels import Catalog
-catalog_df = Catalog.load(spark, table=table)
+catalog_df = catalog.load()
 display(catalog_df)
 
 # COMMAND ----------
@@ -130,58 +122,21 @@ catalog_df.count()
 
 # COMMAND ----------
 
-meta_df.limit(10).display()
+from databricks.pixels import DicomMetaExtractor # The transformer
+meta = DicomMetaExtractor(catalog)
+meta_df = meta.transform(catalog_df.repartition(10_000))
 
 # COMMAND ----------
 
-def dicom_meta_udf(path:str, deep:bool = True) -> dict:
-    """Extract metadata from header of dicom image file
-      path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
-    """
-    from pydicom import dcmread
-    from pydicom.errors import InvalidDicomError
-    import numpy as np
-    import s3fs
-
-    if path.startswith("s3://"):
-        """Read from S3 directly"""
-        fs = s3fs.S3FileSystem(anon=True)
-        fp = fs.open(path)
-    else:
-      """Read from local filesystem"""
-      fp = open(path, 'rb')
-    with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:
-        js = ds.to_json_dict()
-        # remove binary images
-        if '60003000' in js:
-            del js['60003000']
-        if '7FE00010' in js:
-            del js['7FE00010']
-
-        if deep:
-            a = ds.pixel_array
-            a.flags.writeable = False
-            js['hash'] = hash(a.data.tobytes())
-            js['img_min'] = np.min(a)
-            js['img_max'] = np.max(a)
-            js['img_avg'] = np.average(a)
-            js['img_shape_x'] = a.shape[0]
-            js['img_shape_y'] = a.shape[1]
-
-        return str(js)
-
-# COMMAND ----------
-
-pathx = "s3://hls-eng-data-public/dicom/ddsm/normals/patient4506/4506.LEFT_CC.dcm"
-dicom_meta_udf(pathx)
+display(meta_df)
 
 # COMMAND ----------
 
 # DBTITLE 1,Use a Transformer for metadata extraction
 from databricks.pixels import DicomMetaExtractor # The transformer
-meta = DicomMetaExtractor()
+meta = DicomMetaExtractor(catalog)
 meta_df = meta.transform(catalog_df.repartition(10_000))
-Catalog.save(meta_df, table=table, mode=write_mode)
+catalog.save(meta_df, table=table, mode=write_mode)
 display(spark.table(table))
 
 # COMMAND ----------
@@ -190,7 +145,7 @@ display(spark.table(table))
 
 # COMMAND ----------
 
-# MAGIC %sql 
+# MAGIC %sql
 # MAGIC select count(1) from ${c.table}
 
 # COMMAND ----------
@@ -215,7 +170,7 @@ display(spark.table(table))
 # COMMAND ----------
 
 from databricks.pixels import Catalog
-dcm_df_filtered = Catalog.load(spark, table=table).filter('meta:img_max < 1000').repartition(1000)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)
 dcm_df_filtered.count()
 
 # COMMAND ----------
@@ -226,6 +181,10 @@ dcm_df_filtered.count()
 
 from databricks.pixels import DicomFrames
 plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_path").plotx()
+
+# COMMAND ----------
+
+help(plots)
 
 # COMMAND ----------
 

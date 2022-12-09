@@ -2,24 +2,26 @@ from numpy.core.fromnumeric import shape
 from pyspark.ml.pipeline import Transformer
 import pyspark.sql.types as t
 
-from pyspark.sql.functions import col, udf
+from pyspark.sql.functions import col, udf, lit
 
+from pydicom import dcmread
+from pydicom.errors import InvalidDicomError
 
 @udf
-def dicom_meta_udf(path:str, deep:bool = True) -> dict:
-    """Extract metadata from header of dicom image file
-      path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
+def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
     """
-    from pydicom import dcmread
-    from pydicom.errors import InvalidDicomError
+      Purpose: Extract metadata from header of dicom image file
+      @param path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
+      @param deep: True if deep inspection of the Dicom header is required
+      @param anon: Set to True if accessing S3 and the bucket is public
+    """
     import numpy as np
-    import s3fs
-    fs = s3fs.S3FileSystem()
 
-    #try:
+    try:
         if path.startswith("s3://"):
             """Read from S3 directly"""
-            fs = s3fs.S3FileSystem()
+            import s3fs
+            fs = s3fs.S3FileSystem(anon)
             fp = fs.open(path)
         else:
           """Read from local filesystem"""
@@ -43,18 +45,21 @@ def dicom_meta_udf(path:str, deep:bool = True) -> dict:
                 js['img_shape_y'] = a.shape[1]
             
             return str(js)
-    #except Exception as err:
-    #    return str({
-    #        'error': str(err),
-    #        'path': path
-    #    })
+    except Exception as err:
+        except_str =  str({
+            'error': str(err),
+            'path': path
+        })
+        print(except_str)
+        return except_str
         
 class DicomMetaExtractor(Transformer):
     # Day extractor inherit of property of Transformer 
-    def __init__(self, inputCol='local_path', outputCol='meta', basePath='dbfs:/'):
+    def __init__(self, catalog, inputCol='local_path', outputCol='meta', basePath='dbfs:/'):
         self.inputCol = inputCol #the name of your columns
         self.outputCol = outputCol #the name of your output column
         self.basePath = basePath
+        self.catalog = catalog
     
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -66,7 +71,12 @@ class DicomMetaExtractor(Transformer):
 
     def _transform(self, df):
         self.check_input_type(df.schema)
-        return (df.withColumn(self.outputCol, dicom_meta_udf(col(self.inputCol))))
+        return (df.withColumn(self.outputCol, 
+                              dicom_meta_udf(
+                                col(self.inputCol),
+                                lit('True'),
+                                lit(self.catalog.is_anon())
+                              )))
 
     
 if __name__ == '__main__':
