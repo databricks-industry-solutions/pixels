@@ -48,6 +48,9 @@ class PlotResult():
         self.init_plot_css()
         self.most_common_limit = 14
 
+    def __len__(self):
+      return len(self._files)
+    
     def _get_buttons(self) -> str:
         """
         Turns path_tags into facets into buttons
@@ -87,7 +90,8 @@ class PlotResult():
   
     def _repr_html_(self):
         """Render results as HTML. This method called by notebook if found on object"""
-       
+        if self.__len__() == 0:
+            return "<div>No results</div>"
         return self._html_template.format(
                 plot_css   = self._plot_css,
                 plot_js    = self._plot_js,

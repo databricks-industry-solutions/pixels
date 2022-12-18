@@ -1,9 +1,17 @@
 # Databricks notebook source
+# MAGIC %md ## Setup
+
+# COMMAND ----------
+
 token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
 # MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git
+
+# COMMAND ----------
+
+# MAGIC %md ### Reload
 
 # COMMAND ----------
 
@@ -25,38 +33,58 @@ print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
+# MAGIC %md ## Test Plotting
+
+# COMMAND ----------
+
 from databricks.pixels import Catalog, DicomFrames
-catalog = Catalog(spark,path)
+catalog = Catalog(spark, path=path, table=table)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').limit(100)
+
+plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plotx()
+len(plots)
 
 # COMMAND ----------
 
-catalog_df = catalog.catalog()
-display(catalog_df)
+plots._files
+
+# COMMAND ----------
+
+from databricks.pixels import dicom_plot_udf
+from pyspark.sql.functions import col
+
+plot_df = (dcm_df_filtered.withColumn(
+                'plot',
+                dicom_plot_udf(col('local_path')))
+)
+display(plot_df)
+
+# COMMAND ----------
+
+plots._get_rows()
+
+# COMMAND ----------
+
+# MAGIC %md # Test Metadata extraction
 
 # COMMAND ----------
 
 from databricks.pixels import DicomMetaExtractor # The transformer
+from databricks.pixels import Catalog, DicomFrames
+catalog = Catalog(spark, path=path, table=table)
+
+print(catalog.is_anon())
+catalog_df = catalog.load()
+
+# COMMAND ----------
+
 meta = DicomMetaExtractor(catalog)
+meta_df = meta.transform(catalog_df.filter('extension = "dcm"').repartition(1_000))
+display(meta_df.select('meta'))
 
 # COMMAND ----------
 
-meta_df = meta.transform(catalog_df)
-
-# COMMAND ----------
-
-display(meta_df.limit(10))
-
-# COMMAND ----------
-
-from databricks.pixels import DicomMetaExtractor # The transformer
-meta = DicomMetaExtractor(catalog)
-catalog.save(meta_df, table=table, mode=write_mode)
-display(spark.table(table))
-
-# COMMAND ----------
-
-# MAGIC %md ## Summary
-# MAGIC `databricks.pixels` and Databricks makes it easy to scale up your Dicom file processing.
+catalog.save(meta_df)
 
 # COMMAND ----------
 

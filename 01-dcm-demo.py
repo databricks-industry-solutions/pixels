@@ -82,10 +82,6 @@ display(catalog_df)
 
 # COMMAND ----------
 
-str(catalog)
-
-# COMMAND ----------
-
 # MAGIC %md ## Save and explore the metadata
 
 # COMMAND ----------
@@ -124,7 +120,7 @@ catalog_df.count()
 
 from databricks.pixels import DicomMetaExtractor # The transformer
 meta = DicomMetaExtractor(catalog)
-meta_df = meta.transform(catalog_df.repartition(10_000))
+meta_df = meta.transform(catalog_df)
 
 # COMMAND ----------
 
@@ -141,7 +137,7 @@ display(spark.table(table))
 
 # COMMAND ----------
 
-# MAGIC %md ## Analyze Metadata
+# MAGIC %md # Analyze Metadata
 
 # COMMAND ----------
 
@@ -184,7 +180,11 @@ plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_p
 
 # COMMAND ----------
 
-help(plots)
+len(plots)
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 

@@ -36,6 +36,6 @@ class DicomFrames(ObjectFrames):
         """plot runs a distributed plotting function over all Dicom images returning plot and path_tags."""
         lst = self._df.withColumn(
                 'plot',
-                dicom_plot_udf(col('local_path'))
+                dicom_plot_udf(col('local_path'),col('is_anon'))
             ).select('plot','path_tags').collect()
         return PlotResult([y for y in map(lambda x: (x[0],x[1]), lst)])
