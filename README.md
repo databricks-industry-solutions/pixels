@@ -25,6 +25,21 @@ DICOM® is recognized by the International Organization for Standardization as t
 ---
 ## About databricks.pixels
 Process millions of files with 10 lines of code or less
+
+* Use `databricks.pixels` python package for simplicity
+  - Catalog your images
+  - Extract Metadata
+  - Visualize thumbnails
+<!-- -->
+* Scale up Image processing over multiple-cores and nodes
+* Delta lake & Delta Engine accelerate metadata analysis.
+* Well maintained 'standard' python packages `python-gdcm` `pydicom` are for processing Dicom files.
+<!-- -->
+- tags: 
+dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
+---
+## Design
+
 ```mermaid
 flowchart LR
 
@@ -39,22 +54,27 @@ subgraph Analytics
   E --> F(Deep Learning)
 end
 ```
-
-- Use `databricks.pixels` python package for simplicity
-  - Catalog your images
-  - Extract Metadata
-  - Display thumbnails
-  
-- Scale up Image processing over multiple-cores and nodes
-- Delta lake & Delta Engine accelerate metadata analysis.
-- Well maintained 'standard' python packages `python-gdcm` `pydicom` are for processing Dicom files.
-
-tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
-
+```mermaid
+erDiagram
+    object_catalog
+    object_catalog {
+      bigint	rowId
+      string	path
+      timestamp	modificationTime
+      bigint	length
+      string	relative_path
+      string	local_path
+      string	extension
+      array_string	path_tags
+      string	meta
+      boolean	is_anon
+    }
+```
 ___
-  -  author: Douglas Moore
-  -  email:  douglas.moore at databricks dot com
-  -  date:   November 18, 2022
+>
+    author: Douglas Moore
+    email:  douglas.moore at databricks dot com
+    date:   November 18, 2022
 ___
 
 ## Installation
