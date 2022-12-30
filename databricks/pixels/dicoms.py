@@ -1,12 +1,13 @@
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
-from pyspark.sql.functions import udf, col
+from pyspark.sql.functions import udf, col, lit
 from databricks.pixels import ObjectFrames
 from databricks.pixels import PlotResult
 from databricks.pixels.dicom_udfs import dicom_plot_udf
 from databricks.pixels.dicom_meta_extractor import dicom_meta_udf
 
 import numpy as np
+
 
 class DicomFrames(ObjectFrames):
     """ Specialized Dicom Image frame data structure """
@@ -25,17 +26,14 @@ class DicomFrames(ObjectFrames):
         return self._with_meta()
 
     def plot(self):
-        """plot runs a distributed plotting function over all Dicom images returning plot."""
+        """Plot runs a distributed plotting function over all Dicom images returning plot and path_tags."""
+        import os
+        save_folder = "/dbfs/FileStore/plots/pixels"
+        os.makedirs(save_folder, exist_ok=True)
+        
         lst = self._df.withColumn(
                 'plot',
-                dicom_plot_udf(col('local_path'))
-            ).select('plot').collect()
-        return PlotResult([y for y in map(lambda x: x[0], lst)])
-
-    def plotx(self):
-        """plot runs a distributed plotting function over all Dicom images returning plot and path_tags."""
-        lst = self._df.withColumn(
-                'plot',
-                dicom_plot_udf(col('local_path'))
+                dicom_plot_udf(col('local_path'), col('is_anon'), lit(save_folder))
             ).select('plot','path_tags').collect()
         return PlotResult([y for y in map(lambda x: (x[0],x[1]), lst)])
+

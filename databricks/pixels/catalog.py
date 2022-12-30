@@ -5,10 +5,29 @@ from databricks.pixels import ObjectFrames
 # dfZipWithIndex helper function
 from pyspark.sql.types import LongType, StructField, StructType
 
+from pyspark.sql import DataFrame
 class Catalog:
+  
+    def is_anon(self):
+      return self._anon
+    
+    def _is_anon(self, path:str):
+      if path.startswith("s3://"):
+        anon=False
+        fs = None
+        from botocore.exceptions import NoCredentialsError
+        import s3fs
+        fs = s3fs.S3FileSystem(anon=anon)
+        try: 
+          fs.exists(path)
+        except NoCredentialsError as e:
+          print('error', e, "correcting")
+          anon=True
+    
+        return anon
 
-    def catalog(spark, path:str, pattern:str = "*", recurse:bool = True) -> DataFrame:
-        """
+    def __init__(self, spark, path:str, pattern:str = "*", table:str = "hive_metastore.objects_catalog.objects", recurse:bool = True):
+      """
             Catalog the objects and files
             parms:
                 spark - Spark context
@@ -16,29 +35,41 @@ class Catalog:
                 pattern - file name pattern
                 recurse - True means recurse folder structure
         """
-        _path = path
-        _pattern = pattern
-        _recurse = str(recurse).lower()
-        df = (spark.read
+      self._spark = spark
+      self._path = path
+      self._pattern = pattern
+      self._recurse = str(recurse).lower()
+      self._anon = self._is_anon(path)
+      self._table = table
+      
+    def __repr__(self):
+      return f'Catalog(spark, path="{self._path}", pattern="{self._pattern}", recurse="{self._recurse}", table="{self._table}")'
+    
+    def catalog(self) -> DataFrame:
+        """
+          Perform the catalog action and return a spark dataframe
+        """
+        df = (self._spark.read
             .format("binaryFile")
-            .option("pathGlobFilter",      _pattern)
-            .option("recursiveFileLookup", _recurse)
-            .load(path)
+            .option("pathGlobFilter",      self._pattern)
+            .option("recursiveFileLookup", self._recurse)
+            .load(self._path)
             .drop('content')    
         )
         df = Catalog._with_path_meta(df)
-        df = Catalog.dfZipWithIndex(spark, df)
+        df = Catalog._dfZipWithIndex(self._spark, df) # add an unique ID
         return ObjectFrames(df)
 
-    def load(spark, table:str) -> DataFrame:
+    def load(self, table:str = None) -> DataFrame:
       """
-        Load Object catalog into Spark Dataframe
+        @return Spark dataframe representing the object Catalog
       """
-      return ObjectFrames(spark.table(table))
+      return ObjectFrames(self._spark.table(self._table if not table else table))
    
-    def save(df:DataFrame, 
+    def save(self,
+        df:DataFrame, 
         path:str = None,
-        table:str ="hive_metastore.objects_catalog.objects", 
+        table:str = None,
         mode:str ="append", 
         mergeSchema:bool = True, 
         hasBinary:bool = False,
@@ -59,7 +90,7 @@ class Catalog:
                 .format("delta")
                 .mode(mode)
                 .options(**options)
-                .saveAsTable(table)
+                .saveAsTable(self._table if not table else table)
         )
 
     def _with_path_meta(df, basePath:str = 'dbfs:/', inputCol:str = 'path', num_trailing_path_items:int = 5):
@@ -85,7 +116,7 @@ class Catalog:
                 
             )
 
-    def dfZipWithIndex (spark, df, offset=1, colName="rowId"):
+    def _dfZipWithIndex (spark, df, offset=1, colName="rowId"):
         '''
             Ref: https://stackoverflow.com/questions/30304810/dataframe-ified-zipwithindex
             Enumerates dataframe rows is native order, like rdd.ZipWithIndex(), but on a dataframe 
