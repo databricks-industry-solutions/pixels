@@ -25,6 +25,16 @@ DICOM® is recognized by the International Organization for Standardization as t
 ---
 ## About databricks.pixels
 Process millions of files with 10 lines of code or less
+```mermaid
+flowchart LR
+
+A[[Dicom Files]] -->|metadata| B([databricks.pixels on PySpark])
+B --> C[Metadata Table]
+A -->|File references|B
+C --> D(Metadata Analysis)
+C --> E([Patching])
+E --> F(Deep Learning)
+```
 
 - Use `databricks.pixels` python package for simplicity
   - Catalog your images
