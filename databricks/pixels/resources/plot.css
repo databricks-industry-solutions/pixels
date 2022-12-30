@@ -19,7 +19,7 @@ img {
 
 /* Center website */
 .main {
-  max-width: 1000px;
+  max-width: 100%;
   margin: auto;
 }
 
@@ -98,9 +98,14 @@ img.modal-content {
 
 .column {
   float: left;
+  height: 210px;
   width: 25.00%;
   display: none;
   /* Hide all elements by default */
+}
+
+.column p {
+  margin-top: 0px;
 }
 
 /* Clear floats after rows */
@@ -114,14 +119,13 @@ img.modal-content {
 /* Content */
 
 .content {
-  background-color: rgb(37, 136, 50);
+  /* background-color: rgb(37, 136, 50); */
   padding: 10px;
   color: #333;
   size: 14pt;
 }
 
 .content p {
-  color:bisque;
 }
 
 .content img {

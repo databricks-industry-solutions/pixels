@@ -2,6 +2,7 @@ from pyspark.sql.functions import udf
 import pandas as pd
 
 def cloud_open(path:str, anon:bool = False):
+  try:
     if path.startswith("s3://"):
       """Read from S3 directly"""
       import s3fs
@@ -11,6 +12,8 @@ def cloud_open(path:str, anon:bool = False):
       """Read from local filesystem"""
       fp = open(path, 'rb')
     return fp
+  except Exception as e:
+    raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
 @udf
 def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
@@ -57,7 +60,7 @@ def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
     #    return except_str
 
 @udf
-def dicom_plot_udf(local_path:str, figsize=(20.0,20.0), anon:bool = False) -> str:
+def dicom_plot_udf(path:str, anon:bool = False, save_folder = "/dbfs/FileStore/plots/pixels", figsize=(20.0,20.0)) -> str:
     """Distributed function to render Dicom plot. 
     This UDF will generate .png image into the FileStore plots folder which then can be linked to by the href attributed in the <img> tag.
     To assist with pretty rendering, this function utilizes:
@@ -72,27 +75,24 @@ def dicom_plot_udf(local_path:str, figsize=(20.0,20.0), anon:bool = False) -> st
     import s3fs
     import os
     import os.path
-    
-    save_folder = "/dbfs/FileStore/plots/pixels"
-    #os.mkdirs(save_folder)
 
     cmap = "gray"
     fmt = 'PNG'
     extension = fmt.lower()
     """Plot dicom image to file in dbfs:/FileStore/plots folder then return translated path to plot"""
     save_file = ''
-    try:
+    if True:
         fp = cloud_open(path, anon)
         with dcmread(fp) as ds:
             fig, ax = plt.subplots()
             ax.imshow(ds.pixel_array, cmap=cmap)
-            #plt.title(local_path[-14:])
+            #plt.title(path[-14:])
             plot_file = F"{str(uuid.uuid4())}.{extension}"
             save_file = F"{save_folder}/{plot_file}"
             plt.savefig(save_file, format=fmt)
             plt.close()
             return save_file
-    except Exception as err:
-        err_str = F"function: dicom_plot_udf, input: {local_path}, save_file: {save_file} err: {str(err)}"
-        print(err_str)
-        return err_str
+    #except Exception as err:
+    #    err_str = F"function: dicom_plot_udf, input: {path}, save_file: {save_file} err: {str(err)}"
+    #    print(err_str)
+    #    return err_str

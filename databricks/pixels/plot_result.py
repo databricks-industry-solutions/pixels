@@ -67,7 +67,7 @@ class PlotResult():
         c = Counter(lst).most_common(self.most_common_limit)
 
         start = c[0][1]
-        print("start {}, l_size {}".format(start, n_files))
+        #print("start {}, l_size {}".format(start, n_files))
         button_src = ''
         for i,v in enumerate(c):
             b = v[0]

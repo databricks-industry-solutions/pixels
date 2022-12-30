@@ -166,8 +166,13 @@ display(spark.table(table))
 # COMMAND ----------
 
 from databricks.pixels import Catalog
+catalog = Catalog(spark, path=path, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)
 dcm_df_filtered.count()
+
+# COMMAND ----------
+
+display(dcm_df_filtered.limit(5))
 
 # COMMAND ----------
 
@@ -176,15 +181,7 @@ dcm_df_filtered.count()
 # COMMAND ----------
 
 from databricks.pixels import DicomFrames
-plots = DicomFrames(dcm_df_filtered.limit(100), withMeta=True, inputCol="local_path").plotx()
-
-# COMMAND ----------
-
-len(plots)
-
-# COMMAND ----------
-
-
+plots = DicomFrames(dcm_df_filtered.limit(100)).plot()
 
 # COMMAND ----------
 
@@ -194,7 +191,3 @@ plots
 
 # MAGIC %md
 # MAGIC Done
-
-# COMMAND ----------
-
-
