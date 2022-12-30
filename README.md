@@ -28,12 +28,16 @@ Process millions of files with 10 lines of code or less
 ```mermaid
 flowchart LR
 
-A[[Dicom Files]] -->|metadata| B([databricks.pixels on PySpark])
-B --> C[Metadata Table]
-A -->|File references|B
-C --> D(Metadata Analysis)
-C --> E([Patching])
-E --> F(Deep Learning)
+subgraph Ingest
+  A[[Dicom Files]] -->|metadata| B([databricks.pixels on PySpark])
+  B --> C[(object_catalog)]
+  A -->|file references|B
+end
+subgraph Analytics
+  C --> D(Metadata Analysis)
+  C --> E([Patching])
+  E --> F(Deep Learning)
+end
 ```
 
 - Use `databricks.pixels` python package for simplicity
