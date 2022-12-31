@@ -14,8 +14,9 @@ from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
 from databricks.pixels.dicom_udfs import cloud_open
 
-from pyspark.sql.functions import udf
+from pyspark.sql.functions import udf, pandas_udf
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BinaryType
+
 
 imageSchema = StructType([StructField('image', StructType([StructField('origin', StringType(), True), StructField('height', IntegerType(), False), StructField('width', IntegerType(), False), StructField('nChannels', IntegerType(), False), StructField('mode', IntegerType(), False), StructField('data', BinaryType(), False)]), True)])
 
@@ -26,6 +27,7 @@ class DicomThumbnailExtractor(Transformer):
     Parameters:
       inputCol (string): The localized (/) (or s3) path to your Dicom file
       outputCol (string): The name of your output column
+      method (string): The Thumbnail method [matplotlib (default), pillow]
 
     Returns:
       imageSchema (outputCol): Spark dataframe column containing thumbnail of Dicom file
@@ -37,9 +39,10 @@ class DicomThumbnailExtractor(Transformer):
       display(thumbnail_df)
     """
 
-    def __init__(self, inputCol='local_path', outputCol='thumbnail'):
+    def __init__(self, inputCol='local_path', outputCol='thumbnail', method='matplotlib'):
         self._inputCol = inputCol 
-        self._outputCol = outputCol 
+        self._outputCol = outputCol
+        self._method = method
     
     def check_input_type(self, schema):
       """Verifies input dataframe contains columns
@@ -89,8 +92,7 @@ class DicomThumbnailExtractor(Transformer):
           }
         }
 
-    @udf(returnType=imageSchema)
-    def dicom_thumbnail_udf(path:str, anon:bool = False):
+    def dicom_matplotlib_thumbnail(path:str, anon:bool = False):
         """Distributed function to render Dicom plot. 
         This UDF will generate .png image into the
 
@@ -114,7 +116,24 @@ class DicomThumbnailExtractor(Transformer):
             err_str = F"function: dicom_thumbnail_udf, input: {path}, save_file: {save_file} err: {str(err)}"
             print(err_str)
             return err_str
-          
+
+    def _do_matplotlib_thumbnail(self, df):
+      """Use Matplotlib to create the thumbnail. The resulting will have scale bars"""
+      
+      dicom_thumbnail_udf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
+      return (df
+              .repartition(200)
+              .withColumn(
+                'imageType',
+                dicom_thumbnail_udf(
+                  col(self._inputCol),
+                  col('is_anon'))
+                )
+              .selectExpr('*',F'imageType.image as {self._outputCol}')
+              .drop('imageType')
+             )
+      
+   
     def _transform(self, df):
       """
         Perform Dicom to metadata transformation.
@@ -125,14 +144,4 @@ class DicomThumbnailExtractor(Transformer):
           col(self.outputCol) # Dicom metadata header in JSON format
       """
       self.check_input_type(df.schema)
-      return (df
-              .repartition(200)
-              .withColumn(
-                'imageType',
-                DicomThumbnailExtractor.dicom_thumbnail_udf(
-                  col(self._inputCol),
-                  col('is_anon'))
-                )
-              .selectExpr('*',F'imageType.image as {self._outputCol}')
-              .drop('imageType')
-             )
+      self._do_matplotlib_thumbnail(df)

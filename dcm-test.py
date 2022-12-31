@@ -93,7 +93,7 @@ catalog.save(meta_df)
 
 # COMMAND ----------
 
-# MAGIC %md # Thumbnail dataframe
+# MAGIC %md # Test Thumbnail extraction - matplotlilb
 
 # COMMAND ----------
 
@@ -112,32 +112,39 @@ help(DicomThumbnailExtractor)
 # COMMAND ----------
 
 from databricks.pixels import DicomThumbnailExtractor # The transformer
-thumbnail_df = DicomThumbnailExtractor().transform(dcm_df_filtered)
+thumbnail_df = DicomThumbnailExtractor(method='matplotlib').transform(dcm_df_filtered)
 display(thumbnail_df)
 
 # COMMAND ----------
 
-from pyspark.sql.functions import col
-image_meta = {"spark.contentAnnotation" : '{"mimeType": "image/png"}'}
-
-df = thumbnail_df.withColumn("content", col('thumbnail.data').alias("content",metadata=image_meta)).drop('thumbnail')
-
-#image_meta = {"spark.contentAnnotation" : '{"mimeType": "image/jpeg"}'}
-#df = df.withColumn("content", resize_image_udf(col("content")).alias("content", metadata=image_meta))
-display(df.select('content'))
+from databricks.pixels import DicomThumbnailExtractor # The transformer
+help(DicomThumbnailExtractor)
 
 # COMMAND ----------
 
-'/tmp/thumbnails'# images already compressed
-spark.conf.set("spark.sql.parquet.compression.codec", "uncompressed") 
-
-# add user defined metadata
-meta = {'metadata':'1.2.3','batchId':2345, 'status':'initial','precision':1.5839}
-spark.conf.set("spark.databricks.delta.commitInfo.userMetadata",str(meta))
-
-# save all the images
-thumbnail_df.write.format('delta').mode('overwrite').save('/tmp/thumbnails')
+# MAGIC %md # Test DicomPillowThumbnailExtractor
 
 # COMMAND ----------
 
+# load metata from the catalog
 
+from databricks.pixels import Catalog
+catalog = Catalog(spark, path=path, table=table)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)#.limit(10)
+dcm_df_filtered.count()
+
+# COMMAND ----------
+
+from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+help(DicomPillowThumbnailExtractor)
+
+# COMMAND ----------
+
+# to process a batch of 100 images instead 10000 to reduce memory pressure
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", "100")
+spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+
+
+from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+thumbnail_df = DicomPillowThumbnailExtractor().transform(dcm_df_filtered)
+display(thumbnail_df)
