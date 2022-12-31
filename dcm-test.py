@@ -15,7 +15,7 @@ token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
-# MAGIC %load_ext autoreload
+# MAGIC %reload_ext autoreload
 # MAGIC %autoreload 2
 
 # COMMAND ----------
@@ -38,10 +38,15 @@ print(F"{path}, {table}, {write_mode}")
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
+help(DicomFrames)
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog, DicomFrames
 catalog = Catalog(spark, path=path, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').limit(100)
 
-plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plotx()
+plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plot()
 len(plots)
 
 # COMMAND ----------
@@ -88,4 +93,58 @@ catalog.save(meta_df)
 
 # COMMAND ----------
 
+# MAGIC %md # Test Thumbnail extraction - matplotlilb
 
+# COMMAND ----------
+
+# load metata from the catalog
+
+from databricks.pixels import Catalog
+catalog = Catalog(spark, path=path, table=table)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000).limit(10)
+dcm_df_filtered.count()
+
+# COMMAND ----------
+
+from databricks.pixels import DicomThumbnailExtractor
+help(DicomThumbnailExtractor)
+
+# COMMAND ----------
+
+from databricks.pixels import DicomThumbnailExtractor # The transformer
+thumbnail_df = DicomThumbnailExtractor(method='matplotlib').transform(dcm_df_filtered)
+display(thumbnail_df)
+
+# COMMAND ----------
+
+from databricks.pixels import DicomThumbnailExtractor # The transformer
+help(DicomThumbnailExtractor)
+
+# COMMAND ----------
+
+# MAGIC %md # Test DicomPillowThumbnailExtractor
+
+# COMMAND ----------
+
+# load metata from the catalog
+
+from databricks.pixels import Catalog
+catalog = Catalog(spark, path=path, table=table)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)#.limit(10)
+dcm_df_filtered.count()
+
+# COMMAND ----------
+
+from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+help(DicomPillowThumbnailExtractor)
+
+# COMMAND ----------
+
+# to process a batch of 100 images instead 10000 to reduce memory pressure
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", "100")
+spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+
+
+from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+thumbnail_df = DicomPillowThumbnailExtractor().transform(dcm_df_filtered)
+display(thumbnail_df)

@@ -27,7 +27,7 @@
 # MAGIC   - Catalog your images
 # MAGIC   - Extract Metadata
 # MAGIC   - Display thumbnails
-# MAGIC   
+# MAGIC <!-- -->
 # MAGIC - Scale up Image processing over multiple-cores and nodes
 # MAGIC - Delta lake & Delta Engine accelerate metadata research.
 # MAGIC - Delta lake (optionally) to speed up small file processing
@@ -40,7 +40,7 @@
 
 # COMMAND ----------
 
-# MAGIC %load_ext autoreload
+# MAGIC %reload_ext autoreload
 # MAGIC %autoreload 2
 
 # COMMAND ----------
@@ -119,8 +119,7 @@ catalog_df.count()
 # COMMAND ----------
 
 from databricks.pixels import DicomMetaExtractor # The transformer
-meta = DicomMetaExtractor(catalog)
-meta_df = meta.transform(catalog_df)
+meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 
 # COMMAND ----------
 
@@ -128,10 +127,7 @@ display(meta_df)
 
 # COMMAND ----------
 
-# DBTITLE 1,Use a Transformer for metadata extraction
-from databricks.pixels import DicomMetaExtractor # The transformer
-meta = DicomMetaExtractor(catalog)
-meta_df = meta.transform(catalog_df.repartition(10_000))
+# DBTITLE 1,Save the updated metadata frame
 catalog.save(meta_df, table=table, mode=write_mode)
 display(spark.table(table))
 
@@ -161,7 +157,7 @@ display(spark.table(table))
 
 # COMMAND ----------
 
-# MAGIC %md ## Filter Dicom Images
+# MAGIC %md ## Load and Filter Dicom Images
 
 # COMMAND ----------
 
