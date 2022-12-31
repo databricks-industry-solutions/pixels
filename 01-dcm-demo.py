@@ -27,7 +27,7 @@
 # MAGIC   - Catalog your images
 # MAGIC   - Extract Metadata
 # MAGIC   - Display thumbnails
-# MAGIC   
+# MAGIC <!-- -->
 # MAGIC - Scale up Image processing over multiple-cores and nodes
 # MAGIC - Delta lake & Delta Engine accelerate metadata research.
 # MAGIC - Delta lake (optionally) to speed up small file processing
@@ -161,7 +161,7 @@ display(spark.table(table))
 
 # COMMAND ----------
 
-# MAGIC %md ## Filter Dicom Images
+# MAGIC %md ## Load and Filter Dicom Images
 
 # COMMAND ----------
 

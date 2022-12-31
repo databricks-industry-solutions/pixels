@@ -15,7 +15,7 @@ token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
-# MAGIC %load_ext autoreload
+# MAGIC %reload_ext autoreload
 # MAGIC %autoreload 2
 
 # COMMAND ----------
@@ -38,10 +38,15 @@ print(F"{path}, {table}, {write_mode}")
 # COMMAND ----------
 
 from databricks.pixels import Catalog, DicomFrames
+help(DicomFrames)
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog, DicomFrames
 catalog = Catalog(spark, path=path, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').limit(100)
 
-plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plotx()
+plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plot()
 len(plots)
 
 # COMMAND ----------
@@ -85,6 +90,53 @@ display(meta_df.select('meta'))
 # COMMAND ----------
 
 catalog.save(meta_df)
+
+# COMMAND ----------
+
+# MAGIC %md # Thumbnail dataframe
+
+# COMMAND ----------
+
+# load metata from the catalog
+
+from databricks.pixels import Catalog
+catalog = Catalog(spark, path=path, table=table)
+dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000).limit(10)
+dcm_df_filtered.count()
+
+# COMMAND ----------
+
+from databricks.pixels import DicomThumbnailExtractor
+help(DicomThumbnailExtractor)
+
+# COMMAND ----------
+
+from databricks.pixels import DicomThumbnailExtractor # The transformer
+thumbnail_df = DicomThumbnailExtractor().transform(dcm_df_filtered)
+display(thumbnail_df)
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col
+image_meta = {"spark.contentAnnotation" : '{"mimeType": "image/png"}'}
+
+df = thumbnail_df.withColumn("content", col('thumbnail.data').alias("content",metadata=image_meta)).drop('thumbnail')
+
+#image_meta = {"spark.contentAnnotation" : '{"mimeType": "image/jpeg"}'}
+#df = df.withColumn("content", resize_image_udf(col("content")).alias("content", metadata=image_meta))
+display(df.select('content'))
+
+# COMMAND ----------
+
+'/tmp/thumbnails'# images already compressed
+spark.conf.set("spark.sql.parquet.compression.codec", "uncompressed") 
+
+# add user defined metadata
+meta = {'metadata':'1.2.3','batchId':2345, 'status':'initial','precision':1.5839}
+spark.conf.set("spark.databricks.delta.commitInfo.userMetadata",str(meta))
+
+# save all the images
+thumbnail_df.write.format('delta').mode('overwrite').save('/tmp/thumbnails')
 
 # COMMAND ----------
 
