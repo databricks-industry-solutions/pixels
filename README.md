@@ -44,15 +44,16 @@ dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, packag
 flowchart LR
 
 subgraph Ingest
-  A[[Dicom Files]] -->|metadata| B([DicomMetadataExtractor])
+  A[[Dicom Files]] -->|file reference|B([DicomMetadataExtractor])
+  A -->|metadata|B
   B --> C[(object_catalog)]
-  A -->|file references|B
 end
 subgraph Analytics
   C --> D1([SQL]) --> D(Metadata Analysis)
-  C --> E([DicomPatcher])
-  C --> G1([DicomThumbnailExtractor]) --> G(Visualization)
-  E --> F(Deep Learning)
+  C --> G1([DicomThumbnailExtractor]) --> G(Thumbnail Visualization)
+  C --> G2([DicomPillowThumbnailExtractor]) --> G3(Thumbnail 2 Visualization)
+  C -.-> E([DicomPatcher])
+  E -.-> F(Deep Learning)
 end
 ```
 ```mermaid
