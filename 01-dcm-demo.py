@@ -176,12 +176,8 @@ display(dcm_df_filtered.limit(5))
 
 # COMMAND ----------
 
-from databricks.pixels import DicomFrames
-plots = DicomFrames(dcm_df_filtered.limit(100)).plot()
-
-# COMMAND ----------
-
-plots
+from databricks.pixels import DicomThumbnailExtractor
+DicomThumbnailExtractor().transform(dcm_df_filtered).display()
 
 # COMMAND ----------
 

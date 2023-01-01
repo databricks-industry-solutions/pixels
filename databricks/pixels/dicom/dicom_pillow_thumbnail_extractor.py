@@ -9,7 +9,7 @@ from pyspark.sql.functions import col, udf, lit
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from databricks.pixels.dicom_udfs import cloud_open
+from databricks.pixels.dicom.dicom_udfs import cloud_open
 
 from pyspark.sql.functions import pandas_udf
 
@@ -65,7 +65,9 @@ class DicomPillowThumbnailExtractor(Transformer):
           raise Exception(f'DicomMetaExtractor field {field.name}, input type {field.dataType} did not match input type BooleanType')
 
     def dicom_pillow_thumbnail(iterator: Iterator[Tuple[pd.Series, pd.Series]]) -> Iterator[pd.Series]:
-        def dicom_to_thumbnail(path, anon):
+      """UDF Wrapper for thumbnail pandas udf"""
+      
+      def dicom_to_thumbnail(path, anon):
           """read dicom and serialize as png"""
           if True:
             fp = cloud_open(path, anon)
@@ -77,11 +79,11 @@ class DicomPillowThumbnailExtractor(Transformer):
           #except Exception:
           #  #some images are invalid
           #  return pd.Series(0)
-          
-        for a,b in iterator:
-          #raise Exception(F"a {len(a)}, b {len(b)}")
-          for i in range(len(a)):
-            yield pd.Series(dicom_to_thumbnail(a.get(i), b.get(i)))
+   
+      for a,b in iterator:
+        #raise Exception(F"a {len(a)}, b {len(b)}")
+        for i in range(len(a)):
+          yield pd.Series(dicom_to_thumbnail(a.get(i), b.get(i)))
         
     def _do_pillow_thumbnail(self, df):
       """Use Pillow to create the thumbnail. The resulting image may be distorted"""

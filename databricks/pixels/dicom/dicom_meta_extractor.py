@@ -6,7 +6,7 @@ from pyspark.sql.functions import col, udf, lit
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from databricks.pixels.dicom_udfs import dicom_meta_udf
+from databricks.pixels.dicom.dicom_udfs import dicom_meta_udf
         
 class DicomMetaExtractor(Transformer):
     """

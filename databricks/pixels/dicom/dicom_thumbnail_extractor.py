@@ -12,13 +12,10 @@ from pyspark.sql.functions import col, udf, lit
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from databricks.pixels.dicom_udfs import cloud_open
+from databricks.pixels.dicom.dicom_udfs import cloud_open
 
-from pyspark.sql.functions import udf, pandas_udf
+from pyspark.sql.functions import udf
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BinaryType
-
-
-imageSchema = StructType([StructField('image', StructType([StructField('origin', StringType(), True), StructField('height', IntegerType(), False), StructField('width', IntegerType(), False), StructField('nChannels', IntegerType(), False), StructField('mode', IntegerType(), False), StructField('data', BinaryType(), False)]), True)])
 
 
 class DicomThumbnailExtractor(Transformer):
@@ -27,7 +24,6 @@ class DicomThumbnailExtractor(Transformer):
     Parameters:
       inputCol (string): The localized (/) (or s3) path to your Dicom file
       outputCol (string): The name of your output column
-      method (string): The Thumbnail method [matplotlib (default), pillow]
 
     Returns:
       imageSchema (outputCol): Spark dataframe column containing thumbnail of Dicom file
@@ -92,40 +88,48 @@ class DicomThumbnailExtractor(Transformer):
           }
         }
 
-    def dicom_matplotlib_thumbnail(path:str, anon:bool = False):
-        """Distributed function to render Dicom plot. 
-        This UDF will generate .png image into the
 
-        Parameters:
-        path (string) : Valid path (per cloud_open()) to Dicom file. Must end in .dcm
-        anon (bool) : True if access to S3 bucket is anonymous
-        """
-        if path[-4:] != '.dcm':
-          return None
-
-        cmap = "gray"
-        try:
-            fp = cloud_open(path, anon)
-            with dcmread(fp) as ds:
-                fig, ax = plt.subplots()
-                ax.imshow(ds.pixel_array, cmap=cmap)
-                image = DicomThumbnailExtractor.figure_to_image(fig)
-                plt.close()
-                return image
-        except Exception as err:
-            err_str = F"function: dicom_thumbnail_udf, input: {path}, save_file: {save_file} err: {str(err)}"
-            print(err_str)
-            return err_str
 
     def _do_matplotlib_thumbnail(self, df):
-      """Use Matplotlib to create the thumbnail. The resulting will have scale bars"""
+        """Use Matplotlib to create the thumbnail. The resulting will have scale bars"""
+        def dicom_matplotlib_thumbnail(path:str, anon:bool = False):
+          """Distributed function to render Dicom plot. 
+          This UDF will generate .png image into the
+
+          Parameters:
+          path (string) : Valid path (per cloud_open()) to Dicom file. Must end in .dcm
+          anon (bool) : True if access to S3 bucket is anonymous
+          """
+          if path[-4:] != '.dcm':
+            return None
+
+          cmap = "gray"
+          try:
+              fp = cloud_open(path, anon)
+              with dcmread(fp) as ds:
+                  fig, ax = plt.subplots()
+                  ax.imshow(ds.pixel_array, cmap=cmap)
+                  image = DicomThumbnailExtractor.figure_to_image(fig)
+                  plt.close()
+                  return image
+          except Exception as err:
+              err_str = F"function: dicom_thumbnail_udf, input: {path}, save_file: {save_file} err: {str(err)}"
+              print(err_str)
+              return err_str
       
-      dicom_thumbnail_udf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
-      return (df
+        imageSchema = StructType([StructField('image', 
+                                            StructType([StructField('origin', StringType(), True), 
+                                            StructField('height', IntegerType(), False), 
+                                            StructField('width', IntegerType(), False), 
+                                            StructField('nChannels', IntegerType(), False), 
+                                            StructField('mode', IntegerType(), False), 
+                                            StructField('data', BinaryType(), False)]), True)])
+        myudf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
+        return (df
               .repartition(200)
               .withColumn(
                 'imageType',
-                dicom_thumbnail_udf(
+                myudf(
                   col(self._inputCol),
                   col('is_anon'))
                 )
@@ -144,4 +148,4 @@ class DicomThumbnailExtractor(Transformer):
           col(self.outputCol) # Dicom metadata header in JSON format
       """
       self.check_input_type(df.schema)
-      self._do_matplotlib_thumbnail(df)
+      return self._do_matplotlib_thumbnail(df)

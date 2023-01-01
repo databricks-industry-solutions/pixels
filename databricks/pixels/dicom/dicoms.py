@@ -3,8 +3,8 @@ from pyspark.sql import functions as f
 from pyspark.sql.functions import udf, col, lit
 from databricks.pixels import ObjectFrames
 from databricks.pixels import PlotResult
-from databricks.pixels.dicom_udfs import dicom_plot_udf
-from databricks.pixels.dicom_meta_extractor import dicom_meta_udf
+from databricks.pixels.dicom.dicom_udfs import dicom_plot_udf
+from databricks.pixels.dicom.dicom_meta_extractor import dicom_meta_udf
 
 import numpy as np
 
