@@ -66,10 +66,12 @@ classDiagram
     Transformer <|-- DicomThumbnailExtractor
     Transformer <|-- DicomPillowThumbnailExtractor
     Transformer <|-- DicomPatcher
+    Transformer <|-- PathExtractor
     Transformer <|-- TagExtractor
 
+    PathExtractor: -check_input_type()
+    TagExtractor: -check_input_type()
     DicomMetadataExtractor: -check_input_type()
-
     DicomMetadataExtractor: -_transform(DataFrame)
     DicomThumbnailExtractor: -check_input_type()
     DicomThumbnailExtractor: -_transform(DataFrame)
@@ -77,8 +79,9 @@ classDiagram
     DicomPillowThumbnailExtractor: -_transform(DataFrame)
     DicomPatcher: -_transform(DataFrame)
 
+    PathExtractor: -_transform(DataFrame)
     TagExtractor: -_transform(DataFrame)
-
+    
     DicomMetadataExtractor --> Catalog
     DicomMetadataExtractor ..> dicom_meta_udf
     DicomThumbnailExtractor ..> dicom_matplotlib_thumbnail_udf
