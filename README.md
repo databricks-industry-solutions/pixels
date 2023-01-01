@@ -57,6 +57,49 @@ subgraph Analytics
 end
 ```
 ```mermaid
+classDiagram
+    class Transformer {
+        +transform(df): DataFrame
+        -_with_path_meta(): DataFrame
+    }
+    Transformer <|-- DicomMetadataExtractor
+    Transformer <|-- DicomThumbnailExtractor
+    Transformer <|-- DicomPillowThumbnailExtractor
+    Transformer <|-- DicomPatcher
+    Transformer <|-- TagExtractor
+
+    DicomMetadataExtractor: -check_input_type()
+
+    DicomMetadataExtractor: -_transform(DataFrame)
+    DicomThumbnailExtractor: -check_input_type()
+    DicomThumbnailExtractor: -_transform(DataFrame)
+    DicomPillowThumbnailExtractor: -check_input_type()
+    DicomPillowThumbnailExtractor: -_transform(DataFrame)
+    DicomPatcher: -_transform(DataFrame)
+
+    TagExtractor: -_transform(DataFrame)
+
+    DicomMetadataExtractor --> Catalog
+    DicomMetadataExtractor ..> dicom_meta_udf
+    DicomThumbnailExtractor ..> dicom_matplotlib_thumbnail_udf
+    DicomPillowThumbnailExtractor ..> dicom_pillow_thumbnail_udf
+    DicomPatcher ..> dicom_patcher_udf
+
+    dicom_meta_udf ..> pydicom
+    dicom_matplotlib_thumbnail_udf ..> pydicom
+    dicom_pillow_thumbnail_udf  ..> pydicom
+    dicom_patcher_udf  ..> pydicom
+
+    pydicom: +dcmread(fp)
+
+    class Catalog {
+        Catalog(path, table):Catalog
+        +catalog(path): DataFrame
+        +load(): DataFrame
+        +save(df)
+    }
+```
+```mermaid
 erDiagram
     object_catalog
     object_catalog {
