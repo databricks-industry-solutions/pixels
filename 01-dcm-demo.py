@@ -75,7 +75,8 @@ print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog, DicomFrames
+from databricks.pixels import Catalog
+from databricks.pixels.dicom import DicomFrames
 catalog = Catalog(spark, path=path, table=table)
 catalog_df = catalog.catalog()
 display(catalog_df)
@@ -118,7 +119,7 @@ catalog_df.count()
 
 # COMMAND ----------
 
-from databricks.pixels import DicomMetaExtractor # The transformer
+from databricks.pixels.dicom import DicomMetaExtractor # The transformer
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 
 # COMMAND ----------
