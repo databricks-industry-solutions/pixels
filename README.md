@@ -6,7 +6,6 @@
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 
-
 ---
 
 ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
@@ -39,23 +38,27 @@ Process millions of files with 10 lines of code or less
 dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
 ## Design
-
+Data Flow
 ```mermaid
 flowchart LR
 
-subgraph Ingest
+subgraph bronze[<font size=6>Ingest]
   A[[Dicom Files]] -->|file reference|B([DicomMetadataExtractor])
   A -->|metadata|B
   B --> C[(object_catalog)]
 end
-subgraph Analytics
+subgraph silver[<font size=6>Analytics]
   C --> D1([SQL]) --> D(Metadata Analysis)
   C --> G1([DicomThumbnailExtractor]) --> G(Thumbnail Visualization)
-  C --> G2([DicomPillowThumbnailExtractor]) --> G3(Thumbnail 2 Visualization)
+  C --> G2([DicomPillowThumbnailExtractor]) --> G
   C -.-> E([DicomPatcher])
   E -.-> F(Deep Learning)
 end
+style C fill:#CD7F32, stroke:333, color:#333
+style silver fill:#C0C0C0, stroke:333, color #333, font-size: 40px;
 ```
+---
+Python Class Diagram
 ```mermaid
 classDiagram
     class Transformer {
@@ -102,11 +105,14 @@ classDiagram
         +save(df)
     }
 ```
+---
+ER Diagram
 ```mermaid
+%%{init: { 'logLevel': 'debug', 'theme': 'forest' } }%%
 erDiagram
     object_catalog
     object_catalog {
-      bigint	rowId
+      bigint	rowId PK
       string	path
       timestamp	modificationTime
       bigint	length
