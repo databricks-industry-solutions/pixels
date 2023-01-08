@@ -17,18 +17,20 @@ def cloud_open(path:str, anon:bool = False):
 
 @udf
 def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
-    """
-      Purpose: Extract metadata from header of dicom image file
-      @param path: local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
-      @param deep: True if deep inspection of the Dicom header is required
-      @param anon: Set to True if accessing S3 and the bucket is public
+    """Extract metadata from header of dicom image file
+    params:
+      path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
+      deep -- True if deep inspection of the Dicom header is required
+      anon -- Set to True if accessing S3 and the bucket is public
     """
     import numpy as np
     from pydicom import dcmread
     from pydicom.errors import InvalidDicomError
 
-    #try:
-    if True:
+    try:
+        if (path[-4] != ".dcm"):
+            return {}
+
         fp = cloud_open(path, anon)
         with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:
             js = ds.to_json_dict()
@@ -49,15 +51,15 @@ def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
                 js['img_shape_y'] = a.shape[1]
             
             return str(js)
-    #except Exception as err:
-    #    except_str =  str({
-    #        'udf': 'dicom_meta_udf',
-    #        'error': str(err),
-    #        'args': str(err.args),
-    #        'path': path
-    #    })
-    #    print(except_str)
-    #    return except_str
+    except Exception as err:
+        except_str =  str({
+            'udf': 'dicom_meta_udf',
+            'error': str(err),
+            'args': str(err.args),
+            'path': path
+        })
+        print(except_str)
+        return except_str
 
 @udf
 def dicom_plot_udf(path:str, anon:bool = False, save_folder = "/dbfs/FileStore/plots/pixels", figsize=(20.0,20.0)) -> str:

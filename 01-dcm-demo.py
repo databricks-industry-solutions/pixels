@@ -77,36 +77,11 @@ print(F"{path}, {table}, {write_mode}")
 
 from databricks.pixels import Catalog
 from databricks.pixels.dicom import DicomFrames
-catalog = Catalog(spark, path=path, table=table)
-catalog_df = catalog.catalog()
-display(catalog_df)
 
 # COMMAND ----------
 
-# MAGIC %md ## Save and explore the metadata
-
-# COMMAND ----------
-
-# DBTITLE 1,Save Metadata as a 'object metadata catalog'
-catalog.save(catalog_df, mode=write_mode)
-
-# COMMAND ----------
-
-# MAGIC %sql select count(*) from ${c.table}
-
-# COMMAND ----------
-
-# MAGIC %md ## Load Catalog from Delta Lake
-
-# COMMAND ----------
-
-from databricks.pixels import Catalog
-catalog_df = catalog.load()
-display(catalog_df)
-
-# COMMAND ----------
-
-catalog_df.count()
+catalog = Catalog(spark, table=table)
+catalog_df = catalog.catalog(path=path)
 
 # COMMAND ----------
 
@@ -124,7 +99,39 @@ meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 
 # COMMAND ----------
 
-display(meta_df)
+from databricks.pixels.dicom import DicomThumbnailExtractor
+thumbnail_df = DicomThumbnailExtractor().transform(meta_df)
+
+# COMMAND ----------
+
+# MAGIC %md ## Save the metadata
+
+# COMMAND ----------
+
+# DBTITLE 1,Save Metadata as a 'object metadata catalog'
+catalog.save(thumbnail_df, mode=write_mode)
+
+# COMMAND ----------
+
+# MAGIC %sql describe ${c.table}
+
+# COMMAND ----------
+
+# MAGIC %sql select count(*) from ${c.table}
+
+# COMMAND ----------
+
+# MAGIC %md ## Load Catalog from Delta Lake
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog
+catalog_df = catalog.load()
+display(catalog_df)
+
+# COMMAND ----------
+
+display(catalog_df)
 
 # COMMAND ----------
 
@@ -143,8 +150,20 @@ display(spark.table(table))
 
 # COMMAND ----------
 
+# MAGIC %md ### Decode Dicom attributes
+# MAGIC Using the codes in the DICOM Standard Browser (https://dicom.innolitics.com/ciods) by Innolitics
+
+# COMMAND ----------
+
+# DBTITLE 1,Metadata Analysis
 # MAGIC %sql
-# MAGIC SELECT meta:['00100010'].Value[0].Alphabetic as patient_name, meta:hash, meta:img_min, meta:img_max, path, meta
+# MAGIC SELECT
+# MAGIC     rowid,
+# MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name, 
+# MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
+# MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
+# MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
+# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
 # MAGIC FROM ${c.table}
 
 # COMMAND ----------
@@ -177,7 +196,7 @@ display(dcm_df_filtered.limit(5))
 
 # COMMAND ----------
 
-from databricks.pixels import DicomThumbnailExtractor
+from databricks.pixels.dicom import DicomThumbnailExtractor
 DicomThumbnailExtractor().transform(dcm_df_filtered).display()
 
 # COMMAND ----------

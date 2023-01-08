@@ -163,4 +163,11 @@ display(thumbnail_df)
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC with k(key) as (select explode(json_object_keys(meta)) from ${c.table})
+# MAGIC select distinct * from k
+# MAGIC order by 1 ASC
+
+# COMMAND ----------
+
 

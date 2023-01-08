@@ -126,7 +126,6 @@ class DicomThumbnailExtractor(Transformer):
                                             StructField('data', BinaryType(), False)]), True)])
         myudf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
         return (df
-              .repartition(200)
               .withColumn(
                 'imageType',
                 myudf(
