@@ -43,7 +43,7 @@ Data Flow
 flowchart LR
 
 subgraph bronze[<font size=6>Ingest]
-  A[[Dicom Files]] -->|file reference|B([DicomMetadataExtractor])
+  A[[Dicom Files]] -->|file reference|B([DicomMetaExtractor])
   A -->|metadata|B
   B --> C[(object_catalog)]
 end
@@ -65,7 +65,7 @@ classDiagram
         +transform(df): DataFrame
         -_with_path_meta(): DataFrame
     }
-    Transformer <|-- DicomMetadataExtractor
+    Transformer <|-- DicomMetaExtractor
     Transformer <|-- DicomThumbnailExtractor
     Transformer <|-- DicomPillowThumbnailExtractor
     Transformer <|-- DicomPatcher
@@ -74,8 +74,8 @@ classDiagram
 
     PathExtractor: -check_input_type()
     TagExtractor: -check_input_type()
-    DicomMetadataExtractor: -check_input_type()
-    DicomMetadataExtractor: -_transform(DataFrame)
+    DicomMetaExtractor: -check_input_type()
+    DicomMetaExtractor: -_transform(DataFrame)
     DicomThumbnailExtractor: -check_input_type()
     DicomThumbnailExtractor: -_transform(DataFrame)
     DicomPillowThumbnailExtractor: -check_input_type()
@@ -85,8 +85,8 @@ classDiagram
     PathExtractor: -_transform(DataFrame)
     TagExtractor: -_transform(DataFrame)
     
-    DicomMetadataExtractor --> Catalog
-    DicomMetadataExtractor ..> dicom_meta_udf
+    DicomMetaExtractor --> Catalog
+    DicomMetaExtractor ..> dicom_meta_udf
     DicomThumbnailExtractor ..> dicom_matplotlib_thumbnail_udf
     DicomPillowThumbnailExtractor ..> dicom_pillow_thumbnail_udf
     DicomPatcher ..> dicom_patcher_udf
