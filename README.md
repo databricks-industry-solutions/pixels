@@ -112,18 +112,20 @@ ER Diagram
 erDiagram
     object_catalog
     object_catalog {
-      bigint	rowId PK
-      string	path
-      timestamp	modificationTime
-      bigint	length
-      string	relative_path
-      string	local_path
-      string	extension
-      array_string	path_tags
-      string	meta
-      boolean	is_anon
+      bigint	rowId PK            "Generated unique id found when cataloging"
+      string	path                "Absolute path to Object file"
+      timestamp	modificationTime  "modification timestamp of object as found on cloud storage"
+      bigint	length              "bytes of object file"
+      string	relative_path       "Relative to cataloging base path"
+      string	local_path          "Translated path used by python UDFs"
+      string	extension           "last few characters following last dot"
+      array_string	path_tags     "Path split by common file name separators"
+      string	meta                "JSON string of File header metadata"
+      boolean	is_anon             "'true' if access to storage has no credentials"
+      binary  thumbnail           "binary or struct<<origin:string,height:int,width:int,nChannels:int,mode:int,data:binary>"
     }
 ```
+
 ___
 >
     author: Douglas Moore
