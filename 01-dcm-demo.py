@@ -84,6 +84,11 @@ from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor 
 
 # COMMAND ----------
 
+# initialize the schema if it does not exist
+schema = f"""{table.split(".")[0]}.{table.split(".")[1]}"""
+spark.sql(f"create database if not exists {schema}")
+
+# create pixels Catalog
 catalog = Catalog(spark, table=table)
 catalog_df = catalog.catalog(path=path)
 
