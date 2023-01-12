@@ -11,6 +11,10 @@ token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
+# MAGIC %pip install pydicom s3fs python-gdcm==3.0.19
+
+# COMMAND ----------
+
 # MAGIC %md ### Reload
 
 # COMMAND ----------
@@ -33,21 +37,60 @@ print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
+# MAGIC %md # Test Imports
+
+# COMMAND ----------
+
+from databricks.pixels import Catalog
+
+# COMMAND ----------
+
+from databricks.pixels.dicom import DicomThumbnailExtractor
+
+# COMMAND ----------
+
+from databricks.pixels.dicom  import DicomFrames
+from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor, DicomPillowThumbnailExtractor, DicomPatcher
+
+# COMMAND ----------
+
+import s3fs
+import pydicom
+
+
+# COMMAND ----------
+
+# MAGIC %fs ls dbfs:/FileStore/BCI
+
+# COMMAND ----------
+
+df = spark.read.format('image').load("dbfs:/FileStore/BCI").limit(10)
+
+# COMMAND ----------
+
+display(df.selectExpr('image.*','len(image.data)'))
+
+# COMMAND ----------
+
+# MAGIC %fs ls dbfs:/
+
+# COMMAND ----------
+
 # MAGIC %md ## Test Plotting
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog, DicomFrames
-help(DicomFrames)
-
-# COMMAND ----------
-
-from databricks.pixels import Catalog, DicomFrames
-catalog = Catalog(spark, path=path, table=table)
+from databricks.pixels import Catalog
+from databricks.pixels.dicom import DicomFrames
+catalog = Catalog(spark, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').limit(100)
 
 plots = DicomFrames(dcm_df_filtered, withMeta=True, inputCol="local_path").plot()
 len(plots)
+
+# COMMAND ----------
+
+plots
 
 # COMMAND ----------
 
@@ -74,8 +117,8 @@ plots._get_rows()
 
 # COMMAND ----------
 
-from databricks.pixels import DicomMetaExtractor # The transformer
-from databricks.pixels import Catalog, DicomFrames
+from databricks.pixels.dicom import DicomFrames, DicomMetaExtractor # The transformer
+from databricks.pixels import Catalog
 catalog = Catalog(spark, path=path, table=table)
 
 print(catalog.is_anon())
@@ -89,7 +132,7 @@ display(meta_df.select('meta'))
 
 # COMMAND ----------
 
-catalog.save(meta_df)
+# catalog.save(meta_df)
 
 # COMMAND ----------
 
@@ -106,18 +149,13 @@ dcm_df_filtered.count()
 
 # COMMAND ----------
 
-from databricks.pixels import DicomThumbnailExtractor
-help(DicomThumbnailExtractor)
-
-# COMMAND ----------
-
-from databricks.pixels import DicomThumbnailExtractor # The transformer
-thumbnail_df = DicomThumbnailExtractor(method='matplotlib').transform(dcm_df_filtered)
+from databricks.pixels.dicom import DicomThumbnailExtractor # The transformer
+thumbnail_df = DicomThumbnailExtractor().transform(dcm_df_filtered)
 display(thumbnail_df)
 
 # COMMAND ----------
 
-from databricks.pixels import DicomThumbnailExtractor # The transformer
+from databricks.pixels.dicom import DicomThumbnailExtractor # The transformer
 help(DicomThumbnailExtractor)
 
 # COMMAND ----------
@@ -135,7 +173,7 @@ dcm_df_filtered.count()
 
 # COMMAND ----------
 
-from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+from databricks.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
 help(DicomPillowThumbnailExtractor)
 
 # COMMAND ----------
@@ -144,7 +182,25 @@ help(DicomPillowThumbnailExtractor)
 spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", "100")
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 
-
-from databricks.pixels import DicomPillowThumbnailExtractor # The transformer
+from databricks.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
 thumbnail_df = DicomPillowThumbnailExtractor().transform(dcm_df_filtered)
 display(thumbnail_df)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC with k(key) as (select explode(json_object_keys(meta)) from ${c.table})
+# MAGIC select distinct * from k
+# MAGIC order by 1 ASC
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+import DicomThumbnailExtractor
+
+# COMMAND ----------
+
+

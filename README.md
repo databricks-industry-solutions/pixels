@@ -6,7 +6,6 @@
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 
-
 ---
 
 ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
@@ -39,38 +38,94 @@ Process millions of files with 10 lines of code or less
 dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
 ## Design
-
+Data Flow
 ```mermaid
 flowchart LR
 
-subgraph Ingest
-  A[[Dicom Files]] -->|metadata| B([DicomMetadataExtractor])
+subgraph bronze[<font size=6>Ingest]
+  A[[Dicom Files]] -->|file reference|B([DicomMetaExtractor])
+  A -->|metadata|B
   B --> C[(object_catalog)]
-  A -->|file references|B
 end
-subgraph Analytics
+subgraph silver[<font size=6>Analytics]
   C --> D1([SQL]) --> D(Metadata Analysis)
-  C --> E([DicomPatcher])
-  C --> G1([DicomThumbnailExtractor]) --> G(Visualization)
-  E --> F(Deep Learning)
+  C --> G1([DicomThumbnailExtractor]) --> G(Thumbnail Visualization)
+  C --> G2([DicomPillowThumbnailExtractor]) --> G
+  C -.-> E([DicomPatcher])
+  E -.-> F(Deep Learning)
 end
+style C fill:#CD7F32, stroke:333, color:#333
+style silver fill:#C0C0C0, stroke:333, color #333, font-size: 40px;
 ```
+---
+Python Class Diagram
 ```mermaid
+classDiagram
+    class Transformer {
+        +transform(df): DataFrame
+        -_with_path_meta(): DataFrame
+    }
+    Transformer <|-- DicomMetaExtractor
+    Transformer <|-- DicomThumbnailExtractor
+    Transformer <|-- DicomPillowThumbnailExtractor
+    Transformer <|-- DicomPatcher
+    Transformer <|-- PathExtractor
+    Transformer <|-- TagExtractor
+
+    PathExtractor: -check_input_type()
+    TagExtractor: -check_input_type()
+    DicomMetaExtractor: -check_input_type()
+    DicomMetaExtractor: -_transform(DataFrame)
+    DicomThumbnailExtractor: -check_input_type()
+    DicomThumbnailExtractor: -_transform(DataFrame)
+    DicomPillowThumbnailExtractor: -check_input_type()
+    DicomPillowThumbnailExtractor: -_transform(DataFrame)
+    DicomPatcher: -_transform(DataFrame)
+
+    PathExtractor: -_transform(DataFrame)
+    TagExtractor: -_transform(DataFrame)
+    
+    DicomMetaExtractor --> Catalog
+    DicomMetaExtractor ..> dicom_meta_udf
+    DicomThumbnailExtractor ..> dicom_matplotlib_thumbnail_udf
+    DicomPillowThumbnailExtractor ..> dicom_pillow_thumbnail_udf
+    DicomPatcher ..> dicom_patcher_udf
+
+    dicom_meta_udf ..> pydicom
+    dicom_matplotlib_thumbnail_udf ..> pydicom
+    dicom_pillow_thumbnail_udf  ..> pydicom
+    dicom_patcher_udf  ..> pydicom
+
+    pydicom: +dcmread(fp)
+
+    class Catalog {
+        Catalog(path, table):Catalog
+        +catalog(path): DataFrame
+        +load(): DataFrame
+        +save(df)
+    }
+```
+---
+ER Diagram
+```mermaid
+%%{init: { 'logLevel': 'debug', 'theme': 'forest' } }%%
 erDiagram
     object_catalog
     object_catalog {
-      bigint	rowId
-      string	path
-      timestamp	modificationTime
-      bigint	length
-      string	relative_path
-      string	local_path
-      string	extension
-      array_string	path_tags
-      string	meta
-      boolean	is_anon
+      bigint	rowId PK            "Generated unique id found when cataloging"
+      string	path                "Absolute path to Object file"
+      timestamp	modificationTime  "modification timestamp of object as found on cloud storage"
+      bigint	length              "bytes of object file"
+      string	relative_path       "Relative to cataloging base path"
+      string	local_path          "Translated path used by python UDFs"
+      string	extension           "last few characters following last dot"
+      array_string	path_tags     "Path split by common file name separators"
+      string	meta                "JSON string of File header metadata"
+      boolean	is_anon             "'true' if access to storage has no credentials"
+      binary  thumbnail           "binary or struct<<origin:string,height:int,width:int,nChannels:int,mode:int,data:binary>"
     }
 ```
+
 ___
 >
     author: Douglas Moore

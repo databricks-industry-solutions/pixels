@@ -2,11 +2,11 @@ from numpy.core.fromnumeric import shape
 from pyspark.ml.pipeline import Transformer
 import pyspark.sql.types as t
 
-from pyspark.sql.functions import col, udf, lit
+from pyspark.sql.functions import col, udf, lit, when
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from databricks.pixels.dicom_udfs import dicom_meta_udf
+from databricks.pixels.dicom.dicom_udfs import dicom_meta_udf
         
 class DicomMetaExtractor(Transformer):
     """
@@ -41,12 +41,12 @@ class DicomMetaExtractor(Transformer):
       """
       self.check_input_type(df.schema)
       return (df
-              .filter('extension = "dcm"')
-              .repartition(200)
               .withColumn('is_anon',lit(self.catalog.is_anon()))
-              .withColumn(self.outputCol, 
-                            dicom_meta_udf(
-                              col(self.inputCol),
-                              lit('True'),
-                              col('is_anon'))
-                            ))
+              .withColumn(self.outputCol,
+                              dicom_meta_udf(
+                                col(self.inputCol),
+                                lit('True'),
+                                col('is_anon')
+                                )
+                        )
+            )

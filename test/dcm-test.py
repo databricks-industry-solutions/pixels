@@ -1,4 +1,8 @@
 # Databricks notebook source
+1+1
+
+# COMMAND ----------
+
 # MAGIC %pip install pydicom Pillow
 
 # COMMAND ----------
