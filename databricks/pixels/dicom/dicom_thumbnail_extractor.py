@@ -87,7 +87,7 @@ class DicomThumbnailExtractor(Transformer):
               'data': bytesx            # must be bytearray
           }
         }
-
+  
     def _do_matplotlib_thumbnail(self, df):
         """Use Matplotlib to create the thumbnail. The resulting will have scale bars"""
         def dicom_matplotlib_thumbnail(path:str, anon:bool = False):
@@ -99,7 +99,17 @@ class DicomThumbnailExtractor(Transformer):
           anon (bool) : True if access to S3 bucket is anonymous
           """
           if path[-4:] != '.dcm':
-            return None
+              return {
+                  'image':{
+                    'origin': F'empty.png',   # origin
+                    'height': -1,             # height
+                    'width': -1,              # width
+                    'nChannels': -1,          # nChannels (RGBA)
+                    'mode': -1,               # mode
+                    'data': bytearray(0)      # must be bytearray
+                    }
+                }
+
 
           cmap = "gray"
           try:
@@ -125,12 +135,9 @@ class DicomThumbnailExtractor(Transformer):
         myudf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
         return (df
               .withColumn('imageType',
-                            when (df.extension == 'dcm',
                               myudf(
                                 col(self._inputCol),
-                                col('is_anon'))
-                            ).otherwise(lit(None))
-                        )
+                                col('is_anon')))
               .selectExpr('*',F'imageType.image as {self._outputCol}')
               .drop('imageType')
              )

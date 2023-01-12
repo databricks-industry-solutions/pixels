@@ -40,18 +40,22 @@
 
 # COMMAND ----------
 
-# MAGIC %reload_ext autoreload
-# MAGIC %autoreload 2
-
-# COMMAND ----------
-
 # DBTITLE 1,This token is no longer needed once this repo becomes public - when that happens please adjust the block below
 token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
 
 # COMMAND ----------
 
 # DBTITLE 1,Install requirements
-# MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git
+#%pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git
+
+# COMMAND ----------
+
+# MAGIC %pip install pydicom s3fs python-gdcm==3.0.19
+
+# COMMAND ----------
+
+# MAGIC %reload_ext autoreload
+# MAGIC %autoreload 2
 
 # COMMAND ----------
 
@@ -99,6 +103,7 @@ meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 # COMMAND ----------
 
 # MAGIC %md ## Extract Thumbnails from the Dicom images
+# MAGIC - The `DicomThumbnailExtractor` transformer reads the Dicom pixel data and plots it and store the thumbnail inline (about 45kb) with the metadata
 
 # COMMAND ----------
 
@@ -119,31 +124,15 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql select count(*) from ${c.table}
-
-# COMMAND ----------
-
-# MAGIC %md ## Load Catalog from Delta Lake
-
-# COMMAND ----------
-
-from databricks.pixels import Catalog
-catalog_df = catalog.load()
-display(catalog_df)
-
-# COMMAND ----------
-
-display(catalog_df)
-
-# COMMAND ----------
-
-# DBTITLE 1,Save the updated metadata frame
-catalog.save(meta_df, table=table, mode=write_mode)
-display(spark.table(table))
-
-# COMMAND ----------
-
 # MAGIC %md # Analyze Metadata
+
+# COMMAND ----------
+
+# MAGIC %sql select * from ${c.table}
+
+# COMMAND ----------
+
+# MAGIC %sql select count(*) from ${c.table}
 
 # COMMAND ----------
 
@@ -179,27 +168,22 @@ display(spark.table(table))
 
 # COMMAND ----------
 
+# MAGIC %md # Display Dicom Images
+
+# COMMAND ----------
+
 # MAGIC %md ## Load and Filter Dicom Images
 
 # COMMAND ----------
 
 from databricks.pixels import Catalog
-catalog = Catalog(spark, path=path, table=table)
-dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)
+catalog = Catalog(spark, table=table)
+dcm_df_filtered = catalog.load().filter('extension == "dcm" AND meta:img_max < 1000')
 dcm_df_filtered.count()
 
 # COMMAND ----------
 
 display(dcm_df_filtered.limit(5))
-
-# COMMAND ----------
-
-# MAGIC %md # Display Dicom Images
-
-# COMMAND ----------
-
-from databricks.pixels.dicom import DicomThumbnailExtractor
-DicomThumbnailExtractor().transform(dcm_df_filtered).display()
 
 # COMMAND ----------
 

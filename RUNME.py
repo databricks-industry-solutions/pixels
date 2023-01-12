@@ -33,7 +33,7 @@ from solacc.companion import NotebookSolutionCompanion
 # COMMAND ----------
 
 job_json = {
-        "timeout_seconds": 28800,
+        "timeout_seconds": 1200,
         "max_concurrent_runs": 1,
         "tags": {
             "usage": "solacc_testing",
@@ -56,8 +56,8 @@ job_json = {
                 "spark_conf": {
                     "spark.databricks.delta.formatCheck.enabled": "false"
                     },
-                    "num_workers": 2,
-                    "node_type_id": {"AWS": "i3.xlarge", "MSA": "Standard_DS3_v2", "GCP": "n1-highmem-4"},
+                    "num_workers": 16,
+                    "node_type_id": {"AWS": "m5d.2xlarge", "MSA": "Standard_DS3_v2", "GCP": "n1-highmem-4"},
                     "custom_tags": {
                         "usage": "solacc_testing"
                     },
