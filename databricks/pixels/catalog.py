@@ -103,7 +103,7 @@ class Catalog:
         options.update(self._userOptions)
         options.update(userOptions)
   
-        #print(options)
+        print(options)
         return (
             df.write
                 .format("delta")

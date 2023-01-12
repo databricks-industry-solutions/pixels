@@ -76,7 +76,7 @@ print(F"{path}, {table}, {write_mode}")
 # COMMAND ----------
 
 from databricks.pixels import Catalog
-from databricks.pixels.dicom import DicomFrames
+from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
 
 # COMMAND ----------
 
@@ -94,12 +94,14 @@ catalog_df = catalog.catalog(path=path)
 
 # COMMAND ----------
 
-from databricks.pixels.dicom import DicomMetaExtractor # The transformer
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 
 # COMMAND ----------
 
-from databricks.pixels.dicom import DicomThumbnailExtractor
+# MAGIC %md ## Extract Thumbnails from the Dicom images
+
+# COMMAND ----------
+
 thumbnail_df = DicomThumbnailExtractor().transform(meta_df)
 
 # COMMAND ----------

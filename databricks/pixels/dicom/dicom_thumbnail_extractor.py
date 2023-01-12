@@ -8,7 +8,7 @@ from numpy.core.fromnumeric import shape
 from pyspark.ml.pipeline import Transformer
 import pyspark.sql.types as t
 
-from pyspark.sql.functions import col, udf, lit
+from pyspark.sql.functions import col, udf, lit, when
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
@@ -88,8 +88,6 @@ class DicomThumbnailExtractor(Transformer):
           }
         }
 
-
-
     def _do_matplotlib_thumbnail(self, df):
         """Use Matplotlib to create the thumbnail. The resulting will have scale bars"""
         def dicom_matplotlib_thumbnail(path:str, anon:bool = False):
@@ -126,16 +124,16 @@ class DicomThumbnailExtractor(Transformer):
                                             StructField('data', BinaryType(), False)]), True)])
         myudf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
         return (df
-              .withColumn(
-                'imageType',
-                myudf(
-                  col(self._inputCol),
-                  col('is_anon'))
-                )
+              .withColumn('imageType',
+                            when (df.extension == 'dcm',
+                              myudf(
+                                col(self._inputCol),
+                                col('is_anon'))
+                            ).otherwise(lit(None))
+                        )
               .selectExpr('*',F'imageType.image as {self._outputCol}')
               .drop('imageType')
              )
-      
    
     def _transform(self, df):
       """
