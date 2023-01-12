@@ -42,13 +42,11 @@ class DicomMetaExtractor(Transformer):
       self.check_input_type(df.schema)
       return (df
               .withColumn('is_anon',lit(self.catalog.is_anon()))
-              .withColumn(self.outputCol, 
-                            when (df.extension == 'dcm',
+              .withColumn(self.outputCol,
                               dicom_meta_udf(
                                 col(self.inputCol),
                                 lit('True'),
                                 col('is_anon')
                                 )
-                            ).otherwise(lit(None))
                         )
             )

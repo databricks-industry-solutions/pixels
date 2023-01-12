@@ -28,7 +28,7 @@ def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
     from pydicom.errors import InvalidDicomError
 
     try:
-        if (path[-4] != ".dcm"):
+        if (path[-4:] != ".dcm"):
             return {}
 
         fp = cloud_open(path, anon)
