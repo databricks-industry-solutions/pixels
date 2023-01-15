@@ -37,7 +37,8 @@ job_json = {
         "max_concurrent_runs": 1,
         "tags": {
             "usage": "solacc_testing",
-            "group": "HLS"
+            "group": "HLS",
+            "name": "pixels"
         },
         "tasks": [
             {
@@ -45,7 +46,19 @@ job_json = {
                 "notebook_task": {
                     "notebook_path": f"01-dcm-demo"
                 },
-                "task_key": "pixels_01"
+                "task_key": "01-dcm-demo"
+            },
+            {
+                "job_cluster_key": "pixels_cluster",
+                "notebook_task": {
+                    "notebook_path": f"02-dcm-browser"
+                },
+                "task_key": "02-dcm-browser",
+                "depends_on": [
+                    {
+                        "task_key": "01-dcm-demo"
+                    }
+                ]
             }
         ],
         "job_clusters": [
@@ -71,3 +84,7 @@ job_json = {
 dbutils.widgets.dropdown("run_job", "False", ["True", "False"])
 run_job = dbutils.widgets.get("run_job") == "True"
 NotebookSolutionCompanion().deploy_compute(job_json, run_job=run_job)
+
+# COMMAND ----------
+
+

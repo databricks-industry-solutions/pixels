@@ -3,14 +3,6 @@
 
 # COMMAND ----------
 
-token = dbutils.secrets.get("solution-accelerator-cicd", "github-pat")
-
-# COMMAND ----------
-
-# MAGIC %pip install git+https://token:$token@github.com/databricks-industry-solutions/pixels.git
-
-# COMMAND ----------
-
 # MAGIC %pip install pydicom s3fs python-gdcm==3.0.19
 
 # COMMAND ----------
@@ -195,11 +187,21 @@ display(thumbnail_df)
 
 # COMMAND ----------
 
-
+help(DicomPlot)
 
 # COMMAND ----------
 
-import DicomThumbnailExtractor
+dcm_df_filtered.count()
+
+# COMMAND ----------
+
+# DBTITLE 1,Display DICOM browser
+from databricks.pixels import Catalog
+from databricks.pixels.dicom import DicomPlot
+
+catalog = Catalog(spark, table=table)
+dcm_df_filtered = catalog.load().filter('extension == "dcm"').limit(1000)
+DicomPlot(dcm_df_filtered).display()
 
 # COMMAND ----------
 
