@@ -1,5 +1,9 @@
 from pyspark.sql.functions import udf
-import pandas as pd
+import matplotlib.pyplot as plt
+from pydicom import dcmread
+from pydicom.errors import InvalidDicomError
+import os
+import hashlib
 
 def cloud_open(path:str, anon:bool = False):
   try:
@@ -43,7 +47,7 @@ def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
             if deep:
                 a = ds.pixel_array
                 a.flags.writeable = False
-                js['hash'] = hash(a.data.tobytes())
+                js['hash'] = hashlib.sha1(ds.pixel_array).hexdigest()
                 js['img_min'] = np.min(a)
                 js['img_max'] = np.max(a)
                 js['img_avg'] = np.average(a)
@@ -60,41 +64,3 @@ def dicom_meta_udf(path:str, deep:bool = True, anon:bool = False) -> dict:
         })
         print(except_str)
         return except_str
-
-@udf
-def dicom_plot_udf(path:str, anon:bool = False, save_folder = "/dbfs/FileStore/plots/pixels", figsize=(20.0,20.0)) -> str:
-    """Distributed function to render Dicom plot. 
-    This UDF will generate .png image into the FileStore plots folder which then can be linked to by the href attributed in the <img> tag.
-    To assist with pretty rendering, this function utilizes:
-        resources/plot.html
-        resources/plot.css
-        resources/plot.js
-    """
-    import uuid
-    import matplotlib.pyplot as plt
-    from pydicom import dcmread
-    from pydicom.errors import InvalidDicomError
-    import s3fs
-    import os
-    import os.path
-
-    cmap = "gray"
-    fmt = 'PNG'
-    extension = fmt.lower()
-    """Plot dicom image to file in dbfs:/FileStore/plots folder then return translated path to plot"""
-    save_file = ''
-    if True:
-        fp = cloud_open(path, anon)
-        with dcmread(fp) as ds:
-            fig, ax = plt.subplots()
-            ax.imshow(ds.pixel_array, cmap=cmap)
-            #plt.title(path[-14:])
-            plot_file = F"{str(uuid.uuid4())}.{extension}"
-            save_file = F"{save_folder}/{plot_file}"
-            plt.savefig(save_file, format=fmt)
-            plt.close()
-            return save_file
-    #except Exception as err:
-    #    err_str = F"function: dicom_plot_udf, input: {path}, save_file: {save_file} err: {str(err)}"
-    #    print(err_str)
-    #    return err_str
