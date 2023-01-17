@@ -2,8 +2,6 @@ Image folder for embeds
 
 ![](databricks.svg)
 
-![](pixels-diagram.svg)
-
 ```mermaid
 flowchart LR
 
