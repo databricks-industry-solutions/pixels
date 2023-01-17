@@ -37,6 +37,26 @@ Process millions of files with 10 lines of code or less
 - tags: 
 dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
+## Quick Start
+```python
+# imports
+from databricks.pixels import Catalog                       # 01
+from databricks.pixels.dicom import *                       # 02
+
+# catalog all your files
+catalog = Catalog(spark)                                    # 03
+catalog_df = catalog.catalog(<path>)                        # 04
+
+# extract the Dicom metadata
+meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
+ 
+# extract thumbnails and display
+thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
+ 
+# save your work for SQL access
+catalog.save(thumbnail_df)                                  # 07
+```
+---
 ## Design
 Data Flow
 ```mermaid
