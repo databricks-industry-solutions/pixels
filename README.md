@@ -23,7 +23,7 @@ DICOM® is recognized by the International Organization for Standardization as t
 
 ---
 ## About databricks.pixels
-Process millions of files with 10 lines of code or less
+Process millions of files with 10 lines of code or less, more robust and cheaper than functions (AWS Lambda/Azure Functions)
 
 * Use `databricks.pixels` python package for simplicity
   - Catalog your images
