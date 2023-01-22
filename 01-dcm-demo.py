@@ -4,11 +4,14 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC # Easily scale DICOM Image Processing
-# MAGIC 
-# MAGIC ---
+# MAGIC %md 
+# MAGIC # `databricks.pixels` Solution Accelerator
+# MAGIC ## Analyze DICOM data with SQL
+# MAGIC <img width="80%"  src="https://raw.githubusercontent.com/databricks-industry-solutions/pixels/dmoore247-patch-8/images/pixels-dataflow-diagram.svg"/>
+
+# COMMAND ----------
+
+# MAGIC %md ## About DICOM
 # MAGIC DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
 # MAGIC 
 # MAGIC ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
@@ -22,23 +25,19 @@
 
 # COMMAND ----------
 
-# MAGIC %md ## About databricks.pixels
-# MAGIC - Use `databricks.pixels` python package for simplicity
+# MAGIC %md
+# MAGIC ## About `databricks.pixels`
+# MAGIC Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
+# MAGIC 
+# MAGIC * Use `databricks.pixels` python package for simplicity
 # MAGIC   - Catalog your images
 # MAGIC   - Extract Metadata
-# MAGIC   - Compute thumbnails
-# MAGIC   - Display thumbnails
+# MAGIC   - Visualize thumbnails
 # MAGIC <!-- -->
-# MAGIC - Scale up Image processing over multiple-cores and nodes
-# MAGIC - Delta lake & Delta Engine accelerate metadata research.
-# MAGIC - Delta lake speeds up small file processing and makes the metadata catalog fast and reliable
-# MAGIC - Spark for reliable parallel processing on millions of files
-# MAGIC - Python for easy to access native functionality
-# MAGIC - Core libraries `python-gdcm` `pydicom`, well maintained 'standard' python packages for processing Dicom files.
-# MAGIC 
-# MAGIC author: douglas.moore@databricks.com
-# MAGIC 
-# MAGIC tags: dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file type
+# MAGIC * Scale up Image processing over multiple-cores and multiple worker nodes
+# MAGIC * Delta Lake & Delta Engine accelerate metadata analysis.
+# MAGIC * Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
+# MAGIC <!-- -->
 
 # COMMAND ----------
 
@@ -105,7 +104,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %md # Analyze Metadata
+# MAGIC %md # Analyze DICOM Metadata with SQL
 
 # COMMAND ----------
 
@@ -133,7 +132,9 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
 # MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
-# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
+# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection`, -- backticks work for numeric keys
+# MAGIC     split(meta:`00081030`.`Value`[0],'_')[0] `Label`,
+# MAGIC     split(meta:`00081030`.`Value`[0],'_')[1] `Instance`
 # MAGIC FROM ${c.table}
 
 # COMMAND ----------
@@ -152,4 +153,4 @@ catalog.save(thumbnail_df, mode=write_mode)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Done
+# MAGIC Next: <a href="$./02-dcm-browser">DICOM Image Browser</a>
