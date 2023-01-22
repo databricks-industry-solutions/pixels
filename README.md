@@ -1,16 +1,17 @@
 <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
 
-# Scale out Dicom image processing
-
+# `databricks.pixels` Solution Accelerator
+Analyze DICOM image metadata with SQL
+![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
+---
 [![DBR](https://img.shields.io/badge/DBR-10.4ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/10.4ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 
 ---
 
-![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
-
 ## About DICOM
+![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
 [Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/dcmintro.php.en)
 
 DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
@@ -23,19 +24,19 @@ DICOM® is recognized by the International Organization for Standardization as t
 
 ---
 ## About databricks.pixels
-Process millions of files with 10 lines of code or less, more robust and cheaper than functions (AWS Lambda/Azure Functions)
+Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
 
 * Use `databricks.pixels` python package for simplicity
   - Catalog your images
   - Extract Metadata
   - Visualize thumbnails
 <!-- -->
-* Scale up Image processing over multiple-cores and nodes
-* Delta lake & Delta Engine accelerate metadata analysis.
-* Well maintained 'standard' python packages `python-gdcm` `pydicom` are for processing Dicom files.
+* Scale up Image processing over multiple-cores and multiple worker nodes
+* Delta Lake & Delta Engine accelerate metadata analysis.
+* Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
 <!-- -->
 - tags: 
-dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
+dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
 ## Quick Start
 ```python
