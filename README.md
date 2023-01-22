@@ -1,13 +1,13 @@
 <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
 
-# `databricks.pixels` Solution Accelerator
-Analyze DICOM image metadata with SQL
-![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
----
 [![DBR](https://img.shields.io/badge/DBR-10.4ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/10.4ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
+---
 
+# `databricks.pixels` Solution Accelerator
+Analyze DICOM image metadata with SQL
+![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
 ---
 
 ## About DICOM
@@ -23,7 +23,7 @@ Since its first publication in 1993, DICOM® has revolutionized the practice of 
 DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
 
 ---
-## About databricks.pixels
+## About `databricks.pixels`
 Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
 
 * Use `databricks.pixels` python package for simplicity
