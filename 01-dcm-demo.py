@@ -119,6 +119,21 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
+# DBTITLE 1,File Metadata analysis
+# MAGIC %sql
+# MAGIC with x as (
+# MAGIC   select
+# MAGIC   count(1) num_dicoms,
+# MAGIC   format_number(sum(length), 0) as total_size_in_bytes,
+# MAGIC   format_number(sum(length) /(1024*1024*1024), 1) as total_size_in_gb,
+# MAGIC   format_number(avg(length), 0) avg_size_in_bytes
+# MAGIC   from ${c.table} t
+# MAGIC   where extension = 'dcm'
+# MAGIC )
+# MAGIC select num_dicoms, total_size_in_gb, avg_size_in_bytes from x
+
+# COMMAND ----------
+
 # MAGIC %md ### Decode Dicom attributes
 # MAGIC Using the codes in the DICOM Standard Browser (https://dicom.innolitics.com/ciods) by Innolitics
 
