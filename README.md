@@ -1,16 +1,17 @@
 <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
 
-# Scale out Dicom image processing
-
 [![DBR](https://img.shields.io/badge/DBR-10.4ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/10.4ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
-
 ---
 
-![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
+# `databricks.pixels` Solution Accelerator
+Analyze DICOM image metadata with SQL
+![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
+---
 
 ## About DICOM
+![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
 [Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/dcmintro.php.en)
 
 DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
@@ -22,41 +23,45 @@ Since its first publication in 1993, DICOM® has revolutionized the practice of 
 DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
 
 ---
-## About databricks.pixels
-Process millions of files with 10 lines of code or less
+## About `databricks.pixels`
+Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
 
 * Use `databricks.pixels` python package for simplicity
   - Catalog your images
   - Extract Metadata
   - Visualize thumbnails
 <!-- -->
-* Scale up Image processing over multiple-cores and nodes
-* Delta lake & Delta Engine accelerate metadata analysis.
-* Well maintained 'standard' python packages `python-gdcm` `pydicom` are for processing Dicom files.
+* Scale up Image processing over multiple-cores and multiple worker nodes
+* Delta Lake & Delta Engine accelerate metadata analysis.
+* Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
 <!-- -->
 - tags: 
-dicom, dcm, pre-processing, visualization, repos, python, spark, pyspark, package, image catalog, mamograms, dcm file
+dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
+---
+## Quick Start
+```python
+# imports
+from databricks.pixels import Catalog                       # 01
+from databricks.pixels.dicom import *                       # 02
+
+# catalog all your files
+catalog = Catalog(spark)                                    # 03
+catalog_df = catalog.catalog(<path>)                        # 04
+
+# extract the Dicom metadata
+meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
+ 
+# extract thumbnails and display
+thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
+ 
+# save your work for SQL access
+catalog.save(thumbnail_df)                                  # 07
+```
 ---
 ## Design
 Data Flow
-```mermaid
-flowchart LR
+<img width="100%" src="images/pixels-dataflow-diagram.svg?raw=true">
 
-subgraph bronze[<font size=6>Ingest]
-  A[[Dicom Files]] -->|file reference|B([DicomMetaExtractor])
-  A -->|metadata|B
-  B --> C[(object_catalog)]
-end
-subgraph silver[<font size=6>Analytics]
-  C --> D1([SQL]) --> D(Metadata Analysis)
-  C --> G1([DicomThumbnailExtractor]) --> G(Thumbnail Visualization)
-  C --> G2([DicomPillowThumbnailExtractor]) --> G
-  C -.-> E([DicomPatcher])
-  E -.-> F(Deep Learning)
-end
-style C fill:#CD7F32, stroke:333, color:#333
-style silver fill:#C0C0C0, stroke:333, color #333, font-size: 40px;
-```
 ---
 Python Class Diagram
 ```mermaid
