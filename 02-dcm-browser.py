@@ -8,7 +8,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("table", table, label="2.0 Catalog Schema Table to store object metadata into")
+path,table,write_mode = init_widgets()
 
 # COMMAND ----------
 

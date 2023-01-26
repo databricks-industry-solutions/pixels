@@ -44,9 +44,9 @@ job_json = {
            {
                 "job_cluster_key": "pixels_cluster",
                 "notebook_task": {
-                    "notebook_path": f"00-dcm-index"
+                    "notebook_path": f"00-README"
                 },
-                "task_key": "00-dcm-index-page"
+                "task_key": "00-README"
             },
             {
                 "job_cluster_key": "pixels_cluster",
@@ -56,7 +56,7 @@ job_json = {
                 "task_key": "01-dcm-demo",
                 "depends_on": [
                     {
-                        "task_key": "00-dcm-index-page"
+                        "task_key": "00-README"
                     }
                   ]
             },
