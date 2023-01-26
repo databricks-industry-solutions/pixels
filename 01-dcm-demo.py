@@ -4,40 +4,17 @@
 
 # COMMAND ----------
 
-# MAGIC %md 
-# MAGIC # `databricks.pixels` Solution Accelerator
-# MAGIC ## Analyze DICOM data with SQL
-# MAGIC <img width="80%"  src="https://raw.githubusercontent.com/databricks-industry-solutions/pixels/dmoore247-patch-8/images/pixels-dataflow-diagram.svg"/>
-
-# COMMAND ----------
-
-# MAGIC %md ## About DICOM
-# MAGIC DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
+# MAGIC %md # Analytics on DICOM images should be simple
 # MAGIC 
-# MAGIC ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
-# MAGIC 
-# MAGIC 
-# MAGIC DICOM® is implemented in almost every radiology, cardiology imaging, and radiotherapy device (X-ray, CT, MRI, ultrasound, etc.), and increasingly in devices in other medical domains such as ophthalmology and dentistry. With hundreds of thousands of medical imaging devices in use, DICOM® is one of the most widely deployed healthcare messaging Standards in the world. There are literally billions of DICOM® images currently in use for clinical care.
-# MAGIC 
-# MAGIC Since its first publication in 1993, DICOM® has revolutionized the practice of radiology, allowing the replacement of X-ray film with a fully digital workflow. Much as the Internet has become the platform for new consumer information applications, DICOM® has enabled advanced medical imaging applications that have “changed the face of clinical medicine”. From the emergency department, to cardiac stress testing, to breast cancer detection, DICOM® is the standard that makes medical imaging work — for doctors and for patients.
-# MAGIC 
-# MAGIC DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## About `databricks.pixels`
-# MAGIC Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
-# MAGIC 
-# MAGIC * Use `databricks.pixels` python package for simplicity
-# MAGIC   - Catalog your images
-# MAGIC   - Extract Metadata
-# MAGIC   - Visualize thumbnails
+# MAGIC - Catalog all of your files in parallel and scale with Spark
+# MAGIC - Spark SQL on top of Delta Lake powers fast metadata analytics
+# MAGIC - Python based Transformers / pandas udfs form building blocks for:
+# MAGIC   - Metadata & Thumbnail extraction
+# MAGIC   - Uses proven `gdcm`, `python-gdcm` & `pydicom` python packages & C++ libraries
+# MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
-# MAGIC * Scale up Image processing over multiple-cores and multiple worker nodes
-# MAGIC * Delta Lake & Delta Engine accelerate metadata analysis.
-# MAGIC * Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
-# MAGIC <!-- -->
+# MAGIC 
+# MAGIC The `databricks.pixels` solution accelerator turns DICOM images into SQL data
 
 # COMMAND ----------
 
@@ -47,9 +24,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Display widgets
-dbutils.widgets.text("path", path, label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
-dbutils.widgets.text("table", table, label="2.0 Catalog Schema Table to store object metadata into")
-dbutils.widgets.dropdown("mode", defaultValue="overwrite",choices=["overwrite","append"], label="3.0 Update mode on object metadata table")
+path,table,write_mode = init_widgets()
 
 # COMMAND ----------
 
@@ -112,25 +87,18 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql 
-# MAGIC select count(1) object_count,
-# MAGIC        count(DISTINCT meta:['00100010'].Value[0].Alphabetic) as patient_count 
-# MAGIC from ${c.table}
-
-# COMMAND ----------
-
 # DBTITLE 1,File Metadata analysis
 # MAGIC %sql
 # MAGIC with x as (
 # MAGIC   select
-# MAGIC   count(1) num_dicoms,
-# MAGIC   format_number(sum(length), 0) as total_size_in_bytes,
+# MAGIC   format_number(count(DISTINCT meta:['00100010'].Value[0].Alphabetic),0) as patient_count,
+# MAGIC   format_number(count(1),0) num_dicoms,
 # MAGIC   format_number(sum(length) /(1024*1024*1024), 1) as total_size_in_gb,
 # MAGIC   format_number(avg(length), 0) avg_size_in_bytes
 # MAGIC   from ${c.table} t
 # MAGIC   where extension = 'dcm'
 # MAGIC )
-# MAGIC select num_dicoms, total_size_in_gb, avg_size_in_bytes from x
+# MAGIC select patient_count, num_dicoms, total_size_in_gb, avg_size_in_bytes from x
 
 # COMMAND ----------
 
@@ -139,7 +107,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# DBTITLE 1,Metadata Analysis
+# DBTITLE 1,Patient / Radiology Data Analysis
 # MAGIC %sql
 # MAGIC SELECT
 # MAGIC     rowid,
