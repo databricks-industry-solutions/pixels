@@ -1,10 +1,15 @@
 # Databricks notebook source
+# MAGIC %md 
+# MAGIC You may find this solution accelerator at https://github.com/databricks-industry-solutions/pixels.
+
+# COMMAND ----------
+
 # MAGIC %md # DICOM browser
 # MAGIC Provide a nice Dicom browsing experience from a notebook
 
 # COMMAND ----------
 
-# MAGIC %run ./00-setup
+# MAGIC %run ./config/setup
 
 # COMMAND ----------
 
@@ -23,7 +28,3 @@ DicomPlot(dcm_df_filtered).display()
 
 # MAGIC %md
 # MAGIC Previous: <a href="$./01-dcm-demo">DICOM demo</a>
-
-# COMMAND ----------
-
-
