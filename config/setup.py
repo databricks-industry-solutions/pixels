@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install pydicom s3fs python-gdcm==3.0.19
+# MAGIC %pip install pydicom s3fs python-gdcm==3.0.19 git+https://github.com/databricks-industry-solutions/pixels.git
 
 # COMMAND ----------
 
