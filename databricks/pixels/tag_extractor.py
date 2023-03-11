@@ -26,7 +26,7 @@ class TagExtractor(Transformer):
                             f.split(
                               f.regexp_replace(
                                 "relative_path",
-                                "([0-9a-zA-Z]+)([\_\.\/\:])",
+                                r"([0-9a-zA-Z]+)([\_\.\/\:])",
                                 r"$1,"),
                               ",")
                             )
