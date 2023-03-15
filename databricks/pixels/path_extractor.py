@@ -28,13 +28,13 @@ class PathExtractor(Transformer):
         """ User overridable """
         return (df
                 .withColumn("relative_path", f.regexp_replace(inputCol, basePath+"(.*)$",r"$1"))
-                .withColumn("local_path", f.regexp_replace(inputCol,"^dbfs:(.*$)",r"/dbfs$1"))
-                .withColumn("extension",f.regexp_replace("relative_path", ".*\.(\w+)$", r"$1"))
+                .withColumn("local_path", f.regexp_replace(inputCol,r"^dbfs:(.*$)",r"/dbfs$1"))
+                .withColumn("extension",f.regexp_replace("relative_path", r".*\.(\w+)$", r"$1"))
                 .withColumn("path_tags",
                             f.split(
                             f.regexp_replace(
                                 "relative_path",
-                                "([0-9a-zA-Z]+)([\_\.\/\:])",
+                                r"([0-9a-zA-Z]+)([\_\.\/\:])",
                                 r"$1,"),
                             ",")
                             )

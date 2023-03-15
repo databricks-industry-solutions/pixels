@@ -1,15 +1,15 @@
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
-from databricks.pixels import ObjectFrames
+from pyspark.sql import SparkSession
 
 # dfZipWithIndex helper function
 from pyspark.sql.types import LongType, StructField, StructType
 
 from pyspark.sql import DataFrame
 
-
-
 class Catalog:
+    """Build object catalog of files on s3 dbfs or local storage. 
+    Save catalog to Delta Lake table by path or table name"""
     CATALOG_PARTITIONS = 2000
 
     def is_anon(self):
@@ -30,12 +30,13 @@ class Catalog:
     
         return anon
 
-    def __init__(self, spark, table:str = "hive_metastore.objects_catalog.objects"):
+    def __init__(self, spark, table:str = "hive_metastore.pixels_solacc.object_catalog"):
       """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
           Parameters:
               spark - Spark context
               table - Delta table that stores the object catalog
       """
+      assert spark is not None
       self._spark = spark
       self._table = table
       """Spark and Delta Table options for best performance"""
@@ -61,7 +62,13 @@ class Catalog:
               pattern - file name pattern
               recurse - True means recurse folder structure
         """
+        assert(self._spark is not None)
+        assert type(self._spark) == SparkSession
+        assert self._spark.version is not None
+
         self._anon = self._is_anon(path)
+        spark = self._spark
+        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.load({path})")
         df = (self._spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      pattern)
@@ -71,13 +78,13 @@ class Catalog:
         )
         df = Catalog._with_path_meta(df)
         df = Catalog._dfZipWithIndex(self._spark, df) # add an unique ID
-        return ObjectFrames(df)
+        return (df)
 
     def load(self, table:str = None) -> DataFrame:
       """
         @return Spark dataframe representing the object Catalog
       """
-      return ObjectFrames(self._spark.table(self._table if not table else table))
+      return (self._spark.table(self._table if not table else table))
    
     def save(self,
         df:DataFrame, 
@@ -104,6 +111,8 @@ class Catalog:
         options.update(userOptions)
   
         print(options)
+        spark = self._spark
+        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.save({table or path})")
         return (
             df.write
                 .format("delta")
@@ -116,9 +125,9 @@ class Catalog:
         """ break path up into usable information """
         return (            
                 df
-                .withColumn("relative_path", f.regexp_replace(inputCol, basePath+"(.*)$",r"$1"))
-                .withColumn("local_path", f.regexp_replace(inputCol,"^dbfs:(.*$)",r"/dbfs$1"))
-                .withColumn("extension",f.regexp_replace(inputCol, ".*\.(\w+)$", r"$1"))
+                .withColumn("relative_path", f.regexp_replace(inputCol, basePath+r"(.*)$",r"$1"))
+                .withColumn("local_path", f.regexp_replace(inputCol,r"^dbfs:(.*$)",r"/dbfs$1"))
+                .withColumn("extension",f.regexp_replace(inputCol, r".*\.(\w+)$", r"$1"))
                 .withColumn("path_tags",
                                 f.slice(
                                     f.split(
