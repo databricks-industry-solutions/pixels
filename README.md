@@ -143,6 +143,10 @@ ___
 To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to any cluster running a DBR 10.4 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
 
 ___
+## Working with Unity Catalog (as of October 18th, 2023)
+Unity Catalog (UC) [volumes](https://docs.databricks.com/en/data-governance/unity-catalog/create-volumes.html) are the recommended approach for providing access to and governing non-tabular data assets in a cloud object storage locations, including DICOM files. To use `databricks.pixels` with UC volumes currently requires the use of [single-user access mode clusters](https://docs.databricks.com/en/clusters/configure.html#access-modes) since `databricks.pixels` leverages user-defined functions (UDFs) and shared access mode clusters do not currently allow UDFs to access UC volumes. This behavior is expected to change in the future.
+
+___
 ## Licensing
 
 &copy; 2022 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
