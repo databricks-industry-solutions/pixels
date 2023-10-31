@@ -8,8 +8,8 @@ def spark() -> SparkSession:
   the cluster in the remote Databricks workspace. Unit tests do not
   have access to this SparkSession by default.
   """
-  x = SparkSession.builder.appName("dbx.pixels").getOrCreate()
-  x.sparkContext.setJobGroup("dbx.pixels.catalog","pytest")
+  x = SparkSession.builder.appName("databricks.labs.pixels").getOrCreate()
+  x.sparkContext.setJobGroup("databricks.labs.pixels.catalog","pytest")
   return x
 
 def test_python_version(spark):
@@ -22,18 +22,18 @@ def test_spark(spark):
   assert type(spark) is SparkSession
 
 def test_catalog_import(spark):
-  from dbx.pixels import Catalog
-  from dbx.pixels import version
+  from databricks.labs.pixels import Catalog
+  from databricks.labs.pixels import version
   assert version.__version__ >= "0.0.6"
   
 def test_catalog_init(spark):
-  from dbx.pixels import Catalog
+  from databricks.labs.pixels import Catalog
   catalog = Catalog(spark=spark)
   assert(catalog is not None)
   assert catalog.is_anon
 
 def catalog_path(spark, path):
-  from dbx.pixels import Catalog
+  from databricks.labs.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
@@ -57,7 +57,7 @@ def test_catalog_private_dbfs_private(spark):
 
 def test_catalog_save(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from dbx.pixels import Catalog
+  from databricks.labs.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
@@ -66,7 +66,7 @@ def test_catalog_save(spark):
   
 def test_catalog_save_uc(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from dbx.pixels import Catalog
+  from databricks.labs.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
@@ -76,7 +76,7 @@ def test_catalog_save_uc(spark):
   
 def test_catalog_save_dbfs(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from dbx.pixels import Catalog
+  from databricks.labs.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None

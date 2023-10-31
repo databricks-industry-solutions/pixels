@@ -33,16 +33,16 @@ print(F"{path}, {table}, {write_mode}")
 
 # COMMAND ----------
 
-from dbx.pixels import Catalog
+from databricks.labs.pixels import Catalog
 
 # COMMAND ----------
 
-from dbx.pixels.dicom import DicomThumbnailExtractor
+from databricks.labs.pixels.dicom import DicomThumbnailExtractor
 
 # COMMAND ----------
 
-from dbx.pixels.dicom  import DicomFrames
-from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor, DicomPillowThumbnailExtractor, DicomPatcher
+from databricks.labs.pixels.dicom  import DicomFrames
+from databricks.labs.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor, DicomPillowThumbnailExtractor, DicomPatcher
 
 # COMMAND ----------
 
@@ -72,8 +72,8 @@ display(df.selectExpr('image.*','len(image.data)'))
 
 # COMMAND ----------
 
-from dbx.pixels import Catalog
-from dbx.pixels.dicom import DicomFrames
+from databricks.labs.pixels import Catalog
+from databricks.labs.pixels.dicom import DicomFrames
 catalog = Catalog(spark, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').limit(100)
 
@@ -90,7 +90,7 @@ plots._files
 
 # COMMAND ----------
 
-from dbx.pixels import dicom_plot_udf
+from databricks.labs.pixels import dicom_plot_udf
 from pyspark.sql.functions import col
 
 plot_df = (dcm_df_filtered.withColumn(
@@ -109,8 +109,8 @@ plots._get_rows()
 
 # COMMAND ----------
 
-from dbx.pixels.dicom import DicomFrames, DicomMetaExtractor # The transformer
-from dbx.pixels import Catalog
+from databricks.labs.pixels.dicom import DicomFrames, DicomMetaExtractor # The transformer
+from databricks.labs.pixels import Catalog
 catalog = Catalog(spark, path=path, table=table)
 
 print(catalog.is_anon())
@@ -134,20 +134,20 @@ display(meta_df.select('meta'))
 
 # load metata from the catalog
 
-from dbx.pixels import Catalog
+from databricks.labs.pixels import Catalog
 catalog = Catalog(spark, path=path, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000).limit(10)
 dcm_df_filtered.count()
 
 # COMMAND ----------
 
-from dbx.pixels.dicom import DicomThumbnailExtractor # The transformer
+from databricks.labs.pixels.dicom import DicomThumbnailExtractor # The transformer
 thumbnail_df = DicomThumbnailExtractor().transform(dcm_df_filtered)
 display(thumbnail_df)
 
 # COMMAND ----------
 
-from dbx.pixels.dicom import DicomThumbnailExtractor # The transformer
+from databricks.labs.pixels.dicom import DicomThumbnailExtractor # The transformer
 help(DicomThumbnailExtractor)
 
 # COMMAND ----------
@@ -158,14 +158,14 @@ help(DicomThumbnailExtractor)
 
 # load metata from the catalog
 
-from dbx.pixels import Catalog
+from databricks.labs.pixels import Catalog
 catalog = Catalog(spark, path=path, table=table)
 dcm_df_filtered = catalog.load().filter('meta:img_max < 1000').repartition(1000)#.limit(10)
 dcm_df_filtered.count()
 
 # COMMAND ----------
 
-from dbx.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
+from databricks.labs.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
 help(DicomPillowThumbnailExtractor)
 
 # COMMAND ----------
@@ -174,7 +174,7 @@ help(DicomPillowThumbnailExtractor)
 spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", "100")
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 
-from dbx.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
+from databricks.labs.pixels.dicom import DicomPillowThumbnailExtractor # The transformer
 thumbnail_df = DicomPillowThumbnailExtractor().transform(dcm_df_filtered)
 display(thumbnail_df)
 
@@ -196,8 +196,8 @@ dcm_df_filtered.count()
 # COMMAND ----------
 
 # DBTITLE 1,Display DICOM browser
-from dbx.pixels import Catalog
-from dbx.pixels.dicom import DicomPlot
+from databricks.labs.pixels import Catalog
+from databricks.labs.pixels.dicom import DicomPlot
 
 catalog = Catalog(spark, table=table)
 dcm_df_filtered = catalog.load().filter('extension == "dcm"').limit(1000)

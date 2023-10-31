@@ -9,7 +9,7 @@ from pyspark.sql.functions import col, udf, lit
 
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from dbx.pixels.dicom.dicom_udfs import cloud_open
+from databricks.labs.pixels.dicom.dicom_udfs import cloud_open
 
 from pyspark.sql.functions import pandas_udf
 
@@ -32,7 +32,7 @@ class DicomPillowThumbnailExtractor(Transformer):
       imageSchema (outputCol): Spark dataframe column containing thumbnail of Dicom file
     
     Example:
-      from dbx.pixels import DicomThumbnailExtractor # The transformer
+      from databricks.labs.pixels import DicomThumbnailExtractor # The transformer
       xform = DicomThumbnailExtractor()
       thumbnail_df = xform.transform(dcm_df_filtered)
       display(thumbnail_df)

@@ -15,7 +15,7 @@
 # MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
 # MAGIC 
-# MAGIC The `dbx.pixels` solution accelerator turns DICOM images into SQL data
+# MAGIC The `databricks.labs.pixels` solution accelerator turns DICOM images into SQL data
 
 # COMMAND ----------
 
@@ -33,7 +33,7 @@
 # MAGIC 
 # MAGIC | library              | purpose                             | license                       | source                                                  |
 # MAGIC |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
-# MAGIC | dbx.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
+# MAGIC | databricks.labs.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 # MAGIC | pydicom              | Reading Dicom file wrapper          | MIT                           | https://github.com/pydicom/pydicom                      |
 # MAGIC | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 # MAGIC | gdcm                 | Parse Dicom files.                  | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |
