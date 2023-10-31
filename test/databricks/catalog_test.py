@@ -8,8 +8,8 @@ def spark() -> SparkSession:
   the cluster in the remote Databricks workspace. Unit tests do not
   have access to this SparkSession by default.
   """
-  x = SparkSession.builder.appName("databricks.pixels").getOrCreate()
-  x.sparkContext.setJobGroup("databricks.pixels.catalog","pytest")
+  x = SparkSession.builder.appName("dbx.pixels").getOrCreate()
+  x.sparkContext.setJobGroup("dbx.pixels.catalog","pytest")
   return x
 
 def test_python_version(spark):

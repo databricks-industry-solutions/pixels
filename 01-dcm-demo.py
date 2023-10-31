@@ -14,7 +14,7 @@
 # MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
 # MAGIC 
-# MAGIC The `databricks.pixels` solution accelerator turns DICOM images into SQL data
+# MAGIC The `dbx.pixels` solution accelerator turns DICOM images into SQL data
 
 # COMMAND ----------
 
@@ -29,7 +29,7 @@ path,table,write_mode = init_widgets()
 # COMMAND ----------
 
 # MAGIC %md ## Catalog the objects and files
-# MAGIC `databricks.pixels.Catalog` just looks at the file metadata
+# MAGIC `dbx.pixels.Catalog` just looks at the file metadata
 # MAGIC The Catalog function recursively list all files, parsing the path and filename into a dataframe. This dataframe can be saved into a file 'catalog'. This file catalog can be the basis of further annotations
 
 # COMMAND ----------

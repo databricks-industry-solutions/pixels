@@ -5,7 +5,7 @@
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 ---
 
-# `databricks.pixels` Solution Accelerator
+# `dbx.pixels` Solution Accelerator
 Analyze DICOM image metadata with SQL
 ![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
 ---
@@ -23,10 +23,10 @@ Since its first publication in 1993, DICOM® has revolutionized the practice of 
 DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
 
 ---
-## About `databricks.pixels`
+## About `dbx.pixels`
 Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
 
-* Use `databricks.pixels` python package for simplicity
+* Use `dbx.pixels` python package for simplicity
   - Catalog your images
   - Extract Metadata
   - Visualize thumbnails
@@ -149,7 +149,7 @@ ___
 
 | library              | purpose                             | license                       | source                                                  |
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
-| databricks.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
+| dbx.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Reading Dicom file wrapper          | MIT                           | https://github.com/pydicom/pydicom                      |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 | gdcm                 | Parse Dicom files                   | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |

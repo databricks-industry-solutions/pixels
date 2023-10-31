@@ -68,7 +68,7 @@ class Catalog:
 
         self._anon = self._is_anon(path)
         spark = self._spark
-        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.load({path})")
+        spark.sparkContext.setJobDescription(f"dbx.pixels.Catalog.load({path})")
         df = (self._spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      pattern)
@@ -112,7 +112,7 @@ class Catalog:
   
         print(options)
         spark = self._spark
-        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.save({table or path})")
+        spark.sparkContext.setJobDescription(f"dbx.pixels.Catalog.save({table or path})")
         return (
             df.write
                 .format("delta")
