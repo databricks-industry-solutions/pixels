@@ -1,2 +1,2 @@
 
-from databricks.sdk.runtime import *
+from dbx.sdk.runtime import *

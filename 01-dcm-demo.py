@@ -34,8 +34,8 @@ path,table,write_mode = init_widgets()
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog
-from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
 
 # COMMAND ----------
 

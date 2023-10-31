@@ -170,6 +170,6 @@ if __name__ == "__main__":
     import sys
     import os
     sys.path.insert(0, os.path.dirname(__file__)+"/../..")
-    from databricks.pixels import Catalog
+    from dbx.pixels import Catalog
     c = Catalog()
     #c.catalog("dbfs:/tmp")

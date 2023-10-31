@@ -41,8 +41,8 @@ dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, p
 ## Quick Start
 ```python
 # imports
-from databricks.pixels import Catalog                       # 01
-from databricks.pixels.dicom import *                       # 02
+from dbx.pixels import Catalog                       # 01
+from dbx.pixels.dicom import *                       # 02
 
 # catalog all your files
 catalog = Catalog(spark)                                    # 03
