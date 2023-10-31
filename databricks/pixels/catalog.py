@@ -68,7 +68,7 @@ class Catalog:
 
         self._anon = self._is_anon(path)
         spark = self._spark
-        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.load({path})")
+        spark.sparkContext.setJobDescription("test desc 1")
         df = (self._spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      pattern)
