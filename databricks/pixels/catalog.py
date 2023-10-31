@@ -55,7 +55,7 @@ class Catalog:
     def __repr__(self):
       return f'Catalog(spark, table="{self._table}")'
     
-    def catalog(self, path:str, pattern:str = "*", recurse:bool = True) -> DataFrame:
+    def cataloger(self, path:str, pattern:str = "*", recurse:bool = True) -> DataFrame:
         """Perform the catalog action and return a spark dataframe
           Parameters:
               path  - Root location of objects
@@ -68,7 +68,7 @@ class Catalog:
 
         self._anon = self._is_anon(path)
         spark = self._spark
-        spark.sparkContext.setJobDescription("test desc 1")
+        #spark.sparkContext.setJobDescription("test desc 1")
         df = (self._spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      pattern)

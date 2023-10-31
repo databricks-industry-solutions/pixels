@@ -41,7 +41,7 @@ from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor 
 
 # DBTITLE 1,Catalog files in <path>
 catalog = Catalog(spark, table=table)
-catalog_df = catalog.catalog(path=path)
+catalog_df = catalog.cataloger(path=path)
 
 # COMMAND ----------
 
