@@ -33,7 +33,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
 try:
-    exec(open('databricks/pixels/version.py').read())
+    exec(open('mymodule/pixels/version.py').read())
 except IOError:
     print("Failed to load pixels version file for packaging. You must be in pixels root dir.",
           file=sys.stderr)
