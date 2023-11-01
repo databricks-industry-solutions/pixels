@@ -4,7 +4,7 @@ from pyspark.sql.functions import lit, pandas_udf
 import pyspark.sql.types as t
 
 from pyspark.ml.util import *
-#from databricks.pixels.dicom_udfs import dicom_patcher, dicom_patcher_schema
+#from mymodule.pixels.dicom_udfs import dicom_patcher, dicom_patcher_schema
 
 from typing import Iterator
 import pandas as pd

@@ -1,6 +1,6 @@
 from pyspark.sql import functions as f
 from pyspark.sql.functions import udf, col, lit
-from databricks.pixels import PlotResult
+from mymodule.pixels import PlotResult
 
 import pandas as pd
 from typing import Iterator, Tuple
@@ -8,7 +8,7 @@ from pyspark.sql.functions import pandas_udf
 from pyspark.sql.types import StringType
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from databricks.pixels.dicom.dicom_udfs import cloud_open
+from mymodule.pixels.dicom.dicom_udfs import cloud_open
 import hashlib
 import os
 import matplotlib.pyplot as plt
