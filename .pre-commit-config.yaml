@@ -7,14 +7,14 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
-        files: ^(sqlglot/|tests/|setup.py)
+        files: ^(dbx/|tests/|setup.py)
       - id: isort
         args: [--combine-as]
         name: isort
         entry: isort
         language: system
         types: [ python ]
-        files: ^(sqlglot/|tests/|setup.py)
+        files: ^(dbx/|tests/|setup.py)
         require_serial: true
       - id: black
         name: black
@@ -22,11 +22,4 @@ repos:
         language: system
         types: [ python ]
         require_serial: true
-        files: ^(sqlglot/|tests/|setup.py)
-      - id: mypy
-        name: mypy
-        entry: mypy
-        language: system
-        types: [ python ]
-        files: ^(sqlglot/|tests/)
-        require_serial: true
+        files: ^(dbx/|tests/|setup.py)
