@@ -1,5 +1,10 @@
 from pyspark.sql import SparkSession
 import pytest
+from dbx.pixels.catalog import Catalog
+from dbx.pixels.version import __version__
+from databricks.connect import DatabricksSession
+
+path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
 
 @pytest.fixture
 def spark() -> SparkSession:
@@ -8,39 +13,31 @@ def spark() -> SparkSession:
   the cluster in the remote Databricks workspace. Unit tests do not
   have access to this SparkSession by default.
   """
-  x = SparkSession.builder.appName("databricks.pixels").getOrCreate()
-  x.sparkContext.setJobGroup("databricks.pixels.catalog","pytest")
-  return x
-
-def test_python_version(spark):
-  import sys
-  assert sys.version_info.major == 3
-  assert sys.version_info.minor >= 8
-
-def test_spark(spark):
-  assert spark is not None
-  assert type(spark) is SparkSession
+  return DatabricksSession.builder.getOrCreate()
 
 def test_catalog_import(spark):
-  from databricks.pixels import Catalog
-  from databricks.pixels import version
-  assert version.__version__ >= "0.0.6"
+  assert __version__ >= "0.0.6"
+  
+def test_path_read(spark):
+  df = spark.read.format('binaryFile').load(path).drop('content')
+  count = df.count()
+  assert count == 4
   
 def test_catalog_init(spark):
-  from databricks.pixels import Catalog
+  from dbx.pixels import Catalog
   catalog = Catalog(spark=spark)
   assert(catalog is not None)
   assert catalog.is_anon
 
 def catalog_path(spark, path):
-  from databricks.pixels import Catalog
+  from dbx.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
   assert catalog_df.count() == 4
     
 def test_catalog_public_s3(spark):
-  path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
+
   catalog_path(spark, path)
 
 def test_catalog_private_s3(spark):
@@ -57,7 +54,7 @@ def test_catalog_private_dbfs_private(spark):
 
 def test_catalog_save(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from databricks.pixels import Catalog
+  from dbx.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
@@ -66,7 +63,7 @@ def test_catalog_save(spark):
   
 def test_catalog_save_uc(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from databricks.pixels import Catalog
+  from dbx.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None
@@ -76,7 +73,7 @@ def test_catalog_save_uc(spark):
   
 def test_catalog_save_dbfs(spark):
   path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-  from databricks.pixels import Catalog
+  from dbx.pixels import Catalog
   catalog = Catalog(spark)
   catalog_df = catalog.catalog(path=path)
   assert catalog_df is not None

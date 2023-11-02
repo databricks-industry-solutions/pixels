@@ -63,12 +63,10 @@ class Catalog:
               recurse - True means recurse folder structure
         """
         assert(self._spark is not None)
-        assert type(self._spark) == SparkSession
         assert self._spark.version is not None
 
         self._anon = self._is_anon(path)
         spark = self._spark
-        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.load({path})")
         df = (self._spark.read
             .format("binaryFile")
             .option("pathGlobFilter",      pattern)
@@ -77,7 +75,7 @@ class Catalog:
             .drop('content')    
         )
         df = Catalog._with_path_meta(df)
-        df = Catalog._dfZipWithIndex(self._spark, df) # add an unique ID
+        #df = Catalog._dfZipWithIndex(self._spark, df) # add an unique ID
         return (df)
 
     def load(self, table:str = None) -> DataFrame:
@@ -112,7 +110,6 @@ class Catalog:
   
         print(options)
         spark = self._spark
-        spark.sparkContext.setJobDescription(f"databricks.pixels.Catalog.save({table or path})")
         return (
             df.write
                 .format("delta")
@@ -144,32 +141,10 @@ class Catalog:
                 
             )
 
-    def _dfZipWithIndex (spark, df, offset=1, colName="rowId"):
-        '''
-            Ref: https://stackoverflow.com/questions/30304810/dataframe-ified-zipwithindex
-            Enumerates dataframe rows is native order, like rdd.ZipWithIndex(), but on a dataframe 
-            and preserves a schema
-
-            :param df: source dataframe
-            :param offset: adjustment to zipWithIndex()'s index
-            :param colName: name of the index column
-        '''
-
-        new_schema = StructType(
-                        [StructField(colName,LongType(),True)]        # new added field in front
-                        + df.schema.fields                            # previous schema
-                    )
-
-        zipped_rdd = df.rdd.zipWithIndex()
-
-        new_rdd = zipped_rdd.map(lambda row: ([row[1] +offset] + list(row[0])))
-        return spark.createDataFrame(new_rdd, new_schema).repartition(Catalog.CATALOG_PARTITIONS)
-
-
 if __name__ == "__main__":
     import sys
     import os
     sys.path.insert(0, os.path.dirname(__file__)+"/../..")
-    from databricks.pixels import Catalog
+    from dbx.pixels import Catalog
     c = Catalog()
     #c.catalog("dbfs:/tmp")

@@ -1,24 +1,22 @@
-.PHONY: install install-dev install-pre-commit test unit style check docs docs-serve
+all: clean lint fmt test
 
-install:
-	pip install -e .
+clean:
+	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
+	rm -rf build dist
+	rm -rf __pycache__ 
+	rm -rf */__pycache__ 
+	rm -rf */*/__pycache__
+	rm -rf */*/*/__pycache__
 
-install-dev:
-	pip install -e ".[dev]"
+dev:
+	pip install -e '.[test]'
+	pip install pyspark==3.4.1
 
-install-pre-commit:
-	pre-commit install
+lint:
+	hatch run lint:verify
+
+fmt:
+	hatch run lint:fmt
 
 test:
-	python -m pytest
-
-style:
-	pre-commit run --all-files
-
-check: style test
-
-docs:
-	python pdoc/cli.py -o docs
-
-docs-serve:
-	python pdoc/cli.py --port 8002
+	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
