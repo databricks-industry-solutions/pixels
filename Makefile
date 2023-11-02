@@ -1,3 +1,5 @@
+.PHONY: dev test unit style check test-cov
+
 all:	clean check 
 
 clean:
@@ -12,12 +14,11 @@ clean:
 dev:
 	pip install -e '.[dev]'
 
+test:
+	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
 	pre-commit run --all-files
-
-test:
-	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 check: style test
 
