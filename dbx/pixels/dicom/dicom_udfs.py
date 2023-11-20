@@ -31,7 +31,7 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
     from pydicom import dcmread
 
     try:
-        if path[-4:] != ".dcm":
+        if path[-4:].lower() != ".dcm":
             return {}
 
         fp = cloud_open(path, anon)
@@ -58,5 +58,4 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
         except_str = str(
             {"udf": "dicom_meta_udf", "error": str(err), "args": str(err.args), "path": path}
         )
-        print(except_str)
         return except_str

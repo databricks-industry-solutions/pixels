@@ -13,6 +13,7 @@ class Catalog:
         return self._anon
 
     def _is_anon(self, path: str):
+        anon = True
         if path.startswith("s3://"):
             anon = False
             fs = None
@@ -26,7 +27,7 @@ class Catalog:
                 print("error", e, "correcting")
                 anon = True
 
-            return anon
+        return anon
 
     def __init__(self, spark, table: str = "hive_metastore.pixels_solacc.object_catalog"):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
@@ -123,6 +124,7 @@ class Catalog:
         return (
             df.withColumn("relative_path", f.regexp_replace(inputCol, basePath + r"(.*)$", r"$1"))
             .withColumn("local_path", f.regexp_replace(inputCol, r"^dbfs:(.*$)", r"/dbfs$1"))
+            .withColumn("local_path", f.regexp_replace("local_path", r"/dbfs/Volumes/(.*$)", r"/Volumes/$1"))
             .withColumn("extension", f.regexp_replace(inputCol, r".*\.(\w+)$", r"$1"))
             .withColumn(
                 "path_tags",

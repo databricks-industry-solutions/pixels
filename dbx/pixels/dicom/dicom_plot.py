@@ -30,8 +30,8 @@ def dicom_plot_outer(iterator: Iterator[Tuple[pd.Series, pd.Series]]) -> Iterato
         extension = fmt.lower()
         """Plot dicom image to file in {save_folder} then return translated path to plot"""
         save_file = ""
-        if True:
-            if ".dcm" != path[-4:]:
+        try:
+            if ".dcm" != path[-4:].lower():
                 return ""
 
             fp = cloud_open(path, anon)
@@ -46,13 +46,11 @@ def dicom_plot_outer(iterator: Iterator[Tuple[pd.Series, pd.Series]]) -> Iterato
                     plt.savefig(save_file, format=fmt)
                     plt.close()
                 return save_file
-        # except Exception as err:
-        #    err_str = F"function: dicom_plot, input: {path}, save_file: {save_file} err: {str(err)}"
-        #    print(err_str)
-        #    return err_str
+        except Exception as err:
+            err_str = f"function: dicom_plot, input: {path}, save_file: {save_file} err: {str(err)}"
+            return err_str
 
     for path, anon, save_folder in iterator:
-        # raise Exception(F"a {len(a)}, b {len(b)}")
         for i in range(len(path)):
             yield pd.Series(dicom_plot(path.get(i), anon.get(i), save_folder.get(i)))
 
