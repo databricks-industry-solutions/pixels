@@ -27,5 +27,5 @@ jobs:
       run: make test
       env:
         DATABRICKS_HOST: "${{ secrets.DATABRICKS_HOST }}"
-        DATABRICKS_TOKEN: "${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}"
+        DATABRICKS_TOKEN: "${{ secrets.DATABRICKS_TOKEN }}"
         DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
