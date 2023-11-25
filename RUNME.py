@@ -81,8 +81,8 @@ job_json = {
                 "spark_conf": {
                     "spark.databricks.delta.formatCheck.enabled": "false"
                     },
-                    "num_workers": 16,
-                    "node_type_id": {"AWS": "c5d.2xlarge", "MSA": "Standard_L16s", "GCP": "n1-highmem-4"},
+                    "num_workers": 8,
+                    "node_type_id": {"AWS": "c5d.2xlarge", "MSA": "Standard_DS4_v2", "GCP": "n1-highmem-4"},
                     "custom_tags": {
                       "usage": "solacc_testing",
                       "group": "HLS",
