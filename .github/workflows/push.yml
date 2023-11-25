@@ -20,6 +20,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        make install-dev
-    - name: Run checks (linter, code style, tests)
-      run: make check
+        make dev
+    - name: Run linting (linter, code style)
+      run: make style
+    - name: Run tests
+      run: make test
