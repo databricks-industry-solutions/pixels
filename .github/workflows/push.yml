@@ -24,8 +24,8 @@ jobs:
     - name: Run linting (linter, code style)
       run: make style
     - name: Run tests
-        run: make test
-        env:
-          DATABRICKS_HOST: "${{ secrets.DATABRICKS_HOST }}"
-          DATABRICKS_TOKEN: "${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}"
-          DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
+      run: make test
+      env:
+        DATABRICKS_HOST: "${{ secrets.DATABRICKS_HOST }}"
+        DATABRICKS_TOKEN: "${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}"
+        DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
