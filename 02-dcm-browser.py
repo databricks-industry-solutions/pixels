@@ -21,7 +21,7 @@ path,table,write_mode = init_widgets()
 from dbx.pixels import Catalog
 from dbx.pixels.dicom import DicomPlot
 
-dcm_df_filtered = Catalog(spark, table=table).load().filter('meta:img_max < 1000 and extension = "dcm"').limit(1000)
+dcm_df_filtered = Catalog(spark, table=table).load().filter('meta:img_max < 1000 and lower(extension) = "dcm"').limit(1000)
 DicomPlot(dcm_df_filtered).display()
 
 # COMMAND ----------
