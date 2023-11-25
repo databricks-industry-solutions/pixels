@@ -1,6 +1,6 @@
 <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
 
-[![DBR](https://img.shields.io/badge/DBR-11.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/10.4ml.html)
+[![DBR](https://img.shields.io/badge/DBR-13.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/13.3ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 ---
