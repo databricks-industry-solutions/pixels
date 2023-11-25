@@ -17,50 +17,74 @@
 #
 from __future__ import print_function
 
-from io import open
 import sys
-from setuptools import setup
+from io import open
 from os import path
 
-import os
-with open('requirements.txt') as f:
+from setuptools import setup
+
+with open("requirements.txt") as f:
     required = f.read().splitlines()
 
 DESCRIPTION = "Pixels: pyspark dataframes for image (and object) processing"
 
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
 
 try:
-    exec(open('databricks/pixels/version.py').read())
+    exec(open("dbx/pixels/version.py").read())
 except IOError:
-    print("Failed to load pixels version file for packaging. You must be in pixels root dir.",
-          file=sys.stderr)
+    print(
+        "Failed to load pixels version file for packaging. You must be in pixels root dir.",
+        file=sys.stderr,
+    )
     sys.exit(-1)
 VERSION = __version__  # noqa
 
-import setuptools
 from setuptools import find_packages
 
 setup(
-    name='databricks-pixels',
-    version=VERSION,
-    packages=find_packages(),
-    platforms=['any'],
-    python_requires='>=3.7',
-    install_requires=required,
+    name="databricks-pixels",
     author="Databricks",
     author_email="pixels@databricks.com",
-    license='https://github.com/databricks-industry-solutions/pixels/blob/main/LICENSE',
-    url="https://github.com/databrickslabs/pixels",
+    license="https://github.com/databricks-industry-solutions/pixels/blob/main/LICENSE",
+    url="https://github.com/databricks-industry-solutions/pixels",
     project_urls={
-        'Bug Tracker': 'https://github.com/databricks-industry-solutions/pixels/issues',
-        'Documentation': 'https://databricks-pixels.readthedocs.io/',
-        'Source Code': 'https://github.com/databricks-industry-solutions/pixels'
+        "Bug Tracker": "https://github.com/databricks-industry-solutions/pixels/issues",
+        "Documentation": "https://databricks-pixels.readthedocs.io/",
+        "Source Code": "https://github.com/databricks-industry-solutions/pixels",
     },
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    long_description_content_type='text/markdown',
-    package_data={'databricks': ['pixels/resources/*']},
+    long_description_content_type="text/markdown",
+    version=VERSION,
+    packages=find_packages(),
+    platforms=["any"],
+    python_requires=">=3.10",
+    use_scm_version={
+        "write_to": "dbx/pixels/version.py",
+        "fallback_version": "0.0.0",
+        "local_scheme": "no-local-version",
+    },
+    setup_requires=["setuptools_scm"],
+    install_requires=required,
+    package_data={"databricks": ["pixels/resources/*"]},
+    extras_require={
+        "dev": [
+            "pyspark==3.4.1",
+            "databricks-connect==13.3.0",
+            "databricks-sdk==0.12.0",
+            "autoflake",
+            "black",
+            "isort",
+            "mypy>=0.990",
+            "pdoc",
+            "pre-commit",
+            "coverage[toml]>=6.5",
+            "pytest",
+            "pytest-cov>=4.0.0,<5.0.0",
+            "pytest-mock>=3.0.0,<4.0.0",
+        ],
+    },
 )

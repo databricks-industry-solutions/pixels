@@ -5,7 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %md # Analytics on DICOM images should be simple
-# MAGIC 
+# MAGIC
 # MAGIC - Catalog all of your files in parallel and scale with Spark
 # MAGIC - Spark SQL on top of Delta Lake powers fast metadata analytics
 # MAGIC - Python based Transformers / pandas udfs form building blocks for:
@@ -13,8 +13,8 @@
 # MAGIC   - Uses proven `gdcm`, `python-gdcm` & `pydicom` python packages & C++ libraries
 # MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
-# MAGIC 
-# MAGIC The `databricks.pixels` solution accelerator turns DICOM images into SQL data
+# MAGIC
+# MAGIC The `dbx.pixels` solution accelerator turns DICOM images into SQL data
 
 # COMMAND ----------
 
@@ -29,13 +29,13 @@ path,table,write_mode = init_widgets()
 # COMMAND ----------
 
 # MAGIC %md ## Catalog the objects and files
-# MAGIC `databricks.pixels.Catalog` just looks at the file metadata
+# MAGIC `dbx.pixels.Catalog` just looks at the file metadata
 # MAGIC The Catalog function recursively list all files, parsing the path and filename into a dataframe. This dataframe can be saved into a file 'catalog'. This file catalog can be the basis of further annotations
 
 # COMMAND ----------
 
-from databricks.pixels import Catalog
-from databricks.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
 
 # COMMAND ----------
 
@@ -47,9 +47,9 @@ catalog_df = catalog.catalog(path=path)
 
 # MAGIC %md ## Extract Metadata from the Dicom images
 # MAGIC Using the Catalog dataframe, we can now open each Dicom file and extract the metadata from the Dicom file header. This operation runs in parallel, speeding up processing. The resulting `dcm_df` does not in-line the entire Dicom file. Dicom files tend to be larger so we process Dicom files only by reference.
-# MAGIC 
+# MAGIC
 # MAGIC Under the covers we use PyDicom and gdcm to parse the Dicom files
-# MAGIC 
+# MAGIC
 # MAGIC The Dicom metadata is extracted into a JSON string formatted column named `meta`
 
 # COMMAND ----------
@@ -110,7 +110,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 # DBTITLE 1,Patient / Radiology Data Analysis
 # MAGIC %sql
 # MAGIC SELECT
-# MAGIC     rowid,
+# MAGIC     --rowid,
 # MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name, 
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
@@ -125,7 +125,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 # DBTITLE 1,Query the object metadata table using the JSON notation
 # MAGIC %sql
 # MAGIC SELECT 
-# MAGIC   rowid,
+# MAGIC   --rowid,
 # MAGIC   meta:['00100010'].Value[0].Alphabetic as patient_name,  -- Medical information from the DICOM header
 # MAGIC   meta:hash, meta:img_min, meta:img_max, path,            -- technical metadata
 # MAGIC   meta                                                    -- DICOM header metadata as JSON
