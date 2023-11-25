@@ -23,7 +23,7 @@ jobs:
            {
              "num_workers": 0,
              "spark_version": "13.3.x-scala2.12",
-             "node_type_id": "Standard_L16s",
+             "node_type_id": "Standard_DS4_v2",
              "azure_attributes": {
                   "availability": "ON_DEMAND_AZURE"
                             },
