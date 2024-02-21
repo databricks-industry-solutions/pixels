@@ -29,7 +29,7 @@ class Catalog:
 
         return anon
 
-    def __init__(self, spark, table: str = "hive_metastore.pixels_solacc.object_catalog"):
+    def __init__(self, spark, table: str = "main.pixels_solacc.object_catalog"):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
         Parameters:
             spark - Spark context
