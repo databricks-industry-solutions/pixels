@@ -13,7 +13,7 @@ class Catalog:
         return self._anon
 
     def _is_anon(self, path: str):
-        """ AWS access throws an exception of the bucket is public and you don't know that apriori
+        """AWS access throws an exception of the bucket is public and you don't know that apriori
 
         Args:
             path (str): Cloud Storage path starting with scheme:// (e.g. s3://)
@@ -31,8 +31,8 @@ class Catalog:
             fs = s3fs.S3FileSystem(anon=anon)
             try:
                 fs.exists(path)
-            except NoCredentialsError as e:
-                #print(e, ": Likely a public bucket")
+            except NoCredentialsError:
+                # print(e, ": Likely a public bucket")
                 anon = True
 
         return anon
@@ -115,7 +115,7 @@ class Catalog:
         options.update(self._userOptions)
         options.update(userOptions)
 
-        #print(options)
+        # print(options)
         self._spark
         return (
             df.write.format("delta")
