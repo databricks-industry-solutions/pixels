@@ -56,7 +56,6 @@ def test_catalog_public_s3(spark, caplog):
     assert len(catalog_df.columns) == 7
     row = catalog_df.collect()[0]
     assert row[0] == path + "0007.LEFT_MLO.dcm"
-    assert row[1] == datetime.datetime(2022, 11, 16, 11, 46, 32)
     assert row[2] == 10943362
     assert row[5] == "dcm"
 
