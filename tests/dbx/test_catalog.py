@@ -42,10 +42,22 @@ def catalog_path(spark, path):
     catalog_df = catalog.catalog(path=path)
     assert catalog_df is not None
     assert catalog_df.count() == 4
+    return catalog_df
 
 
-def test_catalog_public_s3(spark):
-    catalog_path(spark, path)
+def test_catalog_public_s3(spark,caplog):
+    import logging
+    logger = logging.getLogger(__name__)
+    caplog.set_level(logging.DEBUG)
+    import datetime
+    
+    catalog_df = catalog_path(spark, path)
+    assert len(catalog_df.columns) == 7
+    row = catalog_df.collect()[0]
+    assert row[0] == path+'0007.LEFT_MLO.dcm'
+    assert row[1] == datetime.datetime(2022,11,16,11,46,32)
+    assert row[2] == 10943362
+    assert row[5] == 'dcm'
 
 
 def test_catalog_private_s3(spark):
@@ -66,6 +78,7 @@ def test_catalog_private_dbfs_private(spark):
 def test_catalog_save(spark):
     path = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
     from dbx.pixels import Catalog
+    from pyspark.sql.types import Row
 
     catalog = Catalog(spark)
     catalog_df = catalog.catalog(path=path)
