@@ -13,6 +13,14 @@ class Catalog:
         return self._anon
 
     def _is_anon(self, path: str):
+        """ AWS access throws an exception of the bucket is public and you don't know that apriori
+
+        Args:
+            path (str): Cloud Storage path starting with scheme:// (e.g. s3://)
+
+        Returns:
+            bool: True if the bucket requires anonymous access
+        """
         anon = True
         if path.startswith("s3://"):
             anon = False
@@ -24,7 +32,7 @@ class Catalog:
             try:
                 fs.exists(path)
             except NoCredentialsError as e:
-                print("error", e, "correcting")
+                #print(e, ": Likely a public bucket")
                 anon = True
 
         return anon
@@ -74,7 +82,6 @@ class Catalog:
             .drop("content")
         )
         df = Catalog._with_path_meta(df)
-        # df = Catalog._dfZipWithIndex(self._spark, df) # add an unique ID
         return df
 
     def load(self, table: str = None) -> DataFrame:
@@ -108,7 +115,7 @@ class Catalog:
         options.update(self._userOptions)
         options.update(userOptions)
 
-        print(options)
+        #print(options)
         self._spark
         return (
             df.write.format("delta")
