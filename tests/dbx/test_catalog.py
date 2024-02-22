@@ -50,7 +50,6 @@ def test_catalog_public_s3(spark, caplog):
 
     logging.getLogger(__name__)
     caplog.set_level(logging.DEBUG)
-    import datetime
 
     catalog_df = catalog_path(spark, path)
     assert len(catalog_df.columns) == 7
