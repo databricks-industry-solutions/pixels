@@ -77,7 +77,7 @@ job_json = {
             {
                 "job_cluster_key": "pixels_cluster",
                 "new_cluster": {
-                    "spark_version": "13.3.x-cpu-ml-scala2.12",
+                    "spark_version": "14.3.x-scala2.12",
                 "spark_conf": {
                     "spark.databricks.delta.formatCheck.enabled": "false"
                     },

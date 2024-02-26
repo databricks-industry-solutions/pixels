@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install pydicom==2.3.0 s3fs==2022.10.0 python-gdcm==3.0.19 git+https://github.com/databricks-industry-solutions/pixels.git
+# MAGIC %pip install --quiet pydicom==2.3.0 s3fs==2022.10.0 python-gdcm==3.0.19 git+https://github.com/databricks-industry-solutions/pixels.git
 
 # COMMAND ----------
 
@@ -18,7 +18,7 @@
 # DBTITLE 1,Collect Input Parameters
 def init_widgets():
   dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
-  dbutils.widgets.text("table", "hive_metastore.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
+  dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
   dbutils.widgets.dropdown("mode",defaultValue="append",choices=["overwrite","append"], label="3.0 Update mode on object metadata table")
 
   path = dbutils.widgets.get("path")
