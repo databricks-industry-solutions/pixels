@@ -17,7 +17,7 @@
 # COMMAND ----------
 
 dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/", label="1.0 Path to directory tree containing files. /dbfs or s3:// supported")
-dbutils.widgets.text("table", "hive_metastore.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
+dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
 dbutils.widgets.dropdown("mode",defaultValue="overwrite",choices=["overwrite","append"], label="3.0 Update mode on object metadata table")
 
 path = dbutils.widgets.get("path")
@@ -205,4 +205,19 @@ DicomPlot(dcm_df_filtered).display()
 
 # COMMAND ----------
 
+# Test Streaming
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import DicomPlot
+from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor
+
+catalog = Catalog(spark, table+"_stream")
+catalog_df = catalog.catalog(path, streaming=True)
+
+meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
+thumbnail_df = DicomThumbnailExtractor().transform(meta_df)
+catalog.save(thumbnail_df)
+
+spark.sql(f"describe {table}_stream")
+spark.sql(f"select * from cloud_files_state('/tmp/pixels_checkpoints/')")
+# COMMAND ----------
 
