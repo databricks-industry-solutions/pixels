@@ -69,7 +69,7 @@ setup(
     },
     setup_requires=["setuptools_scm"],
     install_requires=required,
-    include_package_data=True
+    include_package_data=True,
     package_data={"databricks": ["pixels/resources/*"]},
     extras_require={
         "dev": [
