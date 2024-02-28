@@ -1,10 +1,5 @@
+from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
-
-from pyspark.errors import (
-    PySparkValueError,
-)
-
-from pyspark.sql.streaming.readwriter import DataStreamWriter
 from pyspark.sql.streaming.query import StreamingQuery
 
 # dfZipWithIndex helper function
@@ -15,6 +10,9 @@ class Catalog:
     Save catalog to Delta Lake table by path or table name"""
 
     CATALOG_PARTITIONS = 2000
+    DEFAULT_STREAMING_CHECKPOINTS_BASE_PATH = (
+        "/Volumes/main/pixels_solacc/pixel_volume/checkpoints/"
+    )
 
     def is_anon(self):
         return self._anon
@@ -68,7 +66,7 @@ class Catalog:
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
-    
+
     def __reader(self, path: str, pattern: str = "*", recurse: bool = True):
         return (
             self._spark.read.format("binaryFile")
@@ -76,7 +74,7 @@ class Catalog:
             .option("recursiveFileLookup", str(recurse).lower())
             .load(path)
             .drop("content")
-            )
+        )
 
     def __streamReader(self, path: str, pattern: str = "*", recurse: bool = True):
         return (
@@ -86,16 +84,18 @@ class Catalog:
             .option("recursiveFileLookup", str(recurse).lower())
             .load(path)
             .drop("content")
-            )
+        )
 
-    def catalog(self, 
-                path: str, 
-                pattern: str = "*", 
-                recurse: bool = True, 
-                streaming: bool = False, 
-                streamCheckpointPath: str = "/tmp/pixels_checkpoints/", 
-                triggerProcessingTime: str = None, 
-                triggerAvailableNow: bool = None,) -> DataFrame:
+    def catalog(
+        self,
+        path: str,
+        pattern: str = "*",
+        recurse: bool = True,
+        streaming: bool = False,
+        streamCheckpointBasePath: str = DEFAULT_STREAMING_CHECKPOINTS_BASE_PATH,
+        triggerProcessingTime: str = None,
+        triggerAvailableNow: bool = None,
+    ) -> DataFrame:
         """Perform the catalog action and return a spark dataframe
 
         Parameters
@@ -107,11 +107,11 @@ class Catalog:
                 file name pattern. Defaults to "*"
             recurse : bool, optional
                 True means recurse folder structure. Defaults to True
-            streaming : bool, optional 
+            streaming : bool, optional
                 If True, the function will catalog data in a streaming manner. Defaults to False.
                 The default trigger is availableNow.
-            streamCheckpointPath : str, optional
-                The path where progress of streaming data is saved. Defaults to "/tmp/pixels_checkpoints/".
+            streamCheckpointBasePath : str, optional
+                The path where progress of streaming data is saved. Defaults to "/Volumes/main/pixels_solacc/pixel_volume/checkpoints/".
             triggerProcessingTime : str, optional
                 a processing time interval as a string, e.g. '5 seconds', '1 minute'.
                 Set a trigger that runs a microbatch query periodically based on the
@@ -123,19 +123,19 @@ class Catalog:
         Returns
         -------
             DataFrame: A DataFrame of the cataloged data.
-            """
+        """
         assert self._spark is not None
         assert self._spark.version is not None
 
         self._anon = self._is_anon(path)
         self._spark
 
-        #Used only for streaming
+        # Used only for streaming
         self._queryName = f"pixels_{path}_{self._table}"
         self._isStreaming = streaming
-        self._streamCheckpointPath = streamCheckpointPath
+        self.streamCheckpointBasePath = streamCheckpointBasePath
 
-        #Trigger handling, defaults to availableNow
+        # Trigger handling, defaults to availableNow
         if self._isStreaming:
 
             triggerParams = [triggerProcessingTime, triggerAvailableNow]
@@ -154,7 +154,7 @@ class Catalog:
             df = self.__streamReader(path, pattern, recurse)
         else:
             df = self.__reader(path, pattern, recurse)
-        
+
         df = Catalog._with_path_meta(df)
         return df
 
@@ -163,25 +163,35 @@ class Catalog:
         @return Spark dataframe representing the object Catalog
         """
         return self._spark.table(self._table if not table else table)
-    
-    def __writer(self, df: DataFrame, options: dict, table: str, mode: str = "append", ):
-        return (
-            df.write.format("delta")
-            .mode(mode)
-            .options(**options)
-            .saveAsTable(table)
-        )
 
-    def __streamWriter(self, df: DataFrame, options: dict, table: str, mode: str = "append", ) -> StreamingQuery :
-        df: DataStreamWriter = ( 
+    def __writer(
+        self,
+        df: DataFrame,
+        options: dict,
+        table: str,
+        mode: str = "append",
+    ):
+        return df.write.format("delta").mode(mode).options(**options).saveAsTable(table)
+
+    def __streamWriter(
+        self,
+        df: DataFrame,
+        options: dict,
+        table: str,
+        mode: str = "append",
+    ) -> StreamingQuery:
+        return (
             df.writeStream.format("delta")
             .outputMode(mode)
             .options(**options)
-            .option("checkpointLocation", self._streamCheckpointPath)
+            .option("checkpointLocation", f"{self.streamCheckpointBasePath}/{table}")
             .queryName(self._queryName)
-            .trigger(availableNow=self._triggerAvailableNow, processingTime=self._triggerProcessingTime)
+            .trigger(
+                availableNow=self._triggerAvailableNow, processingTime=self._triggerProcessingTime
+            )
+            .toTable(table)
+            .awaitTermination()
         )
-        return df.toTable(table)
 
     def save(
         self,
