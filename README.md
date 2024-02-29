@@ -145,7 +145,7 @@ To run this accelerator, clone this repo into a Databricks workspace. Attach the
 ___
 ## Working with Unity Catalog (as of October 18th, 2023)
 Unity Catalog (UC) [volumes](https://docs.databricks.com/en/data-governance/unity-catalog/create-volumes.html) are the recommended approach for providing access to and governing non-tabular data assets in a cloud object storage locations, including DICOM files. Volumes are accessed by using the following format for the path that is passed to the pixels `Catalog` object - 
-```mermaid
+```
 /Volumes/<catalog>/<schema>/<volume>/<path-level-1>/...
 ```
 where `<catalog>`, `<schema>` and `<volume>` reflect the three-level namespace of Unity Catalog. The path field returned by the `Catalog` object reflects the volume file path listed above and subsequent metadata and thumbnail extraction operations will use volumes for accessing files.
