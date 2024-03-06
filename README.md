@@ -12,7 +12,7 @@ Analyze DICOM image metadata with SQL
 
 ## About DICOM
 ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
-[Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/dcmintro.php.en)
+[Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/en/general/dicom-introduction/) 
 
 DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
 
