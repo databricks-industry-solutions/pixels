@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.3.0 s3fs==2022.10.0 python-gdcm==3.0.19 dbtunnel[fastapi] httpx git+https://github.com/databricks-industry-solutions/pixels.git 
+# MAGIC %pip install --quiet pydicom==2.3.0 s3fs==2022.10.0 python-gdcm==3.0.19 git+https://github.com/databricks-industry-solutions/pixels.git 
 
 # COMMAND ----------
 
