@@ -1,9 +1,11 @@
 # Databricks notebook source
-# MAGIC %pip install dbtunnel[fastapi] httpx
+# MAGIC %run ./config/setup
 
 # COMMAND ----------
 
-dbutils.library.restartPython()
+path,table,write_mode = init_widgets()
+dbutils.widgets.text("sqlWarehouseID", "", label="4.0 SQL Warehouse")
+sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
 
 # COMMAND ----------
 
@@ -14,6 +16,11 @@ dbutils.library.restartPython()
 
 import fileinput
 import os.path
+from pathlib import Path
+import dbx.pixels.resources
+
+path = Path(dbx.pixels.__file__).parent
+ohif_path = (f"{path}/resources/ohif")
 
 router_basename = "/driver-proxy/o/{}/{}/3000/"
 workspace_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
@@ -22,14 +29,14 @@ cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 files = ["app-config.js"]
 
 for file in files:
-    if not os.path.isfile(f"resources/ohif/{file}.bak"):
-        with fileinput.FileInput(f"resources/ohif/{file}", inplace = True, backup ='.bak') as f:
+    if not os.path.isfile(f"{ohif_path}/{file}.bak"):
+        with fileinput.FileInput(f"{ohif_path}/{file}", inplace = True, backup ='.bak') as f:
             for line in f:
                 if("{ROUTER_BASENAME}" in line):
                     print(
                         line
                         .replace("{ROUTER_BASENAME}",router_basename.format(workspace_id,cluster_id))
-                        .replace("{PIXELS_TABLE}",dbutils.widgets.get("PixelsTable"))
+                        .replace("{PIXELS_TABLE}",table)
                     , end ='')
                 else:
                     print(line, end ='')
@@ -101,11 +108,11 @@ async def _reverse_proxy_files(request: Request):
 app.add_route("/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"])
 app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET"])
 
-app.mount("/", StaticFiles(directory="resources/ohif/",html = True), name="ohif")
+app.mount("/", StaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
 # COMMAND ----------
 
 from dbtunnel import dbtunnel
 dbtunnel.fastapi(app, port=3000).inject_auth().inject_env(
-  SQL_WAREHOUSE=dbutils.widgets.get("SQLWarehouseID")
+  SQL_WAREHOUSE=dbutils.widgets.get("sqlWarehouseID")
 ).run()
