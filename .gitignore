@@ -134,3 +134,4 @@ dmypy.json
 .DS_Store
 
 .databricks
+dbx/pixels/resources/ohif/app-config-custom.js

@@ -1,11 +1,17 @@
 # Databricks notebook source
-# MAGIC %run ./config/setup
+# MAGIC %pip install dbtunnel[fastapi] httpx
 
 # COMMAND ----------
 
-path,table,write_mode = init_widgets()
-dbutils.widgets.text("sqlWarehouseID", "", label="4.0 SQL Warehouse")
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="1.0 Catalog Schema Table to store object metadata into")
+dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
+
 sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
+table = dbutils.widgets.get("table")
 
 # COMMAND ----------
 
@@ -26,21 +32,15 @@ router_basename = "/driver-proxy/o/{}/{}/3000/"
 workspace_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
 cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 
-files = ["app-config.js"]
+file = "app-config"
 
-for file in files:
-    if not os.path.isfile(f"{ohif_path}/{file}.bak"):
-        with fileinput.FileInput(f"{ohif_path}/{file}", inplace = True, backup ='.bak') as f:
-            for line in f:
-                if("{ROUTER_BASENAME}" in line):
-                    print(
-                        line
-                        .replace("{ROUTER_BASENAME}",router_basename.format(workspace_id,cluster_id))
-                        .replace("{PIXELS_TABLE}",table)
-                    , end ='')
-                else:
-                    print(line, end ='')
-
+with open(f"{ohif_path}/{file}.js", "r") as config_input:
+        with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
+            config_custom.write(
+                config_input.read()
+                .replace("{ROUTER_BASENAME}",router_basename.format(workspace_id,cluster_id))
+                .replace("{PIXELS_TABLE}",table)
+            )
 
 # COMMAND ----------
 
