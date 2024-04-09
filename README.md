@@ -76,7 +76,7 @@ Fast and multiple-layer visualization capability.
 To start the OHIF Viewer web app you need to:
  - Execute the [OHIF_Viewer.py](/OHIF_Viewer.py) inside a Databricks notebook.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
- - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details tab`. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.![sqlWarehouseID](images/sqlWarehouseID.png?raw=true)
+ - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.![sqlWarehouseID](images/sqlWarehouseID.png?raw=true)
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
 
