@@ -51,8 +51,6 @@ with open(f"{ohif_path}/{file}.js", "r") as config_input:
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
