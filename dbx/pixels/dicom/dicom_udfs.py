@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 from pyspark.sql.functions import udf
 
@@ -46,14 +47,14 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
             if deep:
                 a = ds.pixel_array
                 a.flags.writeable = False
-                js["hash"] = hashlib.sha1(ds.pixel_array).hexdigest()
-                js["img_min"] = np.min(a)
-                js["img_max"] = np.max(a)
-                js["img_avg"] = np.average(a)
+                js["hash"] = hashlib.sha1(a).hexdigest()
+                js["img_min"] = np.min(a).item()
+                js["img_max"] = np.max(a).item()
+                js["img_avg"] = np.average(a).item()
                 js["img_shape_x"] = a.shape[0]
                 js["img_shape_y"] = a.shape[1]
 
-            return str(js)
+            return json.dumps(js)
     except Exception as err:
         except_str = str(
             {"udf": "dicom_meta_udf", "error": str(err), "args": str(err.args), "path": path}
