@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install dbtunnel[fastapi] httpx
+# MAGIC %pip install dbtunnel[fastapi] httpx databricks-sdk --upgrade 
 
 # COMMAND ----------
 
@@ -7,11 +7,24 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
+from databricks.sdk import WorkspaceClient
+
+w = WorkspaceClient()
+
 dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="1.0 Catalog Schema Table to store object metadata into")
 dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
 
 sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
 table = dbutils.widgets.get("table")
+
+if not spark.catalog.tableExists(table):
+    raise Exception("The configured table do not exist!")
+
+if sql_warehouse_id == "":
+    raise Exception("SQL Warehouse ID is mandatory!")
+else:
+    wh = w.warehouses.get(id=sql_warehouse_id)
+    print(f"Using '{wh.as_dict()['name']}' as SQL Warehouse")
 
 # COMMAND ----------
 
@@ -28,7 +41,6 @@ import dbx.pixels.resources
 path = Path(dbx.pixels.__file__).parent
 ohif_path = (f"{path}/resources/ohif")
 
-router_basename = "/driver-proxy/o/{}/{}/3000/"
 workspace_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
 cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 
@@ -38,7 +50,7 @@ with open(f"{ohif_path}/{file}.js", "r") as config_input:
         with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
             config_custom.write(
                 config_input.read()
-                .replace("{ROUTER_BASENAME}",router_basename.format(workspace_id,cluster_id))
+                .replace("{ROUTER_BASENAME}",f"/driver-proxy/o/{workspace_id}/{cluster_id}/3000/")
                 .replace("{PIXELS_TABLE}",table)
             )
 
@@ -70,7 +82,7 @@ async def _reverse_proxy_statements(request: Request):
 
     #Replace SQL Warehouse parameter
     body = await request.json()
-    body['warehouse_id'] = os.environ['SQL_WAREHOUSE']
+    body['warehouse_id'] = os.environ['DATABRICKS_WAREHOUSE_ID']
 
     rp_req = client.build_request(request.method, url,
                                   headers={
@@ -112,5 +124,5 @@ app.mount("/", StaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
 from dbtunnel import dbtunnel
 dbtunnel.fastapi(app, port=3000).inject_auth().inject_env(
-  SQL_WAREHOUSE=dbutils.widgets.get("sqlWarehouseID")
+  DATABRICKS_WAREHOUSE_ID=dbutils.widgets.get("sqlWarehouseID")
 ).run()
