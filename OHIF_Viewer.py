@@ -18,7 +18,7 @@ sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
 table = dbutils.widgets.get("table")
 
 if not spark.catalog.tableExists(table):
-    raise Exception("The configured table do not exist!")
+    raise Exception("The configured table does not exist!")
 
 if sql_warehouse_id == "":
     raise Exception("SQL Warehouse ID is mandatory!")
