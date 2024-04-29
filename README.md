@@ -58,6 +58,29 @@ thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
 catalog.save(thumbnail_df)                                  # 07
 ```
 ---
+## Incremental processing
+Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
+To enable incremental processing you need to set `streaming` and `streamCheckpointBasePath` as follows:
+```python
+catalog_df = catalog.catalog(path, streaming=True, streamCheckpointBasePath=<checkpointPath>)
+```
+---
+## OHIF Viewer
+Inside Pixel resources, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
+
+All the catalog entries will be available in an easy to use study list.
+![Catalog](images/ohif_catalog_view.png?raw=true)
+Fast and multiple-layer visualization capability.
+![CT_View](images/ohif_mr_view.png?raw=true)
+
+To start the OHIF Viewer web app you need to:
+ - Execute the [OHIF_Viewer.py](/OHIF_Viewer.py) inside a Databricks notebook.
+ - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
+ - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.![sqlWarehouseID](images/sqlWarehouseID.png?raw=true)
+ - Use the link generated in the last notebook to access the OHIF viewer page.
+
+
+---
 ## Design
 Data Flow
 <img width="100%" src="images/pixels-dataflow-diagram.svg?raw=true">
@@ -165,3 +188,5 @@ ___
 | gdcm                 | Parse Dicom files                   | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
+| OHIF Viewers               | Medical image viewer                         | MIT     | https://github.com/OHIF/Viewers                    |
+| dbtunnel    | Proxy to run Web UIs in Databricks notebooks    | Apache-2.0 license                    | https://github.com/stikkireddy/dbtunnel |
