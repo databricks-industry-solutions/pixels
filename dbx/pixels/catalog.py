@@ -1,6 +1,7 @@
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
+from dbx.pixels.utils import identify_type_udf, DICOM_MAGIC_STRING
 
 # dfZipWithIndex helper function
 
@@ -155,7 +156,8 @@ class Catalog:
         else:
             df = self.__reader(path, pattern, recurse)
 
-        df = Catalog._with_path_meta(df)
+        #Generate paths and remove all non DICOM files
+        df = Catalog._with_path_meta(df).filter(f"file_type == '{DICOM_MAGIC_STRING}'")
         return df
 
     def load(self, table: str = None) -> DataFrame:
@@ -236,6 +238,8 @@ class Catalog:
                 "local_path", f.regexp_replace("local_path", r"/dbfs/Volumes/(.*$)", r"/Volumes/$1")
             )
             .withColumn("extension", f.regexp_replace(inputCol, r".*\.(\w+)$", r"$1"))
+            .withColumn("extension", f.when(f.col("extension") == f.col(inputCol), f.lit("")).otherwise(f.col("extension")))
+            .withColumn("file_type", identify_type_udf("local_path"))
             .withColumn(
                 "path_tags",
                 f.slice(

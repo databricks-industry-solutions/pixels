@@ -32,8 +32,6 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
     from pydicom import dcmread
 
     try:
-        if path[-4:].lower() != ".dcm":
-            return {}
 
         fp = cloud_open(path, anon)
         with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:

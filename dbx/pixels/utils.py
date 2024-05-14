@@ -3,6 +3,7 @@ from io import BytesIO
 
 from PIL import Image
 from pyspark.ml.image import ImageSchema
+from pyspark.sql.functions import udf
 
 
 def to_image(data: bytes):
@@ -25,3 +26,10 @@ def to_image(data: bytes):
             imgx.tobytes(),
         ]
     }
+
+@udf
+def identify_type_udf(path:str):
+    import magic
+    return magic.from_file(path.replace("dbfs:",""))
+
+DICOM_MAGIC_STRING = "DICOM medical imaging data"
