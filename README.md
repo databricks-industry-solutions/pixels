@@ -60,7 +60,7 @@ catalog.save(thumbnail_df)                                  # 07
 1. Import the Catalog class from the dbx.pixels module.
 2. Import all functions and classes from the dbx.pixels.dicom module.
 3. Create an instance of the Catalog class, passing in the spark session.
-4. Catalog all files at the specified path using the catalog method of the Catalog instance, and storing the result in the catalog_df dataframe. Replace **<path>** with the location of your files.
+4. Catalog all files at the specified path using the catalog method of the Catalog instance, and storing the result in the catalog_df dataframe. Replace `<path>` with the location of your files.
 5. Create an instance of the DicomMetaExtractor class and call its transform method with the catalog_df DataFrame as input. This extracts the DICOM metadata.
 6. Create an instance of the DicomThumbnailExtractor class and call its transform method with the meta_df DataFrame as input. This extracts the thumbnails.
 7. Save the transformed DataFrame to the catalog using the save method.
