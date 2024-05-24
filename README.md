@@ -57,12 +57,27 @@ thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
 # save your work for SQL access
 catalog.save(thumbnail_df)                                  # 07
 ```
+1. Import the Catalog class from the dbx.pixels module.
+2. Import all functions and classes from the dbx.pixels.dicom module.
+3. Create an instance of the Catalog class, passing in the spark session.
+4. Catalog all files at the specified path using the catalog method of the Catalog instance, and storing the result in the catalog_df dataframe. Replace **<path>** with the location of your files.
+5. Create an instance of the DicomMetaExtractor class and call its transform method with the catalog_df DataFrame as input. This extracts the DICOM metadata.
+6. Create an instance of the DicomThumbnailExtractor class and call its transform method with the meta_df DataFrame as input. This extracts the thumbnails.
+7. Save the transformed DataFrame to the catalog using the save method.
 ---
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
 To enable incremental processing you need to set `streaming` and `streamCheckpointBasePath` as follows:
 ```python
 catalog_df = catalog.catalog(path, streaming=True, streamCheckpointBasePath=<checkpointPath>)
+```
+---
+## Built-in unzip
+Automatically extracts zip files in the defined volume path.
+If extractZip is not enabled then zip files will be ignored.
+To enable unzip capability you need to set `extractZip`. The parameter `extractZipBasePath` is optional and the default path will be volume + /unzipped/
+```python
+catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPath>)
 ```
 ---
 ## OHIF Viewer

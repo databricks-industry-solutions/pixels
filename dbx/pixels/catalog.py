@@ -1,7 +1,7 @@
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
-from dbx.pixels.utils import identify_type_udf, DICOM_MAGIC_STRING
+from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf, DICOM_MAGIC_STRING, ZIP_MAGIC_STRING
 
 # dfZipWithIndex helper function
 
@@ -11,9 +11,7 @@ class Catalog:
     Save catalog to Delta Lake table by path or table name"""
 
     CATALOG_PARTITIONS = 2000
-    DEFAULT_STREAMING_CHECKPOINTS_BASE_PATH = (
-        "/Volumes/main/pixels_solacc/pixel_volume/checkpoints/"
-    )
+    DEFAULT_VOLUME = "main.pixels_solacc.pixel_volume"
 
     def is_anon(self):
         return self._anon
@@ -43,15 +41,22 @@ class Catalog:
 
         return anon
 
-    def __init__(self, spark, table: str = "main.pixels_solacc.object_catalog"):
+    def __init__(self, spark, table: str = "main.pixels_solacc.object_catalog", volume: str = DEFAULT_VOLUME):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
         Parameters:
             spark - Spark context
             table - Delta table that stores the object catalog
+            volume - The volume that will be used to store the catalog checkpoints and unzipped files.
         """
         assert spark is not None
         self._spark = spark
         self._table = table
+        self._volume = volume
+        self._volume_path = f"/Volumes/{volume.replace('.','/')}"
+
+        # Check if the volume exist
+        spark.sql(f"LIST '{self._volume_path}' limit 1").count()
+
         """Spark and Delta Table options for best performance"""
         self._userOptions = {
             "delta.autoOptimize.optimizeWrite": "true",
@@ -92,8 +97,10 @@ class Catalog:
         path: str,
         pattern: str = "*",
         recurse: bool = True,
+        extractZip: bool = False,
         streaming: bool = False,
-        streamCheckpointBasePath: str = DEFAULT_STREAMING_CHECKPOINTS_BASE_PATH,
+        extractZipBasePath: str =  None,
+        streamCheckpointBasePath: str = None,
         triggerProcessingTime: str = None,
         triggerAvailableNow: bool = None,
     ) -> DataFrame:
@@ -108,11 +115,17 @@ class Catalog:
                 file name pattern. Defaults to "*"
             recurse : bool, optional
                 True means recurse folder structure. Defaults to True
+            extractZip : bool, optional
+                True means extract all the zip files from the path location. 
+                False means ignore the zip files. 
+                Defaults to False
+            extractZipBasePath : str, optional
+                The base path where zip files are extracted. Defaults to volume location + "/unzipped/"
             streaming : bool, optional
                 If True, the function will catalog data in a streaming manner. Defaults to False.
                 The default trigger is availableNow.
             streamCheckpointBasePath : str, optional
-                The path where progress of streaming data is saved. Defaults to "/Volumes/main/pixels_solacc/pixel_volume/checkpoints/".
+                The path where progress of streaming data is saved. Defaults to volume location + /checkpoints/".
             triggerProcessingTime : str, optional
                 a processing time interval as a string, e.g. '5 seconds', '1 minute'.
                 Set a trigger that runs a microbatch query periodically based on the
@@ -134,6 +147,13 @@ class Catalog:
         # Used only for streaming
         self._queryName = f"pixels_{path}_{self._table}"
         self._isStreaming = streaming
+
+        if streamCheckpointBasePath is None:
+            streamCheckpointBasePath = f"{self._volume_path}/checkpoints/"
+        
+        if extractZipBasePath is None:
+            extractZipBasePath = f"{self._volume_path}/unzipped/"
+
         self.streamCheckpointBasePath = streamCheckpointBasePath
 
         # Trigger handling, defaults to availableNow
@@ -155,6 +175,12 @@ class Catalog:
             df = self.__streamReader(path, pattern, recurse)
         else:
             df = self.__reader(path, pattern, recurse)
+
+        df = df.withColumn("original_path", f.col("path"))
+        
+        # Extract zip files in extractZipBasePath
+        if extractZip:
+            df = df.withColumn("path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath))))
 
         #Generate paths and remove all non DICOM files
         df = Catalog._with_path_meta(df).filter(f"file_type == '{DICOM_MAGIC_STRING}'")
@@ -239,7 +265,7 @@ class Catalog:
             )
             .withColumn("extension", f.regexp_replace(inputCol, r".*\.(\w+)$", r"$1"))
             .withColumn("extension", f.when(f.col("extension") == f.col(inputCol), f.lit("")).otherwise(f.col("extension")))
-            .withColumn("file_type", identify_type_udf("local_path"))
+            .withColumn("file_type", identify_type_udf("path"))
             .withColumn(
                 "path_tags",
                 f.slice(
