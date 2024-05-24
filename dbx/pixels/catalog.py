@@ -1,7 +1,8 @@
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
-from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf, DICOM_MAGIC_STRING, ZIP_MAGIC_STRING
+
+from dbx.pixels.utils import DICOM_MAGIC_STRING, identify_type_udf, unzip_pandas_udf
 
 # dfZipWithIndex helper function
 
@@ -41,7 +42,9 @@ class Catalog:
 
         return anon
 
-    def __init__(self, spark, table: str = "main.pixels_solacc.object_catalog", volume: str = DEFAULT_VOLUME):
+    def __init__(
+        self, spark, table: str = "main.pixels_solacc.object_catalog", volume: str = DEFAULT_VOLUME
+    ):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
         Parameters:
             spark - Spark context
@@ -97,12 +100,12 @@ class Catalog:
         path: str,
         pattern: str = "*",
         recurse: bool = True,
-        extractZip: bool = False,
         streaming: bool = False,
-        extractZipBasePath: str =  None,
         streamCheckpointBasePath: str = None,
         triggerProcessingTime: str = None,
         triggerAvailableNow: bool = None,
+        extractZip: bool = False,
+        extractZipBasePath: str = None,
     ) -> DataFrame:
         """Perform the catalog action and return a spark dataframe
 
@@ -116,8 +119,8 @@ class Catalog:
             recurse : bool, optional
                 True means recurse folder structure. Defaults to True
             extractZip : bool, optional
-                True means extract all the zip files from the path location. 
-                False means ignore the zip files. 
+                True means extract all the zip files from the path location.
+                False means ignore the zip files.
                 Defaults to False
             extractZipBasePath : str, optional
                 The base path where zip files are extracted. Defaults to volume location + "/unzipped/"
@@ -150,7 +153,7 @@ class Catalog:
 
         if streamCheckpointBasePath is None:
             streamCheckpointBasePath = f"{self._volume_path}/checkpoints/"
-        
+
         if extractZipBasePath is None:
             extractZipBasePath = f"{self._volume_path}/unzipped/"
 
@@ -177,12 +180,14 @@ class Catalog:
             df = self.__reader(path, pattern, recurse)
 
         df = df.withColumn("original_path", f.col("path"))
-        
+
         # Extract zip files in extractZipBasePath
         if extractZip:
-            df = df.withColumn("path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath))))
+            df = df.withColumn(
+                "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+            )
 
-        #Generate paths and remove all non DICOM files
+        # Generate paths and remove all non DICOM files
         df = Catalog._with_path_meta(df).filter(f"file_type == '{DICOM_MAGIC_STRING}'")
         return df
 
@@ -264,7 +269,12 @@ class Catalog:
                 "local_path", f.regexp_replace("local_path", r"/dbfs/Volumes/(.*$)", r"/Volumes/$1")
             )
             .withColumn("extension", f.regexp_replace(inputCol, r".*\.(\w+)$", r"$1"))
-            .withColumn("extension", f.when(f.col("extension") == f.col(inputCol), f.lit("")).otherwise(f.col("extension")))
+            .withColumn(
+                "extension",
+                f.when(f.col("extension") == f.col(inputCol), f.lit("")).otherwise(
+                    f.col("extension")
+                ),
+            )
             .withColumn("file_type", identify_type_udf("path"))
             .withColumn(
                 "path_tags",
