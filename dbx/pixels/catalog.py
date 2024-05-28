@@ -12,7 +12,7 @@ class Catalog:
     Save catalog to Delta Lake table by path or table name"""
 
     CATALOG_PARTITIONS = 2000
-    DEFAULT_VOLUME = "main.pixels_solacc.pixel_volume"
+    DEFAULT_VOLUME = "main.pixels_solacc.pixels_volume"
 
     def is_anon(self):
         return self._anon
