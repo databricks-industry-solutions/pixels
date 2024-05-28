@@ -30,9 +30,18 @@ def test_path_read(spark):
 def test_catalog_init(spark):
     from dbx.pixels import Catalog
 
-    spark.sql("CREATE CATALOG IF NOT EXISTS main")
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
-    spark.sql("CREATE VOLUME IF NOT EXISTS main.pixels_solacc.pixels_volume")
+    catalog = "main"
+    schema = "main.pixels_solacc"
+    volume = "main.pixels_solacc.pixels_volume"
+
+    if (spark.sql(f"show catalogs like '{catalog}'").count() == 0):
+        spark.sql(f"create catalog if not exists {catalog}")
+    
+    if (spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0):
+        spark.sql(f"create database if not exists {schema}")
+
+    if (spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0):
+        spark.sql(f"create volume if not exists {volume}")
 
     catalog = Catalog(spark=spark)
     assert catalog is not None
@@ -97,7 +106,6 @@ def test_catalog_save_uc(spark):
     catalog_df = catalog.catalog(path=path)
     assert catalog_df is not None
     assert catalog_df.count() == 4
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
     catalog.save(df=catalog_df, table="main.pixels_solacc.object_catalog")
 
 
@@ -109,5 +117,4 @@ def test_catalog_save_dbfs(spark):
     catalog_df = catalog.catalog(path=path)
     assert catalog_df is not None
     assert catalog_df.count() == 4
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
     catalog.save(df=catalog_df, path="/dbfs/tmp/main.pixels_solacc.object_catalog")

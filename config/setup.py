@@ -40,9 +40,14 @@ def init_catalog_schema_volume():
     catalog = f"""{table.split(".")[0]}"""
     schema = f"""{table.split(".")[0]}.{table.split(".")[1]}"""
 
-    spark.sql(f"create catalog if not exists {catalog}")
-    spark.sql(f"create database if not exists {schema}")
-    spark.sql(f"create volume if not exists {volume}")
+    if (spark.sql(f"show catalogs like '{catalog}'").count() == 0):
+        spark.sql(f"create catalog if not exists {catalog}")
+    
+    if (spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0):
+        spark.sql(f"create database if not exists {schema}")
+
+    if (spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0):
+        spark.sql(f"create volume if not exists {volume}")
 
 # COMMAND ----------
 
