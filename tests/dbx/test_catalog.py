@@ -34,13 +34,13 @@ def test_catalog_init(spark):
     schema = "main.pixels_solacc"
     volume = "main.pixels_solacc.pixels_volume"
 
-    if (spark.sql(f"show catalogs like '{catalog}'").count() == 0):
+    if spark.sql(f"show catalogs like '{catalog}'").count() == 0:
         spark.sql(f"create catalog if not exists {catalog}")
-    
-    if (spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0):
+
+    if spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0:
         spark.sql(f"create database if not exists {schema}")
 
-    if (spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0):
+    if spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0:
         spark.sql(f"create volume if not exists {volume}")
 
     catalog = Catalog(spark=spark)
