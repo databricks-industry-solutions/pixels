@@ -24,6 +24,7 @@ def spark() -> SparkSession:
 @pytest.fixture(autouse=True)
 def setup(spark: SparkSession):
     spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
+    spark.sql("CREATE VOLUME IF NOT EXISTS main.pixels_solacc.pixels_volume")
     yield
 
     try:

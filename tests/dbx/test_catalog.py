@@ -30,6 +30,10 @@ def test_path_read(spark):
 def test_catalog_init(spark):
     from dbx.pixels import Catalog
 
+    spark.sql("CREATE CATALOG IF NOT EXISTS main")
+    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
+    spark.sql("CREATE VOLUME IF NOT EXISTS main.pixels_solacc.pixels_volume")
+
     catalog = Catalog(spark=spark)
     assert catalog is not None
     assert catalog.is_anon
