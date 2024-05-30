@@ -14,7 +14,9 @@ def spark() -> SparkSession:
     the cluster in the remote Databricks workspace. Unit tests do not
     have access to this SparkSession by default.
     """
-    return DatabricksSession.builder.getOrCreate()
+    sparkSession = DatabricksSession.builder.getOrCreate()
+    sparkSession.addArtifact("./wheels/databricks_pixels-0.0.6-py3-none-any.zip", pyfile=True)
+    return sparkSession
 
 
 def test_catalog_import(spark):
@@ -65,11 +67,11 @@ def test_catalog_public_s3(spark, caplog):
     caplog.set_level(logging.DEBUG)
 
     catalog_df = catalog_path(spark, path)
-    assert len(catalog_df.columns) == 7
+    assert len(catalog_df.columns) == 9
     row = catalog_df.collect()[0]
     assert row[0] == path + "0007.LEFT_MLO.dcm"
     assert row[2] == 10943362
-    assert row[5] == "dcm"
+    assert row[6] == "dcm"
 
 
 def test_catalog_private_s3(spark):

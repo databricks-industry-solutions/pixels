@@ -15,6 +15,8 @@ dev:
 	pip install -e '.[dev]'
 
 test:
+	pip wheel . -w wheels
+	for file in ./wheels/*any.whl; do mv "$$file" "$${file/any.whl/any.zip}"; done
 	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
