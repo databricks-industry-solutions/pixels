@@ -74,7 +74,7 @@ setup(
     extras_require={
         "dev": [
             "pyspark==3.4.1",
-            "databricks-connect==13.3.0",
+            "databricks-connect==14.3.2",
             "databricks-sdk==0.12.0",
             "autoflake",
             "black",
