@@ -15,7 +15,7 @@ def spark() -> SparkSession:
     have access to this SparkSession by default.
     """
     sparkSession = DatabricksSession.builder.getOrCreate()
-    sparkSession.addArtifact("./wheels/databricks_pixels-0.0.6-py3-none-any.zip", pyfile=True)
+    sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
     return sparkSession
 
 

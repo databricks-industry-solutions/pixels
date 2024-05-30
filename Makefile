@@ -16,7 +16,7 @@ dev:
 
 test:
 	pip wheel . -w wheels
-	for file in ./wheels/*any.whl; do mv "$$file" "$${file/any.whl/any.zip}"; done
+	mv ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
 	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
