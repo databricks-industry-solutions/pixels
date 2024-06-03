@@ -106,17 +106,6 @@ class DicomThumbnailExtractor(Transformer):
             path (string) : Valid path (per cloud_open()) to Dicom file. Must end in .dcm
             anon (bool) : True if access to S3 bucket is anonymous
             """
-            if path[-4:].lower() != ".dcm":
-                return {
-                    "image": {
-                        "origin": f"empty.png",  # origin
-                        "height": -1,  # height
-                        "width": -1,  # width
-                        "nChannels": -1,  # nChannels (RGBA)
-                        "mode": -1,  # mode
-                        "data": bytearray(0),  # must be bytearray
-                    }
-                }
 
             cmap = "gray"
             try:

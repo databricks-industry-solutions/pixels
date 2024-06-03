@@ -3,6 +3,8 @@ import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql import DataFrame
 
+from dbx.pixels.utils import identify_type_udf
+
 
 class PathExtractor(Transformer):
     # Day extractor inherit of property of Transformer
@@ -39,6 +41,7 @@ class PathExtractor(Transformer):
                 "local_path", f.regexp_replace("local_path", r"/dbfs/Volumes/(.*$)", r"/Volumes/$1")
             )
             .withColumn("extension", f.regexp_replace("relative_path", r".*\.(\w+)$", r"$1"))
+            .withColumn("file_type", identify_type_udf("local_path"))
             .withColumn(
                 "path_tags",
                 f.split(

@@ -24,7 +24,15 @@
 # COMMAND ----------
 
 # DBTITLE 1,Display widgets
-path,table,write_mode = init_widgets()
+path,table,volume,write_mode = init_widgets()
+
+# COMMAND ----------
+
+# DBTITLE 1,Inizialize configured catalog and schema if not exists
+# Create the catalog, schema and volume if they don't exist
+# Check the widgets before running this command! 
+
+init_catalog_schema_volume()
 
 # COMMAND ----------
 
@@ -40,8 +48,8 @@ from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The D
 # COMMAND ----------
 
 # DBTITLE 1,Catalog files in <path>
-catalog = Catalog(spark, table=table)
-catalog_df = catalog.catalog(path=path)
+catalog = Catalog(spark, table=table, volume=volume)
+catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
 

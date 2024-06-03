@@ -14,7 +14,9 @@ def spark() -> SparkSession:
     the cluster in the remote Databricks workspace. Unit tests do not
     have access to this SparkSession by default.
     """
-    return DatabricksSession.builder.getOrCreate()
+    sparkSession = DatabricksSession.builder.getOrCreate()
+    sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
+    return sparkSession
 
 
 def test_catalog_import(spark):
@@ -29,6 +31,19 @@ def test_path_read(spark):
 
 def test_catalog_init(spark):
     from dbx.pixels import Catalog
+
+    catalog = "main"
+    schema = "main.pixels_solacc"
+    volume = "main.pixels_solacc.pixels_volume"
+
+    if spark.sql(f"show catalogs like '{catalog}'").count() == 0:
+        spark.sql(f"create catalog if not exists {catalog}")
+
+    if spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0:
+        spark.sql(f"create database if not exists {schema}")
+
+    if spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0:
+        spark.sql(f"create volume if not exists {volume}")
 
     catalog = Catalog(spark=spark)
     assert catalog is not None
@@ -52,11 +67,11 @@ def test_catalog_public_s3(spark, caplog):
     caplog.set_level(logging.DEBUG)
 
     catalog_df = catalog_path(spark, path)
-    assert len(catalog_df.columns) == 7
+    assert len(catalog_df.columns) == 9
     row = catalog_df.collect()[0]
     assert row[0] == path + "0007.LEFT_MLO.dcm"
     assert row[2] == 10943362
-    assert row[5] == "dcm"
+    assert row[6] == "dcm"
 
 
 def test_catalog_private_s3(spark):
@@ -93,7 +108,6 @@ def test_catalog_save_uc(spark):
     catalog_df = catalog.catalog(path=path)
     assert catalog_df is not None
     assert catalog_df.count() == 4
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
     catalog.save(df=catalog_df, table="main.pixels_solacc.object_catalog")
 
 
@@ -105,5 +119,4 @@ def test_catalog_save_dbfs(spark):
     catalog_df = catalog.catalog(path=path)
     assert catalog_df is not None
     assert catalog_df.count() == 4
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
     catalog.save(df=catalog_df, path="/dbfs/tmp/main.pixels_solacc.object_catalog")

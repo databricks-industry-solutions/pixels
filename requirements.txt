@@ -5,3 +5,4 @@ matplotlib
 pyarrow
 python-gdcm==3.0.19
 s3fs==2022.10.0
+python-magic==0.4.27
