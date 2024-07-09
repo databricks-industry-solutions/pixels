@@ -75,10 +75,12 @@ def unzip(path, unzipped_base_path):
     for file_name in zip_archive.namelist():
         if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
 
+            zip_name =  os.path.splitext(os.path.basename(path))[0]
+
             file_object = zip_archive.open(file_name, "r")
             file_like_object = file_object.read()
 
-            file_path = os.path.join(unzipped_base_path, file_name)
+            file_path = os.path.join(unzipped_base_path, zip_name, file_name)
 
             file_dir = os.path.dirname(file_path)
             if not os.path.exists(file_dir):
