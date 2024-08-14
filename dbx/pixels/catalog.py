@@ -209,9 +209,9 @@ class Catalog:
                     .selectExpr("mean(operationMetrics.numOutputRows) as mean_records")
                     .collect()[0][0]
                 )
-
+                
                 # Rebalance the extracted files among workers
-                df = df.repartition(mean_records // maxZipElementsPerPartition)
+                df = df.repartition(int(mean_records // maxZipElementsPerPartition))
 
         else:
             df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
@@ -224,7 +224,7 @@ class Catalog:
 
                 records = df.count()
                 df = df.repartition(
-                    (records // maxZipElementsPerPartition) | maxZipElementsPerPartition
+                    int(records // maxZipElementsPerPartition) | maxZipElementsPerPartition
                 )
 
         # Generate paths --and remove all non DICOM files--
