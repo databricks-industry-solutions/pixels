@@ -63,7 +63,8 @@ def identify_type_udf(path: str):
 
 def unzip(path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
-    list = []
+    print(f"=== START unzip {path} ===")
+    to_return = []
     bytex = BytesIO(_file_reader_helper(path))
 
     # Check if file is zip
@@ -72,10 +73,10 @@ def unzip(path, unzipped_base_path):
         return [path]
 
     zip_archive = zipfile.ZipFile(bytex, "r")
+    zip_name = os.path.splitext(os.path.basename(path))[0]
+
     for file_name in zip_archive.namelist():
         if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
-
-            zip_name = os.path.splitext(os.path.basename(path))[0]
 
             file_object = zip_archive.open(file_name, "r")
             file_like_object = file_object.read()
@@ -89,8 +90,9 @@ def unzip(path, unzipped_base_path):
             with open(file_path, "wb") as f:
                 f.write(file_like_object)
 
-            list.append(file_path)
-    return list
+            to_return.append(file_path)
+    print(f"=== COMPLETED unzip {path} ===")
+    return to_return
 
 
 @pandas_udf(ArrayType(StringType()))
