@@ -185,7 +185,7 @@ class Catalog:
             )
 
             if extractZip:
-                df.withColumn(
+                unzip_stream = df.withColumn(
                     "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                 ).writeStream.format("delta").outputMode("append").option(
                     "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
@@ -197,7 +197,7 @@ class Catalog:
                 )
 
                 if self._triggerAvailableNow:
-                    df.awaitTermination()
+                    unzip_stream.awaitTermination()
 
                 df = self._spark.readStream.table(f"{self._table}_unzip")
 
