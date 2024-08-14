@@ -72,7 +72,7 @@ class DicomPillowThumbnailExtractor(Transformer):
         def dicom_to_thumbnail(path, anon):
             """read dicom and serialize as png"""
             if True:
-                fp = cloud_open(path, anon)
+                fp, fsize = cloud_open(path, anon)
                 with dcmread(fp) as ds:
                     image = Image.fromarray(ds.pixel_array).resize((IMAGE_RESIZE, IMAGE_RESIZE))
                     output = io.BytesIO()
