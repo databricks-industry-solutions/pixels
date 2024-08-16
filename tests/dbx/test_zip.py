@@ -6,11 +6,13 @@ from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
 
-FILE_PATH = "s3://hls-eng-data-public/dicom/ddsm/benigns_2*.zip"
-TABLE = "main.pixels_solacc.object_catalog_stream"
-BASE_PATH = "/tmp/pixels_acc_stream_test"
+FILE_PATH = "s3://hls-eng-data-public/dicom/ddsm/benigns_21*zip"
+TABLE = "main.pixels_solacc.object_catalog_test"
+VOLUME = f"main.pixels_solacc.pixels_volume_test"
+BASE_PATH = f"/Volumes/main/pixels_solacc/pixels_volume_test/pixels_acc_test"
 CHECKPOINT_BASE_PATH = f"{BASE_PATH}/checkpoints"
 UNZIP_BASE_PATH = f"{BASE_PATH}/unzipped"
+
 
 @pytest.fixture
 def spark() -> SparkSession:
@@ -21,13 +23,13 @@ def spark() -> SparkSession:
     """
     sparkSession = DatabricksSession.builder.getOrCreate()
     sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
-    return sparkSession     
+    return sparkSession
 
 
 @pytest.fixture(autouse=True)
 def setup(spark: SparkSession):
     spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
-    spark.sql("CREATE VOLUME IF NOT EXISTS main.pixels_solacc.pixels_volume")
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME}")
     yield
 
     try:
@@ -41,17 +43,34 @@ def setup(spark: SparkSession):
             print(err)
 
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
+
 
 def test_catalog_unzip(spark: SparkSession):
-    catalog = Catalog(spark, table=TABLE)
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME)
     catalog_df = catalog.catalog(
-        path=FILE_PATH,
-        extractZip=True,
-        extractZipBasePath=UNZIP_BASE_PATH
+        path=FILE_PATH, extractZip=True, extractZipBasePath=UNZIP_BASE_PATH
     )
 
     assert catalog_df is not None
 
     catalog.save(df=catalog_df)
 
-    assert catalog.load().count() == 418
+    assert catalog.load().count() == 30
+
+
+def test_catalog_unzip_stream(spark: SparkSession):
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME)
+    catalog_df = catalog.catalog(
+        path=FILE_PATH,
+        extractZip=True,
+        extractZipBasePath=UNZIP_BASE_PATH,
+        streaming=True,
+        streamCheckpointBasePath=CHECKPOINT_BASE_PATH,
+    )
+
+    assert catalog_df is not None
+
+    catalog.save(df=catalog_df)
+
+    assert catalog.load().count() == 30

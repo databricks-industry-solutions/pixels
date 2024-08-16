@@ -1,8 +1,16 @@
+import logging
+
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.utils import unzip_pandas_udf
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO, datefmt="%y/%m/%d %H:%M:%S"
+)
+
+logger = logging.getLogger(__name__)
 
 # dfZipWithIndex helper function
 
@@ -185,19 +193,29 @@ class Catalog:
             )
 
             if extractZip:
-                unzip_stream = df.withColumn(
-                    "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
-                ).writeStream.format("delta").outputMode("append").option(
-                    "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
-                ).trigger(
-                    availableNow=self._triggerAvailableNow,
-                    processingTime=self._triggerProcessingTime,
-                ).toTable(
-                    f"{self._table}_unzip"
+                logger.info("Started unzip process")
+
+                unzip_stream = (
+                    df.withColumn(
+                        "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                    )
+                    .writeStream.format("delta")
+                    .outputMode("append")
+                    .option(
+                        "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
+                    )
+                    .trigger(
+                        availableNow=self._triggerAvailableNow,
+                        processingTime=self._triggerProcessingTime,
+                    )
+                    .queryName(self._queryName + "_unzip")
+                    .toTable(f"{self._table}_unzip")
                 )
 
                 if self._triggerAvailableNow:
                     unzip_stream.awaitTermination()
+
+                logger.info("Unzip process completed")
 
                 df = self._spark.readStream.table(f"{self._table}_unzip")
 
@@ -209,16 +227,22 @@ class Catalog:
                     .selectExpr("mean(operationMetrics.numOutputRows) as mean_records")
                     .collect()[0][0]
                 )
-                
+
                 # Rebalance the extracted files among workers
-                df = df.repartition(int(mean_records // maxZipElementsPerPartition))
+                df = df.repartition(
+                    int(mean_records // maxZipElementsPerPartition) | maxZipElementsPerPartition
+                )
 
         else:
             df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
             if extractZip:
+                logger.info("Started unzip process")
+
                 df.withColumn(
                     "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
+
+                logger.info("Unzip process completed")
 
                 df = self._spark.read.table(f"{self._table}_unzip")
 

@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import zipfile
 from io import BytesIO
@@ -8,6 +9,8 @@ from PIL import Image
 from pyspark.ml.image import ImageSchema
 from pyspark.sql.functions import pandas_udf, udf
 from pyspark.sql.types import ArrayType, StringType
+
+logger = logging.getLogger(__name__)
 
 
 def to_image(data: bytes):
@@ -63,7 +66,7 @@ def identify_type_udf(path: str):
 
 def unzip(path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
-    print(f"=== START unzip {path} ===")
+    logger.debug(f"Start unzip {path}")
     to_return = []
     bytex = BytesIO(_file_reader_helper(path))
 
@@ -91,7 +94,7 @@ def unzip(path, unzipped_base_path):
                 f.write(file_like_object)
 
             to_return.append(file_path)
-    print(f"=== COMPLETED unzip {path} ===")
+    logger.debug(f"Completed unzip {path}")
     return to_return
 
 
