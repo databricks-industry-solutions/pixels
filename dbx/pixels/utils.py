@@ -66,7 +66,7 @@ def identify_type_udf(path: str):
 
 def unzip(path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
-    logger.info(f"Start unzip {path}")
+    logger.info(f"- UNZIP - Start unzip {path}")
     to_return = []
     bytex = BytesIO(_file_reader_helper(path))
 
@@ -78,10 +78,13 @@ def unzip(path, unzipped_base_path):
     zip_archive = zipfile.ZipFile(bytex, "r")
     zip_name = os.path.splitext(os.path.basename(path))[0]
 
+    num_files_in_zip = len(zip_archive.namelist())
+    processed = 0
+
     for file_name in zip_archive.namelist():
         if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
 
-            logger.debug(f"Unzipping file {file_name} in {path}")
+            logger.debug(f"- UNZIP - Unzipping file {file_name} in {path}")
 
             file_object = zip_archive.open(file_name, "r")
             file_like_object = file_object.read()
@@ -98,7 +101,12 @@ def unzip(path, unzipped_base_path):
             file_object.close()
 
             to_return.append(file_path)
-    logger.info(f"Completed unzip {path}")
+
+        processed+=1
+        if (processed % 100 == 0):
+            logger.info(f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}")
+            
+    logger.info(f"- UNZIP - Completed unzip {path}")
     return to_return
 
 
