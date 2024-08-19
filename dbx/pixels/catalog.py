@@ -7,6 +7,8 @@ from dbx.pixels.utils import unzip_pandas_udf
 
 # dfZipWithIndex helper function
 
+logger = LoggerProvider()
+
 
 class Catalog:
     """Build object catalog of files on s3 dbfs or local storage.
@@ -73,8 +75,6 @@ class Catalog:
             "spark.sql.parquet.compression.codec": "uncompressed",
             "spark.databricks.delta.optimizeWrite.enabled": False,
         }
-
-        self._logger = LoggerProvider().get_logger()
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
@@ -188,7 +188,7 @@ class Catalog:
             )
 
             if extractZip:
-                self._logger.info("Started unzip process")
+                logger.info("Started unzip process")
 
                 unzip_stream = (
                     df.withColumn(
@@ -210,7 +210,7 @@ class Catalog:
                 if self._triggerAvailableNow:
                     unzip_stream.awaitTermination()
 
-                self._logger.info("Unzip process completed")
+                logger.info("Unzip process completed")
 
                 df = self._spark.readStream.table(f"{self._table}_unzip")
 
@@ -231,13 +231,13 @@ class Catalog:
         else:
             df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
             if extractZip:
-                self._logger.info("Started unzip process")
+                logger.info("Started unzip process")
 
                 df.withColumn(
                     "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 
-                self._logger.info("Unzip process completed")
+                logger.info("Unzip process completed")
 
                 df = self._spark.read.table(f"{self._table}_unzip")
 

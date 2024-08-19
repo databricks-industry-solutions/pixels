@@ -11,7 +11,7 @@ from pyspark.sql.types import ArrayType, StringType
 
 from dbx.pixels.logging import LoggerProvider
 
-logger = LoggerProvider().get_logger()
+logger = LoggerProvider()
 
 
 def to_image(data: bytes):
