@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import zipfile
 from io import BytesIO
@@ -10,7 +9,9 @@ from pyspark.ml.image import ImageSchema
 from pyspark.sql.functions import pandas_udf, udf
 from pyspark.sql.types import ArrayType, StringType
 
-logger = logging.getLogger(__name__)
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider().get_logger()
 
 
 def to_image(data: bytes):
@@ -102,10 +103,12 @@ def unzip(path, unzipped_base_path):
 
             to_return.append(file_path)
 
-        processed+=1
-        if (processed % 100 == 0):
-            logger.info(f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}")
-            
+        processed += 1
+        if processed % 100 == 0:
+            logger.info(
+                f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}"
+            )
+
     logger.info(f"- UNZIP - Completed unzip {path}")
     return to_return
 
