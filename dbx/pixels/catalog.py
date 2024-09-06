@@ -113,6 +113,7 @@ class Catalog:
         extractZip: bool = False,
         extractZipBasePath: str = None,
         maxFilesPerTrigger: int = 1000,
+        maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
     ) -> DataFrame:
         """Perform the catalog action and return a spark dataframe
@@ -199,6 +200,9 @@ class Catalog:
                     .option(
                         "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
                     )
+                    .option(
+                        "maxRecordsPerFile", maxUnzippedRecordsPerFile
+                    )
                     .trigger(
                         availableNow=self._triggerAvailableNow,
                         processingTime=self._triggerProcessingTime,
@@ -212,21 +216,10 @@ class Catalog:
 
                 logger.info("Unzip process completed")
 
-                df = self._spark.readStream.table(f"{self._table}_unzip")
-
-                # Calculate mean record number based on last 10 commits
-                mean_records = (
-                    self._spark.sql(
-                        f"select * from (DESCRIBE history {self._table}_unzip) order by version desc limit 10"
-                    )
-                    .selectExpr("mean(operationMetrics.numOutputRows) as mean_records")
-                    .collect()[0][0]
-                )
+                df = self._spark.readStream.option("maxFilesPerTrigger","1").table(f"{self._table}_unzip")
 
                 # Rebalance the extracted files among workers
-                df = df.repartition(
-                    int(mean_records // maxZipElementsPerPartition) | maxZipElementsPerPartition
-                )
+                df = df.repartition(int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition))
 
         else:
             df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
