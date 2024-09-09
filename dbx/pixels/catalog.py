@@ -191,6 +191,13 @@ class Catalog:
             if extractZip:
                 logger.info("Started unzip process")
 
+                self._spark.sql(
+                    f"""
+                                CREATE TABLE IF NOT EXISTS {self._table}_unzip
+                                TBLPROPERTIES ('delta.targetFileSize' = '1mb')
+                                """
+                )
+
                 unzip_stream = (
                     df.withColumn(
                         "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
@@ -200,9 +207,8 @@ class Catalog:
                     .option(
                         "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
                     )
-                    .option(
-                        "maxRecordsPerFile", maxUnzippedRecordsPerFile
-                    )
+                    .option("maxRecordsPerFile", maxUnzippedRecordsPerFile)
+                    .option("mergeSchema", "true")
                     .trigger(
                         availableNow=self._triggerAvailableNow,
                         processingTime=self._triggerProcessingTime,
@@ -216,7 +222,9 @@ class Catalog:
 
                 logger.info("Unzip process completed")
 
-                df = self._spark.readStream.option("maxFilesPerTrigger","1").table(f"{self._table}_unzip")
+                df = self._spark.readStream.option("maxFilesPerTrigger", "1").table(
+                    f"{self._table}_unzip"
+                )
 
                 # Rebalance the extracted files among workers
                 df = df.repartition(int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition))
