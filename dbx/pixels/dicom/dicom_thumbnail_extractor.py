@@ -79,20 +79,16 @@ class DicomThumbnailExtractor(Transformer):
         fig.savefig(tmpfile, format="PNG")  # Create a PNG byte array from Matplotlib fig
 
         # Convert PNG to Image data array
-        img = Image.open(tmpfile).convert("RGBA")  # Convert to get matrix of pixel values
-        r, g, b, a = img.split()
-        imgx = Image.merge("RGBA", (b, g, r, a))  # Flip color bands
-        bytesx = imgx.tobytes()
+        img = Image.open(tmpfile).convert("L")  # Convert to get matrix of pixel values
+        bytesx = img.tobytes()
         sig = hashlib.md5(bytesx).hexdigest()
         return {
-            "image": {
-                "origin": f"matplotlib-{sig}.png",  # origin
-                "height": img.size[1],  # height
-                "width": img.size[0],  # width
-                "nChannels": 4,  # nChannels (RGBA)
-                "mode": 24,  # mode
-                "data": bytesx,  # must be bytearray
-            }
+            "origin": f"matplotlib-{sig}.png",  # origin
+            "height": img.size[1],  # height
+            "width": img.size[0],  # width
+            "nChannels": 1,  # nChannels (gray scale)
+            "mode": 0,  # mode
+            "data": bytesx,  # must be bytearray
         }
 
     def _do_matplotlib_thumbnail(self, df):
@@ -119,40 +115,26 @@ class DicomThumbnailExtractor(Transformer):
             except Exception as err:
                 err_str = f"function: dicom_thumbnail_udf, input: {path}, err: {str(err)}"
                 return {
-                    "image": {
-                        "origin": err_str,  # origin
-                        "height": -1,  # height
-                        "width": -1,  # width
-                        "nChannels": -1,  # nChannels (RGBA)
-                        "mode": -1,  # mode
-                        "data": bytearray(0),  # must be bytearray
-                    }
+                    "origin": err_str,  # origin
+                    "height": -1,  # height
+                    "width": -1,  # width
+                    "nChannels": -1,  # nChannels (RGBA)
+                    "mode": -1,  # mode
+                    "data": bytearray(0),  # must be bytearray
                 }
 
         imageSchema = StructType(
             [
-                StructField(
-                    "image",
-                    StructType(
-                        [
-                            StructField("origin", StringType(), True),
-                            StructField("height", IntegerType(), False),
-                            StructField("width", IntegerType(), False),
-                            StructField("nChannels", IntegerType(), False),
-                            StructField("mode", IntegerType(), False),
-                            StructField("data", BinaryType(), False),
-                        ]
-                    ),
-                    True,
-                )
+                StructField("origin", StringType(), True),
+                StructField("height", IntegerType(), False),
+                StructField("width", IntegerType(), False),
+                StructField("nChannels", IntegerType(), False),
+                StructField("mode", IntegerType(), False),
+                StructField("data", BinaryType(), False),
             ]
         )
         myudf = udf(dicom_matplotlib_thumbnail, returnType=imageSchema)
-        return (
-            df.withColumn("imageType", myudf(col(self._inputCol), col("is_anon")))
-            .selectExpr("*", f"imageType.image as {self._outputCol}")
-            .drop("imageType")
-        )
+        return df.withColumn(f"{self._outputCol}", myudf(col(self._inputCol), col("is_anon")))
 
     def _transform(self, df):
         """
