@@ -31,7 +31,7 @@ def dicom_plot_outer(iterator: Iterator[Tuple[pd.Series, pd.Series]]) -> Iterato
         """Plot dicom image to file in {save_folder} then return translated path to plot"""
         save_file = ""
         try:
-            fp = cloud_open(path, anon)
+            fp, fsize = cloud_open(path, anon)
             with dcmread(fp) as ds:
                 pixel_hash = hashlib.sha1(ds.pixel_array).hexdigest()
                 plot_file = f"{str(pixel_hash)}.{extension}"

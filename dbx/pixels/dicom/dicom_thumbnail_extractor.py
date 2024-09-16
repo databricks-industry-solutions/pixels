@@ -109,7 +109,7 @@ class DicomThumbnailExtractor(Transformer):
 
             cmap = "gray"
             try:
-                fp = cloud_open(path, anon)
+                fp, fsize = cloud_open(path, anon)
                 with dcmread(fp) as ds:
                     fig, ax = plt.subplots()
                     ax.imshow(ds.pixel_array, cmap=cmap)

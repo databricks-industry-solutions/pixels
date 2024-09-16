@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 
 from pyspark.sql.functions import udf
 
@@ -12,10 +13,12 @@ def cloud_open(path: str, anon: bool = False):
 
             fs = s3fs.S3FileSystem(anon)
             fp = fs.open(path)
+            fsize = fs.size(path)
         else:
             """Read from local filesystem"""
             fp = open(path, "rb")
-        return fp
+            fsize = os.stat(path).st_size
+        return fp, fsize
     except Exception as e:
         raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
@@ -33,7 +36,7 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
 
     try:
 
-        fp = cloud_open(path, anon)
+        fp, fsize = cloud_open(path, anon)
         with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as ds:
             js = ds.to_json_dict()
             # remove binary images
@@ -51,6 +54,8 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
                 js["img_avg"] = np.average(a).item()
                 js["img_shape_x"] = a.shape[0]
                 js["img_shape_y"] = a.shape[1]
+
+            js["file_size"] = fsize
 
             return json.dumps(js)
     except Exception as err:

@@ -2,9 +2,12 @@ from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
-from dbx.pixels.utils import DICOM_MAGIC_STRING, identify_type_udf, unzip_pandas_udf
+from dbx.pixels.logging import LoggerProvider
+from dbx.pixels.utils import unzip_pandas_udf
 
 # dfZipWithIndex helper function
+
+logger = LoggerProvider()
 
 
 class Catalog:
@@ -85,10 +88,13 @@ class Catalog:
             .drop("content")
         )
 
-    def __streamReader(self, path: str, pattern: str = "*", recurse: bool = True):
+    def __streamReader(
+        self, path: str, pattern: str = "*", recurse: bool = True, maxFilesPerTrigger: int = 1000
+    ):
         return (
             self._spark.readStream.format("cloudFiles")
             .option("cloudFiles.format", "binaryFile")
+            .option("cloudFiles.maxFilesPerTrigger", maxFilesPerTrigger)
             .option("pathGlobFilter", pattern)
             .option("recursiveFileLookup", str(recurse).lower())
             .load(path)
@@ -106,6 +112,9 @@ class Catalog:
         triggerAvailableNow: bool = None,
         extractZip: bool = False,
         extractZipBasePath: str = None,
+        maxFilesPerTrigger: int = 1000,
+        maxUnzippedRecordsPerFile: int = 102400,
+        maxZipElementsPerPartition: int = 32,
     ) -> DataFrame:
         """Perform the catalog action and return a spark dataframe
 
@@ -175,20 +184,71 @@ class Catalog:
             self._triggerAvailableNow = triggerAvailableNow
 
         if self._isStreaming:
-            df = self.__streamReader(path, pattern, recurse)
-        else:
-            df = self.__reader(path, pattern, recurse)
-
-        df = df.withColumn("original_path", f.col("path"))
-
-        # Extract zip files in extractZipBasePath
-        if extractZip:
-            df = df.withColumn(
-                "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+            df = self.__streamReader(path, pattern, recurse, maxFilesPerTrigger).withColumn(
+                "original_path", f.col("path")
             )
 
-        # Generate paths and remove all non DICOM files
-        df = Catalog._with_path_meta(df).filter(f"file_type == '{DICOM_MAGIC_STRING}'")
+            if extractZip:
+                logger.info("Started unzip process")
+
+                self._spark.sql(
+                    f"""
+                                CREATE TABLE IF NOT EXISTS {self._table}_unzip
+                                TBLPROPERTIES ('delta.targetFileSize' = '1mb')
+                                """
+                )
+
+                unzip_stream = (
+                    df.withColumn(
+                        "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                    )
+                    .writeStream.format("delta")
+                    .outputMode("append")
+                    .option(
+                        "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
+                    )
+                    .option("maxRecordsPerFile", maxUnzippedRecordsPerFile)
+                    .option("mergeSchema", "true")
+                    .trigger(
+                        availableNow=self._triggerAvailableNow,
+                        processingTime=self._triggerProcessingTime,
+                    )
+                    .queryName(self._queryName + "_unzip")
+                    .toTable(f"{self._table}_unzip")
+                )
+
+                if self._triggerAvailableNow:
+                    unzip_stream.awaitTermination()
+
+                logger.info("Unzip process completed")
+
+                df = self._spark.readStream.option("maxFilesPerTrigger", "1").table(
+                    f"{self._table}_unzip"
+                )
+
+                # Rebalance the extracted files among workers
+                df = df.repartition(int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition))
+
+        else:
+            df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
+            if extractZip:
+                logger.info("Started unzip process")
+
+                df.withColumn(
+                    "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
+
+                logger.info("Unzip process completed")
+
+                df = self._spark.read.table(f"{self._table}_unzip")
+
+                records = df.count()
+                df = df.repartition(
+                    int(records // maxZipElementsPerPartition) | maxZipElementsPerPartition
+                )
+
+        # Generate paths --and remove all non DICOM files--
+        df = Catalog._with_path_meta(df)  # .filter(f"file_type == '{DICOM_MAGIC_STRING}'")
         return df
 
     def load(self, table: str = None) -> DataFrame:
@@ -275,7 +335,7 @@ class Catalog:
                     f.col("extension")
                 ),
             )
-            .withColumn("file_type", identify_type_udf("path"))
+            .withColumn("file_type", f.lit(""))  # identify_type_udf("path"))
             .withColumn(
                 "path_tags",
                 f.slice(

@@ -9,6 +9,10 @@ from pyspark.ml.image import ImageSchema
 from pyspark.sql.functions import pandas_udf, udf
 from pyspark.sql.types import ArrayType, StringType
 
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider()
+
 
 def to_image(data: bytes):
     """Converts PNG image based bytes data and converts it into OpenCV compatible Image type. This is the basis of diplaying images stored in Spark dataframes witin Databricks.
@@ -63,7 +67,8 @@ def identify_type_udf(path: str):
 
 def unzip(path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
-    list = []
+    logger.info(f"- UNZIP - Start unzip {path}")
+    to_return = []
     bytex = BytesIO(_file_reader_helper(path))
 
     # Check if file is zip
@@ -72,10 +77,15 @@ def unzip(path, unzipped_base_path):
         return [path]
 
     zip_archive = zipfile.ZipFile(bytex, "r")
+    zip_name = os.path.splitext(os.path.basename(path))[0]
+
+    num_files_in_zip = len(zip_archive.namelist())
+    processed = 0
+
     for file_name in zip_archive.namelist():
         if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
 
-            zip_name = os.path.splitext(os.path.basename(path))[0]
+            logger.debug(f"- UNZIP - Unzipping file {file_name} in {path}")
 
             file_object = zip_archive.open(file_name, "r")
             file_like_object = file_object.read()
@@ -89,8 +99,18 @@ def unzip(path, unzipped_base_path):
             with open(file_path, "wb") as f:
                 f.write(file_like_object)
 
-            list.append(file_path)
-    return list
+            file_object.close()
+
+            to_return.append(file_path)
+
+        processed += 1
+        if processed % 100 == 0:
+            logger.info(
+                f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}"
+            )
+
+    logger.info(f"- UNZIP - Completed unzip {path}")
+    return to_return
 
 
 @pandas_udf(ArrayType(StringType()))
