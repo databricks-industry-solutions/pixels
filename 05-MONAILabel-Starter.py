@@ -35,6 +35,10 @@ os.environ["DATABRICKS_PIXELS_TABLE"] = table
 
 # COMMAND ----------
 
+displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h2>https://dbc-dp-{get_context().workspaceId}.cloud.databricks.com/driver-proxy/o/{get_context().workspaceId}/{get_context().clusterId}/8000/")
+
+# COMMAND ----------
+
 # MAGIC %sh
 # MAGIC monailabel apps --download --name radiology --output /local_disk0/monai/apps/
 
