@@ -130,7 +130,7 @@ async def _reverse_proxy_files(request: Request):
     )
 
 app.add_route("/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"])
-app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET"])
+app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
 
 app.mount("/", StaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
