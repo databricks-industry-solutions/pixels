@@ -1,4 +1,4 @@
-<img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
+<img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="400px">
 
 [![DBR](https://img.shields.io/badge/DBR-13.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/13.3ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
@@ -6,21 +6,11 @@
 ---
 
 # `dbx.pixels` Solution Accelerator
-Analyze DICOM image metadata with SQL
+- Ingest and index DICOM image metadata (.dcm and from zip archives) into Delta tables for structured data analysis (SQL + ML).
+- Analyze DICOM image metadata with SQL
+- View and segment Dicom Images with OHIF viewer
+- [MONAI](https://monai.io/) Integration, AI to automatically segment medical images, comming soon!
 ![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
----
-
-## About DICOM
-![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
-[Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/en/general/dicom-introduction/) 
-
-DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
-
-DICOM® is implemented in almost every radiology, cardiology imaging, and radiotherapy device (X-ray, CT, MRI, ultrasound, etc.), and increasingly in devices in other medical domains such as ophthalmology and dentistry. With hundreds of thousands of medical imaging devices in use, DICOM® is one of the most widely deployed healthcare messaging Standards in the world. There are literally billions of DICOM® images currently in use for clinical care.
-
-Since its first publication in 1993, DICOM® has revolutionized the practice of radiology, allowing the replacement of X-ray film with a fully digital workflow. Much as the Internet has become the platform for new consumer information applications, DICOM® has enabled advanced medical imaging applications that have “changed the face of clinical medicine”. From the emergency department, to cardiac stress testing, to breast cancer detection, DICOM® is the standard that makes medical imaging work — for doctors and for patients.
-
-DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
 
 ---
 ## About `dbx.pixels`
@@ -39,10 +29,12 @@ Relibly turn millions of image files into SQL accessible metadata, thumbnails; E
 dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
 ## Quick Start
+Run the demo notebook [01-dcm-demo](./01-dcm-demo.py) which does:
+
 ```python
 # imports
-from dbx.pixels import Catalog                       # 01
-from dbx.pixels.dicom import *                       # 02
+from dbx.pixels import Catalog                              # 01
+from dbx.pixels.dicom import *                              # 02
 
 # catalog all your files
 catalog = Catalog(spark)                                    # 03
@@ -170,11 +162,6 @@ erDiagram
 ```
 
 ___
->
-    author: Douglas Moore
-    email:  douglas.moore at databricks dot com
-    date:   November 18, 2022
-___
 
 ## Installation
 
@@ -191,6 +178,23 @@ where `<catalog>`, `<schema>` and `<volume>` reflect the three-level namespace o
 To use `databricks.pixels` with UC volumes currently requires the use of [single-user access mode clusters](https://docs.databricks.com/en/clusters/configure.html#access-modes) since `databricks.pixels` leverages user-defined functions (UDFs) and shared access mode clusters do not currently allow UDFs to access UC volumes. This behavior is expected to change in the future. When working with a UC-enabled cluster, attempting to access the cloud object store path directly by using external locations may cause errors due to the access method used by `pixels`.
 
 ___
+## Contributors
+- Douglas Moore @ Databricks
+- Emanuele Rinaldi @ Databricks
+
+___
+## About DICOM
+![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
+[Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/en/general/dicom-introduction/) 
+
+DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
+
+DICOM® is implemented in almost every radiology, cardiology imaging, and radiotherapy device (X-ray, CT, MRI, ultrasound, etc.), and increasingly in devices in other medical domains such as ophthalmology and dentistry. With hundreds of thousands of medical imaging devices in use, DICOM® is one of the most widely deployed healthcare messaging Standards in the world. There are literally billions of DICOM® images currently in use for clinical care.
+
+Since its first publication in 1993, DICOM® has revolutionized the practice of radiology, allowing the replacement of X-ray film with a fully digital workflow. Much as the Internet has become the platform for new consumer information applications, DICOM® has enabled advanced medical imaging applications that have “changed the face of clinical medicine”. From the emergency department, to cardiac stress testing, to breast cancer detection, DICOM® is the standard that makes medical imaging work — for doctors and for patients.
+
+DICOM® is recognized by the International Organization for Standardization as the ISO 12052 standard.
+
 ## Licensing
 
 &copy; 2022 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
