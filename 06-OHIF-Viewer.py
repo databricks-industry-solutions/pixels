@@ -61,36 +61,23 @@ with open(f"{ohif_path}/{file}.js", "r") as config_input:
 
 # COMMAND ----------
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from starlette.requests import Request
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.background import BackgroundTask
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import os
 import json
-
-import httpx
-
-app = FastAPI(title="Pixels")
-
-
-from fastapi.staticfiles import StaticFiles
-
-from starlette.requests import Request
-from starlette.responses import StreamingResponse, Response
-from starlette.background import BackgroundTask
-
-import os
-import json
-
 import httpx
 
 app = FastAPI(title="Pixels")
 
 async def _reverse_proxy_statements(request: Request):
-    client = httpx.AsyncClient(base_url=os.environ['DATABRICKS_HOST'])
+    client = httpx.AsyncClient(base_url=os.environ['DATABRICKS_HOST'], timeout=httpx.Timeout(30))
     #Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/",""))
 
@@ -112,7 +99,7 @@ async def _reverse_proxy_statements(request: Request):
     )
 
 async def _reverse_proxy_files(request: Request):
-    client = httpx.AsyncClient(base_url=os.environ['DATABRICKS_HOST'])
+    client = httpx.AsyncClient(base_url=os.environ['DATABRICKS_HOST'], timeout=httpx.Timeout(30))
     #Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/",""))
 
@@ -129,10 +116,20 @@ async def _reverse_proxy_files(request: Request):
         background=BackgroundTask(rp_resp.aclose),
     )
 
+class DBStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except (HTTPException, StarletteHTTPException) as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            else:
+                raise ex
+
 app.add_route("/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"])
 app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
+app.mount("/", DBStaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
-app.mount("/", StaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
 # COMMAND ----------
 
