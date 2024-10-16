@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install dbtunnel[fastapi] httpx databricks-sdk --upgrade 
+# MAGIC %pip install fastapi uvicorn httpx databricks-sdk --upgrade 
 
 # COMMAND ----------
 
@@ -7,7 +7,9 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
+import os
 from databricks.sdk import WorkspaceClient
+from dbruntime.databricks_repl_context import get_context
 
 w = WorkspaceClient()
 
@@ -24,7 +26,13 @@ if sql_warehouse_id == "":
     raise Exception("SQL Warehouse ID is mandatory!")
 else:
     wh = w.warehouses.get(id=sql_warehouse_id)
+    os.environ['DATABRICKS_WAREHOUSE_ID'] = sql_warehouse_id
     print(f"Using '{wh.as_dict()['name']}' as SQL Warehouse")
+
+workspace_id = get_context().workspaceId
+cluster_id = get_context().clusterId
+os.environ["DATABRICKS_TOKEN"] = get_context().apiToken
+os.environ['DATABRICKS_HOST'] = f"https://{get_context().browserHostName}"
 
 # COMMAND ----------
 
@@ -40,9 +48,6 @@ import dbx.pixels.resources
 
 path = Path(dbx.pixels.__file__).parent
 ohif_path = (f"{path}/resources/ohif")
-
-workspace_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterOwnerOrgId")
-cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 
 file = "app-config"
 
@@ -73,6 +78,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
 import json
 import httpx
+import uvicorn
 
 app = FastAPI(title="Pixels")
 
@@ -133,7 +139,12 @@ app.mount("/", DBStaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
 # COMMAND ----------
 
-from dbtunnel import dbtunnel
-dbtunnel.fastapi(app, port=3000).inject_auth().inject_env(
-  DATABRICKS_WAREHOUSE_ID=dbutils.widgets.get("sqlWarehouseID")
-).run()
+displayHTML(f"<a href='https://dbc-dp-{get_context().workspaceId}.cloud.databricks.com/driver-proxy/o/{get_context().workspaceId}/{get_context().clusterId}/3000/'> Click to go to OHIF Viewer!</a>")
+
+config = uvicorn.Config(
+    app,
+    host="0.0.0.0",
+    port=3000,
+  )
+server = uvicorn.Server(config)
+await server.serve()
