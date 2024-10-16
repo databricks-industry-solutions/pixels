@@ -3,7 +3,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import unzip_pandas_udf
+from dbx.pixels.utils import unzip_pandas_udf, identify_type_udf
 
 # dfZipWithIndex helper function
 
@@ -115,41 +115,30 @@ class Catalog:
         maxFilesPerTrigger: int = 1000,
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
+        detectFileType: bool = False,
     ) -> DataFrame:
-        """Perform the catalog action and return a spark dataframe
-
-        Parameters
-        ----------
-
-            path : str
-                Root location of objects
-            pattern : str, optional
-                file name pattern. Defaults to "*"
-            recurse : bool, optional
-                True means recurse folder structure. Defaults to True
-            extractZip : bool, optional
-                True means extract all the zip files from the path location.
-                False means ignore the zip files.
-                Defaults to False
-            extractZipBasePath : str, optional
-                The base path where zip files are extracted. Defaults to volume location + "/unzipped/"
-            streaming : bool, optional
-                If True, the function will catalog data in a streaming manner. Defaults to False.
-                The default trigger is availableNow.
-            streamCheckpointBasePath : str, optional
-                The path where progress of streaming data is saved. Defaults to volume location + /checkpoints/".
-            triggerProcessingTime : str, optional
-                a processing time interval as a string, e.g. '5 seconds', '1 minute'.
-                Set a trigger that runs a microbatch query periodically based on the
-                processing time. Only one trigger can be set.
-            triggerAvailableNow : bool, optional
-                if set to True, set a trigger that processes all available data in multiple
-                batches then terminates the query. Only one trigger can be set.
-
-        Returns
-        -------
-            DataFrame: A DataFrame of the cataloged data.
         """
+        Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
+
+        Parameters:
+        - path (str): The root location of objects to catalog.
+        - pattern (str, optional): File name pattern to match. Defaults to "*".
+        - recurse (bool, optional): Whether to recurse through directories. Defaults to True.
+        - streaming (bool, optional): Whether to catalog data in a streaming manner. Defaults to False.
+        - streamCheckpointBasePath (str, optional): The path for saving streaming progress. Defaults to volume location + "/checkpoints/".
+        - triggerProcessingTime (str, optional): The processing time interval for streaming triggers, e.g., '5 seconds', '1 minute'.
+        - triggerAvailableNow (bool, optional): If True, processes all available data in multiple batches then terminates the query.
+        - extractZip (bool, optional): Whether to extract zip files found in the path. Defaults to False.
+        - extractZipBasePath (str, optional): The base path for extracted zip files. Defaults to volume location + "/unzipped/".
+        - maxFilesPerTrigger (int, optional): The maximum number of files to process per trigger in streaming. Defaults to 1000.
+        - maxUnzippedRecordsPerFile (int, optional): The maximum number of records per file when unzipping. Defaults to 102400.
+        - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
+        - detectFileType (bool, optional): Whether to detect file types. Defaults to False.
+
+        Returns:
+        DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
+        """
+        
         assert self._spark is not None
         assert self._spark.version is not None
 
@@ -247,8 +236,12 @@ class Catalog:
                     int(records // maxZipElementsPerPartition) | maxZipElementsPerPartition
                 )
 
-        # Generate paths --and remove all non DICOM files--
-        df = Catalog._with_path_meta(df)  # .filter(f"file_type == '{DICOM_MAGIC_STRING}'")
+        # Generate paths
+        df = Catalog._with_path_meta(df)
+
+        if detectFileType:
+            df = df.withColumn("file_type", identify_type_udf("path"))
+
         return df
 
     def load(self, table: str = None) -> DataFrame:
@@ -335,7 +328,7 @@ class Catalog:
                     f.col("extension")
                 ),
             )
-            .withColumn("file_type", f.lit(""))  # identify_type_udf("path"))
+            .withColumn("file_type", f.lit(""))
             .withColumn(
                 "path_tags",
                 f.slice(
