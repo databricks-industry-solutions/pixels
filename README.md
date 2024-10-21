@@ -92,7 +92,9 @@ To start the OHIF Viewer web app you need to:
  - Execute the [06-OHIF-Viewer](/06-OHIF-Viewer) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
  - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
-<img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
+
+    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
+
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
 ---
