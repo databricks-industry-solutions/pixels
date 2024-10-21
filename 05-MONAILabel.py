@@ -6,7 +6,7 @@
 # MAGIC
 # MAGIC # MONAILabel
 # MAGIC
-# MAGIC MONAILabel is a framework for creating interactive and customizable annotation workflows for medical imaging data. It provides a user-friendly interface for annotating medical images and supports various annotation tasks such as segmentation, classification, and regression.
+# MAGIC MONAILabel is a framework for creating interactive and customizable annotation workflows for medical imaging data. It provides a user-friendly interface for annotating medical images and supports various annotation tasks such as segmentation, classification, etc.
 # MAGIC
 # MAGIC # Integration with OHIF Viewer:
 # MAGIC

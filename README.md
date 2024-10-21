@@ -1,6 +1,6 @@
 <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="600px">
 
-[![DBR](https://img.shields.io/badge/DBR-13.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/13.3ml.html)
+[![DBR](https://img.shields.io/badge/DBR-14.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/14.3ml.html)
 [![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 ---
@@ -89,11 +89,56 @@ Fast and multiple-layer visualization capability.
 ![CT_View](images/ohif_mr_view.png?raw=true)
 
 To start the OHIF Viewer web app you need to:
- - Execute the [OHIF_Viewer.py](/OHIF_Viewer.py) inside a Databricks notebook.
+ - Execute the [06-OHIF-Viewer](/06-OHIF-Viewer) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
- - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.![sqlWarehouseID](images/sqlWarehouseID.png?raw=true)
+ - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
+<img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
+---
+## Save measurements and segmentations
+The OHIF Viewer allows you to save back in databricks the measurements and the segmentations created in the viewer.
+The metadata will be stored in the object_catalog, and the generated dicom files in the volume under the path `/ohif/exports/`.
+
+<img src="images/ohif_save_segm.png?raw=true" alt="OHIF_SAVE_SEG" height="300"/>
+<img src="images/ohif_save_meas.png?raw=true" alt="OHIF_SAVE_MEAS" height="300"/>
+<img src="images/ohif_save_result.png?raw=true" alt="OHIF_SAVED" height="300"/>
+
+---
+## MONAILabel Integration
+
+[MONAILabel](https://monai.io/label.html) is an open-source tool designed for interactive medical image labeling. It supports various annotation tasks such as segmentation and classification, providing a seamless experience when integrated with viewers like OHIF that is already available in this solution accelerator.
+
+![MONAI_BTN](images/monailabel_result.png?raw=true)
+Once the server is running, you can use the OHIF Viewer to interact with your medical images. This integration allows you to leverage advanced annotation capabilities directly within your Databricks environment.
+
+### Key Features
+ - Interactive Annotation: Use AI-assisted tools for efficient labeling.
+ - Seamless Integration: Work directly within Databricks using a web-based viewer.
+ - Customizable Workflows: Tailor the annotation process to fit specific research needs.
+
+### Setup Instructions
+To execute the MONAILabel server is mandatory to use a cluster with Databruck Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
+#### Start the MONAILabel server
+ - Execute the [05-MONAILabel](/05-MONAILabel) inside a Databricks workspace.
+ - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
+ - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
+    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
+#### Open the OHIF Viewer
+ - Execute the notebook [06-OHIF-Viewer](/06-OHIF-Viewer) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
+ - Select the preferred CT scan study and press on `MONAI Label` button.
+
+    <img src="images/monailabel_btn.png?raw=true" alt="MONAI_BTN" height="250"/></br>
+#### Connect, execute and save
+ - Connect the MONAILabel server using the refresh button.
+
+    <img src="images/monailabel_server.png?raw=true" alt="MONAI_SERVER" height="200"/></br>
+ - Execute an auto-segmentation task using the Run button and wait for the results to be displayed.
+
+    <img src="images/monailabel_autosegm.png?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
+ - Save the final result metadata in the catalog and the generated dicom file in the volume under the path `/ohif/exports/` using the button `Export DICOM SEG`.
+
+This setup enhances your medical image analysis workflow by combining Databricks' computing power with MONAILabel's sophisticated annotation tools.
 
 ---
 ## Design
@@ -178,7 +223,7 @@ ___
 
 ## Installation
 
-To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to any cluster running a DBR 10.4 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
+To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to any cluster running a DBR 14.3 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
 
 ___
 ## Working with Unity Catalog (as of October 18th, 2023)
@@ -193,7 +238,7 @@ To use `databricks.pixels` with UC volumes currently requires the use of [single
 ___
 ## Licensing
 
-&copy; 2022 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
+&copy; 2024 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
 
 | library              | purpose                             | license                       | source                                                  |
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
@@ -203,5 +248,5 @@ ___
 | gdcm                 | Parse Dicom files                   | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
-| OHIF Viewers               | Medical image viewer                         | MIT     | https://github.com/OHIF/Viewers                    |
-| dbtunnel    | Proxy to run Web UIs in Databricks notebooks    | Apache-2.0 license                    | https://github.com/stikkireddy/dbtunnel |
+| OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
+| MONAILabel           | Intelligent open source image labeling and learning tool | Apache Software License (BSD)  | https://github.com/Project-MONAI/MONAILabel |

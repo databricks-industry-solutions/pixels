@@ -1064,7 +1064,7 @@ class SettingsTable extends react.Component {
   constructor(props) {
     super(props);
     this.getSettings = () => {
-      const url = CookieUtils.getCookieString('MONAILABEL_SERVER_URL', 'http://' + window.location.host.split(':')[0] + ':8000/');
+      const url = CookieUtils.getCookieString('MONAILABEL_SERVER_URL', window.location.href.split('/3000/')[0] + '/8000/');
       const overlap_segments = CookieUtils.getCookieBool('MONAILABEL_OVERLAP_SEGMENTS', true);
       const export_format = CookieUtils.getCookieString('MONAILABEL_EXPORT_FORMAT', 'NRRD');
       return {
