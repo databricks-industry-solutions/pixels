@@ -251,4 +251,4 @@ ___
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
-| MONAILabel           | Intelligent open source image labeling and learning tool | Apache Software License (BSD)  | https://github.com/Project-MONAI/MONAILabel |
+| MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
