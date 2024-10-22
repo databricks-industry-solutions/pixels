@@ -53,6 +53,6 @@ def get_proxy_url(port:int = 8000):
     shard = int(get_context().workspaceId) % 10
     return f"https://dp-{get_context().workspaceId}.{shard}.{gcp}/{ending}"
   elif aws in host_name:
-    dbc_host = '.'.join(aws_ex.split(".")[1:])
-    return f"https://dbc-dp-{get_context().workspaceId}.{dpc_host}/{ending}"
+    dbc_host = '.'.join(host_name.split(".")[1:])
+    return f"https://dbc-dp-{get_context().workspaceId}.{dbc_host}/{ending}"
 
