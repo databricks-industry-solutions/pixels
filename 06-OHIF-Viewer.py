@@ -7,32 +7,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-import os
-from databricks.sdk import WorkspaceClient
-from dbruntime.databricks_repl_context import get_context
-
-w = WorkspaceClient()
-
-dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="1.0 Catalog Schema Table to store object metadata into")
-dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
-
-sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
-table = dbutils.widgets.get("table")
-
-if not spark.catalog.tableExists(table):
-    raise Exception("The configured table does not exist!")
-
-if sql_warehouse_id == "":
-    raise Exception("SQL Warehouse ID is mandatory!")
-else:
-    wh = w.warehouses.get(id=sql_warehouse_id)
-    os.environ['DATABRICKS_WAREHOUSE_ID'] = sql_warehouse_id
-    print(f"Using '{wh.as_dict()['name']}' as SQL Warehouse")
-
-workspace_id = get_context().workspaceId
-cluster_id = get_context().clusterId
-os.environ["DATABRICKS_TOKEN"] = get_context().apiToken
-os.environ['DATABRICKS_HOST'] = f"https://{get_context().browserHostName}"
+# MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
 
@@ -46,6 +21,14 @@ import os.path
 from pathlib import Path
 import dbx.pixels.resources
 
+init_widgets()
+init_env()
+
+workspace_id = get_context().workspaceId
+cluster_id = get_context().clusterId
+
+port = 3000
+
 path = Path(dbx.pixels.__file__).parent
 ohif_path = (f"{path}/resources/ohif")
 
@@ -55,8 +38,8 @@ with open(f"{ohif_path}/{file}.js", "r") as config_input:
         with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
             config_custom.write(
                 config_input.read()
-                .replace("{ROUTER_BASENAME}",f"/driver-proxy/o/{workspace_id}/{cluster_id}/3000/")
-                .replace("{PIXELS_TABLE}",table)
+                .replace("{ROUTER_BASENAME}",f"/driver-proxy/o/{workspace_id}/{cluster_id}/{port}/")
+                .replace("{PIXELS_TABLE}",os.environ["DATABRICKS_PIXELS_TABLE"])
             )
 
 # COMMAND ----------
@@ -139,12 +122,12 @@ app.mount("/", DBStaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
 
 # COMMAND ----------
 
-displayHTML(f"<a href='https://dbc-dp-{get_context().workspaceId}.cloud.databricks.com/driver-proxy/o/{get_context().workspaceId}/{get_context().clusterId}/3000/'> Click to go to OHIF Viewer!</a>")
+displayHTML(f"<a href='{get_proxy_url(port)}'> Click to go to OHIF Viewer!</a>")
 
 config = uvicorn.Config(
     app,
     host="0.0.0.0",
-    port=3000,
+    port=port,
   )
 server = uvicorn.Server(config)
 await server.serve()
