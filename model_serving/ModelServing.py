@@ -32,7 +32,7 @@ os.environ["DATABRICKS_TOKEN"] = get_context().apiToken
 os.environ["DATABRICKS_WAREHOUSE_ID"] = sql_warehouse_id
 os.environ["DATABRICKS_HOST"] = f"https://{get_context().browserHostName}"
 os.environ["DATABRICKS_PIXELS_TABLE"] = table
-os.environ["DEST_DIR"] = "/Volumes/main/pixels_solacc/pixels_volume/"
+os.environ["DEST_DIR"] = "/Volumes/ema_rina/pixels_solacc/pixels_volume/"
 
 # COMMAND ----------
 
@@ -153,6 +153,11 @@ with mlflow.start_run():
 
 # Load the model from the tracking server and perform inference
 model = mlflow.pyfunc.load_model(f"runs:/{run_id}/DBMONAILabelModel")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC After creating the model, publish it and create a serving endpoint
 
 # COMMAND ----------
 

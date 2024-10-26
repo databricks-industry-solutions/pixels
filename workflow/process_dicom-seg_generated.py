@@ -3,8 +3,13 @@
 
 # COMMAND ----------
 
+dbutils.widgets.text("path_segms", "main.pixels_solacc.object_catalog")
+
+# COMMAND ----------
+
 path,table,volume,write_mode = init_widgets()
 path = dbutils.widgets.get("path_segms")
+volume_path = "/Volumes/" + dbutils.widgets.get("volume").replace(".","/")
 
 # COMMAND ----------
 
@@ -16,7 +21,7 @@ catalog = Catalog(spark, table=table, volume=volume)
 catalog_df = catalog.catalog(
   path=path, 
   streaming=True, 
-  streamCheckpointBasePath="/Volumes/main/pixels_solacc/pixels_volume/checkpoints/monailabel_autosegm/"
+  streamCheckpointBasePath=f"{volume_path}/checkpoints/monai_serving/{table}"
 )
 
 thumbnail_struct = "STRUCT<origin: STRING, height: INT, width: INT, nChannels: INT, mode: INT, data: BINARY>"

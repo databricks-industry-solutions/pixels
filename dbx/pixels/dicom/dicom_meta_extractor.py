@@ -11,11 +11,12 @@ class DicomMetaExtractor(Transformer):
     """
 
     # Day extractor inherit of property of Transformer
-    def __init__(self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/"):
+    def __init__(self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=False):
         self.inputCol = inputCol  # the name of your columns
         self.outputCol = outputCol  # the name of your output column
         self.basePath = basePath
         self.catalog = catalog
+        self.deep = deep #If deep = True analyze also pixels_array data, may impact performance if enabled
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -43,5 +44,5 @@ class DicomMetaExtractor(Transformer):
         """
         self.check_input_type(df.schema)
         return df.withColumn("is_anon", lit(self.catalog.is_anon())).withColumn(
-            self.outputCol, dicom_meta_udf(col(self.inputCol), lit("True"), col("is_anon"))
+            self.outputCol, dicom_meta_udf(col(self.inputCol), lit(self.deep), col("is_anon"))
         )
