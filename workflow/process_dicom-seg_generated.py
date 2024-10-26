@@ -3,11 +3,9 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("path_segms", "main.pixels_solacc.object_catalog")
-
-# COMMAND ----------
-
 path,table,volume,write_mode = init_widgets()
+dbutils.widgets.text("path_segms", "/Volumes/main/pixels_solacc/pixels_volume/monai_serving/")
+
 path = dbutils.widgets.get("path_segms")
 volume_path = "/Volumes/" + dbutils.widgets.get("volume").replace(".","/")
 
