@@ -149,7 +149,7 @@ with mlflow.start_run():
         code_paths=["./lib", "./dblabelapp.py" ,"./monailabel-0.8.4rc2+10.g82c2442.dirty-py3-none-any.whl"],
         artifacts={'segmentation-model': "./model/pretrained_segmentation.pt"}
     )
-    run_id = mlflow.active_run().info.run_id/Volumes/main/pixels_solacc/pixels_volume/1.2.156.14702.1.1000.16.1.2020031111365289000020001//Volumes/main/pixels_solacc/pixels_volume/1.2.156.14702.1.1000.16.1.2020031111365289000020001/
+    run_id = mlflow.active_run().info.run_id
 
 # Load the model from the tracking server and perform inference
 model = mlflow.pyfunc.load_model(f"runs:/{run_id}/DBMONAILabelModel")
