@@ -6,49 +6,48 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk 
+# MAGIC %pip install --upgrade databricks-sdk -q
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
-dbutils.library.restartPython()
+# MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
 
-from databricks.sdk import WorkspaceClient
+init_widgets()
+init_env()
+
+app_name = "pixels-ohif-viewer"
+
+# COMMAND ----------
+
 from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission
+
 from pathlib import Path
 import dbx.pixels.resources
 
 w = WorkspaceClient()
 
-app_name = "pixels-ohif-viewer"
 path = Path(dbx.pixels.__file__).parent
 lha_path = (f"{path}/resources/lakehouse_app")
 
-dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="1.0 Catalog Schema Table to store object metadata into")
-dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
-
-sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
-table = dbutils.widgets.get("table")
-
-if not spark.catalog.tableExists(table):
-    raise Exception("The configured table does not exist!")
-
-if sql_warehouse_id == "":
-    raise Exception("SQL Warehouse ID is mandatory!")
-else:
-    wh = w.warehouses.get(id=sql_warehouse_id)
-    print(f"Using '{wh.as_dict()['name']}' as SQL Warehouse")
+with open(f"{lha_path}/app-config.yaml", "r") as config_input:
+        with open(f"{lha_path}/app.yaml", "w") as config_custom:
+            config_custom.write(
+                config_input.read()
+                .replace("{PIXELS_TABLE}",os.environ["DATABRICKS_PIXELS_TABLE"])
+            )
 
 sql_resource = AppResource(
   name="sql_warehouse",
   sql_warehouse=AppResourceSqlWarehouse(
-    id=sql_warehouse_id,
+    id=os.environ["DATABRICKS_WAREHOUSE_ID"],
     permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
   )
 )
 
-print("Creating APP")
-w.apps.create(name="pixels-ohif-viewer", resources=[sql_resource])
-print("Deploying app")
-w.apps.deploy(app_name="pixels-ohif-viewer", source_code_path=[lha_path])
+print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
+app = w.apps.create_and_wait(name=app_name, resources=[sql_resource])
+print(w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path).status.message)
+print(app.url)
