@@ -1,0 +1,2 @@
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
+pyspark

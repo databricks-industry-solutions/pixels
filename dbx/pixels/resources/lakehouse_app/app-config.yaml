@@ -1,0 +1,9 @@
+env:
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "{PIXELS_TABLE}"
+  - name: "MONAI_ENABLED"
+    value: "false"
+  - name: "MONAI_PORT"
+    value: "8001"
