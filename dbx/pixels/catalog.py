@@ -76,6 +76,22 @@ class Catalog:
             "spark.databricks.delta.optimizeWrite.enabled": False,
         }
 
+    def _init_tables(self):
+        import os
+        import os.path
+        from pathlib import Path
+        import dbx.pixels
+
+        path = Path(dbx.pixels.__file__).parent
+        sql_base_path = (f"{path}/resources/sql")
+
+        files = os.listdir(sql_base_path)
+        for file_name in files:
+            file_path = os.path.join(sql_base_path, file_name)
+            with open(file_path, 'r') as file:
+                sql_command = file.read().replace("{UC_TABLE}", self._table)
+                self._spark.sql(sql_command)
+
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
 
@@ -145,6 +161,8 @@ class Catalog:
         self._anon = self._is_anon(path)
         self._spark
 
+        self._init_tables()
+
         # Used only for streaming
         self._queryName = f"pixels_{path}_{self._table}"
         self._isStreaming = streaming
@@ -179,13 +197,6 @@ class Catalog:
 
             if extractZip:
                 logger.info("Started unzip process")
-
-                self._spark.sql(
-                    f"""
-                                CREATE TABLE IF NOT EXISTS {self._table}_unzip
-                                TBLPROPERTIES ('delta.targetFileSize' = '1mb')
-                                """
-                )
 
                 unzip_stream = (
                     df.withColumn(
