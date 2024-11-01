@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-init_widgets()
+sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-ohif-viewer"
@@ -49,5 +49,62 @@ sql_resource = AppResource(
 
 print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 app = w.apps.create_and_wait(name=app_name, resources=[sql_resource])
-print(w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path).status.message)
+app = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
+
+service_principal_id = app.deployment_artifacts.source_code_path.split("/")[3]
+
+print(app.status.message)
 print(app.url)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Lakehouse App Deployment and Permissions
+# MAGIC
+# MAGIC - Import the `catalog` service from the Databricks SDK.
+# MAGIC - Update permissions for the catalog, schema, table, and volume.
+# MAGIC - Use the `service_principal_id` to grant necessary privileges.
+
+# COMMAND ----------
+
+from databricks.sdk.service import catalog
+
+w.grants.update(full_name=table.split(".")[0],
+  securable_type=catalog.SecurableType.CATALOG,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.USE_CATALOG],
+      principal=service_principal_id
+    )
+  ]
+)
+
+w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
+  securable_type=catalog.SecurableType.SCHEMA,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.USE_SCHEMA],
+      principal=service_principal_id
+    )
+  ]
+)
+
+w.grants.update(full_name=table,
+  securable_type=catalog.SecurableType.TABLE,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.SELECT],
+      principal=service_principal_id
+    )
+  ]
+)
+
+w.grants.update(full_name=volume,
+  securable_type=catalog.SecurableType.VOLUME,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.READ_VOLUME],
+      principal=service_principal_id
+    )
+  ]
+)
