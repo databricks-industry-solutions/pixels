@@ -120,7 +120,7 @@ Once the server is running, you can use the OHIF Viewer to interact with your me
  - Customizable Workflows: Tailor the annotation process to fit specific research needs.
 
 ### Setup Instructions
-To execute the MONAILabel server is mandatory to use a cluster with Databruck Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
+To execute the MONAILabel server is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
 #### Start the MONAILabel server
  - Execute the [05-MONAILabel](/05-MONAILabel) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
