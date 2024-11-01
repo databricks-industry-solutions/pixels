@@ -9,11 +9,18 @@ w = WorkspaceClient()
 
 # COMMAND ----------
 
-def init_widgets():
+def init_widgets(show_volume=False):
+
   dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="1.0 Catalog Schema Table to store object metadata into")
+  table = dbutils.widgets.get("table")
   dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
-  table = dbutils.widgets.get("table")
+
+  if show_volume:
+    dbutils.widgets.text("volume", "main.pixels_solacc.pixels_volume", label="3.0 Catalog Schema Volume where pixel volumes are stored into")
+    volume = dbutils.widgets.get("volume")
+    return sql_warehouse_id, table, volume 
+  
   return sql_warehouse_id, table
 
 # COMMAND ----------
