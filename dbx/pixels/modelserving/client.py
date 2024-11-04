@@ -31,6 +31,7 @@ class MONAILabelTransformer(Transformer):
 
         return df \
                 .selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as image_id") \
+                .filter("contains(meta:['00080008'], 'AXIAL')") \
                 .distinct() \
                 .withColumn("segmentation_result", autosegm_monai_udf(col("image_id"))) \
                 .selectExpr("image_id", "segmentation_result.*")
