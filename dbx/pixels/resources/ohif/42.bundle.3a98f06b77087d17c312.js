@@ -1701,7 +1701,7 @@ class OptionTable extends BaseTab {
       if (typeof c[s][n][k] === 'boolean') {
         c[s][n][k] = !!evt.target.checked;
       } else {
-        if (typeof c[s][n][k] === 'number') c[s][n][k] = Number.isInteger(c[s][n][k]) ? parseInt(evt.target.value) : parseFloat(evt.target.value);else c[s][n][k] = evt.target.value;
+        if (typeof c[s][n][k] === 'number') c[s][n][k] = parseFloat(evt.target.value);else c[s][n][k] = evt.target.value;
       }
       this.setState({
         config: c
@@ -3168,6 +3168,9 @@ class MonaiLabelPanel extends react.Component {
         type: 'info',
         duration: 3000
       });
+
+      this.refreshUIDs();
+    
       const response = await this.client().info();
       const labels = response.data.labels;
       const segmentations = [{
@@ -3351,7 +3354,9 @@ class MonaiLabelPanel extends react.Component {
     this.state = {
       info: {},
       action: {},
-      segmentations: []
+      segmentations: [],
+      SeriesInstanceUID: "",
+      StudyInstanceUID: ""
     };
 
     // Todo: fix this hack
@@ -3366,8 +3371,34 @@ class MonaiLabelPanel extends react.Component {
       this.StudyInstanceUID = displaySet.StudyInstanceUID;
       this.FrameOfReferenceUID = displaySet.instances[0].FrameOfReferenceUID;
       this.displaySetInstanceUID = displaySet.displaySetInstanceUID;
+
+      this.setState({
+        SeriesInstanceUID: displaySet.SeriesInstanceUID,
+        StudyInstanceUID: displaySet.StudyInstanceUID
+      })
+      
     }, 5000);
   }
+
+  refreshUIDs = () => {
+
+    const { uiNotificationService, viewportGridService, displaySetService } = this.props.servicesManager.services
+
+    const { viewports, activeViewportId } = viewportGridService.getState();
+      const viewport = viewports.get(activeViewportId);
+      const displaySet = displaySetService.getDisplaySetByUID(
+        viewport.displaySetInstanceUIDs[0]
+      );
+
+    this.setState({
+      SeriesInstanceUID: displaySet.SeriesInstanceUID,
+      StudyInstanceUID: displaySet.StudyInstanceUID
+    })
+
+    console.log(this.state)
+
+  }
+  
   async componentDidMount() {
     const {
       segmentationService
@@ -3434,8 +3465,8 @@ class MonaiLabelPanel extends react.Component {
       tabIndex: 2,
       info: this.state.info,
       viewConstants: {
-        SeriesInstanceUID: this.SeriesInstanceUID,
-        StudyInstanceUID: this.StudyInstanceUID
+        SeriesInstanceUID: this.state.SeriesInstanceUID,
+        StudyInstanceUID: this.state.StudyInstanceUID
       },
       client: this.client,
       notification: this.notification
