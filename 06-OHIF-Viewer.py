@@ -71,8 +71,11 @@ async def _reverse_proxy_statements(request: Request):
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/",""))
 
     #Replace SQL Warehouse parameter
-    body = await request.json()
-    body['warehouse_id'] = os.environ['DATABRICKS_WAREHOUSE_ID']
+    if request.method == "POST":
+        body = await request.json()
+        body['warehouse_id'] = os.environ['DATABRICKS_WAREHOUSE_ID']
+    else:
+        body = {}
 
     rp_req = client.build_request(request.method, url,
                                   headers={
