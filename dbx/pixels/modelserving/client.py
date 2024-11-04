@@ -22,16 +22,16 @@ class MONAILabelTransformer(Transformer):
 
             for s in iterator:
                 results, errors = [], []
-                for image_id in s:
-                    result, error = client.predict(image_id)
+                for series_uid in s:
+                    result, error = client.predict(series_uid)
                     results.append(result)
                     errors.append(error)
 
                 yield pd.DataFrame({"result": results, "error": errors})
 
         return df \
-                .selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as image_id") \
+                .selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as series_uid") \
                 .filter("contains(meta:['00080008'], 'AXIAL')") \
                 .distinct() \
-                .withColumn("segmentation_result", autosegm_monai_udf(col("image_id"))) \
-                .selectExpr("image_id", "segmentation_result.*")
+                .withColumn("segmentation_result", autosegm_monai_udf(col("series_uid"))) \
+                .selectExpr("series_uid", "segmentation_result.*")

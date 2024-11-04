@@ -20,6 +20,93 @@ from monailabel.datastore.utils.colors import GENERIC_ANATOMY_COLORS
 
 logger = logging.getLogger(__name__)
 
+
+class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
+
+    def __init__(self, model="segmentation", labels=None):
+        self.logger = logging.getLogger(__name__)
+        if f"{os.getcwd()}/bin" not in os.environ['PATH']:
+            os.environ['PATH'] += f"{os.pathsep}{os.getcwd()}/bin"
+
+        self.studies = os.environ["DATABRICKS_HOST"]
+        self.app_dir = "./"
+        self.test = "infer"
+
+        os.putenv("MASTER_ADDR", "127.0.0.1")
+        os.putenv("MASTER_PORT", "1234")
+        
+        self.conf = {
+            "models": model,
+            "preload": "false",
+            "table": os.environ["DATABRICKS_PIXELS_TABLE"],
+            "output": "dicom_seg"
+        }
+
+        if labels:
+            self.conf.labels = labels
+
+        self.dest_dir = os.environ["DEST_DIR"]
+        
+
+    def predict(self, context, model_input, params=None):
+        app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
+
+        self.logger.warning(f"Processing {model_input}")
+
+        def upload_file(self, file_path, dest_path):
+            from databricks.sdk import WorkspaceClient
+            w = WorkspaceClient()
+            w.files.upload(dest_path, open(file_path, mode="rb"))
+            self.logger.warning(f"File uploaded to {dest_path}")
+
+        def infer_autosegmentation(series_uid):
+            from monailabel.utils.others.generic import device_list, file_ext
+            from lib.configs.colors import SOME_COLORS
+            
+            #get image in .cache folder
+            image = app.datastore().get_image(series_uid)
+            #get cached image uri
+            image_uri = app.datastore().get_image_uri(series_uid)
+            #get cached image infos
+            image_info = app.datastore().get_image_info(series_uid)
+
+            self.logger.warning(f"Processing image URI: {image_uri}")
+
+            result = app.infer(request={'model': 'segmentation', 'image': series_uid, 'largest_cc': False, 'device': device_list()[0], 'result_extension': '.nrrd', 'result_dtype': 'uint16', 'result_compress': False, 'restore_label_idx': False})
+            
+            self.logger.warning(f"Inference completed on image: {image_uri}")
+
+            suffixes = [".nii", ".nii.gz", ".nrrd"]
+            image_path = [image_uri.replace(suffix, "") for suffix in suffixes if image_uri.endswith(suffix)][0]
+            res_img = result.get("file") if result.get("file") else result.get("label")
+
+            model_labels = []
+            for idx, label_name in enumerate(app.info()['models'][self.conf["models"]]["labels"]):
+                model_labels.append({
+                    "name": label_name.replace("_"," "),
+                    "model_name": self.conf["models"],
+                    "color": SOME_COLORS[idx+1]
+                })
+
+            label_names = [model_labels[int(centroid.split("_")[1])-1] for centroid in result.get("params").get("centroids").keys()]
+
+            self.logger.warning(f"Starting conversion on image: {res_img}")
+            dicom_seg_file = nifti_to_dicom_seg(image_path, res_img, label_names, use_itk=True, series_description=image_info['SeriesDescription'])
+            self.logger.warning(f"Conversion completed on image: {res_img}, temp file path: {dicom_seg_file}")
+
+            label_json = result["params"]
+
+            label_file = os.path.join(self.dest_dir, image_info['StudyInstanceUID'], series_uid+".dcm")
+            self.logger.warning(f"Destination file path: {label_file}")
+            
+            upload_file(self, dicom_seg_file, label_file)
+
+            print(f"++++ Image File: {image_path}")
+            print(f"++++ Label File: {label_file}")
+            return label_file
+
+        return model_input.apply(lambda x: infer_autosegmentation(x['series_uid']), axis=1)
+    
 def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True, series_description="segmentation") -> str:
 
     from monailabel.datastore.utils.convert import itk_image_to_dicom_seg
@@ -69,13 +156,13 @@ def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True
         "ContentCreatorName": "Reader1",
         "ClinicalTrialSeriesID": "Session1",
         "ClinicalTrialTimePointID": "1",
-        "SeriesNumber": "300",
+        "SeriesNumber": "9999",
         "SeriesDescription": series_description,
         "InstanceNumber": "1",
         "segmentAttributes": [segment_attributes],
         "ContentLabel": series_description,
-        "ContentDescription": "MONAI Label - Image segmentation",
-        "ClinicalTrialCoordinatingCenterName": "MONAI",
+        "ContentDescription": "Pixels - MONAI Label - Image segmentation",
+        "ClinicalTrialCoordinatingCenterName": "Pixels - MONAI",
         "BodyPartExamined": "",
     }
 
@@ -110,85 +197,3 @@ def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True
 
     logger.info(f"nifti_to_dicom_seg latency : {time.time() - start} (sec)")
     return output_file
-
-class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
-
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        if f"{os.getcwd()}/bin" not in os.environ['PATH']:
-            os.environ['PATH'] += f"{os.pathsep}{os.getcwd()}/bin"
-
-    def predict(self, context, model_input, params=None):
-        studies = os.environ["DATABRICKS_HOST"]
-        app_dir = "./"
-        test = "infer"
-        model_nv = "segmentation"
-
-        os.putenv("MASTER_ADDR", "127.0.0.1")
-        os.putenv("MASTER_PORT", "1234")
-        
-        conf = {
-            "models": model_nv,
-            "preload": "false",
-            "table": os.environ["DATABRICKS_PIXELS_TABLE"],
-            "output": "dicom_seg"
-        }
-
-        dest_dir = os.environ["DEST_DIR"]
-        app = DBMONAILabelApp(app_dir, studies, conf)
-
-        self.logger.warning(f"Processing {model_input}")
-
-        def upload_file(self, file_path, dest_path):
-            from databricks.sdk import WorkspaceClient
-            w = WorkspaceClient()
-            w.files.upload(dest_path, open(file_path, mode="rb"))
-            self.logger.warning(f"File uploaded to {dest_path}")
-
-        def infer_autosegmentation(image_id):
-            from monailabel.utils.others.generic import device_list, file_ext
-            from lib.configs.colors import SOME_COLORS
-            
-            #get image in .cache folder
-            image = app.datastore().get_image(image_id)
-            #get cached image uri
-            image_uri = app.datastore().get_image_uri(image_id)
-            #get cached image infos
-            image_info = app.datastore().get_image_info(image_id)
-
-            self.logger.warning(f"Processing image URI: {image_uri}")
-
-            result = app.infer(request={'model': 'segmentation', 'image': image_id, 'largest_cc': False, 'device': device_list()[0], 'result_extension': '.nrrd', 'result_dtype': 'uint16', 'result_compress': False, 'restore_label_idx': False})
-            
-            self.logger.warning(f"Inference completed on image: {image_uri}")
-
-            suffixes = [".nii", ".nii.gz", ".nrrd"]
-            image_path = [image_uri.replace(suffix, "") for suffix in suffixes if image_uri.endswith(suffix)][0]
-            res_img = result.get("file") if result.get("file") else result.get("label")
-
-            model_labels = []
-            for idx, label_name in enumerate(app.info()['models'][model_nv]["labels"]):
-                model_labels.append({
-                    "name": label_name.replace("_"," "),
-                    "model_name": model_nv,
-                    "color": SOME_COLORS[idx+1]
-                })
-
-            label_names = [model_labels[int(centroid.split("_")[1])-1] for centroid in result.get("params").get("centroids").keys()]
-
-            self.logger.warning(f"Starting conversion on image: {res_img}")
-            dicom_seg_file = nifti_to_dicom_seg(image_path, res_img, label_names, use_itk=True, series_description=image_info['SeriesDescription'])
-            self.logger.warning(f"Conversion completed on image: {res_img}, temp file path: {dicom_seg_file}")
-
-            label_json = result["params"]
-
-            label_file = os.path.join(dest_dir, image_id+".dcm")
-            self.logger.warning(f"Destination file path: {label_file}")
-            
-            upload_file(self, dicom_seg_file, label_file)
-
-            print(f"++++ Image File: {image_path}")
-            print(f"++++ Label File: {label_file}")
-            return label_file
-
-        return model_input.apply(lambda x: infer_autosegmentation(x['image_id']), axis=1)

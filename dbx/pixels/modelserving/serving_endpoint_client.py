@@ -11,17 +11,17 @@ class MONAILabelClient:
         self.endpoint = endpoint_name 
         self.max_retries = max_retries
     
-    def predict(self, image_id, iteration=0, prev_error=None):
+    def predict(self, series_uid, iteration=0, prev_error=None):
       if iteration > self.max_retries:
         return ("", str(prev_error))
       
       try:
         response =  self.client.predict(
                 endpoint=self.endpoint,
-                inputs={"dataframe_split": {"columns": ["image_id"], "data": [[image_id]]}}
+                inputs={"dataframe_split": {"columns": ["series_uid"], "data": [[series_uid]]}}
             )
         return (response.predictions[0]['0'], "")
       except Exception as e:
         if "torch.OutOfMemoryError: CUDA out of memory" in str(e):
           return ("", str(e))
-        return self.predict(image_id, iteration + 1, prev_error=str(e))
+        return self.predict(series_uid, iteration + 1, prev_error=str(e))
