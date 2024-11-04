@@ -1,7 +1,8 @@
-CREATE TABLE IF NOT EXISTS {UC_TABLE}_autoseg_result (
-  image_id STRING,
-  result STRING,
-  error STRING)
+CREATE TABLE IF NOT EXISTS {UC_TABLE}_unzip (
+  path STRING,
+  modificationTime TIMESTAMP,
+  length BIGINT,
+  original_path STRING)
 USING delta
 TBLPROPERTIES (
   'delta.enableDeletionVectors' = 'true',

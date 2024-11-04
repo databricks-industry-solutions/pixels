@@ -1,8 +1,7 @@
-CREATE TABLE IF NOT EXISTS {UC_TABLE}_unzip (
-  path STRING,
-  modificationTime TIMESTAMP,
-  length BIGINT,
-  original_path STRING)
+CREATE TABLE IF NOT EXISTS {UC_TABLE}_autoseg_result (
+  series_uid STRING,
+  result STRING,
+  error STRING)
 USING delta
 TBLPROPERTIES (
   'delta.enableDeletionVectors' = 'true',
