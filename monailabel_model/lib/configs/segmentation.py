@@ -17,6 +17,7 @@ import lib.infers
 import lib.trainers
 from monai.networks.nets import SegResNet
 from monai.utils import optional_import
+import json
 
 from monailabel.interfaces.config import TaskConfig
 from monailabel.interfaces.tasks.infer_v2 import InferTask
@@ -61,6 +62,10 @@ class Segmentation(TaskConfig):
             "heart_ventricle_right": 48,
             "pulmonary_artery": 49,
         }
+
+        if "labels" in conf:
+            #'{"lung_left":1,"lung_right":2}'
+            self.labels = json.loads(conf['labels'])
 
         # Model Files
         self.path = [
