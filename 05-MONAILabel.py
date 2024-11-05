@@ -15,11 +15,8 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install MONAILabel_Pixels and databricks-sdk
-# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git databricks-sdk --upgrade 
-
-# COMMAND ----------
-
-dbutils.library.restartPython()
+# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels databricks-sdk --upgrade -q
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
