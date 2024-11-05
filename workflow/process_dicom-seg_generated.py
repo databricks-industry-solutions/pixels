@@ -5,9 +5,6 @@
 
 path,table,volume,write_mode = init_widgets()
 
-path = dbutils.widgets.get("path_segms")
-volume_path = "/Volumes/" + dbutils.widgets.get("volume").replace(".","/")
-
 # COMMAND ----------
 
 from dbx.pixels import Catalog
