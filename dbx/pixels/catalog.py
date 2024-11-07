@@ -3,7 +3,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import unzip_pandas_udf, identify_type_udf
+from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf
 
 # dfZipWithIndex helper function
 
@@ -80,15 +80,16 @@ class Catalog:
         import os
         import os.path
         from pathlib import Path
+
         import dbx.pixels
 
         path = Path(dbx.pixels.__file__).parent
-        sql_base_path = (f"{path}/resources/sql")
+        sql_base_path = f"{path}/resources/sql"
 
         files = os.listdir(sql_base_path)
         for file_name in files:
             file_path = os.path.join(sql_base_path, file_name)
-            with open(file_path, 'r') as file:
+            with open(file_path, "r") as file:
                 sql_command = file.read().replace("{UC_TABLE}", self._table)
                 self._spark.sql(sql_command)
 
@@ -154,7 +155,7 @@ class Catalog:
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
         """
-        
+
         assert self._spark is not None
         assert self._spark.version is not None
 

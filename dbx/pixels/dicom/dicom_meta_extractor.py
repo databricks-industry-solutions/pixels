@@ -11,12 +11,16 @@ class DicomMetaExtractor(Transformer):
     """
 
     # Day extractor inherit of property of Transformer
-    def __init__(self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=True):
+    def __init__(
+        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=True
+    ):
         self.inputCol = inputCol  # the name of your columns
         self.outputCol = outputCol  # the name of your output column
         self.basePath = basePath
         self.catalog = catalog
-        self.deep = deep #If deep = True analyze also pixels_array data, may impact performance if enabled
+        self.deep = (
+            deep  # If deep = True analyze also pixels_array data, may impact performance if enabled
+        )
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
