@@ -135,7 +135,7 @@ app.add_route("/monai/{path:path}", _reverse_proxy_monai_post, ["POST"])
 app.mount("/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
 
 if __name__ == "__main__":
-    if os.environ["MONAI_ENABLED"]:
+    if os.environ["MONAI_ENABLED"] == 'true':
         print("Starting MONAILabel server")
         p = Popen(
             ["sh", "start.sh"], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True
