@@ -1,0 +1,140 @@
+from databricks.sdk.core import Config
+
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+
+from starlette.requests import Request
+from starlette.responses import StreamingResponse, JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.background import BackgroundTask
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+import os
+import os.path
+
+import json
+import httpx
+import uvicorn
+
+import fileinput
+from pathlib import Path
+import dbx.pixels.resources
+
+from subprocess import Popen
+
+cfg = Config()
+os.environ["DATABRICKS_TOKEN"] = cfg.authenticate()['Authorization'].split(" ")[1]
+
+table = os.environ["DATABRICKS_PIXELS_TABLE"]
+warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
+
+path = Path(dbx.pixels.__file__).parent
+ohif_path = (f"{path}/resources/ohif")
+
+file = "app-config"
+
+with open(f"{ohif_path}/{file}.js", "r") as config_input:
+        with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
+            config_custom.write(
+                config_input.read()
+                .replace("{ROUTER_BASENAME}","")
+                .replace("{PIXELS_TABLE}",table)
+            )
+
+app = FastAPI(title="Pixels")
+
+async def _reverse_proxy_statements(request: Request):
+    client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
+    #Replace proxy url with right endpoint
+    url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/",""))
+    #Replace SQL Warehouse parameter
+    body = await request.json()
+    body['warehouse_id'] = warehouse_id
+
+    rp_req = client.build_request(request.method, url,
+                                  headers = cfg.authenticate(),
+                                  content = json.dumps(body).encode('utf-8'))
+    
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+async def _reverse_proxy_files(request: Request):
+    client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
+    #Replace proxy url with right endpoint
+    url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/",""))
+
+    rp_req = client.build_request(request.method, url,
+                                  headers = cfg.authenticate(),
+                                  content = request.stream())
+    
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+async def _reverse_proxy_monai(request: Request):
+    client = httpx.AsyncClient(base_url="http://127.0.0.1:8001/", timeout=httpx.Timeout(30))
+    #Replace proxy url with right endpoint
+    url = httpx.URL(path=request.url.path.replace("/monai/","/"))
+
+    rp_req = client.build_request(request.method, url,
+                                  headers = cfg.authenticate(),
+                                  content = request.stream())
+    
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+async def _reverse_proxy_monai_post(request: Request):
+    client = httpx.AsyncClient(base_url="http://127.0.0.1:8001/", timeout=None)
+    url = httpx.URL(path=request.url.path.replace("/monai/","/"), query=request.url.query.encode("utf-8"))
+
+    rp_req = client.build_request(request.method, url,
+                                  headers=request.headers.raw,
+                                  content=request.stream())
+    
+    rp_resp = await client.send(rp_req, stream=True)
+    
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=rp_resp.headers,
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+class DBStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except (HTTPException, StarletteHTTPException) as ex:
+            if ex.status_code == 404:
+                return await super().get_response("index.html", scope)
+            else:
+                raise ex
+
+app.add_route("/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"])
+app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
+
+app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
+app.add_route("/monai/{path:path}", _reverse_proxy_monai_post, ["POST"])
+
+app.mount("/", DBStaticFiles(directory=f"{ohif_path}",html = True), name="ohif")
+
+if __name__ == '__main__':
+    if os.environ["MONAI_ENABLED"]:
+        print("Starting MONAILabel server")
+        p = Popen(["sh", "start.sh"], shell=False, stdin=None, stdout=None, stderr=None,
+            close_fds=True)
+    uvicorn.run(app, host='0.0.0.0')

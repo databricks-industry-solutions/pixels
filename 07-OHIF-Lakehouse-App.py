@@ -1,0 +1,147 @@
+# Databricks notebook source
+# MAGIC %md
+# MAGIC ### Deploying OHIF Viewer in a Serverless Lakehouse App
+# MAGIC
+# MAGIC This notebook guides you through the process of deploying the OHIF Viewer as a serverless lakehouse application.
+
+# COMMAND ----------
+
+# MAGIC %pip install --upgrade databricks-sdk -q
+# MAGIC dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %run ./config/proxy_prep
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Initializing Environment and Setting Up Application
+# MAGIC
+# MAGIC Initialize widgets to capture the SQL warehouse ID, table, and volume. We also set up the environment and define the application name as "pixels-ohif-viewer".
+
+# COMMAND ----------
+
+sql_warehouse_id, table, volume = init_widgets(show_volume=True)
+init_env()
+
+app_name = "pixels-ohif-viewer"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Setting Up and Deploying the Lakehouse Application
+# MAGIC
+# MAGIC The next step will perform several critical steps to set up and deploy our Lakehouse Application:
+# MAGIC
+# MAGIC 1. **Import Necessary Libraries**: We start by importing required libraries and modules such as `AppResource`, `AppResourceSqlWarehouse`, and others from the `databricks.sdk.service.apps`, along with `Path` from `pathlib`, and `dbx.pixels.resources`.
+# MAGIC
+# MAGIC 2. **Initialize Workspace Client**: An instance of `WorkspaceClient` is created to interact with the Databricks workspace.
+# MAGIC
+# MAGIC 3. **Prepare Application Configuration**: The application's configuration is prepared by reading a template configuration file (`app-config.yaml`), replacing placeholders with actual values (like the pixels table name), and writing the modified configuration to `app.yaml`.
+# MAGIC
+# MAGIC 4. **Define SQL Warehouse Resource**: We define a `sql_resource` with the SQL warehouse ID and permissions required for the application to use the SQL warehouse.
+# MAGIC
+# MAGIC 5. **Create and Deploy the Application**: The application is created and deployed using the `create_and_wait` and `deploy_and_wait` methods of the `WorkspaceClient`. This process involves specifying the application name, resources (like the SQL warehouse resource), and the path to the application's source code.
+# MAGIC
+# MAGIC 6. **Extract Service Principal ID**: After deployment, the service principal ID is extracted from the deployment artifacts for permission grants.
+# MAGIC
+# MAGIC 7. **Output Deployment Status and URL**: Finally, the deployment status message and the application URL are printed, indicating the completion of the deployment process and how to access the deployed application.
+# MAGIC
+# MAGIC This cell encapsulates the entire process of preparing, creating, and deploying the Lakehouse Application, making it a pivotal step in the application setup workflow.
+
+# COMMAND ----------
+
+from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission
+
+from pathlib import Path
+import dbx.pixels.resources
+
+w = WorkspaceClient()
+
+path = Path(dbx.pixels.__file__).parent
+lha_path = (f"{path}/resources/lakehouse_app")
+
+with open(f"{lha_path}/app-config.yaml", "r") as config_input:
+        with open(f"{lha_path}/app.yaml", "w") as config_custom:
+            config_custom.write(
+                config_input.read()
+                .replace("{PIXELS_TABLE}",os.environ["DATABRICKS_PIXELS_TABLE"])
+            )
+
+sql_resource = AppResource(
+  name="sql_warehouse",
+  sql_warehouse=AppResourceSqlWarehouse(
+    id=os.environ["DATABRICKS_WAREHOUSE_ID"],
+    permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
+  )
+)
+
+print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
+
+app_created = w.apps.create_and_wait(name=app_name, resources=[sql_resource])
+app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
+
+service_principal_id = app_deploy.deployment_artifacts.source_code_path.split("/")[3]
+
+print(app_deploy.status.message)
+print(app_created.url)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Granting Permissions
+# MAGIC
+# MAGIC The next cell is responsible for granting the necessary permissions to the service principal for accessing the catalog, schema, table, and volume.
+# MAGIC
+# MAGIC This ensures that the Lakehouse App has the required access to perform its operations.
+
+# COMMAND ----------
+
+from databricks.sdk.service import catalog
+
+#Grant USE CATALOG permissions on CATALOG
+w.grants.update(full_name=table.split(".")[0],
+  securable_type=catalog.SecurableType.CATALOG,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.USE_CATALOG],
+      principal=service_principal_id
+    )
+  ]
+)
+
+#Grant USE SCHEMA permissions on SCHEMA
+w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
+  securable_type=catalog.SecurableType.SCHEMA,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.USE_SCHEMA],
+      principal=service_principal_id
+    )
+  ]
+)
+
+#Grant SELECT permissions on TABLE
+w.grants.update(full_name=table,
+  securable_type=catalog.SecurableType.TABLE,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.SELECT],
+      principal=service_principal_id
+    )
+  ]
+)
+
+#Grant READ_VOLUME permissions on VOLUME
+w.grants.update(full_name=volume,
+  securable_type=catalog.SecurableType.VOLUME,
+  changes=[
+    catalog.PermissionsChange(
+      add=[catalog.Privilege.READ_VOLUME],
+      principal=service_principal_id
+    )
+  ]
+)
+
+print("PERMISSIONS GRANTED")

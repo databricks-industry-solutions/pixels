@@ -1999,26 +1999,26 @@ async function qidoStudiesSearch(databricksClient, warehouseId, pixelsTable, ori
   var offset = origParams.offset ? `OFFSET ${origParams.offset}` : "";
   let filters = ["1=1"];
   if ("patientName" in origParams) {
-    filters.push(`lower(patientName:Value) like lower('%${origParams.patientName}%')`);
+    filters.push(`lower(meta:['00100010'].Value) like lower('%${origParams.patientName}%')`);
   }
   if ("patientId" in origParams && "pageNumber" in origParams) {
-    filters.push(`mrn:Value[0] like '${origParams.patientId}%'`);
+    filters.push(`meta:['00100020'].Value[0] like '${origParams.patientId}%'`);
   }
   if ("accessionNumber" in origParams) {
-    filters.push(`accession:Value[0] like '${origParams.accessionNumber}%'`);
+    filters.push(`meta:['00080050'].Value[0] like '${origParams.accessionNumber}%'`);
   }
   if ("studyDescription" in origParams) {
-    filters.push(`lower(description:Value) like lower('%${origParams.studyDescription}%')`);
+    filters.push(`lower(meta:['00081030'].Value) like lower('%${origParams.studyDescription}%')`);
   }
   if ("modalitiesInStudy" in origParams) {
-    filters.push(`(modalities1:Value[0] in ('${origParams.modalitiesInStudy.join("','")}') OR
-                  modalities2:Value[0] in ('${origParams.modalitiesInStudy.join("','")}'))`);
+    filters.push(`(meta:['00080060'].Value[0] in ('${origParams.modalitiesInStudy.join("','")}') OR
+                  meta:['00080061'].Value[0] in ('${origParams.modalitiesInStudy.join("','")}'))`);
   }
   if ("startDate" in origParams) {
-    filters.push(`'${origParams.startDate}' <= date:Value[0]`);
+    filters.push(`'${origParams.startDate}' <= meta:['00080020'].Value[0]`);
   }
   if ("endDate" in origParams) {
-    filters.push(`'${origParams.endDate}' >= date:Value[0]`);
+    filters.push(`'${origParams.endDate}' >= meta:['00080020'].Value[0]`);
   }
   let body = {
     "warehouse_id": warehouseId,
