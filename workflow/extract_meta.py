@@ -14,5 +14,5 @@ from pyspark.sql.functions import *
 catalog = Catalog(spark, table=table, volume=volume)
 catalog_df = catalog.catalog(path=path, extractZip=True, streaming=True, maxUnzippedRecordsPerFile=1024)
 
-meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
+meta_df = DicomMetaExtractor(catalog, deep=False).transform(catalog_df)
 catalog.save(meta_df, mode="append")
