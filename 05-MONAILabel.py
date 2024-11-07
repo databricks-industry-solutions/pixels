@@ -61,14 +61,11 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Custom segmentation model and start the MONAILabel server
+# MAGIC ### Create a segmentation model with user defined labels and start the MONAILabel server
 # MAGIC
 # MAGIC The next command will copy the segmentation model to the radiology app directory and start the MONAILabel server with the specified configuration, including custom labels and without using the pre-trained model.
-# MAGIC
-# MAGIC The model in this example should be placed under `/Volumes/main/pixels_solacc_active_learning/pixels_volume/models/segmentation.pt`
 
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cp /Volumes/main/pixels_solacc_active_learning/pixels_volume/models/segmentation.pt /local_disk0/monai/apps/radiology/model/
 # MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --conf labels '{"lung_left":1,"lung_right":2}' --conf use_pretrained_model false --table $DATABRICKS_PIXELS_TABLE
