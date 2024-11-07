@@ -9,6 +9,10 @@
 # MAGIC - **Setting up the server** to be integrated with Databricks' MLflow for model management and deployment
 # MAGIC
 # MAGIC This setup allows for **efficient model serving and endpoint management** within the Databricks ecosystem.
+# MAGIC
+# MAGIC **NOTE**
+# MAGIC
+# MAGIC This notebook will use MONAILabel auto segmentation model on CT AXIAL images already available in the catalog
 
 # COMMAND ----------
 
@@ -22,9 +26,28 @@
 # COMMAND ----------
 
 sql_warehouse_id, table = init_widgets()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Setting Up the Environment for MONAILabel Inference
+# MAGIC
+# MAGIC At this step, it is important to provide the right table that contains at least one CT Axial image and the SQLWarehouseID to execute the SQL commands.
+
+# COMMAND ----------
+
 init_env()
 
-os.environ["DEST_DIR"] = "/Volumes/ema_rina/pixels_solacc/pixels_volume/monai_serving/"
+os.environ["DEST_DIR"] = "/Volumes/main/pixels_solacc/pixels_volume/monai_serving/"
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Initialization and Model Testing
+# MAGIC
+# MAGIC **DBMONAILabelModel** class is an extension of **mlflow.pyfunc.PythonModel** that will initialize the MONAILabel app required for the inference.
+# MAGIC
+# MAGIC The **.predict** function will take as an input the **series_uid** of the CT Axial image that is needed to generate the dicom-segmentation file.
 
 # COMMAND ----------
 
@@ -33,13 +56,6 @@ import dbmonailabelmodel
 from dbmonailabelmodel import DBMONAILabelModel
 
 model = DBMONAILabelModel()
-
-#mlflow.pyfunc.save_model("./db_monai_model/",
-#                         python_model=my_model,
-#                         artifacts={"db_monailabel_class_file": "./dblabelapp.py"},
-#                         pip_requirements=["./monailabel-0.8.4rc2+10.g82c2442.dirty-py3-none-any.whl"],
-#                         code_paths=["./bin","./lib","./model", "./monailabel-0.8.4rc2+10.g82c2442.dirty-py3-none-any.whl"]
-#                         )
 
 # COMMAND ----------
 
@@ -55,7 +71,9 @@ series_uid = spark.read.table(table).selectExpr(f"meta:['0020000E'].Value[0] as 
   .limit(1).collect()[0][0]
 
 data = {'series_uid': [series_uid]}
-data = {'series_uid': ["1.2.826.0.1.3680043.8.498.46165708412055321465926503658507656958"]}
+
+# another example could be inserting manually the series_uid to generate the segmentation
+#data = {'series_uid': ["1.2.826.0.1.3680043.8.498.46165708412055321465926503658507656958"]}
 df = pd.DataFrame(data)
 
 model.predict(None, df)
@@ -69,6 +87,22 @@ with dcmread(
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Saving the Model with MLflow
+# MAGIC
+# MAGIC In this cell, the code performs the following key steps:
+# MAGIC
+# MAGIC - **Importing Libraries**: The necessary libraries `pandas` and `mlflow` are imported.
+# MAGIC - **Fetching Series UID**: A `series_uid` is retrieved from a Spark table, filtered to include only axial images.
+# MAGIC - **Creating DataFrame**: A DataFrame `df` is created with the `series_uid`.
+# MAGIC - **Starting MLflow Run**: An MLflow run is initiated using `mlflow.start_run()`.
+# MAGIC - **Logging the Model**: The model is logged with `mlflow.pyfunc.log_model()`
+# MAGIC - **Retrieving Run ID**: The run ID is stored in the variable `run_id`.
+# MAGIC
+# MAGIC **NOTE:** It will be used a custom version of the MONAILabel server that includes databricks connectivity
+
+# COMMAND ----------
+
 import pandas as pd
 import mlflow
 
@@ -76,7 +110,7 @@ series_uid = spark.read.table(table).selectExpr(f"meta:['0020000E'].Value[0] as 
   .filter("contains(meta:['00080008'], 'AXIAL')") \
   .limit(1).collect()[0][0]
 
-data = {'series_uid': ["1.2.826.0.1.3680043.8.498.46165708412055321465926503658507656958"]}
+data = {'series_uid': [series_uid]}
 df = pd.DataFrame(data)
 
 # Save the function as a model
