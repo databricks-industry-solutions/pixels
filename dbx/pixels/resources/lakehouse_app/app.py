@@ -7,20 +7,32 @@ from subprocess import Popen
 import httpx
 import uvicorn
 from databricks.sdk.core import Config
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
+from requests_toolbelt import MultipartEncoder
 
 import dbx.pixels.resources
+from databricks.sdk import WorkspaceClient
+
+from mlflow.deployments import get_deploy_client
+import base64
+
+# Initialize the Databricks Workspace Client
+w = WorkspaceClient()
+
+client = get_deploy_client("databricks")
 
 cfg = Config()
 os.environ["DATABRICKS_TOKEN"] = cfg.authenticate()["Authorization"].split(" ")[1]
+os.environ["DATABRICKS_HOST"] = f"https://{os.environ['DATABRICKS_HOST']}"
 
 table = os.environ["DATABRICKS_PIXELS_TABLE"]
 warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
+serving_endpoint = os.environ["MONAI_SERVING_ENDPOINT"]
 
 path = Path(dbx.pixels.__file__).parent
 ohif_path = f"{path}/resources/ohif"
@@ -40,9 +52,12 @@ async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
-    # Replace SQL Warehouse parameter
-    body = await request.json()
-    body["warehouse_id"] = warehouse_id
+    #Replace SQL Warehouse parameter
+    if request.method == "POST":
+        body = await request.json()
+        body['warehouse_id'] = os.environ['DATABRICKS_WAREHOUSE_ID']
+    else:
+        body = {}
 
     rp_req = client.build_request(
         request.method, url, headers=cfg.authenticate(), content=json.dumps(body).encode("utf-8")
@@ -76,41 +91,108 @@ async def _reverse_proxy_files(request: Request):
 
 
 async def _reverse_proxy_monai(request: Request):
-    client = httpx.AsyncClient(base_url="http://127.0.0.1:8001/", timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
 
-    rp_req = client.build_request(
-        request.method, url, headers=cfg.authenticate(), content=request.stream()
-    )
+    if "info" in str(url):
+        to_send = {"input": "info"}
 
-    rp_resp = await client.send(rp_req, stream=True)
-    return StreamingResponse(
-        rp_resp.aiter_raw(),
-        status_code=rp_resp.status_code,
-        headers=rp_resp.headers,
-        background=BackgroundTask(rp_resp.aclose),
-    )
+    resp = ""
+
+    # Query the Databricks serving endpoint
+    try:
+        
+        resp = client.predict(
+                        endpoint=serving_endpoint,
+                        inputs={"inputs":  to_send},
+                    )
+
+        return Response(content=resp.predictions, media_type="application/json")
+    except Exception as e:
+        print(e)
+        resp = {"message": f"Error querying model: {e}"}
+        return Response(content=str(resp), media_type="application/text", status_code=500)
 
 
-async def _reverse_proxy_monai_post(request: Request):
-    client = httpx.AsyncClient(base_url="http://127.0.0.1:8001/", timeout=None)
-    url = httpx.URL(
-        path=request.url.path.replace("/monai/", "/"), query=request.url.query.encode("utf-8")
-    )
+async def _reverse_proxy_monai_infer_post(request: Request):
+    url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
+    params = request.query_params
+    form_data = await request.form()
 
-    rp_req = client.build_request(
-        request.method, url, headers=request.headers.raw, content=request.stream()
-    )
+    to_send = json.loads(form_data.get("params"))
+    to_send['model'] = str(url).split("/")[2]
+    to_send['image'] = params['image']
 
-    rp_resp = await client.send(rp_req, stream=True)
+    resp = ""
 
-    return StreamingResponse(
-        rp_resp.aiter_raw(),
-        status_code=rp_resp.status_code,
-        headers=rp_resp.headers,
-        background=BackgroundTask(rp_resp.aclose),
-    )
+    # Query the Databricks serving endpoint
+    try:
+        
+        res_json = client.predict(
+                        endpoint=serving_endpoint,
+                        inputs={"input": {"infer": to_send}}
+                    )
+        file_path = res_json['file']
+
+        resp_file = client.predict(
+                        endpoint=serving_endpoint,
+                        inputs={"input": {"get_file": file_path}}
+                    )
+        
+        res_fields = dict()
+        res_fields["params"] = (None, json.dumps(res_json['params']), "application/json")
+        res_fields["image"] = (file_path, base64.b64decode(resp_file['file_content']), "application/octet-stream")
+
+        return_message = MultipartEncoder(fields=res_fields)
+        return Response(content=return_message.to_string(), media_type=return_message.content_type)
+    except Exception as e:
+        print(e)
+        resp = {"message": f"Error querying model: {e}"}
+        return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
+    
+
+async def _reverse_proxy_monai_nextsample_post(request: Request):
+    url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
+
+    to_send = str(url)[1:]
+    resp = ""
+
+    # Query the Databricks serving endpoint
+    try:
+        
+        res_json = client.predict(
+                        endpoint=serving_endpoint,
+                        inputs={"input": to_send}
+                    )
+        return Response(content=json.dumps(res_json), media_type="application/json")
+    except Exception as e:
+        print(e)
+        resp = {"message": f"Error querying model: {e}"}
+        return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
+    
+
+async def _reverse_proxy_monai_train_post(request: Request):
+    url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
+    body = await request.json()
+    model = list(body.keys())[0]
+    to_send = body[model]
+    to_send['model'] = model
+
+    resp = ""
+
+    # Query the Databricks serving endpoint
+    try:
+        
+        res_json = client.predict(
+                        endpoint=serving_endpoint,
+                        inputs={"input":  {"train":to_send}}
+                    )
+        
+        return Response(content=json.dumps(res_json), media_type="application/json")
+    except Exception as e:
+        print(e)
+        resp = {"message": f"Error querying model: {e}"}
+        return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
 
 class DBStaticFiles(StaticFiles):
@@ -130,14 +212,11 @@ app.add_route(
 app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
-app.add_route("/monai/{path:path}", _reverse_proxy_monai_post, ["POST"])
+app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
+app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsample_post, ["POST"])
+app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
 app.mount("/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
 
 if __name__ == "__main__":
-    if os.environ["MONAI_ENABLED"] == "true":
-        print("Starting MONAILabel server")
-        p = Popen(
-            ["sh", "start.sh"], shell=False, stdin=None, stdout=None, stderr=None, close_fds=True
-        )
     uvicorn.run(app, host="0.0.0.0")
