@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS {UC_TABLE}_autoseg_result (
-  series_uid STRING,
-  result STRING,
-  error STRING)
+  series_uid STRING NOT NULL COMMENT 'Unique identifier of the DICOM series used',
+  result STRING COMMENT 'File location of the generated DICOM segmentation file',
+  error STRING COMMENT 'Error message if the segmentation process fails')
 USING delta
+COMMENT 'Table storing results of the automatic segmentation process from the serving endpoint for DICOM series'
 TBLPROPERTIES (
   'delta.enableDeletionVectors' = 'true',
   'delta.feature.deletionVectors' = 'supported',
