@@ -12,9 +12,11 @@ import tempfile
 
 import numpy as np
 import pydicom_seg
+import pydicom
 import SimpleITK
 from monai.transforms import LoadImage
 from pydicom.filereader import dcmread
+from base64 import b64encode
 
 from monailabel.datastore.utils.colors import GENERIC_ANATOMY_COLORS
 
@@ -46,18 +48,88 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             self.conf.labels = labels
 
         self.dest_dir = os.environ["DEST_DIR"]
+
+    def handle_input(self, app, model_input):
+        if "info" == model_input["input"]:
+            return json.dumps(app.info())
+        
+        #send activelearning/random string to retrieve next series url
+        elif "activelearning" in model_input["input"]:
+            strategy = model_input["input"].split("/")[1]
+            request = {"strategy": strategy}
+            config = app.info().get("config", {}).get("activelearning", {})
+            request.update(config)
+            result = app.next_sample(request)
+            if not result:
+                return {}
+
+            image_id = result["id"]
+            image_info = app.datastore().get_image_info(image_id)
+
+            strategy_info = image_info.get("strategy", {})
+            strategy_info[strategy] = {"ts": int(time.time())}
+            try:
+                app.datastore().update_image_info(image_id, {"strategy": strategy_info})
+            except:
+                logger.warning(f"Failed to update Image info for {image_id}")
+
+            result.update(image_info)
+            return result
+            
+        #send activelearning/random string to retrieve next series url
+        elif "train" in model_input["input"]:
+            return app.train(request=model_input["input"]["train"])
+            
+        elif "infer" in model_input["input"]:
+            return app.infer(request=model_input["input"]["infer"])
+            
+        #can this be a security issue?
+        elif "get_file" in model_input["input"]:
+            return {"file_content": b64encode(open(model_input["input"]["get_file"], "rb").read()).decode("ascii")}
+        else:
+            raise Exception("Input not handled yet", model_input)
         
 
     def predict(self, context, model_input, params=None):
+        self.logger.warning(f"Processing {model_input}")
+
         app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
 
-        self.logger.warning(f"Processing {model_input}")
+        #send info string to retrieve MONAILabel server info
+        if "input" in model_input:
+            return self.handle_input(app, model_input)
 
         def upload_file(self, file_path, dest_path):
             from databricks.sdk import WorkspaceClient
             w = WorkspaceClient()
             w.files.upload(dest_path, open(file_path, mode="rb"))
             self.logger.warning(f"File uploaded to {dest_path}")
+
+        #TODO Complete optional step to avoid additional task in workflow
+        def insert_seg_catalog(self, file_path, dest_path):
+            import hashlib
+            from databricks.sdk import WorkspaceClient
+
+            w = WorkspaceClient()
+
+            fp = open(file_path, "rb")
+            with pydicom.dcmread(fp, defer_size=1000, stop_before_pixels=True) as ds:
+                js = ds.to_json_dict()
+                js["file_size"] = os.stat(file_path).st_size
+                js["hash"] = hashlib.sha1(fp.read()).hexdigest()
+
+                body = {
+                    "warehouse_id": os.environ["DATABRICKS_WAREHOUSE_ID"],
+                    "statement": f"""INSERT INTO ${os.environ["DATABRICKS_PIXELS_TABLE"]}
+                (path, modificationTime, length, original_path, relative_path, local_path,
+                extension, file_type, path_tags, is_anon, meta)
+                VALUES (
+                'dbfs:/${dest_path}',  current_timestamp(), '${js["hash"]}', 'dbfs:/${dest_path}', '${dest_path}', '/${dest_path}',
+                'dcm', '', array(), 'true', '${json.dumps(js)}'
+                )""",
+                    "wait_timeout": "30s",
+                    "on_wait_timeout": "CANCEL"
+                }
 
         def infer_autosegmentation(series_uid):
             from monailabel.utils.others.generic import device_list, file_ext
