@@ -49,55 +49,49 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
 
         self.dest_dir = os.environ["DEST_DIR"]
 
-    def handle_input(self, app, model_input):
-        if "info" == model_input["input"]:
-            return json.dumps(app.info())
-        
-        #send activelearning/random string to retrieve next series url
-        elif "activelearning" in model_input["input"]:
-            strategy = model_input["input"].split("/")[1]
-            request = {"strategy": strategy}
-            config = app.info().get("config", {}).get("activelearning", {})
-            request.update(config)
-            result = app.next_sample(request)
-            if not result:
-                return {}
+    def handle_input(self, app, input_action):
+        if "action" in input_action:
+            if "info" == input_action["action"]:
+                return app.info()
+            
+            #send activelearning/random string to retrieve next series url
+            elif "activelearning" in input_action["action"]:
+                strategy = input_action["action"].split("/")[1]
+                request = {"strategy": strategy}
+                config = app.info().get("config", {}).get("activelearning", {})
+                request.update(config)
+                result = app.next_sample(request)
+                if not result:
+                    return {}
 
-            image_id = result["id"]
-            image_info = app.datastore().get_image_info(image_id)
+                image_id = result["id"]
+                image_info = app.datastore().get_image_info(image_id)
 
-            strategy_info = image_info.get("strategy", {})
-            strategy_info[strategy] = {"ts": int(time.time())}
-            try:
-                app.datastore().update_image_info(image_id, {"strategy": strategy_info})
-            except:
-                logger.warning(f"Failed to update Image info for {image_id}")
+                strategy_info = image_info.get("strategy", {})
+                strategy_info[strategy] = {"ts": int(time.time())}
+                try:
+                    app.datastore().update_image_info(image_id, {"strategy": strategy_info})
+                except:
+                    logger.warning(f"Failed to update Image info for {image_id}")
 
-            result.update(image_info)
-            return result
+                result.update(image_info)
+                return result
             
         #send activelearning/random string to retrieve next series url
-        elif "train" in model_input["input"]:
-            return app.train(request=model_input["input"]["train"])
+        elif "train" in input_action:
+            return app.train(request=input_action["train"])
             
-        elif "infer" in model_input["input"]:
-            return app.infer(request=model_input["input"]["infer"])
+        elif "infer" in input_action:
+            return app.infer(request=input_action["infer"])
             
         #can this be a security issue?
-        elif "get_file" in model_input["input"]:
-            return {"file_content": b64encode(open(model_input["input"]["get_file"], "rb").read()).decode("ascii")}
+        elif "get_file" in input_action:
+            return {"file_content": b64encode(open(input_action["get_file"], "rb").read()).decode("ascii")}
         else:
-            raise Exception("Input not handled yet", model_input)
+            raise Exception("Input not handled yet", input_action)
         
 
     def predict(self, context, model_input, params=None):
-        self.logger.warning(f"Processing {model_input}")
-
-        app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
-
-        #send info string to retrieve MONAILabel server info
-        if "input" in model_input:
-            return self.handle_input(app, model_input)
 
         def upload_file(self, file_path, dest_path):
             from databricks.sdk import WorkspaceClient
@@ -175,9 +169,19 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
 
             print(f"++++ Image File: {image_path}")
             print(f"++++ Label File: {label_file}")
-            return label_file
+            return {"file_path": label_file}
+        
+        self.logger.warning(f"Processing {model_input}")
 
-        return model_input.apply(lambda x: infer_autosegmentation(x['series_uid']), axis=1)
+        app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
+
+        #handle multiple actions via input
+        if "input" in model_input:
+            return json.dumps(self.handle_input(app, model_input['input'][0]))
+        elif "series_uid" in model_input:
+            return json.dumps(infer_autosegmentation(model_input["series_uid"][0]))
+        else:
+            raise Exception("Unknown operation", model_input) 
     
 def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True, series_description="segmentation") -> str:
 

@@ -16,7 +16,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git -q
+# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git mlflow[databricks] -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -26,6 +26,8 @@
 # COMMAND ----------
 
 sql_warehouse_id, table = init_widgets()
+dbutils.widgets.text("model_uc_name", "main.pixels_solacc.monai_pixels_model", label="3.0 Model name stored in UC")
+model_uc_name = dbutils.widgets.get("model_uc_name")
 
 # COMMAND ----------
 
@@ -33,6 +35,8 @@ sql_warehouse_id, table = init_widgets()
 # MAGIC ## Setting Up the Environment for MONAILabel Inference
 # MAGIC
 # MAGIC At this step, it is important to provide the right table that contains at least one CT Axial image and the SQLWarehouseID to execute the SQL commands.
+# MAGIC
+# MAGIC DEST_DIR will be the parameter used by the monailabel server to save the DICOM-SEG generated file 
 
 # COMMAND ----------
 
@@ -51,7 +55,6 @@ os.environ["DEST_DIR"] = "/Volumes/main/pixels_solacc/pixels_volume/monai_servin
 
 # COMMAND ----------
 
-
 import dbmonailabelmodel
 from dbmonailabelmodel import DBMONAILabelModel
 
@@ -59,31 +62,84 @@ model = DBMONAILabelModel()
 
 # COMMAND ----------
 
-# DBTITLE 1,TEST RESULTS
-import pandas as pd
-import numpy as np
-from pydicom import dcmread
+# MAGIC %md
+# MAGIC ## Using the DBMONAILabelModel
+# MAGIC
+# MAGIC The next cell will provide examples on how to use the model with different input examples. Any of the elements in the **input_examples** list can be used as input.
 
-# find a series_uid from pixels` table to test segmentation
-# autosegmentation is compatible only for axial images
-series_uid = spark.read.table(table).selectExpr(f"meta:['0020000E'].Value[0] as series_uid") \
-  .filter("contains(meta:['00080008'], 'AXIAL')") \
-  .limit(1).collect()[0][0]
+# COMMAND ----------
 
-data = {'series_uid': [series_uid]}
+from mlflow.models import infer_signature
+from typing import Optional
 
-# another example could be inserting manually the series_uid to generate the segmentation
-#data = {'series_uid': ["1.2.826.0.1.3680043.8.498.46165708412055321465926503658507656958"]}
-df = pd.DataFrame(data)
+input_examples = [
+      { "input": { "action": "info" }},                   #retrieve informations about the monailabel server
+      { "input": { "action": "activelearning/random" }},  #randomly return the next series_uid useful to label
+      { "input": {                                        #train the model based on labelled series
+        "train": {
+          'name': 'train_01',
+          'pretrained': True,
+          'device': ['NVIDIA A10G'],
+          'max_epochs': 50,
+          'early_stop_patience': -1,
+          'val_split': 0.2,
+          'train_batch_size': 1,
+          'val_batch_size': 1,
+          'multi_gpu': True,
+          'gpus': 'all',
+          'dataset': ['SmartCacheDataset', 'CacheDataset', 'PersistentDataset', 'Dataset'],
+          'dataloader': ['ThreadDataLoader', 'DataLoader'],
+          'tracking': ['mlflow', 'None'],
+          'tracking_uri': '',
+          'tracking_experiment_name': '',
+          'model': 'segmentation'
+          }
+       }
+      },
+      { "input": {                                        #train the model based on labelled series with mandatory fields
+        "train": {
+          'name': 'train_01',
+          'pretrained': True,
+          'max_epochs': 50,
+          'val_split': 0.2,
+          'train_batch_size': 1,
+          'val_batch_size': 1,
+          'gpus': 'all',
+          'model': 'segmentation'
+          }
+       }
+      },                      
+      { "input": {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer
+        "infer": {
+          'largest_cc': False,
+          'device': ['NVIDIA A10G'],
+          'result_extension': '.nrrd',
+          'result_dtype': 'uint16',
+          'result_compress': False,
+          'restore_label_idx': False,
+          'model': 'segmentation',
+          'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001'
+          }
+       }
+      },
+      { "input": {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer with mandatory fields
+        "infer": {
+          'model': 'segmentation',
+          'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001'
+          }
+       }
+      },
+      { "input": {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer
+        "get_file": "/tmp/rnd"
+       }
+      },
+      { "series_uid":                                     #trigger the inference on a sigle DICOM series given the series uids, used in Transformer
+          "1.2.156.14702.1.1000.16.1.2020031111365293700020003"
+      }
+]
 
-model.predict(None, df)
-
-with dcmread(
-  open(f"{os.environ['DEST_DIR']}{series_uid}.dcm", mode="rb"), defer_size=1000, stop_before_pixels=True) as ds:
-  print(ds.StudyInstanceUID)
-  print(ds.SeriesInstanceUID)
-  print(ds.SOPInstanceUID)
-  print(ds.SeriesDescription)
+signature = infer_signature(input_examples, model_output="")
+signature.inputs.to_json()
 
 # COMMAND ----------
 
@@ -92,9 +148,6 @@ with dcmread(
 # MAGIC
 # MAGIC In this cell, the code performs the following key steps:
 # MAGIC
-# MAGIC - **Importing Libraries**: The necessary libraries `pandas` and `mlflow` are imported.
-# MAGIC - **Fetching Series UID**: A `series_uid` is retrieved from a Spark table, filtered to include only axial images.
-# MAGIC - **Creating DataFrame**: A DataFrame `df` is created with the `series_uid`.
 # MAGIC - **Starting MLflow Run**: An MLflow run is initiated using `mlflow.start_run()`.
 # MAGIC - **Logging the Model**: The model is logged with `mlflow.pyfunc.log_model()`
 # MAGIC - **Retrieving Run ID**: The run ID is stored in the variable `run_id`.
@@ -103,27 +156,23 @@ with dcmread(
 
 # COMMAND ----------
 
-import pandas as pd
 import mlflow
-
-series_uid = spark.read.table(table).selectExpr(f"meta:['0020000E'].Value[0] as series_uid") \
-  .filter("contains(meta:['00080008'], 'AXIAL')") \
-  .limit(1).collect()[0][0]
-
-data = {'series_uid': [series_uid]}
-df = pd.DataFrame(data)
 
 # Save the function as a model
 with mlflow.start_run():
     mlflow.pyfunc.log_model(
         "DBMONAILabelModel",
         python_model=model,
-        input_example=df,
+        signature=signature,
         pip_requirements=["git+https://github.com/erinaldidb/MONAILabel_Pixels.git"],
-        code_paths=["./lib", "./dblabelapp.py" ,"./dbmonailabelmodel.py"],
-        artifacts={'segmentation-model': "./model/pretrained_segmentation.pt"}
+        code_paths=["./lib", "./dblabelapp.py" ,"./dbmonailabelmodel.py"]
     )
     run_id = mlflow.active_run().info.run_id
+
+# COMMAND ----------
+
+model_uri = "runs:/{}/DBMONAILabelModel".format(run_id)
+latest_model = mlflow.register_model(model_uri, model_uc_name)
 
 # COMMAND ----------
 
@@ -132,9 +181,12 @@ with mlflow.start_run():
 # MAGIC
 # MAGIC 1. Imports the `get_deploy_client` function from `mlflow.deployments`.
 # MAGIC 2. Initializes the deployment client for Databricks.
-# MAGIC 3. Sets the model version to "1".
-# MAGIC 4. Retrieves a secret token for authentication.
-# MAGIC 5. Creates an endpoint named "pixels-monai" with the specified configuration, including environment variables and model details.
+# MAGIC 3. Sets the model version to the latest deployed in the previous cell.
+# MAGIC 4. Create a PAT token to be placed in the secret used for the serving endpoint. It can be created also from a Service Pricipal.
+# MAGIC 5. Create secret token for authentication setting the PAT token created before, more info here on how to create one. [Databricks Secrets](https://docs.databricks.com/en/security/secrets/index.html).
+# MAGIC 6. Creates an endpoint named "pixels-monai" with the specified configuration, including environment variables and model details.
+# MAGIC
+# MAGIC **NOTE**: Do not forget to create the token and to put it in a secret! In the next cell there is an example on how to let the serving endpoint automatically retrieve it at runtime
 
 # COMMAND ----------
 
@@ -142,16 +194,18 @@ from mlflow.deployments import get_deploy_client
 
 client = get_deploy_client("databricks")
 
-model_version = "1"
+serving_endpoint_name = "pixels-monai-uc"
+model_version = latest_model.version
+
 token_secret = "{{secrets/pixels-scope/pixels_token}}"
 
 endpoint = client.create_endpoint(
-    name="pixels-monai",
+    name=serving_endpoint_name,
     config={
         "served_entities": [
             {
                 'name': 'pixels_monailabel-1',
-                'entity_name': 'pixels_monailabel',
+                'entity_name': model_uc_name,
                 "entity_version": model_version,
                 "workload_size": "Small",
                 "workload_type": "GPU_MEDIUM",
@@ -168,3 +222,39 @@ endpoint = client.create_endpoint(
     }
 )
 
+print("SERVING ENDPOINT CREATED", serving_endpoint_name)
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Waiting for Endpoint Readiness and Usage Examples
+# MAGIC
+# MAGIC The following cell will wait for the endpoint to be ready, which usually takes around 30 minutes. It also provides some examples of how to use the serving endpoint with the current model. You can use directly the input_example used for the signature
+
+# COMMAND ----------
+
+import time
+while client.get_endpoint(serving_endpoint_name).state.ready != 'READY':
+  print("ENDPOINT NOT READY YET")
+  time.sleet(60)
+
+client.predict(
+    endpoint=serving_endpoint_name,
+    inputs={"inputs": {"input": {"action":"info"}}},
+)
+
+client.predict(
+    endpoint=serving_endpoint_name,
+    inputs={"inputs": {"input": {"action":"activelearning/random"}}},
+)
+
+client.predict(
+    endpoint=serving_endpoint_name,
+    inputs={"inputs": input_examples[3]},
+)
+
+response = client.predict(
+    endpoint=serving_endpoint_name,
+    inputs={"dataframe_split": {"columns": ["series_uid"], "data": [["1.2.156.14702.1.1000.16.1.2020031111365293700020003"]]}},
+)

@@ -12,7 +12,7 @@ class MONAILabelTransformer(Transformer):
     Transformer class to generate autosegmentations of DICOM files using MONAILabel serving endpoint.
     """
 
-    def __init__(self, endpoint_name="pixels-monai", inputCol="meta"):
+    def __init__(self, endpoint_name="pixels-monai-uc", inputCol="meta"):
         self.inputCol = inputCol
         self.endpoint_name = endpoint_name
 

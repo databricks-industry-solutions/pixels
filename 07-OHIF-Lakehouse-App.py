@@ -26,7 +26,7 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-ohif-viewer"
-serving_endpoint = "pixels-monai"
+serving_endpoint = "pixels-monai-uc"
 
 w = WorkspaceClient()
 
@@ -90,8 +90,6 @@ print(f"Creating Lakehouse App with name {app_name}, this step will require few 
 
 app_created = w.apps.create_and_wait(name=app_name, resources=[sql_resource, serving_endpoint])
 app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
-
-service_principal_id = app_deploy.deployment_artifacts.source_code_path.split("/")[3]
 
 print(app_deploy.status.message)
 print(app_created.url)

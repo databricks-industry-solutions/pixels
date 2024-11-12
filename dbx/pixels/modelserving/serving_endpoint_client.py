@@ -1,4 +1,5 @@
 import os
+import json
 
 from mlflow.deployments import get_deploy_client
 
@@ -20,9 +21,9 @@ class MONAILabelClient:
         try:
             response = self.client.predict(
                 endpoint=self.endpoint,
-                inputs={"dataframe_split": {"columns": ["series_uid"], "data": [[series_uid]]}},
+                inputs={"inputs": {"series_uid": series_uid}},
             )
-            return (response.predictions[0]["0"], "")
+            return (json.loads(response.predictions)["file_path"], "")
         except Exception as e:
             if "torch.OutOfMemoryError: CUDA out of memory" in str(e):
                 return ("", str(e))

@@ -4,6 +4,7 @@
 # COMMAND ----------
 
 path,table,volume,write_mode = init_widgets()
+init_catalog_schema_volume()
 
 # COMMAND ----------
 
