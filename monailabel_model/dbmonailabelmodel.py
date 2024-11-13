@@ -40,14 +40,11 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
         self.conf = {
             "models": model,
             "preload": "false",
-            "table": os.environ["DATABRICKS_PIXELS_TABLE"],
             "output": "dicom_seg"
         }
 
         if labels:
             self.conf.labels = labels
-
-        self.dest_dir = os.environ["DEST_DIR"]
 
     def handle_input(self, app, input_action):
         if "action" in input_action:
@@ -92,6 +89,9 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
         
 
     def predict(self, context, model_input, params=None):
+
+        self.conf["table"] = os.environ["DATABRICKS_PIXELS_TABLE"]
+        self.dest_dir = os.environ["DEST_DIR"]
 
         def upload_file(self, file_path, dest_path):
             from databricks.sdk import WorkspaceClient
