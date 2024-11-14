@@ -2,8 +2,9 @@ import hashlib
 import json
 import os
 
-from pyspark.sql.functions import udf
 from pydicom import Dataset
+from pyspark.sql.functions import udf
+
 
 def cloud_open(path: str, anon: bool = False):
     try:
@@ -22,6 +23,7 @@ def cloud_open(path: str, anon: bool = False):
     except Exception as e:
         raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
+
 def check_pixel_data(ds: Dataset) -> Dataset | None:
     """Check if pixel data exists before attempting to access it.
         pydicom.Dataset.pixel_array will throw an exception if the
@@ -34,6 +36,7 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     except:
         return None
     return a
+
 
 @udf
 def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:

@@ -26,6 +26,9 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-ohif-viewer"
+serving_endpoint = "pixels-monai-uc"
+
+w = WorkspaceClient()
 
 # COMMAND ----------
 
@@ -52,12 +55,10 @@ app_name = "pixels-ohif-viewer"
 
 # COMMAND ----------
 
-from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission
+from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission
 
 from pathlib import Path
 import dbx.pixels.resources
-
-w = WorkspaceClient()
 
 path = Path(dbx.pixels.__file__).parent
 lha_path = (f"{path}/resources/lakehouse_app")
@@ -66,23 +67,29 @@ with open(f"{lha_path}/app-config.yaml", "r") as config_input:
         with open(f"{lha_path}/app.yaml", "w") as config_custom:
             config_custom.write(
                 config_input.read()
-                .replace("{PIXELS_TABLE}",os.environ["DATABRICKS_PIXELS_TABLE"])
+                .replace("{PIXELS_TABLE}", table)
             )
 
 sql_resource = AppResource(
   name="sql_warehouse",
   sql_warehouse=AppResourceSqlWarehouse(
-    id=os.environ["DATABRICKS_WAREHOUSE_ID"],
+    id=sql_warehouse_id,
     permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
+  )
+)
+
+serving_endpoint = AppResource(
+  name="serving_endpoint",
+  serving_endpoint=AppResourceServingEndpoint(
+    name=serving_endpoint,
+    permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
   )
 )
 
 print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 
-app_created = w.apps.create_and_wait(name=app_name, resources=[sql_resource])
+app_created = w.apps.create_and_wait(name=app_name, resources=[sql_resource, serving_endpoint])
 app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
-
-service_principal_id = app_deploy.deployment_artifacts.source_code_path.split("/")[3]
 
 print(app_deploy.status.message)
 print(app_created.url)
@@ -99,6 +106,10 @@ print(app_created.url)
 # COMMAND ----------
 
 from databricks.sdk.service import catalog
+
+app_instance = w.apps.get(app_name)
+last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
+service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
 
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],
@@ -127,7 +138,7 @@ w.grants.update(full_name=table,
   securable_type=catalog.SecurableType.TABLE,
   changes=[
     catalog.PermissionsChange(
-      add=[catalog.Privilege.SELECT],
+      add=[catalog.Privilege.ALL_PRIVILEGES],
       principal=service_principal_id
     )
   ]
@@ -138,7 +149,7 @@ w.grants.update(full_name=volume,
   securable_type=catalog.SecurableType.VOLUME,
   changes=[
     catalog.PermissionsChange(
-      add=[catalog.Privilege.READ_VOLUME],
+      add=[catalog.Privilege.ALL_PRIVILEGES],
       principal=service_principal_id
     )
   ]

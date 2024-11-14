@@ -25,6 +25,16 @@ def init_widgets(show_volume=False):
 
 # COMMAND ----------
 
+def init_model_serving_widgets():
+  dbutils.widgets.text("model_uc_name", "main.pixels_solacc.monai_pixels_model", label="3.0 Model name stored in UC")
+  model_uc_name = dbutils.widgets.get("model_uc_name")
+  dbutils.widgets.text("serving_endpoint_name", "pixels-monai-uc", label="4.0 Serving Endpoint name")
+  serving_endpoint_name = dbutils.widgets.get("serving_endpoint_name")
+
+  return model_uc_name, serving_endpoint_name
+
+# COMMAND ----------
+
 def init_env():
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
   table = dbutils.widgets.get("table")

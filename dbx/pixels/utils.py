@@ -101,7 +101,7 @@ def unzip(path, unzipped_base_path):
 
             file_object.close()
 
-            to_return.append("dbfs:"+file_path)
+            to_return.append("dbfs:" + file_path)
 
         processed += 1
         if processed % 100 == 0:
