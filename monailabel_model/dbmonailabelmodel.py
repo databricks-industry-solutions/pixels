@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
-
+    
     def __init__(self, model="segmentation", labels=None):
         self.logger = logging.getLogger(__name__)
         if f"{os.getcwd()}/bin" not in os.environ['PATH']:
@@ -45,29 +45,35 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
 
         if labels:
             self.conf.labels = labels
+            
+    def load_context(self, context):
+        self.conf["table"] = os.environ["DATABRICKS_PIXELS_TABLE"]
+        self.dest_dir = os.environ["DEST_DIR"]
+        self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
 
-    def handle_input(self, app, input_action):
+    @mlflow.trace
+    def handle_input(self, input_action):
         if "action" in input_action:
             if "info" == input_action["action"]:
-                return app.info()
+                return self.app.info()
             
             #send activelearning/random string to retrieve next series url
             elif "activelearning" in input_action["action"]:
                 strategy = input_action["action"].split("/")[1]
                 request = {"strategy": strategy}
-                config = app.info().get("config", {}).get("activelearning", {})
+                config = self.app.info().get("config", {}).get("activelearning", {})
                 request.update(config)
-                result = app.next_sample(request)
+                result = self.app.next_sample(request)
                 if not result:
                     return {}
 
                 image_id = result["id"]
-                image_info = app.datastore().get_image_info(image_id)
+                image_info = self.app.datastore().get_image_info(image_id)
 
                 strategy_info = image_info.get("strategy", {})
                 strategy_info[strategy] = {"ts": int(time.time())}
                 try:
-                    app.datastore().update_image_info(image_id, {"strategy": strategy_info})
+                    self.app.datastore().update_image_info(image_id, {"strategy": strategy_info})
                 except:
                     logger.warning(f"Failed to update Image info for {image_id}")
 
@@ -76,69 +82,61 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             
         #send activelearning/random string to retrieve next series url
         elif "train" in input_action:
-            return app.train(request=input_action["train"])
+            return self.app.train(request=input_action["train"])
             
         elif "infer" in input_action:
-            return app.infer(request=input_action["infer"])
+            return self.app.infer(request=input_action["infer"])
             
-        #can this be a security issue?
-        elif "get_file" in input_action:
-            return {"file_content": b64encode(open(input_action["get_file"], "rb").read()).decode("ascii")}
         else:
             raise Exception("Input not handled yet", input_action)
-        
+    
+    def upload_file(self, file_path, dest_path):
+        from databricks.sdk import WorkspaceClient
+        w = WorkspaceClient()
+        w.files.upload(dest_path, open(file_path, mode="rb"))
+        self.logger.warning(f"File uploaded to {dest_path}")
 
-    def predict(self, context, model_input, params=None):
+    #TODO Complete optional step to avoid additional task in workflow
+    def insert_seg_catalog(self, file_path, dest_path):
+        import hashlib
+        from databricks.sdk import WorkspaceClient
 
-        self.conf["table"] = os.environ["DATABRICKS_PIXELS_TABLE"]
-        self.dest_dir = os.environ["DEST_DIR"]
+        w = WorkspaceClient()
 
-        def upload_file(self, file_path, dest_path):
-            from databricks.sdk import WorkspaceClient
-            w = WorkspaceClient()
-            w.files.upload(dest_path, open(file_path, mode="rb"))
-            self.logger.warning(f"File uploaded to {dest_path}")
+        fp = open(file_path, "rb")
+        with pydicom.dcmread(fp, defer_size=1000, stop_before_pixels=True) as ds:
+            js = ds.to_json_dict()
+            js["file_size"] = os.stat(file_path).st_size
+            js["hash"] = hashlib.sha1(fp.read()).hexdigest()
 
-        #TODO Complete optional step to avoid additional task in workflow
-        def insert_seg_catalog(self, file_path, dest_path):
-            import hashlib
-            from databricks.sdk import WorkspaceClient
+            body = {
+                "warehouse_id": os.environ["DATABRICKS_WAREHOUSE_ID"],
+                "statement": f"""INSERT INTO ${os.environ["DATABRICKS_PIXELS_TABLE"]}
+            (path, modificationTime, length, original_path, relative_path, local_path,
+            extension, file_type, path_tags, is_anon, meta)
+            VALUES (
+            'dbfs:/${dest_path}',  current_timestamp(), '${js["hash"]}', 'dbfs:/${dest_path}', '${dest_path}', '/${dest_path}',
+            'dcm', '', array(), 'true', '${json.dumps(js)}'
+            )""",
+                "wait_timeout": "30s",
+                "on_wait_timeout": "CANCEL"
+            }
 
-            w = WorkspaceClient()
-
-            fp = open(file_path, "rb")
-            with pydicom.dcmread(fp, defer_size=1000, stop_before_pixels=True) as ds:
-                js = ds.to_json_dict()
-                js["file_size"] = os.stat(file_path).st_size
-                js["hash"] = hashlib.sha1(fp.read()).hexdigest()
-
-                body = {
-                    "warehouse_id": os.environ["DATABRICKS_WAREHOUSE_ID"],
-                    "statement": f"""INSERT INTO ${os.environ["DATABRICKS_PIXELS_TABLE"]}
-                (path, modificationTime, length, original_path, relative_path, local_path,
-                extension, file_type, path_tags, is_anon, meta)
-                VALUES (
-                'dbfs:/${dest_path}',  current_timestamp(), '${js["hash"]}', 'dbfs:/${dest_path}', '${dest_path}', '/${dest_path}',
-                'dcm', '', array(), 'true', '${json.dumps(js)}'
-                )""",
-                    "wait_timeout": "30s",
-                    "on_wait_timeout": "CANCEL"
-                }
-
-        def infer_autosegmentation(series_uid):
+    @mlflow.trace
+    def infer_autosegmentation(self, series_uid):
             from monailabel.utils.others.generic import device_list, file_ext
             from lib.configs.colors import SOME_COLORS
             
             #get image in .cache folder
-            image = app.datastore().get_image(series_uid)
+            image = self.app.datastore().get_image(series_uid)
             #get cached image uri
-            image_uri = app.datastore().get_image_uri(series_uid)
+            image_uri = self.app.datastore().get_image_uri(series_uid)
             #get cached image infos
-            image_info = app.datastore().get_image_info(series_uid)
+            image_info = self.app.datastore().get_image_info(series_uid)
 
             self.logger.warning(f"Processing image URI: {image_uri}")
 
-            result = app.infer(request={'model': 'segmentation', 'image': series_uid, 'largest_cc': False, 'device': device_list()[0], 'result_extension': '.nrrd', 'result_dtype': 'uint16', 'result_compress': False, 'restore_label_idx': False})
+            result = self.app.infer(request={'model': 'segmentation', 'image': series_uid, 'largest_cc': False, 'device': device_list()[0], 'result_extension': '.nrrd', 'result_dtype': 'uint16', 'result_compress': False, 'restore_label_idx': False})
             
             self.logger.warning(f"Inference completed on image: {image_uri}")
 
@@ -147,7 +145,7 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             res_img = result.get("file") if result.get("file") else result.get("label")
 
             model_labels = []
-            for idx, label_name in enumerate(app.info()['models'][self.conf["models"]]["labels"]):
+            for idx, label_name in enumerate(self.app.info()['models'][self.conf["models"]]["labels"]):
                 model_labels.append({
                     "name": label_name.replace("_"," "),
                     "model_name": self.conf["models"],
@@ -165,21 +163,24 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             label_file = os.path.join(self.dest_dir, image_info['StudyInstanceUID'], series_uid+".dcm")
             self.logger.warning(f"Destination file path: {label_file}")
             
-            upload_file(self, dicom_seg_file, label_file)
+            self.upload_file(dicom_seg_file, label_file)
 
             print(f"++++ Image File: {image_path}")
             print(f"++++ Label File: {label_file}")
             return {"file_path": label_file}
         
-        self.logger.warning(f"Processing {model_input}")
 
-        app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
+    def predict(self, context, model_input, params=None):
+        self.logger.warning(f"Processing {model_input}")
 
         #handle multiple actions via input
         if "input" in model_input:
-            return json.dumps(self.handle_input(app, model_input['input'][0]))
+            #this avods to trace file content in inference table
+            if "get_file" in model_input['input'][0]:
+                return json.dumps({"file_content": b64encode(open(model_input['input'][0]["get_file"], "rb").read()).decode("ascii")})
+            return json.dumps(self.handle_input(model_input['input'][0]))
         elif "series_uid" in model_input:
-            return json.dumps(infer_autosegmentation(model_input["series_uid"][0]))
+            return json.dumps(self.infer_autosegmentation(model_input["series_uid"][0]))
         else:
             raise Exception("Unknown operation", model_input) 
     

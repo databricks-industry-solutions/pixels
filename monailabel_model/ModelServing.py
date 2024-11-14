@@ -21,13 +21,16 @@
 
 # COMMAND ----------
 
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
 # MAGIC %run ../config/proxy_prep
 
 # COMMAND ----------
 
 sql_warehouse_id, table = init_widgets()
-dbutils.widgets.text("model_uc_name", "main.pixels_solacc.monai_pixels_model", label="3.0 Model name stored in UC")
-model_uc_name = dbutils.widgets.get("model_uc_name")
+model_uc_name, serving_endpoint_name = init_model_serving_widgets()
 
 # COMMAND ----------
 
@@ -60,6 +63,8 @@ from dbmonailabelmodel import DBMONAILabelModel
 
 model = DBMONAILabelModel()
 
+model.load_context(context=None)
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -87,9 +92,9 @@ input_examples = [
           'val_batch_size': 1,
           'multi_gpu': True,
           'gpus': 'all',
-          'dataset': ['SmartCacheDataset', 'CacheDataset', 'PersistentDataset', 'Dataset'],
-          'dataloader': ['ThreadDataLoader', 'DataLoader'],
-          'tracking': ['mlflow', 'None'],
+          'dataset': 'SmartCacheDataset',
+          'dataloader': 'ThreadDataLoader',
+          'tracking': 'mlflow',
           'tracking_uri': '',
           'tracking_experiment_name': '',
           'model': 'segmentation'
@@ -129,7 +134,7 @@ input_examples = [
           }
        }
       },
-      { "input": {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer
+      { "input": {                                        #Return the file from the inference, used in OHIF Viewer
         "get_file": "/tmp/rnd"
        }
       },
@@ -140,6 +145,20 @@ input_examples = [
 
 signature = infer_signature(input_examples, model_output="")
 signature.inputs.to_json()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Testing the DBMONAILabelModel
+# MAGIC
+# MAGIC Let's try in the next cell our model with a sample input.
+
+# COMMAND ----------
+
+import pandas as pd
+
+df = pd.DataFrame([input_examples[0]])
+model.predict(None, df)
 
 # COMMAND ----------
 
@@ -162,7 +181,7 @@ import mlflow
 with mlflow.start_run():
     mlflow.pyfunc.log_model(
         "DBMONAILabelModel",
-        python_model=model,
+        python_model=DBMONAILabelModel(),
         signature=signature,
         pip_requirements=["git+https://github.com/erinaldidb/MONAILabel_Pixels.git"],
         code_paths=["./lib", "./dblabelapp.py" ,"./dbmonailabelmodel.py"]
@@ -194,7 +213,6 @@ from mlflow.deployments import get_deploy_client
 
 client = get_deploy_client("databricks")
 
-serving_endpoint_name = "pixels-monai-uc"
 model_version = latest_model.version
 
 token_secret = "{{secrets/pixels-scope/pixels_token}}"
@@ -222,7 +240,7 @@ endpoint = client.create_endpoint(
     }
 )
 
-print("SERVING ENDPOINT CREATED", serving_endpoint_name)
+print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
 
 
 # COMMAND ----------
@@ -235,6 +253,10 @@ print("SERVING ENDPOINT CREATED", serving_endpoint_name)
 # COMMAND ----------
 
 import time
+from mlflow.deployments import get_deploy_client
+
+client = get_deploy_client("databricks")
+
 while client.get_endpoint(serving_endpoint_name).state.ready != 'READY':
   print("ENDPOINT NOT READY YET")
   time.sleet(60)

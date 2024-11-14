@@ -35,6 +35,10 @@ serving_endpoint = os.environ["MONAI_SERVING_ENDPOINT"]
 path = Path(dbx.pixels.__file__).parent
 ohif_path = f"{path}/resources/ohif"
 
+dataset = ['SmartCacheDataset', 'CacheDataset', 'PersistentDataset', 'Dataset']
+dataloader = ['ThreadDataLoader', 'DataLoader']
+tracking = ['mlflow', '']
+
 file = "app-config"
 
 with open(f"{ohif_path}/{file}.js", "r") as config_input:
@@ -182,6 +186,21 @@ async def _reverse_proxy_monai_train_post(request: Request):
     model = list(body.keys())[0]
     to_send = body[model]
     to_send["model"] = model
+
+    if(type(body[model]["dataset"]) is list):
+        to_send["dataset"] = body[model]["dataset"][0]
+    elif(type(body[model]["dataset"]) is int):
+        to_send["dataset"] = dataset[body[model]["dataset"]]
+
+    if(type(body[model]["dataloader"]) is list):
+        to_send["dataloader"] = body[model]["dataloader"][0]
+    elif(type(body[model]["dataloader"]) is int):
+        to_send["dataloader"] = dataloader[body[model]["dataloader"]]
+
+    if(type(body[model]["tracking"]) is list):
+        to_send["tracking"] = ''
+    elif(type(body[model]["tracking"]) is int):
+        to_send["tracking"] = tracking[body[model]["tracking"]]
 
     print({"inputs": {"input": {"train": to_send}}})
 
