@@ -73,11 +73,11 @@ job_json = {
         "parameters": [
             {
                 "name": "table",
-                "default": "main.pixel_solacc.object_catalog"
+                "default": "main.pixels_solacc.object_catalog"
             },
             {
                 "name": "volume",
-                "default": "main.pixel_solacc.pixels_volume"
+                "default": "main.pixels_solacc.pixels_volume"
             }
             ]
     }

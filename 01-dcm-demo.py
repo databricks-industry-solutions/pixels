@@ -123,9 +123,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
 # MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
-# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection`, -- backticks work for numeric keys
-# MAGIC     split(meta:`00081030`.`Value`[0],'_')[0] `Label`,
-# MAGIC     split(meta:`00081030`.`Value`[0],'_')[1] `Instance`
+# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
 # MAGIC FROM ${table}
 
 # COMMAND ----------
@@ -138,7 +136,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC   meta:hash, meta:img_min, meta:img_max, path,            -- technical metadata
 # MAGIC   meta                                                    -- DICOM header metadata as JSON
 # MAGIC FROM ${table}
-# MAGIC WHERE array_contains( path_tags, 'patient4527' ) -- query based on a part of the filename
+# MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
 # MAGIC order by patient_name
 
 # COMMAND ----------
