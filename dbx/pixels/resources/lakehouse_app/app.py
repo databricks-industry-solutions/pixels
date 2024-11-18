@@ -30,7 +30,11 @@ os.environ["DATABRICKS_HOST"] = f"https://{os.environ['DATABRICKS_HOST']}"
 
 table = os.environ["DATABRICKS_PIXELS_TABLE"]
 warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
-serving_endpoint = os.environ["MONAI_SERVING_ENDPOINT"]
+
+if "MONAI_SERVING_ENDPOINT" in os.environ:
+    serving_endpoint = os.environ["MONAI_SERVING_ENDPOINT"]
+else:
+    serving_endpoint = ""
 
 path = Path(dbx.pixels.__file__).parent
 ohif_path = f"{path}/resources/ohif"

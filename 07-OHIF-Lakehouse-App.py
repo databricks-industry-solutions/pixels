@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk -q
+# MAGIC %pip install --upgrade databricks-sdk==0.36.0 -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -26,7 +26,7 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-ohif-viewer"
-serving_endpoint = "pixels-monai-uc"
+serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()
 
@@ -70,6 +70,8 @@ with open(f"{lha_path}/app-config.yaml", "r") as config_input:
                 .replace("{PIXELS_TABLE}", table)
             )
 
+resources = []
+
 sql_resource = AppResource(
   name="sql_warehouse",
   sql_warehouse=AppResourceSqlWarehouse(
@@ -77,18 +79,22 @@ sql_resource = AppResource(
     permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
   )
 )
+resources.append(sql_resource)
 
-serving_endpoint = AppResource(
-  name="serving_endpoint",
-  serving_endpoint=AppResourceServingEndpoint(
-    name=serving_endpoint,
-    permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
+if serving_endpoint_name in [endpoint.name for endpoint in w.serving_endpoints.list()]:
+  serving_endpoint = AppResource(
+    name="serving_endpoint",
+    serving_endpoint=AppResourceServingEndpoint(
+      name=serving_endpoint_name,
+      permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
+    )
   )
-)
+  resources.append(serving_endpoint)
+
 
 print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 
-app_created = w.apps.create_and_wait(name=app_name, resources=[sql_resource, serving_endpoint])
+app_created = w.apps.create_and_wait(name=app_name, resources=resources)
 app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
 
 print(app_deploy.status.message)

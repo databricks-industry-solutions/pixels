@@ -16,6 +16,12 @@ def init_widgets(show_volume=False):
   dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
 
+  if sql_warehouse_id == "":
+    sql_warehouse = w.warehouses.list()[0]
+    sql_warehouse_id = sql_warehouse.id
+    dbutils.widgets.text("sqlWarehouseID", sql_warehouse_id, label="2.0 SQL Warehouse")
+    print(f"SQL Warehouse is mandatory, taking the first available: '{sql_warehouse.name}'")
+
   if show_volume:
     dbutils.widgets.text("volume", "main.pixels_solacc.pixels_volume", label="3.0 Catalog Schema Volume where pixel volumes are stored into")
     volume = dbutils.widgets.get("volume")
@@ -47,10 +53,10 @@ def init_env():
   else:
       wh = w.warehouses.get(id=sql_warehouse_id)
       print(f"Using '{wh.as_dict()['name']}' as SQL Warehouse")
-        
+  
   os.environ["DATABRICKS_TOKEN"] = ctx.apiToken
   os.environ["DATABRICKS_WAREHOUSE_ID"] = sql_warehouse_id
-  os.environ["DATABRICKS_HOST"] = f"https://{ctx.browserHostName}"
+  os.environ["DATABRICKS_HOST"] = ctx.apiUrl
   os.environ["DATABRICKS_PIXELS_TABLE"] = table
 
 # COMMAND ----------
