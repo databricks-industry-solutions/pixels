@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.3.0 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 git+https://github.com/databricks-industry-solutions/pixels.git 
+# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 git+https://github.com/databricks-industry-solutions/pixels.git 
 
 # COMMAND ----------
 
@@ -17,7 +17,7 @@
 
 # DBTITLE 1,Collect Input Parameters
 def init_widgets():
-  dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/ddsm/benigns_2*.zip", label="1.0 Path to directory tree containing files. /dbfs , /Volumes/ or s3:// supported")
+  dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/landing_zone/*.zip", label="1.0 Path to directory tree containing files. /dbfs , /Volumes/ or s3:// supported")
   dbutils.widgets.text("table", "main.pixels_solacc.object_catalog", label="2.0 Catalog Schema Table to store object metadata into")
   dbutils.widgets.text("volume", "main.pixels_solacc.pixels_volume", label="3.0 Catalog Schema Volume to store checkpoints and unzipped files")
   dbutils.widgets.dropdown("mode",defaultValue="append",choices=["overwrite","append"], label="4.0 Update mode on object metadata table")
@@ -27,7 +27,7 @@ def init_widgets():
   volume = dbutils.widgets.get("volume")
   write_mode = dbutils.widgets.get("mode")
 
-  spark.conf.set('c.table',table)
+  #spark.conf.set('c.table',table)
   #print(F"{path}, {table}, {write_mode}")
   return path,table,volume,write_mode
 

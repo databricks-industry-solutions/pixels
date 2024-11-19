@@ -83,7 +83,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql describe ${c.table}
+# MAGIC %sql describe ${table}
 
 # COMMAND ----------
 
@@ -91,7 +91,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql select * from ${c.table}
+# MAGIC %sql select * from ${table}
 
 # COMMAND ----------
 
@@ -103,7 +103,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC   format_number(count(1),0) num_dicoms,
 # MAGIC   format_number(sum(length) /(1024*1024*1024), 1) as total_size_in_gb,
 # MAGIC   format_number(avg(length), 0) avg_size_in_bytes
-# MAGIC   from ${c.table} t
+# MAGIC   from ${table} t
 # MAGIC   where extension = 'dcm'
 # MAGIC )
 # MAGIC select patient_count, num_dicoms, total_size_in_gb, avg_size_in_bytes from x
@@ -123,10 +123,8 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
 # MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
-# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection`, -- backticks work for numeric keys
-# MAGIC     split(meta:`00081030`.`Value`[0],'_')[0] `Label`,
-# MAGIC     split(meta:`00081030`.`Value`[0],'_')[1] `Instance`
-# MAGIC FROM ${c.table}
+# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
+# MAGIC FROM ${table}
 
 # COMMAND ----------
 
@@ -137,8 +135,8 @@ catalog.save(thumbnail_df, mode=write_mode)
 # MAGIC   meta:['00100010'].Value[0].Alphabetic as patient_name,  -- Medical information from the DICOM header
 # MAGIC   meta:hash, meta:img_min, meta:img_max, path,            -- technical metadata
 # MAGIC   meta                                                    -- DICOM header metadata as JSON
-# MAGIC FROM ${c.table}
-# MAGIC WHERE array_contains( path_tags, 'patient7747' ) -- query based on a part of the filename
+# MAGIC FROM ${table}
+# MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
 # MAGIC order by patient_name
 
 # COMMAND ----------
