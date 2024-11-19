@@ -198,7 +198,7 @@ latest_model = mlflow.register_model(model_uri, model_uc_name)
 # MAGIC %md
 # MAGIC ## Creating a personal token and assign it to a secret
 # MAGIC
-# MAGIC The next cell demonstrates how to create a personal access token (PAT) and store it securely in Databricks secrets. This token will be used for authentication when deploying the model to a serving endpoint.
+# MAGIC The next cell demonstrates how to create a personal access token (PAT) and store it securely in Databricks secrets. This token will be used for api calls authentication in the monailabel server to Volumes and SQL Warehouses.
 
 # COMMAND ----------
 
@@ -206,10 +206,14 @@ from databricks.sdk import WorkspaceClient
 
 w = WorkspaceClient()
 
+scope_name = "pixels-scope"
+
+if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
+  w.secrets.create_scope(scope=scope_name)
+
 token = w.tokens.create(comment=f'pixels_serving_endpoint_token')
 
-w.secrets.create_scope(scope="pixels-scope")
-w.secrets.put_secret(scope="pixels-scope", key="pixels_token", string_value=token.token_value)
+w.secrets.put_secret(scope=scope_name, key="pixels_token", string_value=token.token_value)
 
 # COMMAND ----------
 
