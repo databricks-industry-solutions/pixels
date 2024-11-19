@@ -196,6 +196,24 @@ latest_model = mlflow.register_model(model_uri, model_uc_name)
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Creating a personal token and assign it to a secret
+# MAGIC
+# MAGIC The next cell demonstrates how to create a personal access token (PAT) and store it securely in Databricks secrets. This token will be used for authentication when deploying the model to a serving endpoint.
+
+# COMMAND ----------
+
+from databricks.sdk import WorkspaceClient
+
+w = WorkspaceClient()
+
+token = w.tokens.create(comment=f'pixels_serving_endpoint_token')
+
+w.secrets.create_scope(scope="pixels-scope")
+w.secrets.put_secret(scope="pixels-scope", key="pixels_token", string_value=token.token_value)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # Model Deployment with MLflow on Databricks
 # MAGIC
 # MAGIC 1. Imports the `get_deploy_client` function from `mlflow.deployments`.
@@ -259,7 +277,7 @@ client = get_deploy_client("databricks")
 
 while client.get_endpoint(serving_endpoint_name).state.ready != 'READY':
   print("ENDPOINT NOT READY YET")
-  time.sleet(60)
+  time.sleep(60)
 
 client.predict(
     endpoint=serving_endpoint_name,
