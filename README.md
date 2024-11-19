@@ -9,7 +9,8 @@
 - Ingest and index DICOM image metadata (.dcm and from zip archives) into Delta tables for structured data analysis (SQL + ML).
 - Analyze DICOM image metadata with SQL
 - View and segment Dicom Images with OHIF viewer
-- [MONAI](https://monai.io/) Integration, AI to automatically segment medical images, comming soon!
+- [MONAI](https://monai.io/) Integration, AI to automatically segment medical images and train custom models directly from the OHIF Viewer.
+- Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting MONAI in serverless GPU enabled clusters for real-time segmentation.
 ![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
 
 ---
@@ -54,7 +55,7 @@ catalog.save(thumbnail_df)                                  # 07
 3. Create an instance of the Catalog class, passing in the spark session.
 4. Catalog all files at the specified path using the catalog method of the Catalog instance, and storing the result in the catalog_df dataframe. Replace `<path>` with the location of your files.
 5. Create an instance of the DicomMetaExtractor class and call its transform method with the catalog_df DataFrame as input. This extracts the DICOM metadata.
-6. Create an instance of the DicomThumbnailExtractor class and call its transform method with the meta_df DataFrame as input. This extracts the thumbnails.
+6. Create an instance of the DicomThumbnailExtractor class and call its transform method with the meta_df DataFrame as input. This extracts the thumbnails. (Optional)
 7. Save the transformed DataFrame to the catalog using the save method.
 ---
 ## Incremental processing
@@ -81,11 +82,11 @@ Fast and multiple-layer visualization capability.
 ![CT_View](images/ohif_mr_view.png?raw=true)
 
 To start the OHIF Viewer web app you need to:
- - Execute the [06-OHIF-Viewer](/06-OHIF-Viewer) inside a Databricks workspace.
+ - Execute the [06-OHIF-Viewer](/06-OHIF-Viewer.py) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
  - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
 
-    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
+    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID"/>
 
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
@@ -114,12 +115,12 @@ Once the server is running, you can use the OHIF Viewer to interact with your me
 ### Setup Instructions
 To execute the MONAILabel server is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
 #### Start the MONAILabel server
- - Execute the [05-MONAILabel](/05-MONAILabel) inside a Databricks workspace.
+ - Execute the [05-MONAILabel](/05-MONAILabel.py) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
  - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
-    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID" height="300"/>
+    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID">
 #### Open the OHIF Viewer
- - Execute the notebook [06-OHIF-Viewer](/06-OHIF-Viewer) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
+ - Execute the notebook [06-OHIF-Viewer](/06-OHIF-Viewer.py) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
  - Select the preferred CT scan study and press on `MONAI Label` button.
 
     <img src="images/monailabel_btn.png?raw=true" alt="MONAI_BTN" height="250"/></br>
@@ -133,6 +134,16 @@ To execute the MONAILabel server is mandatory to use a cluster with Databricks R
  - Save the final result metadata in the catalog and the generated dicom file in the volume under the path `/ohif/exports/` using the button `Export DICOM SEG`.
 
 This setup enhances your medical image analysis workflow by combining Databricks' computing power with MONAILabel's sophisticated annotation tools.
+
+### Model Serving Instructions
+
+To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](monailabel_model/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
+
+#### Key Features
+
+- **Model Creation**: Utilizes the MONAILabel auto segmentation model on CT AXIAL images.
+- **Unity Catalog Integration**: Adds the model to the Unity Catalog for organized management.
+- **Serving Endpoint Deployment**: Deploys the model in a serving endpoint for real-time inference.
 
 ---
 ## Design
