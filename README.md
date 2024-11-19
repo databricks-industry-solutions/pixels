@@ -11,7 +11,7 @@
 - View and segment Dicom Images with OHIF viewer
 - [MONAI](https://monai.io/) Integration, AI to automatically segment medical images and train custom models directly from the OHIF Viewer.
 - Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting MONAI in serverless GPU enabled clusters for real-time segmentation.
-![Analyze](images/DICOM-analyze-with-SQL.png?raw=true)
+![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
 
 ---
 ## About `dbx.pixels`
@@ -30,7 +30,7 @@ Relibly turn millions of image files into SQL accessible metadata, thumbnails; E
 dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
 ## Quick Start
-Run the demo notebook [01-dcm-demo](./01-dcm-demo.py) which does:
+Run the demo notebook [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
 
 ```python
 # imports
@@ -77,16 +77,16 @@ catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPat
 Inside Pixel resources, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
 
 All the catalog entries will be available in an easy to use study list.
-![Catalog](images/ohif_catalog_view.png?raw=true)
+![Catalog](https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_catalog_view.png?raw=true)
 Fast and multiple-layer visualization capability.
-![CT_View](images/ohif_mr_view.png?raw=true)
+![CT_View](https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_mr_view.png?raw=true)
 
 To start the OHIF Viewer web app you need to:
- - Execute the [06-OHIF-Viewer](/06-OHIF-Viewer.py) inside a Databricks workspace.
+ - Execute the [06-OHIF-Viewer](https://github.com/databricks-industry-solutions/pixels/blob/main/06-OHIF-Viewer.py) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
  - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
 
-    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID"/>
+    <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID"/>
 
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
@@ -95,16 +95,16 @@ To start the OHIF Viewer web app you need to:
 The OHIF Viewer allows you to save back in databricks the measurements and the segmentations created in the viewer.
 The metadata will be stored in the object_catalog, and the generated dicom files in the volume under the path `/ohif/exports/`.
 
-<img src="images/ohif_save_segm.png?raw=true" alt="OHIF_SAVE_SEG" height="300"/>
-<img src="images/ohif_save_meas.png?raw=true" alt="OHIF_SAVE_MEAS" height="300"/>
-<img src="images/ohif_save_result.png?raw=true" alt="OHIF_SAVED" height="300"/>
+<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_segm.png?raw=true" alt="OHIF_SAVE_SEG" height="300"/>
+<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_meas.png?raw=true" alt="OHIF_SAVE_MEAS" height="300"/>
+<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_result.png?raw=true" alt="OHIF_SAVED" height="300"/>
 
 ---
 ## MONAILabel Integration
 
 [MONAILabel](https://monai.io/label.html) is an open-source tool designed for interactive medical image labeling. It supports various annotation tasks such as segmentation and classification, providing a seamless experience when integrated with viewers like OHIF that is already available in this solution accelerator.
 
-![MONAI_BTN](images/monailabel_result.png?raw=true)
+![MONAI_BTN](https://github.com/databricks-industry-solutions/pixels/blob/main/images/monailabel_result.png?raw=true)
 Once the server is running, you can use the OHIF Viewer to interact with your medical images. This integration allows you to leverage advanced annotation capabilities directly within your Databricks environment.
 
 ### Key Features
@@ -115,29 +115,29 @@ Once the server is running, you can use the OHIF Viewer to interact with your me
 ### Setup Instructions
 To execute the MONAILabel server is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
 #### Start the MONAILabel server
- - Execute the [05-MONAILabel](/05-MONAILabel.py) inside a Databricks workspace.
+ - Execute the [05-MONAILabel](https://github.com/databricks-industry-solutions/pixels/blob/main/05-MONAILabel.py) inside a Databricks workspace.
  - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
  - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
-    <img src="images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID">
+    <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID">
 #### Open the OHIF Viewer
- - Execute the notebook [06-OHIF-Viewer](/06-OHIF-Viewer.py) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
+ - Execute the notebook [06-OHIF-Viewer](https://github.com/databricks-industry-solutions/pixels/blob/main/06-OHIF-Viewer.py) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
  - Select the preferred CT scan study and press on `MONAI Label` button.
 
-    <img src="images/monailabel_btn.png?raw=true" alt="MONAI_BTN" height="250"/></br>
+    <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/monailabel_btn.png?raw=true" alt="MONAI_BTN" height="250"/></br>
 #### Connect, execute and save
  - Connect the MONAILabel server using the refresh button.
 
-    <img src="images/monailabel_server.png?raw=true" alt="MONAI_SERVER" height="200"/></br>
+    <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/monailabel_server.png?raw=true" alt="MONAI_SERVER" height="200"/></br>
  - Execute an auto-segmentation task using the Run button and wait for the results to be displayed.
 
-    <img src="images/monailabel_autosegm.png?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
+    <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/monailabel_autosegm.png?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
  - Save the final result metadata in the catalog and the generated dicom file in the volume under the path `/ohif/exports/` using the button `Export DICOM SEG`.
 
 This setup enhances your medical image analysis workflow by combining Databricks' computing power with MONAILabel's sophisticated annotation tools.
 
 ### Model Serving Instructions
 
-To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](monailabel_model/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
+To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](https://github.com/databricks-industry-solutions/pixels/blob/main/monailabel_model/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
 
 #### Key Features
 
@@ -148,7 +148,7 @@ To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelSe
 ---
 ## Design
 Data Flow
-<img width="100%" src="images/pixels-dataflow-diagram.svg?raw=true">
+<img width="100%" src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/pixels-dataflow-diagram.svg?raw=true">
 
 ---
 Python Class Diagram
