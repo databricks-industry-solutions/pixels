@@ -145,6 +145,14 @@ To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelSe
 - **Unity Catalog Integration**: Adds the model to the Unity Catalog for organized management.
 - **Serving Endpoint Deployment**: Deploys the model in a serving endpoint for real-time inference.
 
+#### Auto Segmentation with Lakehouse App and Serving Endpoint
+
+https://github.com/user-attachments/assets/8cf62378-ab39-4a89-86ad-c2f231b7a524
+
+#### Active Learning
+
+https://github.com/user-attachments/assets/17142752-d9b9-434b-b893-b6bc05080f54
+
 ---
 ## Design
 Data Flow
