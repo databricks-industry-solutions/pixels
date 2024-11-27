@@ -11,7 +11,9 @@
 - View and segment Dicom Images with OHIF viewer
 - [MONAI](https://monai.io/) Integration, AI to automatically segment medical images and train custom models directly from the OHIF Viewer.
 - Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting MONAI in serverless GPU enabled clusters for real-time segmentation.
+
 ![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
+![LHA](https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true)
 
 ---
 ## About `dbx.pixels`
@@ -247,7 +249,11 @@ ___
 ## Contributors
 - Douglas Moore @ Databricks
 - Emanuele Rinaldi @ Databricks
+- Jingting Lu @ Databricks
+- Krishanu Nandy @ Databricks
+- May Merkle-Tan @ Databricks
 - Ben Russoniello @ Prominence Advisors
+- Cal Reynolds @ Databricks
 
 ___
 ## About DICOM
@@ -268,12 +274,12 @@ DICOM® is recognized by the International Organization for Standardization as t
 
 | library              | purpose                             | license                       | source                                                  |
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
-| dbx.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
+| dbx.pixels           | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Reading Dicom file wrapper          | MIT                           | https://github.com/pydicom/pydicom                      |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
-| gdcm                 | Parse Dicom files                   | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |
+| gdcm                 | Parse Dicom files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
-| MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
+| MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel  |
 
