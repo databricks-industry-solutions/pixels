@@ -2,24 +2,24 @@
   <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="right">
 </div>
 
-# `dbx.pixels` Solution Accelerator
-+ ✅  Ingest and index DICOM image metadata (.dcm and from zip archives)
-+ ✅  Analyze DICOM image metadata with SQL and Machine Learing.
-+ ✅  View, segment, label Dicom Images with OHIF viewer integrated into Lakehouse Apps and Databricks security model. Directly launch model training from viewer.
-+ ✅  NVIDIA's [MONAI](https://docs.nvidia.com/monai/index.html) Integration, AI to automatically segment medical images and train custom models.
-+ ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting NVIDIA's MONAI in serverless GPU enabled clusters for real-time segmentation.
+# `pixels` Solution Accelerator
+✅  Ingest and index DICOM image metadata (.dcm and from zip archives)
+</br> ✅  Analyze DICOM image metadata with SQL and Machine Learing.
+</br> ✅  View, segment, label DICOM Images with OHIF viewer integrated into Lakehouse Apps and Databricks security model. 
+</br> ✅  One button push to lauch model training from OHIF viewer.
+</br> ✅  NVIDIA's [MONAI](https://docs.nvidia.com/monai/index.html) Integration, AI to automatically segment medical images and train custom models.
+</br> ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting NVIDIA's MONAI in serverless GPU enabled clusters for real-time segmentation.
 
 ---
 ## Secure Lakehouse integrated DICOM Viewer powered by OHIF
-- <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
+<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
 
 ---
 ## Run SQL queries over DICOM metadata
 ![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
 
 ---
-## Quick Start
-Run the demo notebook [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
+## DICOM data ingestion is easy
 
 ```python
 # import Pixels Catalog (indexer) and DICOM transformers & utilities
@@ -30,7 +30,7 @@ from dbx.pixels.dicom import *                              # 02
 catalog = Catalog(spark)                                    # 03
 catalog_df = catalog.catalog(<path>)                        # 04
 
-# extract the Dicom metadata
+# extract the DICOM metadata
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
  
 # extract DICOM image thumbnails (optional)
@@ -39,15 +39,25 @@ thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
 # save your work for SQL access
 catalog.save(thumbnail_df)                                  # 07
 ```
+You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
+
 
 ---
+## Architecture
+![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
+
+---
+## Getting started
+
+To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to Serverless Compute or any cluster running a DBR 14.3 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
+
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
 To enable incremental processing you need to set `streaming` and `streamCheckpointBasePath` as follows:
 ```python
 catalog_df = catalog.catalog(path, streaming=True, streamCheckpointBasePath=<checkpointPath>)
 ```
----
+
 ## Built-in unzip
 Automatically extracts zip files in the defined volume path.
 If extractZip is not enabled then zip files will be ignored.
@@ -57,7 +67,7 @@ catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPat
 ```
 ---
 ## OHIF Viewer
-Inside Pixel resources, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
+Inside `dbx.pixel` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
 
 All the catalog entries will be available in an easy to use study list.
 ![Catalog](https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_catalog_view.png?raw=true)
@@ -73,7 +83,6 @@ To start the OHIF Viewer web app you need to:
 
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
----
 ## Save measurements and segmentations
 The OHIF Viewer allows you to save back in databricks the measurements and the segmentations created in the viewer.
 The metadata will be stored in the object_catalog, and the generated dicom files in the volume under the path `/ohif/exports/`.
@@ -82,7 +91,7 @@ The metadata will be stored in the object_catalog, and the generated dicom files
 <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_meas.png?raw=true" alt="OHIF_SAVE_MEAS" height="300"/>
 <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_result.png?raw=true" alt="OHIF_SAVED" height="300"/>
 
----
+
 ## MONAILabel Integration
 
 [MONAILabel](https://monai.io/label.html) is an open-source tool designed for interactive medical image labeling. It supports various annotation tasks such as segmentation and classification, providing a seamless experience when integrated with viewers like OHIF that is already available in this solution accelerator.
@@ -95,7 +104,7 @@ Once the server is running, you can use the OHIF Viewer to interact with your me
  - Seamless Integration: Work directly within Databricks using a web-based viewer.
  - Customizable Workflows: Tailor the annotation process to fit specific research needs.
 
-### Setup Instructions
+### MONAILabel Setup Instructions
 To execute the MONAILabel server is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
 #### Start the MONAILabel server
  - Execute the [05-MONAILabel](https://github.com/databricks-industry-solutions/pixels/blob/main/05-MONAILabel.py) inside a Databricks workspace.
@@ -136,52 +145,36 @@ https://github.com/user-attachments/assets/8cf62378-ab39-4a89-86ad-c2f231b7a524
 
 https://github.com/user-attachments/assets/17142752-d9b9-434b-b893-b6bc05080f54
 
----
-## Architecture
-![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
 
-___
-
-## Installation
-
-To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to any cluster running a DBR 14.3 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
-
-___
-## Working with Unity Catalog (as of October 18th, 2023)
+## Working with Unity Catalog
 Unity Catalog (UC) [volumes](https://docs.databricks.com/en/data-governance/unity-catalog/create-volumes.html) are the recommended approach for providing access to and governing non-tabular data assets in a cloud object storage locations, including DICOM files. Volumes are accessed by using the following format for the path that is passed to the pixels `Catalog` object - 
 ```
 /Volumes/<catalog>/<schema>/<volume>/<path-level-1>/...
 ```
 where `<catalog>`, `<schema>` and `<volume>` reflect the three-level namespace of Unity Catalog. The path field returned by the `Catalog` object reflects the volume file path listed above and subsequent metadata and thumbnail extraction operations will use volumes for accessing files.
 
-To use `databricks.pixels` with UC volumes currently requires the use of [single-user access mode clusters](https://docs.databricks.com/en/clusters/configure.html#access-modes) since `databricks.pixels` leverages user-defined functions (UDFs) and shared access mode clusters do not currently allow UDFs to access UC volumes. This behavior is expected to change in the future. When working with a UC-enabled cluster, attempting to access the cloud object store path directly by using external locations may cause errors due to the access method used by `pixels`.
+DICOM file Ingestion works with Shared, Dedicated and Serverless Compute types.
 
-___
+---
 ## Contributors
 - Douglas Moore @ Databricks
 - Emanuele Rinaldi @ Databricks
-- Nicole Lu @ Databricks
+- Nicole Jingting Lu @ Databricks
+- Krishanu Nandy @ Databricks
+- May Merkle-Tan @ Databricks
 - Ben Russoniello @ Prominence Advisors
+- Cal Reynolds @ Databricks
 
-___
+
 ## About `dbx.pixels`
-Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
+Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning, AI/BI Dashboarding, Genie Spaces.
 
-* Use `dbx.pixels` python package for simplicity
-  - Catalog your images
-  - Extract Metadata
-  - Visualize thumbnails
-<!-- -->
-* Scale up Image processing over multiple-cores and multiple worker nodes
-* Delta Lake & Delta Engine accelerate metadata analysis.
-* Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
-<!-- -->
 - tags: 
 dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
 ---
-___
+
 ## About DICOM
-![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
+![DICOM Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
 [Per OFFIS computer science institute](https://dicom.offis.uni-oldenburg.de/en/general/dicom-introduction/) 
 
 DICOM® — Digital Imaging and Communications in Medicine — is the international standard for medical images and related information. It defines the formats for medical images that can be exchanged with the data and quality necessary for clinical use.
@@ -198,10 +191,10 @@ DICOM® is recognized by the International Organization for Standardization as t
 
 | library              | purpose                             | license                       | source                                                  |
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
-| dbx.pixels    | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
-| pydicom              | Reading Dicom file wrapper          | MIT                           | https://github.com/pydicom/pydicom                      |
+| dbx.pixels           | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
+| pydicom              | Python api for DICOM files          | MIT                           | https://github.com/pydicom/pydicom                      |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
-| gdcm                 | Parse Dicom files                   | BSD                           | https://gdcm.sourceforge.net/wiki/index.php/Main_Page   |
+| gdcm                 | Parse DICOM files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
