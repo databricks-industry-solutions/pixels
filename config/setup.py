@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 git+https://github.com/databricks-industry-solutions/pixels.git 
+# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 git+https://github.com/databricks-industry-solutions/pixels.git@2.0.0 
 
 # COMMAND ----------
 
