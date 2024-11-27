@@ -67,7 +67,7 @@ catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPat
 ```
 ---
 ## OHIF Viewer
-Inside `dbx.pixel` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
+Inside `dbx.pixels` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
 
 All the catalog entries will be available in an easy to use study list.
 ![Catalog](https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_catalog_view.png?raw=true)
