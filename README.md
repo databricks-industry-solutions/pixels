@@ -247,6 +247,7 @@ ___
 ## Contributors
 - Douglas Moore @ Databricks
 - Emanuele Rinaldi @ Databricks
+- Ben Russoniello @ Prominence Advisors
 
 ___
 ## About DICOM
