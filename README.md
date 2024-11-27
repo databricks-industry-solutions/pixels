@@ -1,39 +1,28 @@
-<img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="400px">
-
-[![DBR](https://img.shields.io/badge/DBR-14.3ML-red?logo=databricks&style=for-the-badge)](https://docs.databricks.com/release-notes/runtime/14.3ml.html)
-[![CLOUD](https://img.shields.io/badge/CLOUD-ALL-blue?logo=googlecloud&style=for-the-badge)](https://cloud.google.com/databricks)
-[![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
----
+<div bgcolor="white">
+  <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="right">
+</div>
 
 # `dbx.pixels` Solution Accelerator
-- Ingest and index DICOM image metadata (.dcm and from zip archives) into Delta tables for structured data analysis (SQL + ML).
-- Analyze DICOM image metadata with SQL
-- View and segment Dicom Images with OHIF viewer
-- [MONAI](https://monai.io/) Integration, AI to automatically segment medical images and train custom models directly from the OHIF Viewer.
-- Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting MONAI in serverless GPU enabled clusters for real-time segmentation.
-![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
++ ✅  Ingest and index DICOM image metadata (.dcm and from zip archives)
++ ✅  Analyze DICOM image metadata with SQL and Machine Learing.
++ ✅  View, segment, label Dicom Images with OHIF viewer integrated into Lakehouse Apps and Databricks security model. Directly launch model training from viewer.
++ ✅  NVIDIA's [MONAI](https://docs.nvidia.com/monai/index.html) Integration, AI to automatically segment medical images and train custom models.
++ ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting NVIDIA's MONAI in serverless GPU enabled clusters for real-time segmentation.
 
 ---
-## About `dbx.pixels`
-Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
+## Secure Lakehouse integrated DICOM Viewer powered by OHIF
+- <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
 
-* Use `dbx.pixels` python package for simplicity
-  - Catalog your images
-  - Extract Metadata
-  - Visualize thumbnails
-<!-- -->
-* Scale up Image processing over multiple-cores and multiple worker nodes
-* Delta Lake & Delta Engine accelerate metadata analysis.
-* Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
-<!-- -->
-- tags: 
-dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
+---
+## Run SQL queries over DICOM metadata
+![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
+
 ---
 ## Quick Start
 Run the demo notebook [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
 
 ```python
-# imports
+# import Pixels Catalog (indexer) and DICOM transformers & utilities
 from dbx.pixels import Catalog                              # 01
 from dbx.pixels.dicom import *                              # 02
 
@@ -44,19 +33,13 @@ catalog_df = catalog.catalog(<path>)                        # 04
 # extract the Dicom metadata
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
  
-# extract thumbnails and display
+# extract DICOM image thumbnails (optional)
 thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
  
 # save your work for SQL access
 catalog.save(thumbnail_df)                                  # 07
 ```
-1. Import the Catalog class from the dbx.pixels module.
-2. Import all functions and classes from the dbx.pixels.dicom module.
-3. Create an instance of the Catalog class, passing in the spark session.
-4. Catalog all files at the specified path using the catalog method of the Catalog instance, and storing the result in the catalog_df dataframe. Replace `<path>` with the location of your files.
-5. Create an instance of the DicomMetaExtractor class and call its transform method with the catalog_df DataFrame as input. This extracts the DICOM metadata.
-6. Create an instance of the DicomThumbnailExtractor class and call its transform method with the meta_df DataFrame as input. This extracts the thumbnails. (Optional)
-7. Save the transformed DataFrame to the catalog using the save method.
+
 ---
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
@@ -154,78 +137,8 @@ https://github.com/user-attachments/assets/8cf62378-ab39-4a89-86ad-c2f231b7a524
 https://github.com/user-attachments/assets/17142752-d9b9-434b-b893-b6bc05080f54
 
 ---
-## Design
-Data Flow
-<img width="100%" src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/pixels-dataflow-diagram.svg?raw=true">
-
----
-Python Class Diagram
-```mermaid
-classDiagram
-    class Transformer {
-        +transform(df): DataFrame
-        -_with_path_meta(): DataFrame
-    }
-    Transformer <|-- DicomMetaExtractor
-    Transformer <|-- DicomThumbnailExtractor
-    Transformer <|-- DicomPillowThumbnailExtractor
-    Transformer <|-- DicomPatcher
-    Transformer <|-- PathExtractor
-    Transformer <|-- TagExtractor
-
-    PathExtractor: -check_input_type()
-    TagExtractor: -check_input_type()
-    DicomMetaExtractor: -check_input_type()
-    DicomMetaExtractor: -_transform(DataFrame)
-    DicomThumbnailExtractor: -check_input_type()
-    DicomThumbnailExtractor: -_transform(DataFrame)
-    DicomPillowThumbnailExtractor: -check_input_type()
-    DicomPillowThumbnailExtractor: -_transform(DataFrame)
-    DicomPatcher: -_transform(DataFrame)
-
-    PathExtractor: -_transform(DataFrame)
-    TagExtractor: -_transform(DataFrame)
-    
-    DicomMetaExtractor --> Catalog
-    DicomMetaExtractor ..> dicom_meta_udf
-    DicomThumbnailExtractor ..> dicom_matplotlib_thumbnail_udf
-    DicomPillowThumbnailExtractor ..> dicom_pillow_thumbnail_udf
-    DicomPatcher ..> dicom_patcher_udf
-
-    dicom_meta_udf ..> pydicom
-    dicom_matplotlib_thumbnail_udf ..> pydicom
-    dicom_pillow_thumbnail_udf  ..> pydicom
-    dicom_patcher_udf  ..> pydicom
-
-    pydicom: +dcmread(fp)
-
-    class Catalog {
-        Catalog(path, table):Catalog
-        +catalog(path): DataFrame
-        +load(): DataFrame
-        +save(df)
-    }
-```
----
-ER Diagram
-```mermaid
-%%{init: { 'logLevel': 'debug', 'theme': 'forest' } }%%
-erDiagram
-    object_catalog
-    object_catalog {
-      bigint	rowId PK            "Generated unique id found when cataloging"
-      string	path                "Absolute path to Object file"
-      timestamp	modificationTime  "modification timestamp of object as found on cloud storage"
-      bigint	length              "bytes of object file"
-      string	relative_path       "Relative to cataloging base path"
-      string	local_path          "Translated path used by python UDFs"
-      string	extension           "last few characters following last dot"
-      array_string	path_tags     "Path split by common file name separators"
-      string	meta                "JSON string of File header metadata"
-      boolean	is_anon             "'true' if access to storage has no credentials"
-      binary  thumbnail           "binary or struct<<origin:string,height:int,width:int,nChannels:int,mode:int,data:binary>"
-    }
-```
+## Architecture
+![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
 
 ___
 
@@ -247,8 +160,25 @@ ___
 ## Contributors
 - Douglas Moore @ Databricks
 - Emanuele Rinaldi @ Databricks
+- Nicole Lu @ Databricks
 - Ben Russoniello @ Prominence Advisors
 
+___
+## About `dbx.pixels`
+Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning
+
+* Use `dbx.pixels` python package for simplicity
+  - Catalog your images
+  - Extract Metadata
+  - Visualize thumbnails
+<!-- -->
+* Scale up Image processing over multiple-cores and multiple worker nodes
+* Delta Lake & Delta Engine accelerate metadata analysis.
+* Scales well maintained 'standard' python packages `python-gdcm` `pydicom`
+<!-- -->
+- tags: 
+dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
+---
 ___
 ## About DICOM
 ![Dicom Image processing](https://dicom.offis.uni-oldenburg.de/images/dicomlogo.gif)
