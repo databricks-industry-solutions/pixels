@@ -4,11 +4,11 @@
 
 # `pixels` Solution Accelerator
 ✅  Ingest and index DICOM image metadata (.dcm and from zip archives)
-</br> ✅  Analyze DICOM image metadata with SQL and Machine Learing.
+</br> ✅  Analyze DICOM image metadata with SQL and Machine Learning.
 </br> ✅  View, segment, label DICOM Images with OHIF viewer integrated into Lakehouse Apps and Databricks security model. 
-</br> ✅  One button push to lauch model training from OHIF viewer.
+</br> ✅  One button push to launch model training from OHIF viewer.
 </br> ✅  NVIDIA's [MONAI](https://docs.nvidia.com/monai/index.html) Integration, AI to automatically segment medical images and train custom models.
-</br> ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html), hosting NVIDIA's MONAI in serverless GPU enabled clusters for real-time segmentation.
+</br> ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html) with serverless GPU enabled clusters for real-time segmentation.
 
 ---
 ## Secure Lakehouse integrated DICOM Viewer powered by OHIF
@@ -76,15 +76,15 @@ Fast and multiple-layer visualization capability.
 
 To start the OHIF Viewer web app you need to:
  - Execute the [06-OHIF-Viewer](https://github.com/databricks-industry-solutions/pixels/blob/main/06-OHIF-Viewer.py) inside a Databricks workspace.
- - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
- - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
+ - Set the `table` parameter to the full name of your Pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
+ - Set the `sqlWarehouseID`parameter to execute the queries required to collect the records. It's the final section of the `HTTP path` in the `Connection details` tab. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
 
     <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID"/>
 
  - Use the link generated in the last notebook to access the OHIF viewer page.
 
 ## Save measurements and segmentations
-The OHIF Viewer allows you to save back in databricks the measurements and the segmentations created in the viewer.
+The OHIF Viewer allows you to save back to Databricks the measurements and the segmentations created in the viewer.
 The metadata will be stored in the object_catalog, and the generated dicom files in the volume under the path `/ohif/exports/`.
 
 <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/ohif_save_segm.png?raw=true" alt="OHIF_SAVE_SEG" height="300"/>
@@ -105,15 +105,15 @@ Once the server is running, you can use the OHIF Viewer to interact with your me
  - Customizable Workflows: Tailor the annotation process to fit specific research needs.
 
 ### MONAILabel Setup Instructions
-To execute the MONAILabel server is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
+To execute the MONAILabel server it is mandatory to use a cluster with Databricks Runtime Version of `14.3 LTS ML`. For the best performance use a [GPU-Enabled compute](https://docs.databricks.com/en/compute/gpu.html#gpu-enabled-compute).
 #### Start the MONAILabel server
  - Execute the [05-MONAILabel](https://github.com/databricks-industry-solutions/pixels/blob/main/05-MONAILabel.py) inside a Databricks workspace.
- - Set `table` parameter with full name of you pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
- - Set `sqlWarehouseID`parameter to execute the queries required to collect the records. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
+ - Set the `table` parameter to the full name of your Pixels catalog table. Ex: `main.pixels_solacc.object_catalog`
+ - Set the `sqlWarehouseID`parameter to the DBSQL Warehouse ID, needed to run queries required to collect the records. Use [Serverless](https://docs.databricks.com/en/admin/sql/warehouse-types.html#sql-warehouse-types) for best performance.
     <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/sqlWarehouseID.png?raw=true" alt="sqlWarehouseID">
 #### Open the OHIF Viewer
  - Execute the notebook [06-OHIF-Viewer](https://github.com/databricks-industry-solutions/pixels/blob/main/06-OHIF-Viewer.py) to start the OHIF Viewer with the MONAILabel extension and open the generated link.
- - Select the preferred CT scan study and press on `MONAI Label` button.
+ - Select the preferred CT scan study and press the `MONAI Label` button.
 
     <img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/monailabel_btn.png?raw=true" alt="MONAI_BTN" height="250"/></br>
 #### Connect, execute and save
@@ -191,7 +191,7 @@ DICOM® is recognized by the International Organization for Standardization as t
 
 | library              | purpose                             | license                       | source                                                  |
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
-| dbx.pixels           | Scale out image processong Spark    | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
+| dbx.pixels           | Scale out image processing library  | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Python api for DICOM files          | MIT                           | https://github.com/pydicom/pydicom                      |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 | gdcm                 | Parse DICOM files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
