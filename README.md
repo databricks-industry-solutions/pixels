@@ -12,7 +12,7 @@
 
 ---
 ## Secure Lakehouse integrated DICOM Viewer powered by OHIF
-<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true" alt="MONAI_AUTOSEG" height="650"/></br>
+<img src="https://github.com/databricks-industry-solutions/pixels/blob/main/images/LHA_AUTOSEG.gif?raw=true" alt="MONAI_AUTOSEG"/></br>
 
 ---
 ## Run SQL queries over DICOM metadata
