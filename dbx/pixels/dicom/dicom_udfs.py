@@ -5,6 +5,8 @@ import os
 from pydicom import Dataset
 from pyspark.sql.functions import udf
 
+from ff3 import FF3Cipher
+
 
 def cloud_open(path: str, anon: bool = False):
     try:
@@ -83,3 +85,47 @@ def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False) -> dict:
             {"udf": "dicom_meta_udf", "error": str(err), "args": str(err.args), "path": path}
         )
         return except_str
+
+
+@udf()
+def anonymize_dicom_file(path: str, dest_path:str, fp_key:str, tweak:str) -> str:
+    """
+    UDF to anonymize a DICOM file.
+    Args:
+        path (str): Path to the DICOM file.
+        dest_path (str): Destination path to save the anonymized DICOM file.
+        fp_key (str): Key for encryption.
+        tweak (str): Tweak for encryption.
+    Returns:
+        str: Path to the anonymized DICOM file.
+    """
+    import dicognito.anonymizer
+    from pydicom import Dataset, dcmread
+    import os
+
+    c = FF3Cipher(fp_key, tweak)
+
+    anonymizer = dicognito.anonymizer.Anonymizer()
+
+    ds = dcmread(path)
+
+    encr_StudyInstanceUID = ".".join([c.encrypt(element) if len(element) > 6 else element for element in ds.StudyInstanceUID.split(".")])
+    encr_SeriesInstanceUID = ".".join([c.encrypt(element) if len(element) > 6 else element for element in ds.SeriesInstanceUID.split(".")])
+    encr_SOPInstanceUID = ".".join([c.encrypt(element) if len(element) > 6 else element for element in ds.SOPInstanceUID.split(".")])
+
+    anonymizer.anonymize(ds)
+
+    with Dataset() as dataset:
+        dataset.add_new(0x0020000D, "UI", encr_StudyInstanceUID)
+        dataset.add_new(0x0020000E, "UI", encr_SeriesInstanceUID)
+        dataset.add_new(0x00080018, "UI", encr_SOPInstanceUID)
+        ds.update(dataset)
+    
+    anonymized_path = f"{dest_path}{encr_StudyInstanceUID}/{encr_SeriesInstanceUID}"
+
+    if not os.path.exists(anonymized_path):
+        os.makedirs(anonymized_path)
+
+    ds.save_as(f"{anonymized_path}/{encr_SOPInstanceUID}.dcm")
+
+    return anonymized_path
