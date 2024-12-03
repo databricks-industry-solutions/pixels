@@ -32,18 +32,86 @@ tag_to_anonymize = "pixels_anonym"
 # COMMAND ----------
 
 # sample commands used to grant access to the catalog, schema and volume
-spark.sql(f'GRANT USE CATALOG ON CATALOG {catalog} TO {user_masked};')
-spark.sql(f'GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO {user_masked};')
-spark.sql(f'GRANT READ VOLUME ON VOLUME {catalog}.{schema}.{volume} TO {user_masked};')
-spark.sql(f'GRANT SELECT ON TABLE {catalog}.{schema}.{table} TO {user_masked};')
+spark.sql(f'GRANT USE CATALOG ON CATALOG {catalog} TO {group_masked};')
+spark.sql(f'GRANT USE SCHEMA ON SCHEMA {catalog}.{schema} TO {group_masked};')
+spark.sql(f'GRANT READ VOLUME ON VOLUME {catalog}.{schema}.{volume} TO {group_masked};')
+spark.sql(f'GRANT SELECT ON TABLE {catalog}.{schema}.{table} TO {group_masked};')
+spark.sql(f'GRANT SELECT ON TABLE {catalog}.{schema}.{column_masked_view} TO {group_masked};')
+spark.sql(f'GRANT SELECT ON TABLE {catalog}.{schema}.{row_filtered_view} TO {group_masked};')
 
 # COMMAND ----------
 
 # sample commands used to revoke access to the catalog, schema and volume
-spark.sql(f'REVOKE ALL PRIVILEGES  ON CATALOG {catalog} FROM {user_masked};')
-spark.sql(f'REVOKE ALL PRIVILEGES  ON SCHEMA {catalog}.{schema} FROM {user_masked};')
-spark.sql(f'REVOKE READ VOLUME ON VOLUME {catalog}.{schema}.{volume} FROM {user_masked};')
-spark.sql(f'REVOKE SELECT ON TABLE {catalog}.{schema}.{table} FROM {user_masked};')
+spark.sql(f'REVOKE ALL PRIVILEGES  ON CATALOG {catalog} FROM {group_masked};')
+spark.sql(f'REVOKE ALL PRIVILEGES  ON SCHEMA {catalog}.{schema} FROM {group_masked};')
+spark.sql(f'REVOKE READ VOLUME ON VOLUME {catalog}.{schema}.{volume} FROM {group_masked};')
+spark.sql(f'REVOKE SELECT ON TABLE {catalog}.{schema}.{table} FROM {group_masked};')
+spark.sql(f'REVOKE SELECT ON TABLE {catalog}.{schema}.{column_masked_view} FROM {group_masked};')
+spark.sql(f'REVOKE SELECT ON TABLE {catalog}.{schema}.{row_filtered_view} FROM {group_masked};')
+
+# COMMAND ----------
+
+# Shared clusters will not be able to process images in notebooks, remove thumbnail column
+spark.sql(f"SELECT * except(thumbnail) FROM {catalog}.{schema}.{table}").display()
+
+# COMMAND ----------
+
+# MAGIC %md #Row filters and Column Mask via Dynamic Views
+# MAGIC
+# MAGIC We are going to create a Dynamic View with row filter based on DeIdentification Method
+# MAGIC https://dicom.innolitics.com/ciods/ultrasound-image/patient/00120063
+# MAGIC
+# MAGIC The user `emanuele.rinaldi@databricks.com` is part of group **pixels_phi**
+# MAGIC
+# MAGIC The `emanuele.rinaldi+nonadmin@databricks.com` is part of group **pixels_deidentified**
+
+# COMMAND ----------
+
+# DBTITLE 1,Search all the DeIdentification Methods used in catalog
+spark.sql(f"SELECT DISTINCT(meta:['00120063'].Value[0]) `DeIndentification Method` FROM {catalog}.{schema}.{table}").display()
+
+# COMMAND ----------
+
+# DBTITLE 1,Dynamic View with condition on rows
+# Filter the data based on the access level of the group 
+spark.sql(f"""
+create or replace view {catalog}.{schema}.{row_filtered_view} as 
+select * from {catalog}.{schema}.{table}
+WHERE
+   CASE
+     WHEN is_account_group_member('{group_phi}') THEN TRUE                                      -- access to all the data
+     WHEN is_account_group_member('{group_masked}') THEN meta:['00120063'].Value[0] is not null -- access only to deidentified data
+     ELSE FALSE
+   END;
+""")
+
+spark.sql(f"ALTER VIEW {catalog}.{schema}.{row_filtered_view} SET TAGS ('phi', 'pixels_anonym')")
+
+# COMMAND ----------
+
+# DBTITLE 1,Dynamic view with column Masking
+# Redact the column `meta` in the view for non pixels_phi groups
+spark.sql(f"""
+create or replace view {catalog}.{schema}.{column_masked_view} as 
+select * except (meta),
+  CASE 
+    WHEN IS_ACCOUNT_GROUP_MEMBER('pixels_phi') THEN meta
+    ELSE "[REDACTED]"
+  END as meta
+from {catalog}.{schema}.{table}
+""")
+
+spark.sql(f"ALTER VIEW {catalog}.{schema}.{column_masked_view} SET TAGS ('phi', 'pixels_anonym')")
+
+# COMMAND ----------
+
+# DBTITLE 1,Query the row filtered view
+spark.sql(f"SELECT * EXCEPT (thumbnail) FROM {catalog}.{schema}.{row_filtered_view}").display()
+
+# COMMAND ----------
+
+# DBTITLE 1,query the column masked view
+spark.sql(f"SELECT * EXCEPT (thumbnail) FROM {catalog}.{schema}.{column_masked_view}").display()
 
 # COMMAND ----------
 
@@ -69,8 +137,8 @@ spark.sql(f'REVOKE SELECT ON TABLE {catalog}.{schema}.{table} FROM {user_masked}
 # sample commands used to grant access to the catalog, schema and volume to a group using a tagged catalog, schema, volume and table
 
 table_tags = spark.sql(f"select * from {catalog}.information_schema.table_tags where tag_name = '{tag_phi}'").collect()
-for table in table_tags:
-    table_dic = table.asDict()
+for tag in table_tags:
+    table_dic = tag.asDict()
     spark.sql(f"GRANT USE CATALOG ON CATALOG {table_dic['catalog_name']} TO `{group_phi}`;")
     spark.sql(f"GRANT USE SCHEMA ON SCHEMA {table_dic['catalog_name']}.{table_dic['schema_name']} TO `{group_phi}`;")
     spark.sql(f"GRANT SELECT ON TABLE {table_dic['catalog_name']}.{table_dic['schema_name']}.{table_dic['table_name']} TO `{group_phi}`;")
@@ -85,73 +153,13 @@ for volume in volume_tags:
 # sample commands used to grant access to the catalog, schema and volume to a group using a tagged catalog, schema, volume and table
 
 table_tags = spark.sql(f"select * from {catalog}.information_schema.table_tags where tag_name = '{tag_to_anonymize}'").collect()
-for table in table_tags:
-    table_dic = table.asDict()
-    spark.sql(f"GRANT USE CATALOG ON CATALOG {table_dic['catalog_name']} TO `{user_masked}`;")
-    spark.sql(f"GRANT USE SCHEMA ON SCHEMA {table_dic['catalog_name']}.{table_dic['schema_name']} TO `{user_masked}`;")
-    spark.sql(f"GRANT SELECT ON TABLE {table_dic['catalog_name']}.{table_dic['schema_name']}.{table_dic['table_name']} TO `{user_masked}`;")
+for tag in table_tags:
+    table_dic = tag.asDict()
+    spark.sql(f"GRANT USE CATALOG ON CATALOG {table_dic['catalog_name']} TO `{group_masked}`;")
+    spark.sql(f"GRANT USE SCHEMA ON SCHEMA {table_dic['catalog_name']}.{table_dic['schema_name']} TO `{group_masked}`;")
+    spark.sql(f"GRANT SELECT ON TABLE {table_dic['catalog_name']}.{table_dic['schema_name']}.{table_dic['table_name']} TO `{group_masked}`;")
 
 volume_tags = spark.sql(f"select * from {catalog}.information_schema.volume_tags where tag_name = '{tag_to_anonymize}'").collect()
 for volume in volume_tags:
     volume_dic = volume.asDict()
-    spark.sql(f"GRANT READ VOLUME ON VOLUME {volume_dic['catalog_name']}.{volume_dic['schema_name']}.{volume_dic['volume_name']} TO `{user_masked}`;")
-
-# COMMAND ----------
-
-# Shared clusters will not be able to process images in notebooks, remove thumbnail column
-spark.sql(f"SELECT * EXCEPT (thumbnail) FROM {catalog}.{schema}.{table}")
-
-# COMMAND ----------
-
-# MAGIC %md #Row filters and Column Mask via Dynamic Views
-# MAGIC
-# MAGIC We are going to create a Dynamic View with row filter based on DeIdentification Method
-# MAGIC https://dicom.innolitics.com/ciods/ultrasound-image/patient/00120063
-# MAGIC
-# MAGIC The user emanuele.rinaldi@databricks.com is part of group **pixels_phi**
-# MAGIC
-# MAGIC The user emanuele.rinaldi+nonadmin@databricks.com is part of group **pixels_deidentified**
-
-# COMMAND ----------
-
-# DBTITLE 1,Search all the DeIdentification Methods used in catalog
-spark.sql(f"SELECT DISTINCT(meta:['00120063'].Value[0]) `DeIndentification Method` FROM {catalog}.{schema}.{table}")
-
-# COMMAND ----------
-
-# DBTITLE 1,Dynamic View with condition on rows
-# Filter the data based on the access level of the group 
-spark.sql(f"""
-create or replace view {catalog}.{schema}.{row_filtered_view} as 
-select * from {schema}.{catalog}.{table}
-WHERE
-   CASE
-     WHEN is_account_group_member('{group_phi}') THEN TRUE                                      -- access to all the data
-     WHEN is_account_group_member('{group_masked}') THEN meta:['00120063'].Value[0] is not null -- access only to deidentified data
-     ELSE FALSE
-   END;
-""")
-
-# COMMAND ----------
-
-# DBTITLE 1,Dynamic view with column Masking
-# Redact the column `meta` in the view for non pixels_phi groups
-spark.sql(f"""
-create or replace view {catalog}.{schema}.{column_masked_view} as 
-select * except (meta),
-  CASE 
-    WHEN IS_ACCOUNT_GROUP_MEMBER('pixels_phi') THEN meta
-    ELSE "[REDACTED]"
-  END as meta
-from {schema}.{catalog}.{table}
-""")
-
-# COMMAND ----------
-
-# DBTITLE 1,Query the row filtered view
-spark.sql(f"SELECT * EXCEPT (thumbnail) FROM {catalog}.{schema}.{row_filtered_view}")
-
-# COMMAND ----------
-
-# DBTITLE 1,query the column masked view
-spark.sql(f"SELECT * EXCEPT (thumbnail) FROM {catalog}.{schema}.{column_masked_view}")
+    spark.sql(f"GRANT READ VOLUME ON VOLUME {volume_dic['catalog_name']}.{volume_dic['schema_name']}.{volume_dic['volume_name']} TO `{group_masked}`;")

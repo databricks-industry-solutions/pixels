@@ -1951,7 +1951,7 @@ function utils_processResults(qidoStudies) {
     // medicalRecordNumber
     patientName: src.utils.formatPN(utils_getName(JSON.parse(qidoStudy[5]))) || '',
     description: utils_getString(JSON.parse(qidoStudy[6])) || '',
-    modalities: utils_getString(utils_getModalities(JSON.parse(qidoStudy[7]), JSON.parse(qidoStudy[8]))) || '',
+    modalities: qidoStudy[7] + qidoStudy[8],
     instances: Number(JSON.parse(qidoStudy[9])) || 1 // number
   }));
 
@@ -2030,8 +2030,8 @@ async function qidoStudiesSearch(databricksClient, warehouseId, pixelsTable, ori
         nullif(meta: ['00100020'].Value[0], '') as mrn,
         first(meta: ['00100010'], true) as patientName,
         first(meta: ['00081030'], true) as description,
-        concat('{"vr":"CS","Value":["', concat_ws('\/', collect_set(meta:['00080060'].Value[0])), '"]}') as modalities1,
-        concat('{"vr":"CS","Value":["', concat_ws('\/', collect_set(meta:['00080061'].Value[0])), '"]}') as modalities2,
+        array_join(collect_set(nullif(meta:['00080060'].Value[0], '')), '/') as modalities1,
+        array_join(collect_set(nullif(meta:['00080061'].Value[0], '')), '/') as modalities2,
         count(*) as instances
        FROM ${pixelsTable}
        WHERE ${filters.join(" AND ")}
@@ -2065,9 +2065,10 @@ async function qidoSeriesSearch(databricksClient, warehouseId, studyInstanceUid,
   return result.data.result.data_array;
 }
 async function qidoSeriesMetadataSearch(databricksClient, warehouseId, studyInstanceUid, pixelsTable) {
-  let body = {
-    "warehouse_id": warehouseId,
-    "statement": `
+        var to_return = []
+        let body = {
+          "warehouse_id": warehouseId,
+          "statement": `
     with qico(
       SELECT
             meta:['0020000D'].Value[0] as StudyInstanceUID,
@@ -2087,11 +2088,19 @@ async function qidoSeriesMetadataSearch(databricksClient, warehouseId, studyInst
     ) from qico
        WHERE studyInstanceUid = '${studyInstanceUid}'
        group by studyInstanceUid, seriesInstanceUid`,
-    "wait_timeout": "30s",
-    "on_wait_timeout": "CANCEL"
-  };
-  const result = await databricksClient.post(SQL_STATEMENT_API, body);
-  return result.data.result.data_array;
+          "wait_timeout": "30s",
+          "on_wait_timeout": "CANCEL"
+        };
+
+        var result = await databricksClient.post(SQL_STATEMENT_API, body);
+        to_return = result.data.result.data_array
+  
+        while (result.data.result?.next_chunk_internal_link) {
+          result = await databricksClient.get(result.data.result.next_chunk_internal_link.split("/api/2.0/")[1])
+          to_return = to_return.concat(result.data.data_array)
+        }
+
+        return to_return;
 }
 async function persistMetadata(databricksClient, warehouseId, pixelsTable, dataset) {
   let body = {
@@ -2360,6 +2369,7 @@ function createDatabricksPixelsDicom(dcmConfig, servicesManager) {
     },
     store: {
       dicom: async naturalizedReport => {
+        naturalizedReport.SeriesNumber = "9999" //hack for monailabel ordering fix
         const reportBlob = dcmjs_es["default"].data.datasetToBlob(naturalizedReport);
         var instance = {};
         if (naturalizedReport.ConceptNameCodeSequence?.CodeValue == '126000') {

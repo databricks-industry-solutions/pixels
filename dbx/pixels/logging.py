@@ -1,11 +1,12 @@
 import logging
 import sys
 
- 
+
 class LoggerProvider:
     """
     This class provides a logger instance for logging messages.
     """
+
     def __new__(self):
         """
         This method is a constructor that creates a new instance of the LoggerProvider class.

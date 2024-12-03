@@ -15,11 +15,8 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install MONAILabel_Pixels and databricks-sdk
-# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git databricks-sdk --upgrade 
-
-# COMMAND ----------
-
-dbutils.library.restartPython()
+# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels databricks-sdk --upgrade -q
+# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -37,12 +34,38 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ###Download the radiology app in the cluster
+# MAGIC
+# MAGIC The following command will download the radiology app from the MONAILabel github and saves it in the cluster
+
+# COMMAND ----------
+
 # DBTITLE 1,Downloading Radiology Apps with MonaiLabel
 # MAGIC %sh
 # MAGIC monailabel apps --download --name radiology --output /local_disk0/monai/apps/
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Starting the MONAILabel server
+# MAGIC
+# MAGIC The next command will start the monailabel server with the radiology app downloaded before. It will use the pre-trained autosegmentation model
+
+# COMMAND ----------
+
 # DBTITLE 1,Monailabel Radiology Segmentation
 # MAGIC %sh
 # MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --table $DATABRICKS_PIXELS_TABLE
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Create a segmentation model with user defined labels and start the MONAILabel server
+# MAGIC
+# MAGIC The next command will copy the segmentation model to the radiology app directory and start the MONAILabel server with the specified configuration, including custom labels and without using the pre-trained model.
+
+# COMMAND ----------
+
+# MAGIC %sh
+# MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --conf labels '{"lung_left":1,"lung_right":2}' --conf use_pretrained_model false --table $DATABRICKS_PIXELS_TABLE

@@ -1,0 +1,85 @@
+name: publish
+
+env:
+  DB_PROFILES: ${{ secrets.DB_PROFILES }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      db_profile:
+        type: string
+        description: 'Databricks environment to publish HTML from'
+        default: 'DEMO'
+      db_path:
+        type: string
+        description: 'Repository path on databricks environment'
+        required: true
+      split_markdown:
+        description: 'Splitting HTML by markdown'
+        type: choice
+        required: true
+        default: 'false'
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: html_publisher
+    steps:
+
+      - name: Checkout project
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
+
+      - name: Package solution accelerator
+        run: |
+          
+          import os
+          import configparser
+          import io
+          from databricks.solutions import Accelerator
+          
+          config = configparser.ConfigParser()
+          config.read_file(io.StringIO(os.environ['DB_PROFILES']))
+          if '${{ github.event.inputs.db_profile }}' not in config.sections():
+            raise Exception('Provided DB_PROFILE is not supported')
+          config = config['${{ github.event.inputs.db_profile }}']
+          
+          split_markdown = '${{ github.event.inputs.split_markdown }}' == 'true'
+          
+          Accelerator(
+            db_host=config['host'],
+            db_token=config['token'],
+            db_path='${{ github.event.inputs.db_path }}',
+            db_name='${{ github.event.repository.name }}',
+            markdown=split_markdown,
+          ).release()
+
+        shell: python
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
