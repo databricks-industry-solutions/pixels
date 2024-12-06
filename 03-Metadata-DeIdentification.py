@@ -65,9 +65,16 @@ print(dataset)
 
 # COMMAND ----------
 
-from dbx.pixels.dicom.dicom_meta_anonymizer import DicomMetaAnonymizer
+from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
+from dbx.pixels import Catalog
 
-df = spark.read.table(main_table).repartition(16)
+catalog = Catalog(spark, table="ema_rina.pixels_solacc_deid.object_catalog", volume="ema_rina.pixels_solacc_deid.pixels_volume")
+catalog_df = catalog.catalog(path="/Volumes/ema_rina/pixels_solacc_deid/pixels_volume/unzipped/", extractZip=False)
 
-anonymz_df = DicomMetaAnonymizer(key=key).transform(df)
-display(anonymz_df.drop("thumbnail"))
+fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
+tweak = "CBD09280979564"
+
+df = spark.read.table("hls_radiology.ddsm.object_catalog").repartition(16).drop("thumbnail").drop("meta")
+metadata_df = DicomMetaAnonymizerExtractor(catalog, anonym_mode="COMPLETE", deep=False, fp_key=fp_key, tweak=tweak).transform(df)
+
+metadata_df.write.format("noop").mode("append").save()

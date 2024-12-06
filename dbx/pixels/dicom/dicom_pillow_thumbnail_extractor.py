@@ -8,7 +8,7 @@ from pydicom import dcmread
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
-from dbx.pixels.dicom.dicom_udfs import cloud_open
+from dbx.pixels.dicom.dicom_utils import cloud_open
 
 IMAGE_RESIZE = 256
 IMAGE_SIZE = 768
