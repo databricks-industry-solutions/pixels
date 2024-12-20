@@ -1,10 +1,24 @@
 # Databricks notebook source
-# MAGIC %pip install dicognito==0.17.0 ff3==1.0.2
+# MAGIC %md
+# MAGIC # DICOM Metadata Anonymization and Processing
+# MAGIC
+# MAGIC This notebook is designed to facilitate the anonymization and processing of dicom metadata. It leverages specific Python packages to ensure that sensitive patient information is protected while maintaining the integrity of the medical images.
+# MAGIC
+# MAGIC By following this notebook, users can efficiently anonymize radiology datasets, making them suitable for research and analysis without compromising patient privacy.
 
 # COMMAND ----------
 
-main_table = "hls_radiology.ddsm.object_catalog"
-DEST_PATH = "/Volumes/ema_rina/pixels_solacc_deid/pixels_volume/anonymized/"
+# MAGIC %run ./config/setup
+
+# COMMAND ----------
+
+path,table,volume,write_mode = init_widgets()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Generate key for encryption
+# MAGIC
 
 # COMMAND ----------
 
@@ -17,64 +31,30 @@ scope_name = "pixels-scope"
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
   w.secrets.create_scope(scope=scope_name)
 
+#Change string_value to your own key, **DO NOT COMMIT THIS KEY IN YOUR REPO - KEEP IT SAFE**
 w.secrets.put_secret(scope=scope_name, key="pixels_fp_key", string_value="2DE79D232DF5585D68CE47882AE256D6")
-
-# COMMAND ----------
-
-import dicognito.anonymizer
-import os
-from ff3 import FF3Cipher
-from pydicom import dcmread, Dataset
-import copy
 
 fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
 tweak = "CBD09280979564"
-
-encrypt_list = ['StudyInstanceUID', 'SeriesInstanceUID', 'SOPInstanceUID', 'AccessionNumber', 'PatientID']
-keep_list = ['StudyDate','StudyTime','SeriesDate']
-
-c = FF3Cipher(fp_key, tweak)
-anonymizer = dicognito.anonymizer.Anonymizer()
-
-ds = dcmread("/Volumes/ema_rina/pixels_solacc_deid/pixels_volume/unzipped/benigns_21/benigns/patient0027/0027.LEFT_CC.dcm")
-
-keep_values = [copy.deepcopy(ds[element]) for element in keep_list if element in ds]
-
-encrypted_values = []
-
-for element in encrypt_list:
-    if element in ds:
-      if("UID" in element):
-        c.alphabet = "0123456789"
-        ds[element].value = ".".join([c.encrypt(element) if len(element) > 5 else element for element in ds[element].value.split(".")])
-      else:
-        c.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^"
-        ds[element].value = c.encrypt(ds[element].value) if len(ds[element].value) > 5 else ""
-      
-      encrypted_values.append(copy.deepcopy(ds[element]))
-
-anonymizer.anonymize(ds)
-
-with Dataset() as dataset:
-    for values in encrypted_values + keep_values:
-      dataset.add(values)
-
-    ds.update(dataset)
-
-print(dataset)
 
 # COMMAND ----------
 
 from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
 from dbx.pixels import Catalog
 
-catalog = Catalog(spark, table="ema_rina.pixels_solacc_deid.object_catalog", volume="ema_rina.pixels_solacc_deid.pixels_volume")
-catalog_df = catalog.catalog(path="/Volumes/ema_rina/pixels_solacc_deid/pixels_volume/unzipped/", extractZip=False)
+catalog = Catalog(spark, table=table+"_anonym", volume=volume)
+catalog_df = catalog.catalog(path=path, extractZip=True)
 
-fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
-tweak = "CBD09280979564"
+metadata_df = DicomMetaAnonymizerExtractor(catalog, anonym_mode="META", fp_key=fp_key, tweak=tweak).transform(catalog_df)
 
-df = spark.read.table("hls_radiology.ddsm.object_catalog").repartition(16).drop("thumbnail").drop("meta")
-metadata_df = DicomMetaAnonymizerExtractor(catalog, anonym_mode="COMPLETE", deep=False, fp_key=fp_key, tweak=tweak).transform(df)
+catalog.save(metadata_df)
 
-metadata_df.write.format("noop").mode("append").save()
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Display anonymized dicoms
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * except(thumbnail) from ${table}_anonym

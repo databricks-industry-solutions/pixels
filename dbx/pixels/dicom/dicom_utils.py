@@ -90,7 +90,7 @@ def anonymize_metadata(ds: Dataset, fp_key:str, tweak:str, keep_tags:tuple, encr
                 c.alphabet = "0123456789"
                 ds[element].value = ".".join([c.encrypt(element) if len(element) > 5 else element for element in ds[element].value.split(".")])
             else:
-                c.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^"
+                c.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^_-"
                 ds[element].value = c.encrypt(ds[element].value) if len(ds[element].value) > 5 else ""
         
         encrypted_values.append(copy.deepcopy(ds[element]))
