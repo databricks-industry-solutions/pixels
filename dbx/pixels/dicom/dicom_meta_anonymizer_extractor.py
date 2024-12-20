@@ -33,7 +33,6 @@ class DicomMetaAnonymizerExtractor(Transformer):
     """
     ANONYMIZATION_MODES = ["COMPLETE", "METADATA", "IMAGE"]
 
-    # Day extractor inherit of property of Transformer
     def __init__(
         self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", 
         anonym_mode:str=None, fp_key:str=None, tweak:str="CBD09280979564",

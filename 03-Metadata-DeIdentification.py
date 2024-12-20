@@ -39,8 +39,8 @@ tweak = "CBD09280979564"
 
 # COMMAND ----------
 
-from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
 from dbx.pixels import Catalog
+from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
 
 catalog = Catalog(spark, table=table+"_anonym", volume=volume)
 catalog_df = catalog.catalog(path=path, extractZip=True)
