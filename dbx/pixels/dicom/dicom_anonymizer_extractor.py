@@ -52,6 +52,9 @@ class DicomAnonymizerExtractor(Transformer):
         self.encrypt_tags = encrypt_tags
         self.keep_tags = keep_tags
 
+        if anonym_mode not in self.ANONYMIZATION_MODES:
+            raise Exception(f"Invalid anonymization mode {anonym_mode}, must be one of {self.ANONYMIZATION_MODES}")
+
         if anonymization_base_path is not None:
             self.anonymization_base_path = anonymization_base_path
         else:
