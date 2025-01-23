@@ -1,5 +1,5 @@
 from dbx.pixels.dicom.dicom_meta_extractor import DicomMetaExtractor
-from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
+from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 from dbx.pixels.dicom.dicom_pillow_thumbnail_extractor import (
     DicomPillowThumbnailExtractor,
 )

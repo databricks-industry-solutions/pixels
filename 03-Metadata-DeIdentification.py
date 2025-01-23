@@ -31,7 +31,7 @@ scope_name = "pixels-scope"
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
   w.secrets.create_scope(scope=scope_name)
 
-#Change string_value to your own key, **DO NOT COMMIT THIS KEY IN YOUR REPO - KEEP IT SAFE**
+# Change string_value to your own key, **DO NOT COMMIT THIS KEY IN YOUR REPO - KEEP IT SAFE**
 w.secrets.put_secret(scope=scope_name, key="pixels_fp_key", string_value="2DE79D232DF5585D68CE47882AE256D6")
 
 fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
@@ -40,12 +40,12 @@ tweak = "CBD09280979564"
 # COMMAND ----------
 
 from dbx.pixels import Catalog
-from dbx.pixels.dicom.dicom_meta_anonymizer_extractor import DicomMetaAnonymizerExtractor
+from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
 catalog = Catalog(spark, table=table+"_anonym", volume=volume)
 catalog_df = catalog.catalog(path=path, extractZip=True)
 
-metadata_df = DicomMetaAnonymizerExtractor(catalog, anonym_mode="META", fp_key=fp_key, tweak=tweak).transform(catalog_df)
+metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="META", fp_key=fp_key, tweak=tweak).transform(catalog_df)
 
 catalog.save(metadata_df)
 

@@ -6,7 +6,7 @@ import os
 
 from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata, anonymize_metadata
 
-class DicomMetaAnonymizerExtractor(Transformer):
+class DicomAnonymizerExtractor(Transformer):
     
     """
     Transformer class to transform paths to Dicom files to Dicom metadata in JSON format.
@@ -41,8 +41,8 @@ class DicomMetaAnonymizerExtractor(Transformer):
         anonymization_base_path:str=None,
         save_anonymized_dicom:bool=True
     ):
-        self.inputCol = inputCol  # the name of your columns
-        self.outputCol = outputCol  # the name of your output column
+        self.inputCol = inputCol  
+        self.outputCol = outputCol  
         self.basePath = basePath
         self.catalog = catalog
 
