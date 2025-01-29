@@ -38,6 +38,8 @@ jobs:
 
           os.environ['DATABRICKS_TOKEN'] = config['host']
           os.environ['DATABRICKS_HOST'] = config['token']
+        
+      shell: python
 
     - name: Install dependencies for pixels
       run: |
