@@ -1,5 +1,8 @@
 name: Test and Lint Python Package
 
+env:
+  DB_PROFILES: ${{ secrets.DB_PROFILES }}
+
 on:
   push:
     branches: [ main ]
@@ -20,12 +23,34 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
         make dev
+
+    - name: Package solution accelerator
+      run: |
+          
+          import os
+          import configparser
+          import io
+          from databricks.solutions import Accelerator
+          
+          config = configparser.ConfigParser()
+          config.read_file(io.StringIO(os.environ['DB_PROFILES']))
+          if '${{ github.event.inputs.db_profile }}' not in config.sections():
+            raise Exception('Provided DB_PROFILE is not supported')
+          config = config['${{ github.event.inputs.db_profile }}']
+
+          db_host=config['host']
+          db_token=config['token']
+          db_path='${{ github.event.inputs.db_path }}'
+          db_name='${{ github.event.repository.name }}'
+
+          os.environ['DATABRICKS_TOKEN'] = db_token
+          os.environ['DATABRICKS_HOST'] = db_host
+
     - name: Run linting (linter, code style)
       run: make style
     - name: Run tests
       run: make test
       env:
-        DATABRICKS_HOST: "${{ secrets.DATABRICKS_HOST }}"
-        DATABRICKS_TOKEN: "${{ secrets.DATABRICKS_TOKEN }}"
         DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
