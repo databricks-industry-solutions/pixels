@@ -36,17 +36,10 @@ jobs:
           
           config = configparser.ConfigParser()
           config.read_file(io.StringIO(os.environ['DB_PROFILES']))
-          if '${{ github.event.inputs.db_profile }}' not in config.sections():
-            raise Exception('Provided DB_PROFILE is not supported')
-          config = config['${{ github.event.inputs.db_profile }}']
+          config = config['FIELD']
 
-          db_host=config['host']
-          db_token=config['token']
-          db_path='${{ github.event.inputs.db_path }}'
-          db_name='${{ github.event.repository.name }}'
-
-          os.environ['DATABRICKS_TOKEN'] = db_token
-          os.environ['DATABRICKS_HOST'] = db_host
+          os.environ['DATABRICKS_TOKEN'] = config['host']
+          os.environ['DATABRICKS_HOST'] = config['token']
 
     - name: Run linting (linter, code style)
       run: make style
