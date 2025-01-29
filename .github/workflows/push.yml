@@ -20,25 +20,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
-
-    - name: Package solution accelerator
-      run: |
-          
-          import os
-          import configparser
-          import io
-          
-          config = configparser.ConfigParser()
-          config.read_file(io.StringIO(os.environ['DB_PROFILES']))
-          config = config['FIELD']
-
-          os.environ['DATABRICKS_TOKEN'] = config['host']
-          os.environ['DATABRICKS_HOST'] = config['token']
-        
-      shell: python
 
     - name: Install dependencies for pixels
       run: |
@@ -48,5 +29,3 @@ jobs:
       run: make style
     - name: Run tests
       run: make test
-      env:
-        DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
