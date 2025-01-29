@@ -1,9 +1,9 @@
-import os
 import copy
-import json
+import os
 
-from pydicom import Dataset, dcmread
 import numpy as np
+from pydicom import Dataset
+
 
 def cloud_open(path: str, anon: bool = False):
     try:
@@ -22,6 +22,7 @@ def cloud_open(path: str, anon: bool = False):
     except Exception as e:
         raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
+
 def check_pixel_data(ds: Dataset) -> Dataset | None:
     """Check if pixel data exists before attempting to access it.
         pydicom.Dataset.pixel_array will throw an exception if the
@@ -34,6 +35,7 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     except:
         return None
     return a
+
 
 def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     """Extract metadata from header of dicom image file
@@ -63,7 +65,8 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
 
     return js
 
-def anonymize_metadata(ds: Dataset, fp_key:str, tweak:str, keep_tags:tuple, encrypt_tags:tuple):
+
+def anonymize_metadata(ds: Dataset, fp_key: str, tweak: str, keep_tags: tuple, encrypt_tags: tuple):
     """
     Anonymizes metadata of a DICOM file.
     Args:
@@ -77,7 +80,7 @@ def anonymize_metadata(ds: Dataset, fp_key:str, tweak:str, keep_tags:tuple, encr
     """
     import dicognito.anonymizer
     from ff3 import FF3Cipher
-    
+
     c = FF3Cipher(fp_key, tweak)
     anonymizer = dicognito.anonymizer.Anonymizer()
 
@@ -86,13 +89,20 @@ def anonymize_metadata(ds: Dataset, fp_key:str, tweak:str, keep_tags:tuple, encr
 
     for element in encrypt_tags:
         if element in ds:
-            if("UID" in element):
+            if "UID" in element:
                 c.alphabet = "0123456789"
-                ds[element].value = ".".join([c.encrypt(element) if len(element) > 5 else element for element in ds[element].value.split(".")])
+                ds[element].value = ".".join(
+                    [
+                        c.encrypt(element) if len(element) > 5 else element
+                        for element in ds[element].value.split(".")
+                    ]
+                )
             else:
                 c.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^_-"
-                ds[element].value = c.encrypt(ds[element].value) if len(ds[element].value) > 5 else ""
-        
+                ds[element].value = (
+                    c.encrypt(ds[element].value) if len(ds[element].value) > 5 else ""
+                )
+
         encrypted_values.append(copy.deepcopy(ds[element]))
 
     anonymizer.anonymize(ds)

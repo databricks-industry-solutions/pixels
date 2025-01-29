@@ -73,9 +73,9 @@ To enable metadata anonymization, you can use the following extractor:
 ```python
 metadata_df = DicomMetaAnonymizerExtractor(
    catalog,
-   anonym_mode="META",
-   fp_key=fp_key,
-   tweak=tweak,
+   anonym_mode="METADATA",
+   fp_key=<fp_key>, #ONLY HEX STRING ALLOWED
+   tweak=<tweak>,   #ONLY HEX STRING ALLOWED
    anonymization_base_path=<anonym_path>
 ).transform(catalog_df)
 ```
@@ -83,7 +83,7 @@ metadata_df = DicomMetaAnonymizerExtractor(
 
 `tweak` is an optional parameter that can be used to add an additional layer of randomness to the pseudonymization process. This can be useful for further enhancing privacy.
 
-By setting the `anonym_mode` parameter to `"META"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
+By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
 The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
 
 ---

@@ -1,9 +1,10 @@
+import hashlib
+
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, lit, udf
-import hashlib
 
-from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata, anonymize_metadata
+from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata
 
 
 class DicomMetaExtractor(Transformer):
@@ -56,19 +57,25 @@ class DicomMetaExtractor(Transformer):
             deep -- True if deep inspection of the Dicom header is required
             anon -- Set to True if accessing S3 and the bucket is public
             """
-            from pydicom import dcmread
             import json
+
+            from pydicom import dcmread
 
             try:
                 fp, fsize = cloud_open(path, anon)
-                with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:                    
+                with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
                     meta_js = extract_metadata(dataset, deep)
                     meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
                     return json.dumps(meta_js)
             except Exception as err:
                 except_str = str(
-                    {"udf": "dicom_meta_udf", "error": str(err), "args": str(err.args), "path": path}
+                    {
+                        "udf": "dicom_meta_udf",
+                        "error": str(err),
+                        "args": str(err.args),
+                        "path": path,
+                    }
                 )
                 return except_str
 
