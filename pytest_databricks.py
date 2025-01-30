@@ -3,9 +3,8 @@
 # MAGIC export SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
 # MAGIC python -m pip install build
 # MAGIC python -m build --outdir .
+# MAGIC python -m pip install -e .
 # MAGIC pip install pytest
-# MAGIC find . -name "databricks_pixels*"
-# MAGIC mv ./databricks_pixels*.whl ./databricks_pixels.zip
 
 # COMMAND ----------
 # MAGIC %restart_python
