@@ -2,6 +2,7 @@
 # MAGIC %sh
 # MAGIC python -m pip install build
 # MAGIC python -m build --outdir .
+# MAGIC pip install pytest
 # MAGIC mv ./databricks_pixels*.whl ./databricks_pixels.zip
 
 # COMMAND ----------
