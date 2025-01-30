@@ -36,15 +36,14 @@ jobs:
           config.read_file(io.StringIO(os.environ['DB_PROFILES']))
           config = config['DEMO']
 
-          os.environ['DATABRICKS_HOST'] = config['token']
-          os.environ['DATABRICKS_TOKEN'] = config['host']
+          os.environ['DATABRICKS_HOST'] = config['host']
+          os.environ['DATABRICKS_TOKEN'] = config['token']
 
           from databricks.sdk import WorkspaceClient
           from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
           from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
 
           branch = os.getenv('GITHUB_HEAD_REF', 'main')
-          print(branch)
 
           # Create workspace client using host and token
           workspace = WorkspaceClient(
