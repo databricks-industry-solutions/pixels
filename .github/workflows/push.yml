@@ -52,7 +52,6 @@ jobs:
               token=os.environ['DATABRICKS_TOKEN']
           )
 
-          user = workspace.current_user.me().user_name
           nodes = [node for node in workspace.clusters.list_node_types().node_types if not node.is_deprecated and node.num_cores == 4.0 and node.is_io_cache_enabled]
 
           # Define variables
@@ -73,7 +72,6 @@ jobs:
               spark_conf={
                   "spark.master": "local[*, 4]"
               },
-              single_user_name=user,
               data_security_mode=DataSecurityMode.SINGLE_USER,
               runtime_engine=RuntimeEngine.STANDARD
           )
