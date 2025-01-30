@@ -3,7 +3,7 @@
 # MAGIC export SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
 # MAGIC python -m pip install build
 # MAGIC python -m build --outdir .
-# MAGIC python -m pip install -e .
+# MAGIC python -m pip install -r requirements.txt
 # MAGIC pip install pytest
 
 # COMMAND ----------
