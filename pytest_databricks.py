@@ -24,6 +24,5 @@ os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().noteb
 sys.dont_write_bytecode = True
 
 result = pytest.main(['--import-mode=importlib', 'tests/dbx/'])
-exit_code = pytest.main(['test_directory'])
-if exit_code != 0:
-    print(f"Tests failed with exit code: {exit_code}")
+if result != 0:
+    raise Exception(f"Tests failed with exit code: {result}")
