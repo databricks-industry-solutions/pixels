@@ -1,12 +1,11 @@
 # Databricks notebook source
+
 # MAGIC %sh
-# MAGIC export SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
-# MAGIC python -m pip install build
-# MAGIC python -m build --outdir .
 # MAGIC python -m pip install -r requirements.txt
-# MAGIC pip install pytest
+# MAGIC python -m pip install pytest
 
 # COMMAND ----------
+
 # MAGIC %restart_python
 
 # COMMAND ----------
@@ -27,5 +26,6 @@ os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().noteb
 sys.dont_write_bytecode = True
 
 result = pytest.main(['--import-mode=importlib', 'tests/dbx/'])
-print(result)
-# COMMAND ----------
+exit_code = pytest.main(['test_directory'])
+if exit_code != 0:
+    print(f"Tests failed with exit code: {exit_code}")
