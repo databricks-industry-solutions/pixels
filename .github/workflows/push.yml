@@ -42,9 +42,7 @@ jobs:
           from databricks.sdk import WorkspaceClient
           from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider
 
-          branch = os.getenv('GITHUB_HEAD_REF', 'bugfix/github_act')
-
-          print(branch)
+          branch = os.getenv('GITHUB_HEAD_REF', 'main')
 
           # Create workspace client using host and token
           workspace = WorkspaceClient( host=config['host'], token=config['token'] )
@@ -61,7 +59,7 @@ jobs:
 
           # Define the notebook task
           notebook_task = NotebookTask(
-              notebook_path="pytest_databricks.py",
+              notebook_path="pytest_databricks",
               base_parameters={},
               source=Source.GIT,
           )
