@@ -44,7 +44,8 @@ You'll find this example in [01-dcm-demo](https://github.com/databricks-industry
 
 ---
 ## Architecture
-![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
+![image](https://github.com/user-attachments/assets/b1108cd0-c9d0-4319-9c9a-26430deba0b6)
+
 
 ---
 ## Getting started
