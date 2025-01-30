@@ -40,7 +40,7 @@ jobs:
           os.environ['DATABRICKS_TOKEN'] = config['token']
 
           from databricks.sdk import WorkspaceClient
-          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
+          from databricks.sdk.service.jobs import RunResultState, NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
           from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
 
           branch = os.getenv('GITHUB_HEAD_REF', 'main')
@@ -95,14 +95,8 @@ jobs:
               tasks=[task],
               git_source=git_source
           )
-          print(run_response.state.result_state.value)
+          
+          if run_response.state.result_state != RunResultState.SUCCESS:
+              raise Exception(f"Job failed with state {run_response.state.result_state}")
         
       shell: python
-
-    - name: Install dependencies for pixels
-      run: |
-        python -m pip install --upgrade pip
-        make dev
-
-    - name: Run tests
-      run: make test
