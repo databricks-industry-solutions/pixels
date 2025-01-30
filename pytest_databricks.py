@@ -1,5 +1,6 @@
 # Databricks notebook source
 # MAGIC %sh
+# MAGIC export SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
 # MAGIC python -m pip install build
 # MAGIC python -m build --outdir .
 # MAGIC pip install pytest
