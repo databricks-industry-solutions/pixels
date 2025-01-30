@@ -1,12 +1,10 @@
 # Databricks notebook source
-
-# MAGIC %sh
-# MAGIC python -m pip install -r requirements.txt
-# MAGIC python -m pip install pytest
+# MAGIC %pip install -r requirements.txt
+# MAGIC %pip install pytest
 
 # COMMAND ----------
 
-# MAGIC %restart_python
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
