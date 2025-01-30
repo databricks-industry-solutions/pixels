@@ -1,10 +1,6 @@
 # Databricks notebook source
 # MAGIC %sh
-# MAGIC pwd
-# MAGIC ls
-# MAGIC python -m pip install -U pip
-# MAGIC pip install setuptools==58.2.0
-# MAGIC pip install -e '.[dev]'
+# MAGIC pip install pytest wheel
 # MAGIC pip wheel . -w wheels
 # MAGIC cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
 # MAGIC restart_python
