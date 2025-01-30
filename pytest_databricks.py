@@ -27,5 +27,6 @@ os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().noteb
 
 sys.dont_write_bytecode = True
 
-pytest.main(['--import-mode=importlib', 'tests/dbx/'])
+result = pytest.main(['--import-mode=importlib', 'tests/dbx/'])
+print(result)
 # COMMAND ----------

@@ -1,6 +1,7 @@
 import pytest
 from databricks.connect import DatabricksSession
 from pyspark.sql import SparkSession
+import os
 
 from dbx.pixels.version import __version__
 
@@ -15,7 +16,9 @@ def spark() -> SparkSession:
     have access to this SparkSession by default.
     """
     sparkSession = DatabricksSession.builder.getOrCreate()
-    sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
+    
+    if os.path.exists("./wheels/databricks_pixels.zip"):
+        sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
     return sparkSession
 
 
