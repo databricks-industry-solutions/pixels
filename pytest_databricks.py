@@ -1,12 +1,11 @@
 # Databricks notebook source
 # MAGIC %sh
-# MAGIC pwd
-# MAGIC ls
 # MAGIC python -m pip install build
-# MAGIC python -m build
-# MAGIC pip wheel . -w wheels
-# MAGIC cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
-# MAGIC restart_python
+# MAGIC python -m build --outdir wheels
+# MAGIC cp ./databricks_pixels*.whl ./wheels/databricks_pixels.zip
+
+# COMMAND ----------
+# MAGIC %restart_python
 
 # COMMAND ----------
 
