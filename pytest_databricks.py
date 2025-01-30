@@ -2,6 +2,8 @@
 # MAGIC %sh
 # MAGIC pwd
 # MAGIC ls
+# MAGIC python -m pip install -U pip
+# MAGIC pip install --upgrade setuptools
 # MAGIC pip install -e '.[dev]'
 # MAGIC pip wheel . -w wheels
 # MAGIC cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
