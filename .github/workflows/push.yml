@@ -38,6 +38,8 @@ jobs:
 
           os.environ['DATABRICKS_TOKEN'] = config['host']
           os.environ['DATABRICKS_HOST'] = config['token']
+
+          print(os.environ['DB_PROFILES'].split("a"))
         
       shell: python
 
