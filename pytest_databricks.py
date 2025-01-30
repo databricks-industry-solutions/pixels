@@ -2,6 +2,7 @@
 # MAGIC %sh
 # MAGIC pwd
 # MAGIC ls
+# MAGIC python -m pip install build
 # MAGIC python -m build
 # MAGIC pip wheel . -w wheels
 # MAGIC cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip

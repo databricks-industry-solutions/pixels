@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling",
+"hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "databricks-pixels"
+dynamic = ["version"]
+description = "Pixels: pyspark dataframes for image (and object) processing"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Databricks", email = "pixels@databricks.com" },
+]
+dependencies = [
+    "databricks-sdk==0.36.0",
+    "matplotlib",
+    "pandas",
+    "Pillow",
+    "pyarrow",
+    "pydicom==2.4.4",
+    "python-gdcm==3.0.19",
+    "python-magic==0.4.27",
+    "s3fs==2022.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "autoflake",
+    "black",
+    "coverage[toml]>=6.5",
+    "databricks-connect==14.3.2",
+    "isort",
+    "mypy>=0.990",
+    "pdoc",
+    "pre-commit",
+    "pyspark==3.4.1",
+    "pytest",
+    "pytest-cov>=4.0.0,<5.0.0",
+    "pytest-mock>=3.0.0,<4.0.0",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/databricks-industry-solutions/pixels/issues"
+Documentation = "https://databricks-pixels.readthedocs.io/"
+Homepage = "https://github.com/databricks-industry-solutions/pixels"
+"Source Code" = "https://github.com/databricks-industry-solutions/pixels"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "dbx/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/dbx",
+]
