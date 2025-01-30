@@ -10,6 +10,7 @@ on:
     branches: [ main ]
 jobs:
   build:
+    timeout-minutes: 30
     runs-on: html_publisher
     strategy:
       matrix:
