@@ -35,8 +35,8 @@ jobs:
           config.read_file(io.StringIO(os.environ['DB_PROFILES']))
           config = config['DEMO']
 
-          os.environ['DATABRICKS_TOKEN'] = config['host']
           os.environ['DATABRICKS_HOST'] = config['token']
+          os.environ['DATABRICKS_TOKEN'] = config['host']
 
           from databricks.sdk import WorkspaceClient
           from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
@@ -47,8 +47,8 @@ jobs:
 
           # Create workspace client using host and token
           workspace = WorkspaceClient(
-              host=dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get(),
-              token=dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
+              host=os.environ['DATABRICKS_HOST'],
+              token=os.environ['DATABRICKS_TOKEN']
           )
 
           user = workspace.current_user.me().user_name
