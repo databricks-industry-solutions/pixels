@@ -39,12 +39,20 @@ jobs:
           os.environ['DATABRICKS_HOST'] = config['token']
 
           from databricks.sdk import WorkspaceClient
-          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider
+          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
+          from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
 
           branch = os.getenv('GITHUB_HEAD_REF', 'main')
+          print(branch)
 
           # Create workspace client using host and token
-          workspace = WorkspaceClient( host=config['host'], token=config['token'] )
+          workspace = WorkspaceClient(
+              host=dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get(),
+              token=dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
+          )
+
+          user = workspace.current_user.me().user_name
+          nodes = [node for node in workspace.clusters.list_node_types().node_types if not node.is_deprecated and node.num_cores == 4.0 and node.is_io_cache_enabled]
 
           # Define variables
           repo_url = 'https://github.com/databricks-industry-solutions/pixels.git'
@@ -54,6 +62,19 @@ jobs:
               git_url=repo_url,
               git_provider=GitProvider.GIT_HUB,
               git_branch=branch
+          )
+
+          # Define the job cluster
+          cluster_spec = ClusterSpec(
+              num_workers=0,
+              spark_version="14.3.x-scala2.12",
+              node_type_id=nodes[0].node_type_id,
+              spark_conf={
+                  "spark.master": "local[*, 4]"
+              },
+              single_user_name=user,
+              data_security_mode=DataSecurityMode.SINGLE_USER,
+              runtime_engine=RuntimeEngine.STANDARD
           )
 
           # Define the notebook task
@@ -67,11 +88,15 @@ jobs:
           task = Task(
               task_key="notebook_task",
               notebook_task=notebook_task,
+              new_cluster=cluster_spec
           )
 
           # Submit the task
-          run_response = workspace.jobs.submit_and_wait(run_name="pixels_gitaction_test", tasks=[task], git_source=git_source)
-
+          run_response = workspace.jobs.submit_and_wait(
+              run_name="pixels_gitaction_test",
+              tasks=[task],
+              git_source=git_source
+          )
           print(run_response.state.result_state.value)
         
       shell: python
