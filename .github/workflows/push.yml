@@ -2,7 +2,6 @@ name: Test and Lint Python Package
 
 env:
   DB_PROFILES: ${{ secrets.DB_PROFILES }}
-  DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
 
 on:
   push:

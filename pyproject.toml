@@ -12,6 +12,8 @@ license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [
     { name = "Databricks", email = "pixels@databricks.com" },
+    { name = "Emanuele Rinaldi", email = "emanuele.rinaldi@databricks.com" },
+    { name = "Douglas Moore", email = "douglas.moore@databricks.com" },
 ]
 dependencies = [
     "databricks-sdk==0.36.0",
