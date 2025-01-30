@@ -1,6 +1,5 @@
 [build-system]
-requires = ["hatchling",
-"hatch-vcs"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -48,9 +47,6 @@ dev = [
 Documentation = "https://databricks-pixels.readthedocs.io/"
 Homepage = "https://github.com/databricks-industry-solutions/pixels"
 "Source Code" = "https://github.com/databricks-industry-solutions/pixels"
-
-[tool.hatch.version]
-source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
 version-file = "dbx/_version.py"
