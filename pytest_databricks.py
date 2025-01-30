@@ -1,6 +1,8 @@
 # Databricks notebook source
 # MAGIC %sh
-# MAGIC pip install pytest wheel
+# MAGIC pwd
+# MAGIC ls
+# MAGIC python -m build
 # MAGIC pip wheel . -w wheels
 # MAGIC cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
 # MAGIC restart_python
