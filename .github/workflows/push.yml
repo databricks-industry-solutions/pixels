@@ -2,6 +2,7 @@ name: Test and Lint Python Package
 
 env:
   DB_PROFILES: ${{ secrets.DB_PROFILES }}
+  DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
 
 on:
   push:
@@ -34,12 +35,10 @@ jobs:
           
           config = configparser.ConfigParser()
           config.read_file(io.StringIO(os.environ['DB_PROFILES']))
-          config = config['FIELD']
+          config = config['DEMO']
 
           os.environ['DATABRICKS_TOKEN'] = config['host']
           os.environ['DATABRICKS_HOST'] = config['token']
-
-          print(os.environ['DB_PROFILES'].split("a"))
         
       shell: python
 
@@ -52,5 +51,3 @@ jobs:
       run: make style
     - name: Run tests
       run: make test
-      env:
-        DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
