@@ -31,7 +31,6 @@ jobs:
           import os
           import configparser
           import io
-          from databricks.solutions import Accelerator
           
           config = configparser.ConfigParser()
           config.read_file(io.StringIO(os.environ['DB_PROFILES']))
@@ -39,6 +38,42 @@ jobs:
 
           os.environ['DATABRICKS_TOKEN'] = config['host']
           os.environ['DATABRICKS_HOST'] = config['token']
+
+          from databricks.sdk import WorkspaceClient
+          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider
+
+          branch = os.getenv('GITHUB_HEAD_REF', 'main')
+
+          # Create workspace client using host and token
+          workspace = WorkspaceClient( host=config['host'], token=config['token'] )
+
+          # Define variables
+          repo_url = 'https://github.com/databricks-industry-solutions/pixels.git'
+
+          # Define the git source
+          git_source = GitSource(
+              git_url=repo_url,
+              git_provider=GitProvider.GIT_HUB,
+              git_branch=branch
+          )
+
+          # Define the notebook task
+          notebook_task = NotebookTask(
+              notebook_path="pytest_databricks.py",
+              base_parameters={},
+              source=Source.GIT,
+          )
+
+          # Define the task
+          task = Task(
+              task_key="notebook_task",
+              notebook_task=notebook_task,
+          )
+
+          # Submit the task
+          run_response = workspace.jobs.submit_and_wait(run_name="pixels_gitaction_test", tasks=[task], git_source=git_source)
+
+          print(run_response.state.result_state.value)
         
       shell: python
 
@@ -46,6 +81,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         make dev
-        
+
     - name: Run tests
       run: make test

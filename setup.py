@@ -75,7 +75,6 @@ setup(
         "dev": [
             "pyspark==3.4.1",
             "databricks-connect==14.3.2",
-            "databricks-sdk==0.28.0",
             "autoflake",
             "black",
             "isort",

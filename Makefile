@@ -16,7 +16,7 @@ dev:
 
 test:
 	pip wheel . -w wheels
-	mv ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
+	cp ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
 	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
