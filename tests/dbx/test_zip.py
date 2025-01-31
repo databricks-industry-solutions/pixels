@@ -1,7 +1,4 @@
-import os
-
 import pytest
-from databricks.connect import DatabricksSession
 from databricks.sdk.core import DatabricksError
 from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
@@ -14,19 +11,6 @@ VOLUME = f"main.pixels_solacc.pixels_volume_test"
 BASE_PATH = f"/Volumes/main/pixels_solacc/pixels_volume_test/pixels_acc_test"
 CHECKPOINT_BASE_PATH = f"{BASE_PATH}/checkpoints"
 UNZIP_BASE_PATH = f"{BASE_PATH}/unzipped"
-
-
-@pytest.fixture
-def spark() -> SparkSession:
-    """
-    Create a SparkSession (the entry point to Spark functionality) on
-    the cluster in the remote Databricks workspace. Unit tests do not
-    have access to this SparkSession by default.
-    """
-    sparkSession = DatabricksSession.builder.getOrCreate()
-    if os.path.exists("./wheels/databricks_pixels.zip"):
-        sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
-    return sparkSession
 
 
 @pytest.fixture(autouse=True)

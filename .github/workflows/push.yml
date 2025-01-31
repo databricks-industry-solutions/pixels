@@ -2,6 +2,7 @@ name: Test and Lint Python Package
 
 env:
   DB_PROFILES: ${{ secrets.DB_PROFILES }}
+  WATCH_DOGS_EMAILS: ${{ vars.WATCH_DOGS_EMAILS }}
 
 on:
   push:
@@ -21,94 +22,15 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
-
-    - name: Package solution accelerator
-      run: |
-          
-          import os
-          import configparser
-          import io
-          
-          config = configparser.ConfigParser()
-          config.read_file(io.StringIO(os.environ['DB_PROFILES']))
-          config = config['DEMO']
-
-          os.environ['DATABRICKS_HOST'] = config['host']
-          os.environ['DATABRICKS_TOKEN'] = config['token']
-
-          from databricks.sdk import WorkspaceClient
-          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster, RunResultState, JobAccessControlRequest, JobPermissionLevel
-          from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
-
-          branch = os.getenv('GITHUB_HEAD_REF', 'main')
-
-          # Create workspace client using host and token
-          workspace = WorkspaceClient(
-              host=os.environ['DATABRICKS_HOST'],
-              token=os.environ['DATABRICKS_TOKEN']
-          )
-
-          user = workspace.current_user.me().user_name
-          nodes = [node for node in workspace.clusters.list_node_types().node_types if not node.is_deprecated and node.num_cores == 4.0 and node.is_io_cache_enabled]
-          acl = [JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER)]
-          
-          if user != "emanuele.rinaldi@databricks.com":
-              acl.append(JobAccessControlRequest(user_name="emanuele.rinaldi@databricks.com", permission_level=JobPermissionLevel.CAN_VIEW))
-          
-              # Define variables
-          repo_url = 'https://github.com/databricks-industry-solutions/pixels.git'
-
-          # Define the git source
-          git_source = GitSource(
-              git_url=repo_url,
-              git_provider=GitProvider.GIT_HUB,
-              git_branch=branch
-          )
-
-          # Define the job cluster
-          cluster_spec = ClusterSpec(
-              num_workers=0,
-              spark_version="14.3.x-scala2.12",
-              node_type_id=nodes[0].node_type_id,
-              spark_conf={
-                  "spark.master": "local[*, 4]"
-              },
-              data_security_mode=DataSecurityMode.SINGLE_USER,
-              runtime_engine=RuntimeEngine.STANDARD
-          )
-
-          # Define the notebook task
-          notebook_task = NotebookTask(
-              notebook_path="pytest_databricks",
-              base_parameters={},
-              source=Source.GIT,
-          )
-
-          # Define the task
-          task = Task(
-              task_key="notebook_task",
-              notebook_task=notebook_task,
-              new_cluster=cluster_spec
-          )
-
-          # Submit the task
-          run_response = workspace.jobs.submit_and_wait(
-              run_name="pixels_gitaction_test",
-              tasks=[task],
-              git_source=git_source,
-              access_control_list=acl
-          )
-          
-          if run_response.state.result_state != RunResultState.SUCCESS:
-              raise Exception(f"Job failed with state {run_response.state.result_state}")
-        
-      shell: python
     - name: Install dependencies for style
       run: |
         python -m pip install --upgrade pip
         make dev
     - name: Run linting (linter, code style)
       run: make style
+    - name: Install dependencies
+      run: |
+        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
+    - name: Execute tests on DB clusters
+      run: |
+          python tests/db_runner.py
