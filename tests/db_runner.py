@@ -39,7 +39,13 @@ nodes = [
 acl = [JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER)]
 
 for watcher in WATCH_DOGS_EMAILS:
-    if watcher != user:
+    # Check if the watcher is a valid user
+    ww_list = list(
+        workspace.users.list(
+            attributes="id,userName", sort_by="userName", filter=f"userName eq '{watcher}'"
+        )
+    )
+    if len(ww_list) >= 1 is not None and watcher != user:
         acl.append(
             JobAccessControlRequest(
                 user_name=watcher,
