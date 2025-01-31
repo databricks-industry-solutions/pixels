@@ -4,6 +4,7 @@ import pytest
 from databricks.connect import DatabricksSession
 from pyspark.sql import SparkSession
 
+
 @pytest.fixture
 def spark() -> SparkSession:
     """
