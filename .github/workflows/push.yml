@@ -40,7 +40,7 @@ jobs:
           os.environ['DATABRICKS_TOKEN'] = config['token']
 
           from databricks.sdk import WorkspaceClient
-          from databricks.sdk.service.jobs import RunResultState, NotebookTask, Task, GitSource, Source, GitProvider, JobCluster
+          from databricks.sdk.service.jobs import NotebookTask, Task, GitSource, Source, GitProvider, JobCluster, RunResultState, JobAccessControlRequest, JobPermissionLevel
           from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
 
           branch = os.getenv('GITHUB_HEAD_REF', 'main')
@@ -51,9 +51,14 @@ jobs:
               token=os.environ['DATABRICKS_TOKEN']
           )
 
+          user = workspace.current_user.me().user_name
           nodes = [node for node in workspace.clusters.list_node_types().node_types if not node.is_deprecated and node.num_cores == 4.0 and node.is_io_cache_enabled]
-
-          # Define variables
+          acl = [JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER)]
+          
+          if user != "emanuele.rinaldi@databricks.com":
+              acl.append(JobAccessControlRequest(user_name="emanuele.rinaldi@databricks.com", permission_level=JobPermissionLevel.CAN_VIEW))
+          
+              # Define variables
           repo_url = 'https://github.com/databricks-industry-solutions/pixels.git'
 
           # Define the git source
@@ -93,7 +98,8 @@ jobs:
           run_response = workspace.jobs.submit_and_wait(
               run_name="pixels_gitaction_test",
               tasks=[task],
-              git_source=git_source
+              git_source=git_source,
+              access_control_list=acl
           )
           
           if run_response.state.result_state != RunResultState.SUCCESS:
