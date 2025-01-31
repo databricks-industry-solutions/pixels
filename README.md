@@ -44,7 +44,42 @@ You'll find this example in [01-dcm-demo](https://github.com/databricks-industry
 
 ---
 ## Architecture
-![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
+![image](https://github.com/user-attachments/assets/75decf47-3a37-446a-a672-d497d155f464)
+
+The image depicts the **Pixels Reference Solution Architecture**, which outlines a data processing and analytics framework designed for healthcare or imaging applications. Here's a breakdown of its components:
+
+### **Key Functional Areas**
+1. **AI/BI Analytics**: Supports cohort building and natural language-based analysis.
+   
+2. **Lakehouse Apps**: Includes an OHIF Viewer for labeling and customer-specific applications.
+
+3. **Deep Learning**: Facilitates active learning and customer model training.
+
+4. **Realtime Inferencing**: Implements MONAI (Medical Open Network for AI) for segmentation integration with the OHIF viewer. Customer provided proprietary models can be easily plugged in.
+
+### **Data Flow: Batch, Incremental, Streaming Lakeflow**
+The architecture processes data in stages:
+1. **Acquire**: from data in ADLS, S3, GCS cloud storage as governed by Unity Catalog (UC) Volumes.  Based on customer demand, due to the composible nature of the solution accelerator, sources VNA, PACS, CIFS, AWS HealthImaging can be added as needed.
+   
+2. **Ingest**:  Ultimately all the DICOM files are ingested. Ingesting and producing Nifti file formats are currently on the roadmap.
+
+3. **Extract & Index**: Unzips files, storing the extracted DICOM files into a UC volume. All of the DICOM metadata tags are extracted and stored in Databricks Data Intelligence Platform tables.
+
+4. **Protect – Metadata**: Applies PHI (Protected Health Information) redaction via format preserving encryption to all necessary tags.
+
+5. **Protect – Image**: Ensures PHI redaction for pixel-level data. This is under active integration based on work Databricks has done in previous solution accelerators.
+
+6. **Inferencing**: Utilizes industry-standard models pre-trained MONAI open source models sponsored by NVIDIA. Similarly, customers can fine tune the MONAI models or bring their own segmentation or featurization models.
+
+### **Supporting Layers**
+- **Governance Layer**: Unity Catalog provides data access controls, automatic capture of data lineage (including models)
+  
+- **Customer’s Cloud Storage**: Stores object indexes, folders, and ML models in open formats in customer's account.
+  
+- **Open Access**: Provides APIs, SQL connections, Spark integration, and credential vending via Delta Sharing.
+
+This architecture is designed to handle healthcare imaging data securely while enabling advanced analytics and AI-driven insights.
+
 
 ---
 ## Getting started
