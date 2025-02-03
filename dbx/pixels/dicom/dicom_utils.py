@@ -66,13 +66,13 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     return js
 
 
-def anonymize_metadata(ds: Dataset, fp_key: str, tweak: str, keep_tags: tuple, encrypt_tags: tuple):
+def anonymize_metadata(ds: Dataset, fp_key: str, fp_tweak: str, keep_tags: tuple, encrypt_tags: tuple):
     """
     Anonymizes metadata of a DICOM file.
     Args:
         ds (Dataset): DICOM dataset.
         fp_key (str): Key for encryption.
-        tweak (str): Tweak for encryption.
+        fp_tweak (str): Tweak for encryption.
         keep_tags (tuple): Tuple of DICOM tags to keep unchanged.
         encrypt_tags (tuple): Tuple of DICOM tags to encrypt.
     Returns:
@@ -81,7 +81,7 @@ def anonymize_metadata(ds: Dataset, fp_key: str, tweak: str, keep_tags: tuple, e
     import dicognito.anonymizer
     from ff3 import FF3Cipher
 
-    c = FF3Cipher(fp_key, tweak)
+    c = FF3Cipher(fp_key, fp_tweak)
     anonymizer = dicognito.anonymizer.Anonymizer()
 
     keep_values = [copy.deepcopy(ds[element]) for element in keep_tags if element in ds]

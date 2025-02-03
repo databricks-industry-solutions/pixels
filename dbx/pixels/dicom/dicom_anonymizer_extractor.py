@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
@@ -16,17 +17,21 @@ class DicomAnonymizerExtractor(Transformer):
     """
     Transformer class to transform paths to Dicom files to Dicom metadata in JSON format.
 
-    This class provides functionality to extract metadata from Dicom files, anonymize the metadata based on specified modes,
-    and optionally save the anonymized Dicom files. The metadata extraction excludes pixel data for performance optimization.
+    This class provides functionality to extract metadata from Dicom files, anonymize the metadata and image based on specified modes,
+    and optionally save the anonymized Dicom files.
+
+    To know more about which tags dicognito will mask all the tags mentioned here: https://github.com/blairconrad/dicognito?tab=readme-ov-file#exactly-what-does-dicognito-do
+    These tags will not be encrypted but masked, this operation is irreversible!
+    Use encrypt_tags to specify which tags you want to encrypt and keep_tags to specify which tags you want to remain as is.
 
     Parameters:
     - catalog: The catalog object containing configuration and utility methods.
     - inputCol: The input column name containing the local paths to Dicom files.
     - outputCol: The output column name where the extracted metadata in JSON format will be stored.
     - basePath: The base path for accessing Dicom files.
-    - anonym_mode: The mode of anonymization to apply. Options are "COMPLETE", "METADATA", "IMAGE", "NONE".
+    - anonym_mode: The mode of anonymization to apply. Options are "COMPLETE", "METADATA", "IMAGE".
     - fp_key: A format-preserving key used for encryption during the anonymization process.
-    - tweak: A tweak string used for encryption during the anonymization process.
+    - fp_tweak: A tweak string used for encryption during the anonymization process.
     - encrypt_tags: A tuple of Dicom tags to be encrypted during anonymization.
     - keep_tags: A tuple of Dicom tags to be retained during anonymization.
     - anonymization_base_path: The base path where anonymized Dicom files will be saved.
@@ -47,7 +52,7 @@ class DicomAnonymizerExtractor(Transformer):
         basePath="dbfs:/",
         anonym_mode: str = None,
         fp_key: str = None,
-        tweak: str = "CBD09280979564",
+        fp_tweak: str = None,
         encrypt_tags: tuple = (
             "StudyInstanceUID",
             "SeriesInstanceUID",
@@ -66,7 +71,7 @@ class DicomAnonymizerExtractor(Transformer):
 
         self.anonym_mode = anonym_mode
         self.fp_key = fp_key
-        self.tweak = tweak
+        self.fp_tweak = fp_tweak
         self.encrypt_tags = encrypt_tags
         self.keep_tags = keep_tags
 
@@ -74,6 +79,13 @@ class DicomAnonymizerExtractor(Transformer):
             raise Exception(
                 f"Invalid anonymization mode {anonym_mode}, must be one of {self.ANONYMIZATION_MODES}"
             )
+
+        hex_pattern = r"^[0-9a-fA-F]+$"
+
+        if not re.match(hex_pattern, fp_key) or len(fp_key)*4 not in [128, 192, 256]:
+            raise Exception("Invalid hex string for fp_key")
+        if not re.match(hex_pattern, fp_tweak) or len(fp_tweak)*4 not in [64]:
+            raise Exception("Invalid hex string for fp_teak")
 
         if anonymization_base_path is not None:
             self.anonymization_base_path = anonymization_base_path
@@ -108,7 +120,7 @@ class DicomAnonymizerExtractor(Transformer):
         """
 
         fp_key = self.fp_key
-        tweak = self.tweak
+        fp_tweak = self.fp_tweak
         encrypt_tags = self.encrypt_tags
         keep_tags = self.keep_tags
         anonym_mode = self.anonym_mode
@@ -134,7 +146,7 @@ class DicomAnonymizerExtractor(Transformer):
                             anonymize_metadata(
                                 dataset,
                                 fp_key=fp_key,
-                                tweak=tweak,
+                                fp_tweak=fp_tweak,
                                 encrypt_tags=encrypt_tags,
                                 keep_tags=keep_tags,
                             )
@@ -144,7 +156,7 @@ class DicomAnonymizerExtractor(Transformer):
                             anonymize_metadata(
                                 dataset,
                                 fp_key=fp_key,
-                                tweak=tweak,
+                                fp_tweak=fp_tweak,
                                 encrypt_tags=encrypt_tags,
                                 keep_tags=keep_tags,
                             )

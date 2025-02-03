@@ -37,8 +37,8 @@ def setup(spark: SparkSession):
 
 
 def test_meta_anonym(spark: SparkSession):
-    fp_key = "2DE79D232DF5585D68CE47882AE256D6"
-    tweak = "CBD09280979564"
+    fp_key = "00112233445566778899aabbccddeeff"
+    fp_tweak = "a1b2c3d4e5f60708"
 
     catalog = Catalog(spark, table=TABLE, volume=VOLUME)
     catalog_df = catalog.catalog(
@@ -48,7 +48,7 @@ def test_meta_anonym(spark: SparkSession):
     assert catalog_df is not None
 
     metadata_df = DicomAnonymizerExtractor(
-        catalog, anonym_mode="METADATA", fp_key=fp_key, tweak=tweak
+        catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak
     ).transform(catalog_df)
     catalog.save(metadata_df)
 
