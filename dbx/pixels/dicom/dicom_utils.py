@@ -66,7 +66,9 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     return js
 
 
-def anonymize_metadata(ds: Dataset, fp_key: str, fp_tweak: str, keep_tags: tuple, encrypt_tags: tuple):
+def anonymize_metadata(
+    ds: Dataset, fp_key: str, fp_tweak: str, keep_tags: tuple, encrypt_tags: tuple
+):
     """
     Anonymizes metadata of a DICOM file.
     Args:

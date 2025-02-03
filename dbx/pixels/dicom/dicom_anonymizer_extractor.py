@@ -82,9 +82,9 @@ class DicomAnonymizerExtractor(Transformer):
 
         hex_pattern = r"^[0-9a-fA-F]+$"
 
-        if not re.match(hex_pattern, fp_key) or len(fp_key)*4 not in [128, 192, 256]:
+        if not re.match(hex_pattern, fp_key) or len(fp_key) * 4 not in [128, 192, 256]:
             raise Exception("Invalid hex string for fp_key")
-        if not re.match(hex_pattern, fp_tweak) or len(fp_tweak)*4 not in [64]:
+        if not re.match(hex_pattern, fp_tweak) or len(fp_tweak) * 4 not in [64]:
             raise Exception("Invalid hex string for fp_teak")
 
         if anonymization_base_path is not None:
