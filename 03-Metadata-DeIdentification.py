@@ -57,10 +57,10 @@ scope_name = "pixels-scope"
 
 # Change keys, **DO NOT COMMIT THESE KEYS IN YOUR REPO - KEEP IT SAFE**
 
-#pixels_fp_key lenght must be 128, 192 or 256 bits
+#pixels_fp_key length must be 128, 192 or 256 bits
 pixels_fp_key = None
 
-#pixels_fp_tweak lenght must be 64 bits
+#pixels_fp_tweak length must be 64 bits
 pixels_fp_tweak = None
 
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
