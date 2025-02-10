@@ -59,6 +59,7 @@ class Catalog:
         self._table = table
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
+        self._anonymization_base_path = f"{self._volume_path}/anonymized/"
 
         # Check if the volume exist
         spark.sql(f"LIST '{self._volume_path}' limit 1").count()

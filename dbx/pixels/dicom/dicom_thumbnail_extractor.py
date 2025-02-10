@@ -16,7 +16,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from dbx.pixels.dicom.dicom_udfs import cloud_open
+from dbx.pixels.dicom.dicom_utils import cloud_open
 
 
 class DicomThumbnailExtractor(Transformer):

@@ -1,32 +1,30 @@
+# Databricks notebook source
+# MAGIC %pip install -r requirements.txt
+# MAGIC %pip install pytest
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+import logging
+logging.getLogger('py4j.java_gateway').setLevel(logging.ERROR)
+
+# COMMAND ----------
+
+import dbx
 import pytest
-import os
 import sys
+import os
 
-# Run all tests in the connected repository in the remote Databricks workspace.
-# By default, pytest searches through all files with filenames ending with
-# "_test.py" for tests. Within each of these files, pytest runs each function
-# with a function name beginning with "test_".
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath("../"+dbx.__file__))))
 
-# Get the path to the repository for this file in the workspace.
-repo_root = os.path.dirname(os.path.realpath(__file__))
-# Switch to the repository's root directory.
-os.chdir(repo_root)
+os.environ['DATABRICKS_HOST'] = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get()
+os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
 
-# Skip writing .pyc files to the bytecode cache on the cluster.
 sys.dont_write_bytecode = True
 
-# Now run pytest from the repository's root directory, using the
-# arguments that are supplied by your custom run configuration in
-# your Visual Studio Code project. In this case, the custom run
-# configuration JSON must contain these unique "program" and
-# "args" objects:
-#
-# ...
-# {
-#   ...
-#   "program": "${workspaceFolder}/path/to/this/file/in/workspace",
-#   "args": ["/path/to/_test.py-files"]
-# }
-# ...
-#
-retcode = pytest.main(sys.argv[1:])
+result = pytest.main(['--import-mode=importlib', 'tests/dbx/'])
+if result != 0:
+    raise Exception(f"Tests failed with exit code: {result}")

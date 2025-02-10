@@ -1,5 +1,9 @@
 name: Test and Lint Python Package
 
+env:
+  DB_PROFILES: ${{ secrets.DB_PROFILES }}
+  WATCH_DOGS_EMAILS: ${{ vars.WATCH_DOGS_EMAILS }}
+
 on:
   push:
     branches: [ main ]
@@ -7,6 +11,7 @@ on:
     branches: [ main ]
 jobs:
   build:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -17,15 +22,15 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install dependencies for style
       run: |
         python -m pip install --upgrade pip
         make dev
     - name: Run linting (linter, code style)
       run: make style
-    - name: Run tests
-      run: make test
-      env:
-        DATABRICKS_HOST: "${{ secrets.DATABRICKS_HOST }}"
-        DATABRICKS_TOKEN: "${{ secrets.DATABRICKS_TOKEN }}"
-        DATABRICKS_CLUSTER_ID: "${{ secrets.DATABRICKS_CLUSTER_ID }}"
+    - name: Install dependencies
+      run: |
+        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
+    - name: Execute tests on DB clusters
+      run: |
+          python tests/db_runner.py

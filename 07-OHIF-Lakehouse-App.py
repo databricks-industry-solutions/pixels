@@ -60,45 +60,51 @@ from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, Ap
 from pathlib import Path
 import dbx.pixels.resources
 
-path = Path(dbx.pixels.__file__).parent
-lha_path = (f"{path}/resources/lakehouse_app")
+# Check if the lakehouse app has already been created
+if app_name in [app.name for app in w.apps.list()]:
+  print(f"App {app_name} already exists")
+  app = w.apps.get(app_name)
+  print(app.url)
+else:
+  path = Path(dbx.pixels.__file__).parent
+  lha_path = (f"{path}/resources/lakehouse_app")
 
-with open(f"{lha_path}/app-config.yaml", "r") as config_input:
-        with open(f"{lha_path}/app.yaml", "w") as config_custom:
-            config_custom.write(
-                config_input.read()
-                .replace("{PIXELS_TABLE}", table)
-            )
+  with open(f"{lha_path}/app-config.yaml", "r") as config_input:
+          with open(f"{lha_path}/app.yaml", "w") as config_custom:
+              config_custom.write(
+                  config_input.read()
+                  .replace("{PIXELS_TABLE}", table)
+              )
 
-resources = []
+  resources = []
 
-sql_resource = AppResource(
-  name="sql_warehouse",
-  sql_warehouse=AppResourceSqlWarehouse(
-    id=sql_warehouse_id,
-    permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
-  )
-)
-resources.append(sql_resource)
-
-if serving_endpoint_name in [endpoint.name for endpoint in w.serving_endpoints.list()]:
-  serving_endpoint = AppResource(
-    name="serving_endpoint",
-    serving_endpoint=AppResourceServingEndpoint(
-      name=serving_endpoint_name,
-      permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
+  sql_resource = AppResource(
+    name="sql_warehouse",
+    sql_warehouse=AppResourceSqlWarehouse(
+      id=sql_warehouse_id,
+      permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
     )
   )
-  resources.append(serving_endpoint)
+  resources.append(sql_resource)
+
+  if serving_endpoint_name in [endpoint.name for endpoint in w.serving_endpoints.list()]:
+    serving_endpoint = AppResource(
+      name="serving_endpoint",
+      serving_endpoint=AppResourceServingEndpoint(
+        name=serving_endpoint_name,
+        permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
+      )
+    )
+    resources.append(serving_endpoint)
 
 
-print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
+  print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 
-app_created = w.apps.create_and_wait(name=app_name, resources=resources)
-app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
+  app_created = w.apps.create_and_wait(name=app_name, resources=resources)
+  app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
 
-print(app_deploy.status.message)
-print(app_created.url)
+  print(app_deploy.status.message)
+  print(app_created.url)
 
 # COMMAND ----------
 

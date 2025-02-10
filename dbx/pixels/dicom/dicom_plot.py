@@ -9,7 +9,7 @@ from pyspark.sql.functions import col, lit, pandas_udf
 from pyspark.sql.types import StringType
 
 from dbx.pixels import PlotResult
-from dbx.pixels.dicom.dicom_udfs import cloud_open
+from dbx.pixels.dicom.dicom_utils import cloud_open
 
 
 def dicom_plot_outer(iterator: Iterator[Tuple[pd.Series, pd.Series]]) -> Iterator[pd.Series]:

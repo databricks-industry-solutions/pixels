@@ -100,6 +100,27 @@ To enable unzip capability you need to set `extractZip`. The parameter `extractZ
 ```python
 catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPath>)
 ```
+
+## Metadata Anonymization
+Pixels provides a feature to anonymize DICOM metadata to ensure patient privacy and compliance with regulations. This feature can be enabled during the cataloging process. An example can be explored in the [03-Metadata-DeIdentification](https://github.com/databricks-industry-solutions/pixels/blob/main/03-Metadata-DeIdentification.py) notebook.
+
+To enable metadata anonymization, you can use the following extractor:
+```python
+metadata_df = DicomMetaAnonymizerExtractor(
+   catalog,
+   anonym_mode="METADATA",
+   fp_key=<fp_key>, #ONLY HEX STRING ALLOWED - 128, 192 or 256 bits
+   fp_tweak=<fp_tweak>,   #ONLY HEX STRING ALLOWED - 64 bits
+   anonymization_base_path=<anonym_path>
+).transform(catalog_df)
+```
+`fp_key` is the format preserving encryption key used to ensure that the anonymization process is consistent across different runs. This key is used to generate pseudonyms for sensitive data fields, ensuring that the same input value always maps to the same pseudonym. This is useful for maintaining the ability to link records across datasets without revealing the original sensitive information.
+
+`fp_tweak` is an optional parameter that can be used to add an additional layer of randomness to the pseudonymization process. This can be useful for further enhancing privacy.
+
+By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
+The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
+
 ---
 ## OHIF Viewer
 Inside `dbx.pixels` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
@@ -234,4 +255,7 @@ DICOM® is recognized by the International Organization for Standardization as t
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
 | MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
+| DICOGNITO            | A library and command line tool for anonymizing DICOM files | MIT  | https://github.com/blairconrad/dicognito |
+| FF3                  | FPE - Format Preserving Encryption with FF3 in Python | Apache-2.0 license  | https://github.com/mysto/python-fpe |
+
 

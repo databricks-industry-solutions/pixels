@@ -1,17 +1,3 @@
-import pytest
-from databricks.connect import DatabricksSession
-
-
-@pytest.fixture
-def spark() -> DatabricksSession:
-    """
-    Create a SparkSession (the entry point to Spark functionality) on
-    the cluster in the remote Databricks workspace. Unit tests do not
-    have access to this SparkSession by default.
-    """
-    return DatabricksSession.builder.getOrCreate()
-
-
 def test_spark_type(spark):
     assert spark is not None
     assert spark.version >= "3.4.1"

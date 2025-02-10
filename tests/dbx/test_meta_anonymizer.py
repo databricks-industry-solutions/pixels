@@ -4,13 +4,15 @@ from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
+from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
 FILE_PATH = "s3://hls-eng-data-public/dicom/ddsm/benigns_21*zip"
-TABLE = "main.pixels_solacc.object_catalog_test"
+TABLE = "main.pixels_solacc.object_catalog_test_anonym"
 VOLUME = f"main.pixels_solacc.pixels_volume_test"
 BASE_PATH = f"/Volumes/main/pixels_solacc/pixels_volume_test/pixels_acc_test"
 CHECKPOINT_BASE_PATH = f"{BASE_PATH}/checkpoints"
 UNZIP_BASE_PATH = f"{BASE_PATH}/unzipped"
+ANONYM_BASE_PATH = f"{BASE_PATH}/anonymized"
 
 
 @pytest.fixture(autouse=True)
@@ -31,9 +33,13 @@ def setup(spark: SparkSession):
 
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
 
 
-def test_catalog_unzip(spark: SparkSession):
+def test_meta_anonym(spark: SparkSession):
+    fp_key = "00112233445566778899aabbccddeeff"
+    fp_tweak = "a1b2c3d4e5f60708"
+
     catalog = Catalog(spark, table=TABLE, volume=VOLUME)
     catalog_df = catalog.catalog(
         path=FILE_PATH, extractZip=True, extractZipBasePath=UNZIP_BASE_PATH
@@ -41,23 +47,13 @@ def test_catalog_unzip(spark: SparkSession):
 
     assert catalog_df is not None
 
-    catalog.save(df=catalog_df)
+    metadata_df = DicomAnonymizerExtractor(
+        catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak
+    ).transform(catalog_df)
+    catalog.save(metadata_df)
 
     assert catalog.load().count() == 30
-
-
-def test_catalog_unzip_stream(spark: SparkSession):
-    catalog = Catalog(spark, table=TABLE, volume=VOLUME)
-    catalog_df = catalog.catalog(
-        path=FILE_PATH,
-        extractZip=True,
-        extractZipBasePath=UNZIP_BASE_PATH,
-        streaming=True,
-        streamCheckpointBasePath=CHECKPOINT_BASE_PATH,
+    assert (
+        catalog.load().limit(1).selectExpr('meta:["00120063"].Value[0]').collect()[0][0]
+        == "DICOGNITO"
     )
-
-    assert catalog_df is not None
-
-    catalog.save(df=catalog_df)
-
-    assert catalog.load().count() == 30
