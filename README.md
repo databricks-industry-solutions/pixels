@@ -32,12 +32,9 @@ catalog_df = catalog.catalog(<path>)                        # 04
 
 # extract the DICOM metadata
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
- 
-# extract DICOM image thumbnails (optional)
-thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
- 
+
 # save your work for SQL access
-catalog.save(thumbnail_df)                                  # 07
+catalog.save(meta_df)                                       # 06
 ```
 You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
 
