@@ -58,10 +58,10 @@ scope_name = "pixels-scope"
 # Change keys, **DO NOT COMMIT THESE KEYS IN YOUR REPO - KEEP IT SAFE**
 
 #pixels_fp_key length must be 128, 192 or 256 bits
-pixels_fp_key = None
+pixels_fp_key = "0123456789abcdef0123456789abcdef"
 
 #pixels_fp_tweak length must be 64 bits
-pixels_fp_tweak = None
+pixels_fp_tweak = "0123456789abcdef"
 
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
   w.secrets.create_scope(scope=scope_name)
@@ -78,13 +78,11 @@ from dbx.pixels import Catalog
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
 catalog = Catalog(spark, table=table+"_anonym", volume=volume)
-catalog_df = catalog.catalog(path=path, extractZip=False)
+catalog_df = catalog.catalog(path=path, extractZip=True)
 
 metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak).transform(catalog_df)
 
-display(metadata_df)
-
-#catalog.save(metadata_df)
+catalog.save(metadata_df)
 
 # COMMAND ----------
 
@@ -94,4 +92,8 @@ display(metadata_df)
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select meta:["00120063"].Value[0] as AnonimizationTool from ${table}_anonym
+# MAGIC select 
+# MAGIC   meta:["00120063"].Value[0] as AnonimizationTool, 
+# MAGIC   meta:["00100010"].Value[0] as PatientName
+# MAGIC from ${table}_anonym
+# MAGIC where meta:["00100010"].Value[0] is not null

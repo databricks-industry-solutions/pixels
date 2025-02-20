@@ -17,7 +17,6 @@
 # COMMAND ----------
 
 # MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git mlflow[databricks] -q
-# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -264,6 +263,7 @@ endpoint = client.create_endpoint(
 
 print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
 
+print("ENDPOINT URL:", endpoint.endpoint_url)
 
 # COMMAND ----------
 
