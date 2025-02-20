@@ -4,6 +4,13 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC <div bgcolor="white">
+# MAGIC   <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="right">
+# MAGIC </div>
+
+# COMMAND ----------
+
 # MAGIC %md # Analytics on DICOM images should be simple
 # MAGIC <!-- -->
 # MAGIC &nbsp;
@@ -23,13 +30,14 @@
 # MAGIC Navigate:
 # MAGIC - For more information see the project [README.md](https://raw.github.com/databricks-industry-solutions/pixels/main/README.md)
 # MAGIC - <a href="$./01-dcm-demo">DICOM Ingest and Analytics demo</a>
-# MAGIC - <a href="$./02-dcm-browser">DICOM Image Browser</a>
+# MAGIC - <a href="$./03-Metadata-DeIdentification">DICOM Metadata DeIdentification</a>
+# MAGIC - <a href="$./07-OHIF-Lakehouse-App">OHIF Viewer in Lakehouse App</a>
 
 # COMMAND ----------
 
 # MAGIC %md ## Licensing
 # MAGIC
-# MAGIC &copy; 2024 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
+# MAGIC &copy; 2025 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
 # MAGIC
 # MAGIC | library              | purpose                             | license                       | source                                                  |
 # MAGIC |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
