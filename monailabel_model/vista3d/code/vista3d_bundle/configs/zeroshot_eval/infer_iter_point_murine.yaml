@@ -1,0 +1,40 @@
+amp: true
+exps: models
+output_path: "$'/workspace/vista3d/' + @exps"
+ckpt: "$@output_path + '/model.pt'"
+dataset_name: "micro-ct-murine-native"
+label_set: [0,1,2,3,4]
+max_iter: 80
+overlap: 0.625
+json_name: "$@dataset_name + '_5_folds.json'"
+data_file_base_dir: '/data/micro-ct-murine/1_nativeCTdata_nifti'
+data_list_file_path: "$'./data/external/' + @json_name"
+log_output_file: $@output_path + '/inference_murine.log'
+list_key: 'all'
+fold: 0
+input_channels: 1
+image_key: image
+label_key: label
+patch_size: [128, 128, 128]
+transforms_infer:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key','@label_key']
+  - _target_: CopyItemsd
+    names: 'label_gt'
+    keys: '@label_key'
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key','@label_key']
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.uint8]
+    keys: ['@image_key','@label_key']
+  - _target_: EnsureTyped
+    keys: ['@image_key','@label_key']
+    track_meta: true
+model: "vista3d_segresnet_d"

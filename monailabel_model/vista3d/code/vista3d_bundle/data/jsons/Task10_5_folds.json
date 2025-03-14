@@ -1,0 +1,987 @@
+{
+    "training": [
+        {
+            "image": "imagesTr/colon_045.nii.gz",
+            "pseudo_label": "imagesTr/colon_045.nii.gz",
+            "label": "labelsTr/colon_045.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_007.nii.gz",
+            "pseudo_label": "imagesTr/colon_007.nii.gz",
+            "label": "labelsTr/colon_007.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_028.nii.gz",
+            "pseudo_label": "imagesTr/colon_028.nii.gz",
+            "label": "labelsTr/colon_028.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_117.nii.gz",
+            "pseudo_label": "imagesTr/colon_117.nii.gz",
+            "label": "labelsTr/colon_117.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_009.nii.gz",
+            "pseudo_label": "imagesTr/colon_009.nii.gz",
+            "label": "labelsTr/colon_009.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_214.nii.gz",
+            "pseudo_label": "imagesTr/colon_214.nii.gz",
+            "label": "labelsTr/colon_214.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_108.nii.gz",
+            "pseudo_label": "imagesTr/colon_108.nii.gz",
+            "label": "labelsTr/colon_108.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_157.nii.gz",
+            "pseudo_label": "imagesTr/colon_157.nii.gz",
+            "label": "labelsTr/colon_157.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_217.nii.gz",
+            "pseudo_label": "imagesTr/colon_217.nii.gz",
+            "label": "labelsTr/colon_217.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_006.nii.gz",
+            "pseudo_label": "imagesTr/colon_006.nii.gz",
+            "label": "labelsTr/colon_006.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_129.nii.gz",
+            "pseudo_label": "imagesTr/colon_129.nii.gz",
+            "label": "labelsTr/colon_129.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_137.nii.gz",
+            "pseudo_label": "imagesTr/colon_137.nii.gz",
+            "label": "labelsTr/colon_137.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_092.nii.gz",
+            "pseudo_label": "imagesTr/colon_092.nii.gz",
+            "label": "labelsTr/colon_092.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_192.nii.gz",
+            "pseudo_label": "imagesTr/colon_192.nii.gz",
+            "label": "labelsTr/colon_192.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_207.nii.gz",
+            "pseudo_label": "imagesTr/colon_207.nii.gz",
+            "label": "labelsTr/colon_207.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_011.nii.gz",
+            "pseudo_label": "imagesTr/colon_011.nii.gz",
+            "label": "labelsTr/colon_011.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_139.nii.gz",
+            "pseudo_label": "imagesTr/colon_139.nii.gz",
+            "label": "labelsTr/colon_139.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/colon_202.nii.gz",
+            "pseudo_label": "imagesTr/colon_202.nii.gz",
+            "label": "labelsTr/colon_202.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_103.nii.gz",
+            "pseudo_label": "imagesTr/colon_103.nii.gz",
+            "label": "labelsTr/colon_103.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_001.nii.gz",
+            "pseudo_label": "imagesTr/colon_001.nii.gz",
+            "label": "labelsTr/colon_001.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_119.nii.gz",
+            "pseudo_label": "imagesTr/colon_119.nii.gz",
+            "label": "labelsTr/colon_119.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_026.nii.gz",
+            "pseudo_label": "imagesTr/colon_026.nii.gz",
+            "label": "labelsTr/colon_026.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_026/colon_026_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_061.nii.gz",
+            "pseudo_label": "imagesTr/colon_061.nii.gz",
+            "label": "labelsTr/colon_061.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_061/colon_061_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_124.nii.gz",
+            "pseudo_label": "imagesTr/colon_124.nii.gz",
+            "label": "labelsTr/colon_124.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_124/colon_124_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_134.nii.gz",
+            "pseudo_label": "imagesTr/colon_134.nii.gz",
+            "label": "labelsTr/colon_134.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_134/colon_134_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_032.nii.gz",
+            "pseudo_label": "imagesTr/colon_032.nii.gz",
+            "label": "labelsTr/colon_032.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_032/colon_032_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_064.nii.gz",
+            "pseudo_label": "imagesTr/colon_064.nii.gz",
+            "label": "labelsTr/colon_064.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_064/colon_064_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_162.nii.gz",
+            "pseudo_label": "imagesTr/colon_162.nii.gz",
+            "label": "labelsTr/colon_162.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_162/colon_162_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_066.nii.gz",
+            "pseudo_label": "imagesTr/colon_066.nii.gz",
+            "label": "labelsTr/colon_066.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_066/colon_066_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_216.nii.gz",
+            "pseudo_label": "imagesTr/colon_216.nii.gz",
+            "label": "labelsTr/colon_216.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_216/colon_216_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_176.nii.gz",
+            "pseudo_label": "imagesTr/colon_176.nii.gz",
+            "label": "labelsTr/colon_176.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_176/colon_176_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_120.nii.gz",
+            "pseudo_label": "imagesTr/colon_120.nii.gz",
+            "label": "labelsTr/colon_120.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_120/colon_120_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_065.nii.gz",
+            "pseudo_label": "imagesTr/colon_065.nii.gz",
+            "label": "labelsTr/colon_065.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/colon_041.nii.gz",
+            "pseudo_label": "imagesTr/colon_041.nii.gz",
+            "label": "labelsTr/colon_041.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_091.nii.gz",
+            "pseudo_label": "imagesTr/colon_091.nii.gz",
+            "label": "labelsTr/colon_091.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_091/colon_091_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_100.nii.gz",
+            "pseudo_label": "imagesTr/colon_100.nii.gz",
+            "label": "labelsTr/colon_100.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_100/colon_100_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_126.nii.gz",
+            "pseudo_label": "imagesTr/colon_126.nii.gz",
+            "label": "labelsTr/colon_126.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_126/colon_126_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_005.nii.gz",
+            "pseudo_label": "imagesTr/colon_005.nii.gz",
+            "label": "labelsTr/colon_005.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_005/colon_005_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_144.nii.gz",
+            "pseudo_label": "imagesTr/colon_144.nii.gz",
+            "label": "labelsTr/colon_144.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_144/colon_144_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_050.nii.gz",
+            "pseudo_label": "imagesTr/colon_050.nii.gz",
+            "label": "labelsTr/colon_050.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_050/colon_050_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_215.nii.gz",
+            "pseudo_label": "imagesTr/colon_215.nii.gz",
+            "label": "labelsTr/colon_215.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_215/colon_215_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_155.nii.gz",
+            "pseudo_label": "imagesTr/colon_155.nii.gz",
+            "label": "labelsTr/colon_155.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_155/colon_155_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_075.nii.gz",
+            "pseudo_label": "imagesTr/colon_075.nii.gz",
+            "label": "labelsTr/colon_075.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_075/colon_075_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_140.nii.gz",
+            "pseudo_label": "imagesTr/colon_140.nii.gz",
+            "label": "labelsTr/colon_140.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_033.nii.gz",
+            "pseudo_label": "imagesTr/colon_033.nii.gz",
+            "label": "labelsTr/colon_033.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_069.nii.gz",
+            "pseudo_label": "imagesTr/colon_069.nii.gz",
+            "label": "labelsTr/colon_069.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_069/colon_069_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_185.nii.gz",
+            "pseudo_label": "imagesTr/colon_185.nii.gz",
+            "label": "labelsTr/colon_185.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/colon_127.nii.gz",
+            "pseudo_label": "imagesTr/colon_127.nii.gz",
+            "label": "labelsTr/colon_127.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_127/colon_127_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_059.nii.gz",
+            "pseudo_label": "imagesTr/colon_059.nii.gz",
+            "label": "labelsTr/colon_059.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_059/colon_059_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_051.nii.gz",
+            "pseudo_label": "imagesTr/colon_051.nii.gz",
+            "label": "labelsTr/colon_051.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_051/colon_051_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_030.nii.gz",
+            "pseudo_label": "imagesTr/colon_030.nii.gz",
+            "label": "labelsTr/colon_030.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_030/colon_030_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_131.nii.gz",
+            "pseudo_label": "imagesTr/colon_131.nii.gz",
+            "label": "labelsTr/colon_131.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_131/colon_131_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_138.nii.gz",
+            "pseudo_label": "imagesTr/colon_138.nii.gz",
+            "label": "labelsTr/colon_138.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_138/colon_138_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_194.nii.gz",
+            "pseudo_label": "imagesTr/colon_194.nii.gz",
+            "label": "labelsTr/colon_194.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_194/colon_194_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_161.nii.gz",
+            "pseudo_label": "imagesTr/colon_161.nii.gz",
+            "label": "labelsTr/colon_161.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_161/colon_161_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_025.nii.gz",
+            "pseudo_label": "imagesTr/colon_025.nii.gz",
+            "label": "labelsTr/colon_025.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_025/colon_025_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_111.nii.gz",
+            "pseudo_label": "imagesTr/colon_111.nii.gz",
+            "label": "labelsTr/colon_111.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_111/colon_111_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_141.nii.gz",
+            "pseudo_label": "imagesTr/colon_141.nii.gz",
+            "label": "labelsTr/colon_141.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_141/colon_141_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_201.nii.gz",
+            "pseudo_label": "imagesTr/colon_201.nii.gz",
+            "label": "labelsTr/colon_201.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_201/colon_201_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_024.nii.gz",
+            "pseudo_label": "imagesTr/colon_024.nii.gz",
+            "label": "labelsTr/colon_024.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_024/colon_024_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_165.nii.gz",
+            "pseudo_label": "imagesTr/colon_165.nii.gz",
+            "label": "labelsTr/colon_165.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_165/colon_165_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_175.nii.gz",
+            "pseudo_label": "imagesTr/colon_175.nii.gz",
+            "label": "labelsTr/colon_175.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_175/colon_175_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_122.nii.gz",
+            "pseudo_label": "imagesTr/colon_122.nii.gz",
+            "label": "labelsTr/colon_122.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_122/colon_122_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_022.nii.gz",
+            "pseudo_label": "imagesTr/colon_022.nii.gz",
+            "label": "labelsTr/colon_022.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_022/colon_022_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_095.nii.gz",
+            "pseudo_label": "imagesTr/colon_095.nii.gz",
+            "label": "labelsTr/colon_095.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_095/colon_095_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_145.nii.gz",
+            "pseudo_label": "imagesTr/colon_145.nii.gz",
+            "label": "labelsTr/colon_145.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_145/colon_145_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_106.nii.gz",
+            "pseudo_label": "imagesTr/colon_106.nii.gz",
+            "label": "labelsTr/colon_106.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_106/colon_106_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_114.nii.gz",
+            "pseudo_label": "imagesTr/colon_114.nii.gz",
+            "label": "labelsTr/colon_114.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_114/colon_114_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_115.nii.gz",
+            "pseudo_label": "imagesTr/colon_115.nii.gz",
+            "label": "labelsTr/colon_115.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_115/colon_115_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_112.nii.gz",
+            "pseudo_label": "imagesTr/colon_112.nii.gz",
+            "label": "labelsTr/colon_112.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_112/colon_112_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_118.nii.gz",
+            "pseudo_label": "imagesTr/colon_118.nii.gz",
+            "label": "labelsTr/colon_118.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_118/colon_118_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_171.nii.gz",
+            "pseudo_label": "imagesTr/colon_171.nii.gz",
+            "label": "labelsTr/colon_171.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_171/colon_171_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_008.nii.gz",
+            "pseudo_label": "imagesTr/colon_008.nii.gz",
+            "label": "labelsTr/colon_008.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_008/colon_008_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_027.nii.gz",
+            "pseudo_label": "imagesTr/colon_027.nii.gz",
+            "label": "labelsTr/colon_027.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_027/colon_027_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_029.nii.gz",
+            "pseudo_label": "imagesTr/colon_029.nii.gz",
+            "label": "labelsTr/colon_029.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_029/colon_029_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_099.nii.gz",
+            "pseudo_label": "imagesTr/colon_099.nii.gz",
+            "label": "labelsTr/colon_099.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_099/colon_099_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_205.nii.gz",
+            "pseudo_label": "imagesTr/colon_205.nii.gz",
+            "label": "labelsTr/colon_205.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_205/colon_205_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_072.nii.gz",
+            "pseudo_label": "imagesTr/colon_072.nii.gz",
+            "label": "labelsTr/colon_072.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_072/colon_072_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_096.nii.gz",
+            "pseudo_label": "imagesTr/colon_096.nii.gz",
+            "label": "labelsTr/colon_096.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_096/colon_096_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_036.nii.gz",
+            "pseudo_label": "imagesTr/colon_036.nii.gz",
+            "label": "labelsTr/colon_036.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_036/colon_036_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_136.nii.gz",
+            "pseudo_label": "imagesTr/colon_136.nii.gz",
+            "label": "labelsTr/colon_136.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_136/colon_136_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_218.nii.gz",
+            "pseudo_label": "imagesTr/colon_218.nii.gz",
+            "label": "labelsTr/colon_218.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_218/colon_218_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_143.nii.gz",
+            "pseudo_label": "imagesTr/colon_143.nii.gz",
+            "label": "labelsTr/colon_143.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_143/colon_143_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_154.nii.gz",
+            "pseudo_label": "imagesTr/colon_154.nii.gz",
+            "label": "labelsTr/colon_154.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_154/colon_154_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_168.nii.gz",
+            "pseudo_label": "imagesTr/colon_168.nii.gz",
+            "label": "labelsTr/colon_168.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_168/colon_168_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_166.nii.gz",
+            "pseudo_label": "imagesTr/colon_166.nii.gz",
+            "label": "labelsTr/colon_166.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_166/colon_166_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_181.nii.gz",
+            "pseudo_label": "imagesTr/colon_181.nii.gz",
+            "label": "labelsTr/colon_181.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_181/colon_181_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_039.nii.gz",
+            "pseudo_label": "imagesTr/colon_039.nii.gz",
+            "label": "labelsTr/colon_039.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_039/colon_039_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_086.nii.gz",
+            "pseudo_label": "imagesTr/colon_086.nii.gz",
+            "label": "labelsTr/colon_086.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_086/colon_086_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_149.nii.gz",
+            "pseudo_label": "imagesTr/colon_149.nii.gz",
+            "label": "labelsTr/colon_149.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_149/colon_149_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_193.nii.gz",
+            "pseudo_label": "imagesTr/colon_193.nii.gz",
+            "label": "labelsTr/colon_193.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_193/colon_193_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_015.nii.gz",
+            "pseudo_label": "imagesTr/colon_015.nii.gz",
+            "label": "labelsTr/colon_015.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_015/colon_015_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_040.nii.gz",
+            "pseudo_label": "imagesTr/colon_040.nii.gz",
+            "label": "labelsTr/colon_040.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_040/colon_040_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_196.nii.gz",
+            "pseudo_label": "imagesTr/colon_196.nii.gz",
+            "label": "labelsTr/colon_196.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_196/colon_196_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_054.nii.gz",
+            "pseudo_label": "imagesTr/colon_054.nii.gz",
+            "label": "labelsTr/colon_054.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_054/colon_054_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_098.nii.gz",
+            "pseudo_label": "imagesTr/colon_098.nii.gz",
+            "label": "labelsTr/colon_098.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_098/colon_098_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_074.nii.gz",
+            "pseudo_label": "imagesTr/colon_074.nii.gz",
+            "label": "labelsTr/colon_074.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_074/colon_074_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_012.nii.gz",
+            "pseudo_label": "imagesTr/colon_012.nii.gz",
+            "label": "labelsTr/colon_012.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_012/colon_012_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_142.nii.gz",
+            "pseudo_label": "imagesTr/colon_142.nii.gz",
+            "label": "labelsTr/colon_142.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_142/colon_142_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_212.nii.gz",
+            "pseudo_label": "imagesTr/colon_212.nii.gz",
+            "label": "labelsTr/colon_212.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_212/colon_212_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_159.nii.gz",
+            "pseudo_label": "imagesTr/colon_159.nii.gz",
+            "label": "labelsTr/colon_159.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task10_100/colon_159/colon_159_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "colon cancer primaries"
+    },
+    "original_label_dict": {
+        "1": "colon cancer primaries"
+    },
+    "testing": [
+        {
+            "image": "imagesTr/colon_053.nii.gz",
+            "label": "labelsTr/colon_053.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_219.nii.gz",
+            "label": "labelsTr/colon_219.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_107.nii.gz",
+            "label": "labelsTr/colon_107.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_203.nii.gz",
+            "label": "labelsTr/colon_203.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_163.nii.gz",
+            "label": "labelsTr/colon_163.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_187.nii.gz",
+            "label": "labelsTr/colon_187.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_172.nii.gz",
+            "label": "labelsTr/colon_172.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_077.nii.gz",
+            "label": "labelsTr/colon_077.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_104.nii.gz",
+            "label": "labelsTr/colon_104.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_042.nii.gz",
+            "label": "labelsTr/colon_042.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_169.nii.gz",
+            "label": "labelsTr/colon_169.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_133.nii.gz",
+            "label": "labelsTr/colon_133.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_208.nii.gz",
+            "label": "labelsTr/colon_208.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_206.nii.gz",
+            "label": "labelsTr/colon_206.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_031.nii.gz",
+            "label": "labelsTr/colon_031.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_148.nii.gz",
+            "label": "labelsTr/colon_148.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_102.nii.gz",
+            "label": "labelsTr/colon_102.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_078.nii.gz",
+            "label": "labelsTr/colon_078.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_046.nii.gz",
+            "label": "labelsTr/colon_046.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_213.nii.gz",
+            "label": "labelsTr/colon_213.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_081.nii.gz",
+            "label": "labelsTr/colon_081.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_089.nii.gz",
+            "label": "labelsTr/colon_089.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_088.nii.gz",
+            "label": "labelsTr/colon_088.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_164.nii.gz",
+            "label": "labelsTr/colon_164.nii.gz"
+        },
+        {
+            "image": "imagesTr/colon_038.nii.gz",
+            "label": "labelsTr/colon_038.nii.gz"
+        }
+    ]
+}

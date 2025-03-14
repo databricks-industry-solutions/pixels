@@ -1,0 +1,2083 @@
+{
+    "training": [
+        {
+            "image": "imagesTr/pancreas_021.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_021.nii.gz",
+            "label": "labelsTr/pancreas_021.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_321.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_321.nii.gz",
+            "label": "labelsTr/pancreas_321.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_170.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_170.nii.gz",
+            "label": "labelsTr/pancreas_170.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_347.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_347.nii.gz",
+            "label": "labelsTr/pancreas_347.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_358.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_358.nii.gz",
+            "label": "labelsTr/pancreas_358.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_147.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_147.nii.gz",
+            "label": "labelsTr/pancreas_147.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_308.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_308.nii.gz",
+            "label": "labelsTr/pancreas_308.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_285.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_285.nii.gz",
+            "label": "labelsTr/pancreas_285.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_067.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_067.nii.gz",
+            "label": "labelsTr/pancreas_067.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_102.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_102.nii.gz",
+            "label": "labelsTr/pancreas_102.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_320.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_320.nii.gz",
+            "label": "labelsTr/pancreas_320.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_357.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_357.nii.gz",
+            "label": "labelsTr/pancreas_357.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_175.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_175.nii.gz",
+            "label": "labelsTr/pancreas_175.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_366.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_366.nii.gz",
+            "label": "labelsTr/pancreas_366.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_398.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_398.nii.gz",
+            "label": "labelsTr/pancreas_398.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_254.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_254.nii.gz",
+            "label": "labelsTr/pancreas_254.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_367.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_367.nii.gz",
+            "label": "labelsTr/pancreas_367.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_234.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_234.nii.gz",
+            "label": "labelsTr/pancreas_234.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_186.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_186.nii.gz",
+            "label": "labelsTr/pancreas_186.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_385.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_385.nii.gz",
+            "label": "labelsTr/pancreas_385.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_093.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_093.nii.gz",
+            "label": "labelsTr/pancreas_093.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_370.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_370.nii.gz",
+            "label": "labelsTr/pancreas_370.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_376.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_376.nii.gz",
+            "label": "labelsTr/pancreas_376.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_231.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_231.nii.gz",
+            "label": "labelsTr/pancreas_231.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_280.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_280.nii.gz",
+            "label": "labelsTr/pancreas_280.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_212.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_212.nii.gz",
+            "label": "labelsTr/pancreas_212.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_064.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_064.nii.gz",
+            "label": "labelsTr/pancreas_064.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_256.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_256.nii.gz",
+            "label": "labelsTr/pancreas_256.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_241.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_241.nii.gz",
+            "label": "labelsTr/pancreas_241.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_327.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_327.nii.gz",
+            "label": "labelsTr/pancreas_327.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_360.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_360.nii.gz",
+            "label": "labelsTr/pancreas_360.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_041.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_041.nii.gz",
+            "label": "labelsTr/pancreas_041.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_283.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_283.nii.gz",
+            "label": "labelsTr/pancreas_283.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_333.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_333.nii.gz",
+            "label": "labelsTr/pancreas_333.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_267.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_267.nii.gz",
+            "label": "labelsTr/pancreas_267.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_126.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_126.nii.gz",
+            "label": "labelsTr/pancreas_126.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_145.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_145.nii.gz",
+            "label": "labelsTr/pancreas_145.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_042.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_042.nii.gz",
+            "label": "labelsTr/pancreas_042.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_096.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_096.nii.gz",
+            "label": "labelsTr/pancreas_096.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_268.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_268.nii.gz",
+            "label": "labelsTr/pancreas_268.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_045.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_045.nii.gz",
+            "label": "labelsTr/pancreas_045.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_130.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_130.nii.gz",
+            "label": "labelsTr/pancreas_130.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_278.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_278.nii.gz",
+            "label": "labelsTr/pancreas_278.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_325.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_325.nii.gz",
+            "label": "labelsTr/pancreas_325.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_084.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_084.nii.gz",
+            "label": "labelsTr/pancreas_084.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_200.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_200.nii.gz",
+            "label": "labelsTr/pancreas_200.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_200/pancreas_200_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_411.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_411.nii.gz",
+            "label": "labelsTr/pancreas_411.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_411/pancreas_411_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_127.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_127.nii.gz",
+            "label": "labelsTr/pancreas_127.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_127/pancreas_127_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_382.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_382.nii.gz",
+            "label": "labelsTr/pancreas_382.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_382/pancreas_382_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_055.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_055.nii.gz",
+            "label": "labelsTr/pancreas_055.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_055/pancreas_055_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_103.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_103.nii.gz",
+            "label": "labelsTr/pancreas_103.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_103/pancreas_103_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_351.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_351.nii.gz",
+            "label": "labelsTr/pancreas_351.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_351/pancreas_351_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_235.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_235.nii.gz",
+            "label": "labelsTr/pancreas_235.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_235/pancreas_235_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_001.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_001.nii.gz",
+            "label": "labelsTr/pancreas_001.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_001/pancreas_001_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_230.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_230.nii.gz",
+            "label": "labelsTr/pancreas_230.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_230/pancreas_230_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_125.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_125.nii.gz",
+            "label": "labelsTr/pancreas_125.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_125/pancreas_125_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_124.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_124.nii.gz",
+            "label": "labelsTr/pancreas_124.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_124/pancreas_124_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_355.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_355.nii.gz",
+            "label": "labelsTr/pancreas_355.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_355/pancreas_355_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_297.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_297.nii.gz",
+            "label": "labelsTr/pancreas_297.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_297/pancreas_297_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_269.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_269.nii.gz",
+            "label": "labelsTr/pancreas_269.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_269/pancreas_269_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_277.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_277.nii.gz",
+            "label": "labelsTr/pancreas_277.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/pancreas_226.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_226.nii.gz",
+            "label": "labelsTr/pancreas_226.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_226/pancreas_226_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_178.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_178.nii.gz",
+            "label": "labelsTr/pancreas_178.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_178/pancreas_178_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_418.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_418.nii.gz",
+            "label": "labelsTr/pancreas_418.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_418/pancreas_418_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_378.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_378.nii.gz",
+            "label": "labelsTr/pancreas_378.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_378/pancreas_378_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_025.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_025.nii.gz",
+            "label": "labelsTr/pancreas_025.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_025/pancreas_025_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_046.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_046.nii.gz",
+            "label": "labelsTr/pancreas_046.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_046/pancreas_046_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_114.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_114.nii.gz",
+            "label": "labelsTr/pancreas_114.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_217.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_217.nii.gz",
+            "label": "labelsTr/pancreas_217.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_217/pancreas_217_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_155.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_155.nii.gz",
+            "label": "labelsTr/pancreas_155.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_155/pancreas_155_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_354.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_354.nii.gz",
+            "label": "labelsTr/pancreas_354.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_354/pancreas_354_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_199.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_199.nii.gz",
+            "label": "labelsTr/pancreas_199.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_199/pancreas_199_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_210.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_210.nii.gz",
+            "label": "labelsTr/pancreas_210.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_210/pancreas_210_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_246.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_246.nii.gz",
+            "label": "labelsTr/pancreas_246.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_246/pancreas_246_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_395.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_395.nii.gz",
+            "label": "labelsTr/pancreas_395.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_395/pancreas_395_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_410.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_410.nii.gz",
+            "label": "labelsTr/pancreas_410.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_410/pancreas_410_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_197.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_197.nii.gz",
+            "label": "labelsTr/pancreas_197.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_197/pancreas_197_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_099.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_099.nii.gz",
+            "label": "labelsTr/pancreas_099.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_099/pancreas_099_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_107.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_107.nii.gz",
+            "label": "labelsTr/pancreas_107.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_107/pancreas_107_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_122.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_122.nii.gz",
+            "label": "labelsTr/pancreas_122.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_122/pancreas_122_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_111.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_111.nii.gz",
+            "label": "labelsTr/pancreas_111.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_111/pancreas_111_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_004.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_004.nii.gz",
+            "label": "labelsTr/pancreas_004.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_004/pancreas_004_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_331.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_331.nii.gz",
+            "label": "labelsTr/pancreas_331.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_331/pancreas_331_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_069.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_069.nii.gz",
+            "label": "labelsTr/pancreas_069.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_069/pancreas_069_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_071.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_071.nii.gz",
+            "label": "labelsTr/pancreas_071.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_071/pancreas_071_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_259.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_259.nii.gz",
+            "label": "labelsTr/pancreas_259.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_259/pancreas_259_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_213.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_213.nii.gz",
+            "label": "labelsTr/pancreas_213.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_213/pancreas_213_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_018.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_018.nii.gz",
+            "label": "labelsTr/pancreas_018.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_018/pancreas_018_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_400.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_400.nii.gz",
+            "label": "labelsTr/pancreas_400.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_400/pancreas_400_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_037.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_037.nii.gz",
+            "label": "labelsTr/pancreas_037.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_037/pancreas_037_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_048.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_048.nii.gz",
+            "label": "labelsTr/pancreas_048.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_048/pancreas_048_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_345.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_345.nii.gz",
+            "label": "labelsTr/pancreas_345.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_345/pancreas_345_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_229.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_229.nii.gz",
+            "label": "labelsTr/pancreas_229.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_229/pancreas_229_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_364.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_364.nii.gz",
+            "label": "labelsTr/pancreas_364.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_364/pancreas_364_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_295.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_295.nii.gz",
+            "label": "labelsTr/pancreas_295.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_295/pancreas_295_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_110.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_110.nii.gz",
+            "label": "labelsTr/pancreas_110.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_110/pancreas_110_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_157.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_157.nii.gz",
+            "label": "labelsTr/pancreas_157.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_157/pancreas_157_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_293.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_293.nii.gz",
+            "label": "labelsTr/pancreas_293.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_293/pancreas_293_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_377.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_377.nii.gz",
+            "label": "labelsTr/pancreas_377.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_377/pancreas_377_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_088.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_088.nii.gz",
+            "label": "labelsTr/pancreas_088.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_088/pancreas_088_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_193.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_193.nii.gz",
+            "label": "labelsTr/pancreas_193.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_193/pancreas_193_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_218.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_218.nii.gz",
+            "label": "labelsTr/pancreas_218.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_218/pancreas_218_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_196.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_196.nii.gz",
+            "label": "labelsTr/pancreas_196.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_196/pancreas_196_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_413.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_413.nii.gz",
+            "label": "labelsTr/pancreas_413.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_413/pancreas_413_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_056.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_056.nii.gz",
+            "label": "labelsTr/pancreas_056.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_056/pancreas_056_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_203.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_203.nii.gz",
+            "label": "labelsTr/pancreas_203.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_203/pancreas_203_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_356.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_356.nii.gz",
+            "label": "labelsTr/pancreas_356.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_356/pancreas_356_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_187.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_187.nii.gz",
+            "label": "labelsTr/pancreas_187.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_187/pancreas_187_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_159.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_159.nii.gz",
+            "label": "labelsTr/pancreas_159.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_159/pancreas_159_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_311.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_311.nii.gz",
+            "label": "labelsTr/pancreas_311.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_311/pancreas_311_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_388.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_388.nii.gz",
+            "label": "labelsTr/pancreas_388.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_388/pancreas_388_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_165.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_165.nii.gz",
+            "label": "labelsTr/pancreas_165.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_165/pancreas_165_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_070.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_070.nii.gz",
+            "label": "labelsTr/pancreas_070.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_070/pancreas_070_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_302.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_302.nii.gz",
+            "label": "labelsTr/pancreas_302.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_302/pancreas_302_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_243.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_243.nii.gz",
+            "label": "labelsTr/pancreas_243.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_243/pancreas_243_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_101.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_101.nii.gz",
+            "label": "labelsTr/pancreas_101.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_101/pancreas_101_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_369.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_369.nii.gz",
+            "label": "labelsTr/pancreas_369.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_369/pancreas_369_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_104.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_104.nii.gz",
+            "label": "labelsTr/pancreas_104.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_104/pancreas_104_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_399.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_399.nii.gz",
+            "label": "labelsTr/pancreas_399.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_399/pancreas_399_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_315.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_315.nii.gz",
+            "label": "labelsTr/pancreas_315.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_315/pancreas_315_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_294.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_294.nii.gz",
+            "label": "labelsTr/pancreas_294.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_294/pancreas_294_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_028.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_028.nii.gz",
+            "label": "labelsTr/pancreas_028.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_028/pancreas_028_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_313.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_313.nii.gz",
+            "label": "labelsTr/pancreas_313.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_313/pancreas_313_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_194.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_194.nii.gz",
+            "label": "labelsTr/pancreas_194.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_194/pancreas_194_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_029.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_029.nii.gz",
+            "label": "labelsTr/pancreas_029.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_029/pancreas_029_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_421.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_421.nii.gz",
+            "label": "labelsTr/pancreas_421.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_421/pancreas_421_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_182.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_182.nii.gz",
+            "label": "labelsTr/pancreas_182.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_182/pancreas_182_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_249.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_249.nii.gz",
+            "label": "labelsTr/pancreas_249.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_249/pancreas_249_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_201.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_201.nii.gz",
+            "label": "labelsTr/pancreas_201.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_201/pancreas_201_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_299.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_299.nii.gz",
+            "label": "labelsTr/pancreas_299.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_299/pancreas_299_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_274.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_274.nii.gz",
+            "label": "labelsTr/pancreas_274.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_274/pancreas_274_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_303.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_303.nii.gz",
+            "label": "labelsTr/pancreas_303.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_303/pancreas_303_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_279.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_279.nii.gz",
+            "label": "labelsTr/pancreas_279.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_279/pancreas_279_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_386.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_386.nii.gz",
+            "label": "labelsTr/pancreas_386.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_386/pancreas_386_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_086.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_086.nii.gz",
+            "label": "labelsTr/pancreas_086.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_086/pancreas_086_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_214.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_214.nii.gz",
+            "label": "labelsTr/pancreas_214.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_214/pancreas_214_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_261.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_261.nii.gz",
+            "label": "labelsTr/pancreas_261.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_261/pancreas_261_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_375.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_375.nii.gz",
+            "label": "labelsTr/pancreas_375.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_375/pancreas_375_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_286.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_286.nii.gz",
+            "label": "labelsTr/pancreas_286.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_286/pancreas_286_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_083.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_083.nii.gz",
+            "label": "labelsTr/pancreas_083.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_083/pancreas_083_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_415.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_415.nii.gz",
+            "label": "labelsTr/pancreas_415.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_415/pancreas_415_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_016.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_016.nii.gz",
+            "label": "labelsTr/pancreas_016.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_016/pancreas_016_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_346.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_346.nii.gz",
+            "label": "labelsTr/pancreas_346.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_346/pancreas_346_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_404.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_404.nii.gz",
+            "label": "labelsTr/pancreas_404.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_404/pancreas_404_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_298.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_298.nii.gz",
+            "label": "labelsTr/pancreas_298.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_298/pancreas_298_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_080.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_080.nii.gz",
+            "label": "labelsTr/pancreas_080.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_080/pancreas_080_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_343.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_343.nii.gz",
+            "label": "labelsTr/pancreas_343.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_343/pancreas_343_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_284.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_284.nii.gz",
+            "label": "labelsTr/pancreas_284.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_284/pancreas_284_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_148.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_148.nii.gz",
+            "label": "labelsTr/pancreas_148.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_148/pancreas_148_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_401.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_401.nii.gz",
+            "label": "labelsTr/pancreas_401.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_401/pancreas_401_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_204.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_204.nii.gz",
+            "label": "labelsTr/pancreas_204.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_204/pancreas_204_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_334.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_334.nii.gz",
+            "label": "labelsTr/pancreas_334.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_334/pancreas_334_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_138.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_138.nii.gz",
+            "label": "labelsTr/pancreas_138.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_138/pancreas_138_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_300.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_300.nii.gz",
+            "label": "labelsTr/pancreas_300.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_300/pancreas_300_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_304.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_304.nii.gz",
+            "label": "labelsTr/pancreas_304.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_304/pancreas_304_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_100.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_100.nii.gz",
+            "label": "labelsTr/pancreas_100.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_100/pancreas_100_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_405.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_405.nii.gz",
+            "label": "labelsTr/pancreas_405.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_405/pancreas_405_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_129.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_129.nii.gz",
+            "label": "labelsTr/pancreas_129.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_129/pancreas_129_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_228.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_228.nii.gz",
+            "label": "labelsTr/pancreas_228.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_228/pancreas_228_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_113.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_113.nii.gz",
+            "label": "labelsTr/pancreas_113.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_113/pancreas_113_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_091.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_091.nii.gz",
+            "label": "labelsTr/pancreas_091.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_091/pancreas_091_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_310.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_310.nii.gz",
+            "label": "labelsTr/pancreas_310.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_310/pancreas_310_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_050.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_050.nii.gz",
+            "label": "labelsTr/pancreas_050.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_050/pancreas_050_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_172.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_172.nii.gz",
+            "label": "labelsTr/pancreas_172.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_172/pancreas_172_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_075.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_075.nii.gz",
+            "label": "labelsTr/pancreas_075.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_075/pancreas_075_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_198.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_198.nii.gz",
+            "label": "labelsTr/pancreas_198.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_198/pancreas_198_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_372.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_372.nii.gz",
+            "label": "labelsTr/pancreas_372.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_372/pancreas_372_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_296.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_296.nii.gz",
+            "label": "labelsTr/pancreas_296.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_296/pancreas_296_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_078.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_078.nii.gz",
+            "label": "labelsTr/pancreas_078.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_078/pancreas_078_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_255.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_255.nii.gz",
+            "label": "labelsTr/pancreas_255.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_255/pancreas_255_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_166.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_166.nii.gz",
+            "label": "labelsTr/pancreas_166.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_166/pancreas_166_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_167.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_167.nii.gz",
+            "label": "labelsTr/pancreas_167.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_167/pancreas_167_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_265.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_265.nii.gz",
+            "label": "labelsTr/pancreas_265.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_265/pancreas_265_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_119.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_119.nii.gz",
+            "label": "labelsTr/pancreas_119.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_119/pancreas_119_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_169.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_169.nii.gz",
+            "label": "labelsTr/pancreas_169.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_169/pancreas_169_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_387.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_387.nii.gz",
+            "label": "labelsTr/pancreas_387.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_387/pancreas_387_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_328.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_328.nii.gz",
+            "label": "labelsTr/pancreas_328.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_328/pancreas_328_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_275.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_275.nii.gz",
+            "label": "labelsTr/pancreas_275.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_275/pancreas_275_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_253.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_253.nii.gz",
+            "label": "labelsTr/pancreas_253.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_253/pancreas_253_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_326.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_326.nii.gz",
+            "label": "labelsTr/pancreas_326.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_326/pancreas_326_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_379.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_379.nii.gz",
+            "label": "labelsTr/pancreas_379.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/pancreas_051.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_051.nii.gz",
+            "label": "labelsTr/pancreas_051.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_051/pancreas_051_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_291.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_291.nii.gz",
+            "label": "labelsTr/pancreas_291.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_291/pancreas_291_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_106.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_106.nii.gz",
+            "label": "labelsTr/pancreas_106.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_106/pancreas_106_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_242.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_242.nii.gz",
+            "label": "labelsTr/pancreas_242.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_242/pancreas_242_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_389.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_389.nii.gz",
+            "label": "labelsTr/pancreas_389.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_389/pancreas_389_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_058.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_058.nii.gz",
+            "label": "labelsTr/pancreas_058.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_058/pancreas_058_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_120.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_120.nii.gz",
+            "label": "labelsTr/pancreas_120.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_120/pancreas_120_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_287.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_287.nii.gz",
+            "label": "labelsTr/pancreas_287.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_287/pancreas_287_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_305.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_305.nii.gz",
+            "label": "labelsTr/pancreas_305.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_305/pancreas_305_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_135.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_135.nii.gz",
+            "label": "labelsTr/pancreas_135.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_135/pancreas_135_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_137.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_137.nii.gz",
+            "label": "labelsTr/pancreas_137.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_137/pancreas_137_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_010.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_010.nii.gz",
+            "label": "labelsTr/pancreas_010.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_010/pancreas_010_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_109.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_109.nii.gz",
+            "label": "labelsTr/pancreas_109.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_109/pancreas_109_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_323.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_323.nii.gz",
+            "label": "labelsTr/pancreas_323.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_323/pancreas_323_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_140.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_140.nii.gz",
+            "label": "labelsTr/pancreas_140.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_140/pancreas_140_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_316.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_316.nii.gz",
+            "label": "labelsTr/pancreas_316.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_316/pancreas_316_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_012.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_012.nii.gz",
+            "label": "labelsTr/pancreas_012.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_012/pancreas_012_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_158.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_158.nii.gz",
+            "label": "labelsTr/pancreas_158.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_158/pancreas_158_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_344.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_344.nii.gz",
+            "label": "labelsTr/pancreas_344.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_344/pancreas_344_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_342.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_342.nii.gz",
+            "label": "labelsTr/pancreas_342.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_342/pancreas_342_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_095.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_095.nii.gz",
+            "label": "labelsTr/pancreas_095.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_095/pancreas_095_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_019.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_019.nii.gz",
+            "label": "labelsTr/pancreas_019.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_019/pancreas_019_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_077.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_077.nii.gz",
+            "label": "labelsTr/pancreas_077.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_077/pancreas_077_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_015.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_015.nii.gz",
+            "label": "labelsTr/pancreas_015.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_015/pancreas_015_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_312.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_312.nii.gz",
+            "label": "labelsTr/pancreas_312.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_312/pancreas_312_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_024.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_024.nii.gz",
+            "label": "labelsTr/pancreas_024.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_024/pancreas_024_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_087.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_087.nii.gz",
+            "label": "labelsTr/pancreas_087.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_087/pancreas_087_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_098.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_098.nii.gz",
+            "label": "labelsTr/pancreas_098.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_098/pancreas_098_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_262.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_262.nii.gz",
+            "label": "labelsTr/pancreas_262.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_262/pancreas_262_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_105.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_105.nii.gz",
+            "label": "labelsTr/pancreas_105.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_105/pancreas_105_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_052.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_052.nii.gz",
+            "label": "labelsTr/pancreas_052.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_052/pancreas_052_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_362.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_362.nii.gz",
+            "label": "labelsTr/pancreas_362.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_362/pancreas_362_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_247.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_247.nii.gz",
+            "label": "labelsTr/pancreas_247.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_247/pancreas_247_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_414.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_414.nii.gz",
+            "label": "labelsTr/pancreas_414.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_414/pancreas_414_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_391.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_391.nii.gz",
+            "label": "labelsTr/pancreas_391.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_391/pancreas_391_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_330.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_330.nii.gz",
+            "label": "labelsTr/pancreas_330.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_330/pancreas_330_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_209.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_209.nii.gz",
+            "label": "labelsTr/pancreas_209.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_209/pancreas_209_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_409.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_409.nii.gz",
+            "label": "labelsTr/pancreas_409.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_409/pancreas_409_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_244.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_244.nii.gz",
+            "label": "labelsTr/pancreas_244.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_244/pancreas_244_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_266.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_266.nii.gz",
+            "label": "labelsTr/pancreas_266.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_266/pancreas_266_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_264.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_264.nii.gz",
+            "label": "labelsTr/pancreas_264.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_264/pancreas_264_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_035.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_035.nii.gz",
+            "label": "labelsTr/pancreas_035.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_035/pancreas_035_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_215.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_215.nii.gz",
+            "label": "labelsTr/pancreas_215.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_215/pancreas_215_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_339.nii.gz",
+            "pseudo_label": "imagesTr/pancreas_339.nii.gz",
+            "label": "labelsTr/pancreas_339.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Task07_100/pancreas_339/pancreas_339_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "pancreas",
+        "2": "pancreatic tumor"
+    },
+    "original_label_dict": {
+        "1": "pancreas",
+        "2": "cancer"
+    },
+    "testing": [
+        {
+            "image": "imagesTr/pancreas_207.nii.gz",
+            "label": "labelsTr/pancreas_207.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_040.nii.gz",
+            "label": "labelsTr/pancreas_040.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_081.nii.gz",
+            "label": "labelsTr/pancreas_081.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_179.nii.gz",
+            "label": "labelsTr/pancreas_179.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_289.nii.gz",
+            "label": "labelsTr/pancreas_289.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_402.nii.gz",
+            "label": "labelsTr/pancreas_402.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_032.nii.gz",
+            "label": "labelsTr/pancreas_032.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_270.nii.gz",
+            "label": "labelsTr/pancreas_270.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_089.nii.gz",
+            "label": "labelsTr/pancreas_089.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_191.nii.gz",
+            "label": "labelsTr/pancreas_191.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_365.nii.gz",
+            "label": "labelsTr/pancreas_365.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_061.nii.gz",
+            "label": "labelsTr/pancreas_061.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_222.nii.gz",
+            "label": "labelsTr/pancreas_222.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_393.nii.gz",
+            "label": "labelsTr/pancreas_393.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_419.nii.gz",
+            "label": "labelsTr/pancreas_419.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_301.nii.gz",
+            "label": "labelsTr/pancreas_301.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_350.nii.gz",
+            "label": "labelsTr/pancreas_350.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_074.nii.gz",
+            "label": "labelsTr/pancreas_074.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_380.nii.gz",
+            "label": "labelsTr/pancreas_380.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_005.nii.gz",
+            "label": "labelsTr/pancreas_005.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_006.nii.gz",
+            "label": "labelsTr/pancreas_006.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_219.nii.gz",
+            "label": "labelsTr/pancreas_219.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_092.nii.gz",
+            "label": "labelsTr/pancreas_092.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_225.nii.gz",
+            "label": "labelsTr/pancreas_225.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_392.nii.gz",
+            "label": "labelsTr/pancreas_392.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_211.nii.gz",
+            "label": "labelsTr/pancreas_211.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_173.nii.gz",
+            "label": "labelsTr/pancreas_173.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_329.nii.gz",
+            "label": "labelsTr/pancreas_329.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_117.nii.gz",
+            "label": "labelsTr/pancreas_117.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_227.nii.gz",
+            "label": "labelsTr/pancreas_227.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_149.nii.gz",
+            "label": "labelsTr/pancreas_149.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_374.nii.gz",
+            "label": "labelsTr/pancreas_374.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_361.nii.gz",
+            "label": "labelsTr/pancreas_361.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_309.nii.gz",
+            "label": "labelsTr/pancreas_309.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_224.nii.gz",
+            "label": "labelsTr/pancreas_224.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_183.nii.gz",
+            "label": "labelsTr/pancreas_183.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_406.nii.gz",
+            "label": "labelsTr/pancreas_406.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_181.nii.gz",
+            "label": "labelsTr/pancreas_181.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_131.nii.gz",
+            "label": "labelsTr/pancreas_131.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_336.nii.gz",
+            "label": "labelsTr/pancreas_336.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_239.nii.gz",
+            "label": "labelsTr/pancreas_239.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_318.nii.gz",
+            "label": "labelsTr/pancreas_318.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_066.nii.gz",
+            "label": "labelsTr/pancreas_066.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_258.nii.gz",
+            "label": "labelsTr/pancreas_258.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_043.nii.gz",
+            "label": "labelsTr/pancreas_043.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_094.nii.gz",
+            "label": "labelsTr/pancreas_094.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_180.nii.gz",
+            "label": "labelsTr/pancreas_180.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_292.nii.gz",
+            "label": "labelsTr/pancreas_292.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_049.nii.gz",
+            "label": "labelsTr/pancreas_049.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_348.nii.gz",
+            "label": "labelsTr/pancreas_348.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_236.nii.gz",
+            "label": "labelsTr/pancreas_236.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_412.nii.gz",
+            "label": "labelsTr/pancreas_412.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_290.nii.gz",
+            "label": "labelsTr/pancreas_290.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_276.nii.gz",
+            "label": "labelsTr/pancreas_276.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_160.nii.gz",
+            "label": "labelsTr/pancreas_160.nii.gz"
+        },
+        {
+            "image": "imagesTr/pancreas_416.nii.gz",
+            "label": "labelsTr/pancreas_416.nii.gz"
+        }
+    ]
+}

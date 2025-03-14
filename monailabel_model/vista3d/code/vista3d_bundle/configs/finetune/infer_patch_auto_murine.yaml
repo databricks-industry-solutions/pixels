@@ -1,0 +1,43 @@
+amp: true
+output_path: "$'/workspace/vista3d/work_dir_finetune_murine_' +  str(@train_number)"
+ckpt: "$@output_path + '/model_fold0/best_metric_model.pt'"
+dataset_name: "murine"
+label_set: [0,1,2,3,4]
+mapped_label_set: [0,115,121,30,28]
+val_auto: true
+overlap: 0.625
+data_file_base_dir: '/data/micro-ct-murine/1_nativeCTdata_nifti/'
+data_list_file_path: './data/external/micro-ct-murine-native_5_folds.json'
+log_output_file: "$@output_path + '/test_set.log'"
+list_key: 'testing'
+five_fold: true
+fold: 0
+train_number: 89
+argmax_first: false
+input_channels: 1
+image_key: image
+label_key: label
+pixdim: [1,1,1]
+patch_size: [128, 128, 128]
+transforms_infer:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key','@label_key']
+  - _target_: CopyItemsd
+    names: 'label_gt'
+    keys: '@label_key'
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key','@label_key']
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.uint8]
+    keys: ['@image_key','@label_key']
+  - _target_: EnsureTyped
+    keys: ['@image_key','@label_key']
+    track_meta: true
+model: "vista3d_segresnet_d"
