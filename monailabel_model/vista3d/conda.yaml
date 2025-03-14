@@ -30,7 +30,7 @@ dependencies:
   - itk>=5.2
   - nibabel
   - scikit-image>=0.19.0
-  - cucim-cu11
+  - cucim-cu12
   - databricks-sdk==0.36
   - https://github.com/erinaldidb/MONAILabel_DB/releases/download/v0.8.5/monailabel-0.8.5-py3-none-any.whl
 name: mlflow-env

@@ -188,21 +188,24 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
 
         return label_prompt, points, point_labels
 
+    def handle_params(self, input):
+        export_metrics = None
+        export_overlays = None
+        dest_dir = self.dest_dir
+
+        if "dest_dir" in input:
+            dest_dir = input["dest_dir"]
+
+        if "export_metrics" in input:
+            export_metrics = input["export_metrics"]
+
+        if "export_overlays" in input:
+            export_overlays = input["export_overlays"]
+
+        return dest_dir, export_overlays, export_metrics
+
     def predict(self, context, model_input, params=None):
         self.logger.warning(f"Processing {model_input.to_json()}")
-
-        #Allow overriding the destination directory
-        dest_dir = self.dest_dir
-        if "dest_dir" in model_input:
-            dest_dir = model_input["dest_dir"][0]
-
-        export_metrics = None
-        if "export_metrics" in model_input:
-            export_metrics = model_input["export_metrics"][0]
-
-        export_overlays = None
-        if "export_overlays" in model_input:
-            export_overlays = model_input["export_overlays"][0]
 
         with mlflow.start_span(name="VISTA3D - INFERENCE", span_type="inference") as span:
             span.set_attribute("model_name", "vista3d")
@@ -234,6 +237,8 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
                     span.set_outputs(to_return)
             elif "series_uid" in model_input:
                 label_prompt, points, point_labels = self.handle_labels(model_input['params'][0])
+                dest_dir, export_overlays, export_metrics = self.handle_params(model_input['params'][0])
+
                 dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(model_input["series_uid"][0], label_prompt, points, point_labels)
                 dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt, points, point_labels, export_overlays, export_metrics)
 
