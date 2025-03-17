@@ -337,7 +337,7 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
             volume = voxel_count * voxel_volume
 
             output[label_name]['voxel_count'] = int(voxel_count.get())
-            output[label_name]['volume_mm3'] = float(volume.get())
+            output[label_name]['volume_cm3'] = float(volume.get()) / 1000
             output[label_name]['color'] = color_name
 
         if export_overlays:
