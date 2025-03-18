@@ -230,7 +230,7 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
                     label_prompt, points, point_labels = self.handle_labels(model_input["input"][0]['infer'])
                             
                     dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(model_input["input"][0]['infer']['image'], label_prompt, points, point_labels)
-                    to_return = {"file_path": nifti_seg_path}
+                    to_return = {"file": nifti_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
                 else:
                     to_return = self.handle_input(model_input['input'][0])
