@@ -77,6 +77,7 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
             self.label_dict = {v: k for k, v in label_dict.items()}
 
         predef_labels = json.load(open(f'{module_path}/vista3d_bundle/data/jsons/label_dict.json'))
+        predef_labels = {label: index+1 for index, label in enumerate(predef_labels.keys())}
         
         self.conf = {
             "models": "segmentation",
