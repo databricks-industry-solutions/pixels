@@ -50,6 +50,7 @@ with open(f"{ohif_path}/{file}.js", "r") as config_input:
         config_custom.write(
             config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table)
         )
+        config_custom.write('document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/monai/; Path=/; Expires=Session;"')
 
 app = FastAPI(title="Pixels")
 
