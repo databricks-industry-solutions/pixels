@@ -17,7 +17,6 @@
 # COMMAND ----------
 
 # MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels.git mlflow[databricks] -q
-# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -60,6 +59,8 @@ os.environ["DEST_DIR"] = "/Volumes/main/pixels_solacc/pixels_volume/monai_servin
 
 import dbmonailabelmodel
 from dbmonailabelmodel import DBMONAILabelModel
+
+os.environ["MONAI_BUNDLES"] = "wholeBody_ct_segmentation"
 
 model = DBMONAILabelModel()
 
@@ -122,6 +123,10 @@ input_examples = [
           'result_dtype': 'uint16',
           'result_compress': False,
           'restore_label_idx': False,
+          'sw_overlap': 0.25,
+          'sw_batch_size': 1,
+          'highres': False,
+          'model_filename': 'model.pt',
           'model': 'segmentation',
           'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001'
           }
@@ -243,8 +248,7 @@ endpoint = client.create_endpoint(
     name=serving_endpoint_name,
     config={
         "served_entities": [
-            {
-                'name': 'pixels_monailabel-1',
+            {   
                 'entity_name': model_uc_name,
                 "entity_version": model_version,
                 "workload_size": "Small",

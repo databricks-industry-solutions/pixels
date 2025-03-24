@@ -47,6 +47,12 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             self.conf.labels = labels
             
     def load_context(self, context):
+        if "MONAI_BUNDLES" in os.environ:
+            self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
+            del self.conf['models']
+        elif "MONAI_MODELS" in os.environ:
+            self.conf['models'] = os.environ["MONAI_MODELS"]
+            
         self.conf["table"] = os.environ["DATABRICKS_PIXELS_TABLE"]
         self.dest_dir = os.environ["DEST_DIR"]
         self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
@@ -146,6 +152,9 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
 
             model_labels = []
             for idx, label_name in enumerate(self.app.info()['models'][self.conf["models"]]["labels"]):
+                if "background" in label_name:
+                    continue
+                
                 model_labels.append({
                     "name": label_name.replace("_"," "),
                     "model_name": self.conf["models"],
