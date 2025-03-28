@@ -76,14 +76,19 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
             label_dict = json.load(file)       
             self.label_dict = {v: k for k, v in label_dict.items()}
 
-        predef_labels = json.load(open(f'{module_path}/vista3d_bundle/data/jsons/label_dict.json'))
-        predef_labels = {label: index+1 for index, label in enumerate(predef_labels.keys())}
+        label_dict_path = f"{module_path}/vista3d_bundle/data/jsons/label_dict.json"
+        label_ignore_dict_path = f"{module_path}/vista3d_bundle/data/jsons/label_ignore_dict.json"
+        label_dict = json.load(open(label_dict_path))
+        label_ignore_dict = json.load(open(label_ignore_dict_path))
+
+        combined_dict = {**label_dict, **label_ignore_dict}
+        sorted_combined_dict = dict(sorted(combined_dict.items(), key=lambda item: item[1]))
         
         self.conf = {
             "models": "segmentation",
             "preload": "false",
             "output": "dicom_seg",
-            "labels": json.dumps(predef_labels),
+            "labels": json.dumps(sorted_combined_dict),
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
 
