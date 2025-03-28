@@ -242,8 +242,13 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
                     to_return = self.handle_input(model_input['input'][0])
                     span.set_outputs(to_return)
             elif "series_uid" in model_input:
-                label_prompt, points, point_labels = self.handle_labels(model_input['params'][0])
-                dest_dir, export_overlays, export_metrics = self.handle_params(model_input['params'][0])
+                if "params" in model_input:
+                    input_params = model_input["params"][0]
+                else:
+                    input_params = {}
+                
+                label_prompt, points, point_labels = self.handle_labels(input_params)
+                dest_dir, export_overlays, export_metrics = self.handle_params(input_params)
 
                 dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(model_input["series_uid"][0], label_prompt, points, point_labels)
                 dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt, points, point_labels, export_overlays, export_metrics)
