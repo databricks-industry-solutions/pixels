@@ -48,7 +48,7 @@ file = "app-config"
 with open(f"{ohif_path}/{file}.js", "r") as config_input:
     with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
         config_custom.write(
-            config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table)
+            config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table).replace("{HOST_NAME}", os.environ["DATABRICKS_HOST"])
         )
 
 app = FastAPI(title="Pixels")
@@ -234,6 +234,20 @@ class DBStaticFiles(StaticFiles):
             else:
                 raise ex
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "connect-src 'self' 'unsafe-inline' https://*.databricks.com;"
+        "default-src 'self' 'unsafe-inline' * data: blob: ;"
+    )
+    response.headers["Access-Control-Allow-Origin"] = (
+        "*"
+    )
+    response.headers["Access-Control-Allow-Methods"] = (
+        "GET, POST, PUT, DELETE, OPTIONS"
+    )
+    return response
 
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
