@@ -2249,12 +2249,10 @@ function createDatabricksPixelsDicom(dcmConfig, servicesManager) {
       };
       
       databricksClient = axios_default().create({
-        baseURL: connectOptions.host + "/ajax-api/2.0/"
+        baseURL: connectOptions.host + "/api/2.0/"
       });
 
-      //databricksClient.defaults.headers.common['Authorization'] = `Bearer ${connectOptions.token}`;
-      databricksClient.defaults.headers.common['mode'] = 'no-cors';
-      databricksClient.defaults.headers.common['credentials'] = 'include'
+      databricksClient.defaults.headers.common['Authorization'] = `Bearer ${connectOptions.token}`;
 
       const userAuthenticationService = servicesManager;
       userAuthenticationService.getAuthorizationHeader = () => {
