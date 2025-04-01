@@ -6,7 +6,6 @@ from pathlib import Path
 
 import httpx
 import uvicorn
-from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -15,12 +14,10 @@ from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, HTMLResponse, RedirectResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 import dbx.pixels.resources
-
-# Initialize the Databricks Workspace Client
-w = WorkspaceClient()
 
 client = get_deploy_client("databricks")
 
@@ -45,14 +42,13 @@ tracking = ["mlflow", ""]
 
 file = "app-config"
 
-with open(f"{ohif_path}/{file}.js", "r") as config_input:
-    with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
-        config_custom.write(
-            config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table).replace("{HOST_NAME}", os.environ["DATABRICKS_HOST"])
-        )
+#with open(f"{ohif_path}/{file}.js", "r") as config_input:
+#    with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
+#        config_custom.write(
+#            config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table)
+#        )
 
 app = FastAPI(title="Pixels")
-
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -223,6 +219,27 @@ async def _reverse_proxy_monai_train_post(request: Request):
         resp = {"message": f"Error querying model: {e}"}
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
+class TokenMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path.endswith("app-config-custom.js"):
+
+            if request.cookies.get("pixels_table"):
+                pixels_table = request.cookies.get("pixels_table")
+            else:
+                pixels_table = table
+
+            body = open(f"{ohif_path}/{file}.js", "rb").read()
+            new_body = body\
+                .replace(b"{ROUTER_BASENAME}", b"/ohif/")\
+                .replace(b"{PIXELS_TABLE}", pixels_table.encode())\
+                .replace(b"{HOST_NAME}", b"/sqlwarehouse")
+            
+            user_token = request.headers.get("X-Forwarded-Access-Token")
+            if user_token:
+                new_body #TODO
+            return Response(content=new_body, media_type="text/javascript")
+        response = await call_next(request)
+        return response
 
 class DBStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
@@ -234,21 +251,6 @@ class DBStaticFiles(StaticFiles):
             else:
                 raise ex
 
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Content-Security-Policy"] = (
-        "connect-src 'self' 'unsafe-inline' https://*.databricks.com;"
-        "default-src 'self' 'unsafe-inline' * data: blob: ;"
-    )
-    response.headers["Access-Control-Allow-Origin"] = (
-        "*"
-    )
-    response.headers["Access-Control-Allow-Methods"] = (
-        "GET, POST, PUT, DELETE, OPTIONS"
-    )
-    return response
-
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
 )
@@ -259,7 +261,61 @@ app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POS
 app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsample_post, ["POST"])
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
-app.mount("/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
+app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
+
+app.add_middleware(TokenMiddleware)
+
+@app.get("/", response_class=HTMLResponse)
+async def main_page(request: Request):
+    if request.cookies.get("pixels_table"):
+        pixels_table = request.cookies.get("pixels_table")
+    else:
+        pixels_table = table
+    return f"""
+    <html>
+        <head>
+            <title>Pixels Solution Accelerator</title>
+            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/vendor-jquery.5c80d7f6.chunk.css" crossorigin="anonymous">
+            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/70577.563792a4.chunk.css" crossorigin="anonymous">
+            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/59976.a356be26.chunk.css" crossorigin="anonymous">
+            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/62569.22f26a3b.chunk.css" crossorigin="anonymous">
+        </head>
+        <body class="light-mode dark-mode-supported">
+        <uses-legacy-bootstrap>
+            <div id="login-page">
+                <div>
+                    <div id="login-container" class="container">
+                    <img src="{os.environ["DATABRICKS_HOST"]}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
+                        <div class="login-form">
+                            <h3 class="sub-header">Pixels Solution Accelerator</h3>
+                            <div class="tab-child">
+                            <p class="instructions">This form allows you to select your preferred catalog table</p>
+                            
+                            <form action="/set_cookie" method="post">
+                                <input type="text" id="pixels_table" name="pixels_table" value="{pixels_table}" style="width:100%" required>
+                                <button class="btn btn-primary btn-large sso-btn" type="submit">Confirm</button>
+                            </form>
+                
+                            <p class="instructions">Contact your site administrator to request access.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="terms-of-service-footer"><a href="https://databricks.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a></div><div style="margin: 20px auto; text-align: center;">
+                    </div>
+                </div>
+            </div>
+        </uses-legacy-bootstrap>
+        </body>
+    </html>
+    """
+
+@app.post("/set_cookie")
+async def set_cookie(request: Request):
+    form_data = await request.form()
+    pixels_table = form_data.get("pixels_table")
+    response = RedirectResponse(url="/ohif/", status_code=302)
+    response.set_cookie(key="pixels_table", value=pixels_table)
+    return response
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")
