@@ -117,7 +117,10 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
     def handle_input(self, input_action):
         if "action" in input_action:
             if "info" == input_action["action"]:
-                return self.app.info()
+                monailabel_info = self.app.info()
+                monailabel_info['models']['vista3d'] = monailabel_info['models']['segmentation']
+                del monailabel_info['models']['segmentation']
+                return monailabel_info
         else:
             raise Exception("Input not handled yet", input_action)
 
@@ -146,6 +149,7 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
     def to_dicom_seg(self, dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt=None, points=None, point_labels=None, export_overlays=True, export_metrics=True):
         from lib.configs.colors import SOME_COLORS
 
+        prompts = None
         model_labels = [{} for _ in range(150)]
 
         for idx, label_name in enumerate(self.label_dict):
@@ -181,15 +185,15 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
         points = None
         point_labels = None
 
-        if "points" in input:
+        if "points" in input and input["points"] is not None:
             points = input["points"]
         
-        if "point_labels" in input:
+        if "point_labels" in input and input["point_labels"] is not None:
             point_labels = input["point_labels"]
         
         if points == None:
             label_prompt = EVERYTHING_PROMPT
-            if "label_prompt" in input:
+            if "label_prompt" in input and input["label_prompt"] is not None:
                 label_prompt = input["label_prompt"]
 
         return label_prompt, points, point_labels
@@ -207,7 +211,7 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
 
         if "export_overlays" in input:
             export_overlays = input["export_overlays"]
-
+            
         return dest_dir, export_overlays, export_metrics
 
     def predict(self, context, model_input, params=None):
