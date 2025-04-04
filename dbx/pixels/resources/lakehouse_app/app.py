@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import os
 import os.path
 from pathlib import Path
@@ -25,7 +26,6 @@ cfg = Config()
 os.environ["DATABRICKS_TOKEN"] = cfg.authenticate()["Authorization"].split(" ")[1]
 os.environ["DATABRICKS_HOST"] = f"https://{os.environ['DATABRICKS_HOST']}"
 
-table = os.environ["DATABRICKS_PIXELS_TABLE"]
 warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
 
 if "MONAI_SERVING_ENDPOINT" in os.environ:
@@ -35,20 +35,26 @@ else:
 
 path = Path(dbx.pixels.__file__).parent
 ohif_path = f"{path}/resources/ohif"
+file = "app-config"
 
 dataset = ["SmartCacheDataset", "CacheDataset", "PersistentDataset", "Dataset"]
 dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
-file = "app-config"
-
-#with open(f"{ohif_path}/{file}.js", "r") as config_input:
-#    with open(f"{ohif_path}/{file}-custom.js", "w") as config_custom:
-#        config_custom.write(
-#            config_input.read().replace("{ROUTER_BASENAME}", "").replace("{PIXELS_TABLE}", table)
-#        )
-
 app = FastAPI(title="Pixels")
+
+def get_pixels_table(request: Request):
+    if request.cookies.get("pixels_table"):
+        return request.cookies.get("pixels_table")
+    else:
+        return os.environ["DATABRICKS_PIXELS_TABLE"]
+
+def get_seg_dest_dir(request: Request):
+    if request.cookies.get("seg_dest_dir"):
+        return request.cookies.get("seg_dest_dir")
+    else:
+        paths = request.cookies.get("pixels_table").split(".")
+        return f'/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/'
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -58,6 +64,10 @@ async def _reverse_proxy_statements(request: Request):
     if request.method == "POST":
         body = await request.json()
         body["warehouse_id"] = os.environ["DATABRICKS_WAREHOUSE_ID"]
+        
+        dest_dir = get_seg_dest_dir(request)
+        body['statement'] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body['statement'])
+        print("Overriding dest dir to", dest_dir)
     else:
         body = {}
 
@@ -78,6 +88,11 @@ async def _reverse_proxy_files(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
+
+    if request.method == "PUT":
+        dest_dir = get_seg_dest_dir(request)
+        url = httpx.URL(path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path))
+        print("Overriding dest dir to", url)
 
     rp_req = client.build_request(
         request.method, url, headers=cfg.authenticate(), content=request.stream()
@@ -125,6 +140,8 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     to_send["model"] = str(url).split("/")[2]
     to_send["image"] = params["image"]
     del to_send["result_compress"]  # TODO fix boolean type in model
+    
+    to_send['pixels_table'] = get_pixels_table(request)
 
     print({"inputs": {"input": {"infer": to_send}}})
 
@@ -167,6 +184,9 @@ async def _reverse_proxy_monai_nextsample_post(request: Request):
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
 
     to_send = {"action": str(url)[1:]}
+
+    to_send['pixels_table'] = get_pixels_table(request)
+
     resp = ""
 
     # Query the Databricks serving endpoint
@@ -202,6 +222,8 @@ async def _reverse_proxy_monai_train_post(request: Request):
     elif type(body[model]["tracking"]) is int:
         to_send["tracking"] = tracking[body[model]["tracking"]]
 
+    to_send['pixels_table'] = get_pixels_table(request)
+
     print({"inputs": {"input": {"train": to_send}}})
 
     resp = ""
@@ -223,10 +245,7 @@ class TokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.url.path.endswith("app-config-custom.js"):
 
-            if request.cookies.get("pixels_table"):
-                pixels_table = request.cookies.get("pixels_table")
-            else:
-                pixels_table = table
+            pixels_table = get_pixels_table(request)
 
             body = open(f"{ohif_path}/{file}.js", "rb").read()
             new_body = body\
@@ -267,10 +286,8 @@ app.add_middleware(TokenMiddleware)
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
-    if request.cookies.get("pixels_table"):
-        pixels_table = request.cookies.get("pixels_table")
-    else:
-        pixels_table = table
+    pixels_table = get_pixels_table(request)
+    seg_dest_dir = get_seg_dest_dir(request)
     return f"""
     <html>
         <head>
@@ -286,17 +303,18 @@ async def main_page(request: Request):
                 <div>
                     <div id="login-container" class="container">
                     <img src="{os.environ["DATABRICKS_HOST"]}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
-                        <div class="login-form">
+                        <div class="login-form" style="min-width:600px">
                             <h3 class="sub-header">Pixels Solution Accelerator</h3>
                             <div class="tab-child">
-                            <p class="instructions">This form allows you to select your preferred catalog table</p>
-                            
+                            <p class="instructions">This form allows you to customize some configurations of the ohif viewer.</p>
                             <form action="/set_cookie" method="post">
+                                <p class="instructions">Select your preferred pixels catalog table.</p>
                                 <input type="text" id="pixels_table" name="pixels_table" value="{pixels_table}" style="width:100%" required>
+                                <p class="instructions">Choose the destination directory for the ohif segmentation and measurements results.</p>
+                                <input type="text" id="seg_dest_dir" name="seg_dest_dir" value="{seg_dest_dir}" style="width:100%" required>
+                                <p class="instructions">Only Volumes are supported</p>
                                 <button class="btn btn-primary btn-large sso-btn" type="submit">Confirm</button>
                             </form>
-                
-                            <p class="instructions">Contact your site administrator to request access.</p>
                             </div>
                         </div>
                     </div>
@@ -313,8 +331,14 @@ async def main_page(request: Request):
 async def set_cookie(request: Request):
     form_data = await request.form()
     pixels_table = form_data.get("pixels_table")
+    seg_dest_dir = form_data.get("seg_dest_dir")
+
+    if not seg_dest_dir.startswith("/Volumes/"):
+        raise HTTPException(status_code=400, detail="Destination directory must be in Volumes")
+
     response = RedirectResponse(url="/ohif/", status_code=302)
     response.set_cookie(key="pixels_table", value=pixels_table)
+    response.set_cookie(key="seg_dest_dir", value=seg_dest_dir)
     return response
 
 if __name__ == "__main__":

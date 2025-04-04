@@ -125,15 +125,15 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
             raise Exception("Input not handled yet", input_action)
 
     @mlflow.trace(span_type="MONAI")
-    def model_infer(self, series_uid, label_prompt=None, points=None, point_labels=None):
+    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None):
         from vista3d_bundle.scripts.infer import InferClass
 
         #get image in .cache folder
-        image = self.app.datastore().get_image(series_uid)
+        image = datastore.get_image(series_uid)
         #get cached image uri
-        nifti_path = self.app.datastore().get_image_uri(series_uid)
+        nifti_path = datastore.get_image_uri(series_uid)
         #get cached image infos
-        image_info = self.app.datastore().get_image_info(series_uid)
+        image_info = datastore.get_image_info(series_uid)
 
         vista3d_model = InferClass(self.conf_file)
         vista3d_model.infer(image_info['path'], label_prompt=label_prompt, point=points, point_label=point_labels, save_mask=True)
@@ -195,8 +195,16 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
             label_prompt = EVERYTHING_PROMPT
             if "label_prompt" in input and input["label_prompt"] is not None:
                 label_prompt = input["label_prompt"]
+        
+        if "pixels_table" in input and input["pixels_table"] is not None:
+            table = input["pixels_table"]
+            self.logger.warn(f"Overriding pixels table {table}")
+        else:
+            table = os.environ["DATABRICKS_PIXELS_TABLE"]
+        
+        datastore = init_dicomweb_datastore(os.environ["DATABRICKS_HOST"], os.environ['DATABRICKS_TOKEN'], os.environ["DATABRICKS_WAREHOUSE_ID"], table)
 
-        return label_prompt, points, point_labels
+        return label_prompt, points, point_labels, datastore
 
     def handle_params(self, input):
         export_metrics = None
@@ -211,7 +219,7 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
 
         if "export_overlays" in input:
             export_overlays = input["export_overlays"]
-            
+        
         return dest_dir, export_overlays, export_metrics
 
     def predict(self, context, model_input, params=None):
@@ -237,9 +245,9 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
                     to_return = {"file_content": b64encode(open(to_nrrd(file_path, result_dtype), "rb").read()).decode("ascii")}
                     span.set_outputs(" - REDACTED B64 FILE CONTENT - ")
                 elif "infer" in model_input['input'][0]:
-                    label_prompt, points, point_labels = self.handle_labels(model_input["input"][0]['infer'])
+                    label_prompt, points, point_labels, datastore = self.handle_labels(model_input["input"][0]['infer'])
                             
-                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(model_input["input"][0]['infer']['image'], label_prompt, points, point_labels)
+                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels)
                     to_return = {"file": nifti_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
                 else:
@@ -251,10 +259,10 @@ class DBVISTA3DModel(mlflow.pyfunc.PythonModel):
                 else:
                     input_params = {}
                 
-                label_prompt, points, point_labels = self.handle_labels(input_params)
+                label_prompt, points, point_labels, datastore = self.handle_labels(input_params)
                 dest_dir, export_overlays, export_metrics = self.handle_params(input_params)
 
-                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(model_input["series_uid"][0], label_prompt, points, point_labels)
+                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels)
                 dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt, points, point_labels, export_overlays, export_metrics)
 
                 if export_overlays or export_metrics:
@@ -379,6 +387,30 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
                 output[label_name]['overlay_paths'].append(filepath)
                 
     return output
+
+from monailabel.config import settings
+from monailabel.interfaces.datastore import Datastore
+from monailabel.datastore.dicom import DICOMWebDatastore
+from monailabel.datastore.databricks_client import DatabricksClient
+def init_dicomweb_datastore(host, access_token, sql_warehouse_id, table) -> Datastore:
+        if "databricks" in host:
+            dw_client = DatabricksClient(url=host, 
+                                         token=access_token, 
+                                         warehouse_id=sql_warehouse_id, 
+                                         table=table)
+
+        cache_path = settings.MONAI_LABEL_DICOMWEB_CACHE_PATH
+        cache_path = cache_path.strip() if cache_path else ""
+        fetch_by_frame = settings.MONAI_LABEL_DICOMWEB_FETCH_BY_FRAME
+        search_filter = settings.MONAI_LABEL_DICOMWEB_SEARCH_FILTER
+        convert_to_nifti = settings.MONAI_LABEL_DICOMWEB_CONVERT_TO_NIFTI
+        return DICOMWebDatastore(
+            client=dw_client,
+            search_filter=search_filter,
+            cache_path=cache_path if cache_path else None,
+            fetch_by_frame=fetch_by_frame,
+            convert_to_nifti=convert_to_nifti,
+        )
 
 def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True, series_description="vista3d") -> str:
     from monailabel.datastore.utils.convert import itk_image_to_dicom_seg
