@@ -5,11 +5,10 @@ on:
  push:
     branches:
       - main
-      - web-sync
 
 jobs:
  run-databricks-notebook:
-   runs-on: linux-ubuntu-latest
+   runs-on: html-publisher
    steps:
      - name: Checkout repo
        uses: actions/checkout@v2
