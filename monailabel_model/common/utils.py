@@ -213,7 +213,7 @@ def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*
 
     segment_attributes = []
     for i, idx in enumerate(unique_labels):
-        info = label_info[i] if label_info and i < len(label_info) else {}
+        info = label_info[idx] if label_info and idx < len(label_info) else {}
         name = info.get("name", "unknown")
         description = info.get("description", "Unknown")
         rgb = list(info.get("color", GENERIC_ANATOMY_COLORS.get(name, (255, 0, 0))))[0:3]

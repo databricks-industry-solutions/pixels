@@ -14,7 +14,7 @@ from mlflow.entities import SpanType
 
 from abc import abstractmethod
 
-from dbx.pixels.modelserving.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, series_to_nifti
+from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, series_to_nifti
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +97,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
         elif point_labels:
             prompts = point_labels
 
-        label_names = [model_labels[label_id] for label_id in prompts]
-
         self.logger.warning(f"Starting conversion on image: {nifti_seg_path}")
-        dicom_seg_file = nifti_to_dicom_seg(self.module_path+"/bin/", dicom_path, nifti_seg_path, label_names, use_itk=True, series_description=image_info['SeriesDescription'])
+        dicom_seg_file = nifti_to_dicom_seg(self.module_path+"/bin/", dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
         self.logger.warning(f"Conversion completed on image: {nifti_seg_path}, temp file path: {dicom_seg_file}")
 
         dicom_seg_path = os.path.join(dest_dir, image_info['StudyInstanceUID'], image_info['SeriesInstanceUID']+".dcm")
@@ -173,7 +171,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
                     result_dtype = "uint16"
                     file_path = model_input['input'][0]["get_file"]
 
-                    security_path_check(file_path)
+                    self.security_path_check(file_path)
 
                     if "result_dtype" in model_input['input'][0]:
                         result_dtype = model_input['input'][0]["result_dtype"]
