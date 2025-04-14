@@ -43,6 +43,9 @@ tracking = ["mlflow", ""]
 
 app = FastAPI(title="Pixels")
 
+# TODO Implement multi step communication between ohif viewer and serving endpoint
+cache_segmentations = {}
+
 def get_pixels_table(request: Request):
     if request.cookies.get("pixels_table"):
         return request.cookies.get("pixels_table")
@@ -133,12 +136,12 @@ async def _reverse_proxy_monai(request: Request):
 
 async def _reverse_proxy_monai_infer_post(request: Request):
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
-    params = request.query_params
+    q_params = request.query_params
     form_data = await request.form()
 
     to_send = json.loads(form_data.get("params"))
     to_send["model"] = str(url).split("/")[2]
-    to_send["image"] = params["image"]
+    to_send["image"] = q_params["image"]
     del to_send["result_compress"]  # TODO fix boolean type in model
     
     to_send['pixels_table'] = get_pixels_table(request)
@@ -150,13 +153,20 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     # Query the Databricks serving endpoint
     try:
 
-        res_json = json.loads(
-            client.predict(
-                endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
-            ).predictions
-        )
+        if q_params["image"] not in cache_segmentations:
 
-        file_path = res_json["file"]
+            res_json = json.loads(
+                client.predict(
+                    endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
+                ).predictions
+            )
+
+            file_path = res_json["file"]
+            params = res_json["params"]
+            cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
+        else:
+            file_path = cache_segmentations[q_params["image"]]["file_path"]
+            params = cache_segmentations[q_params["image"]]["params"]
 
         resp_file = json.loads(
             client.predict(
@@ -165,7 +175,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
         )
 
         res_fields = dict()
-        res_fields["params"] = (None, json.dumps(res_json["params"]), "application/json")
+        res_fields["params"] = (None, json.dumps(params), "application/json")
         res_fields["image"] = (
             file_path,
             base64.b64decode(resp_file["file_content"]),
@@ -177,6 +187,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     except Exception as e:
         print(e)
         resp = {"message": f"Error querying model: {e}"}
+        del cache_segmentations[q_params["image"]]
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
 
