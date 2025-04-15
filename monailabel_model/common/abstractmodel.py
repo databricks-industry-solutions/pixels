@@ -33,6 +33,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
         self.module_path = os.path.dirname(os.path.abspath(__file__))
         sys.path.append(self.module_path)
 
+        self.bin_path = os.path.join(self.module_path, "bin")
+
         os.putenv("MASTER_ADDR", "127.0.0.1")
         os.putenv("MASTER_PORT", "1234")
             
@@ -135,7 +137,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
             }
 
         self.logger.warning(f"Starting conversion on image: {nifti_seg_path}")
-        dicom_seg_file = nifti_to_dicom_seg(self.module_path+"/bin/", dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
+        dicom_seg_file = nifti_to_dicom_seg(self.bin_path, dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
         self.logger.warning(f"Conversion completed on image: {nifti_seg_path}, temp file path: {dicom_seg_file}")
 
         dicom_seg_path = os.path.join(dest_dir, image_info['StudyInstanceUID'], image_info['SeriesInstanceUID']+".dcm")
