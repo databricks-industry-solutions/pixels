@@ -1,8 +1,8 @@
 import base64
 import json
-import re
 import os
 import os.path
+import re
 from pathlib import Path
 
 import httpx
@@ -14,9 +14,9 @@ from mlflow.deployments import get_deploy_client
 from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.requests import Request
-from starlette.responses import StreamingResponse, HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 import dbx.pixels.resources
 
@@ -46,18 +46,21 @@ app = FastAPI(title="Pixels")
 # TODO Implement multi step communication between ohif viewer and serving endpoint
 cache_segmentations = {}
 
+
 def get_pixels_table(request: Request):
     if request.cookies.get("pixels_table"):
         return request.cookies.get("pixels_table")
     else:
         return os.environ["DATABRICKS_PIXELS_TABLE"]
 
+
 def get_seg_dest_dir(request: Request):
     if request.cookies.get("seg_dest_dir"):
         return request.cookies.get("seg_dest_dir")
     else:
         paths = request.cookies.get("pixels_table").split(".")
-        return f'/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/'
+        return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
+
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -67,9 +70,9 @@ async def _reverse_proxy_statements(request: Request):
     if request.method == "POST":
         body = await request.json()
         body["warehouse_id"] = os.environ["DATABRICKS_WAREHOUSE_ID"]
-        
+
         dest_dir = get_seg_dest_dir(request)
-        body['statement'] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body['statement'])
+        body["statement"] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body["statement"])
         print("Overriding dest dir to", dest_dir)
     else:
         body = {}
@@ -143,8 +146,8 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     to_send["model"] = str(url).split("/")[2]
     to_send["image"] = q_params["image"]
     del to_send["result_compress"]  # TODO fix boolean type in model
-    
-    to_send['pixels_table'] = get_pixels_table(request)
+
+    to_send["pixels_table"] = get_pixels_table(request)
 
     print({"inputs": {"input": {"infer": to_send}}})
 
@@ -190,7 +193,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
         if q_params["image"] in cache_segmentations:
             del cache_segmentations[q_params["image"]]
-        
+
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
 
@@ -199,7 +202,7 @@ async def _reverse_proxy_monai_nextsample_post(request: Request):
 
     to_send = {"action": str(url)[1:]}
 
-    to_send['pixels_table'] = get_pixels_table(request)
+    to_send["pixels_table"] = get_pixels_table(request)
 
     resp = ""
 
@@ -236,7 +239,7 @@ async def _reverse_proxy_monai_train_post(request: Request):
     elif type(body[model]["tracking"]) is int:
         to_send["tracking"] = tracking[body[model]["tracking"]]
 
-    to_send['pixels_table'] = get_pixels_table(request)
+    to_send["pixels_table"] = get_pixels_table(request)
 
     print({"inputs": {"input": {"train": to_send}}})
 
@@ -255,6 +258,7 @@ async def _reverse_proxy_monai_train_post(request: Request):
         resp = {"message": f"Error querying model: {e}"}
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
+
 class TokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.url.path.endswith("app-config-custom.js"):
@@ -262,17 +266,19 @@ class TokenMiddleware(BaseHTTPMiddleware):
             pixels_table = get_pixels_table(request)
 
             body = open(f"{ohif_path}/{file}.js", "rb").read()
-            new_body = body\
-                .replace(b"{ROUTER_BASENAME}", b"/ohif/")\
-                .replace(b"{PIXELS_TABLE}", pixels_table.encode())\
+            new_body = (
+                body.replace(b"{ROUTER_BASENAME}", b"/ohif/")
+                .replace(b"{PIXELS_TABLE}", pixels_table.encode())
                 .replace(b"{HOST_NAME}", b"/sqlwarehouse")
-            
+            )
+
             user_token = request.headers.get("X-Forwarded-Access-Token")
             if user_token:
-                new_body #TODO
+                new_body  # TODO
             return Response(content=new_body, media_type="text/javascript")
         response = await call_next(request)
         return response
+
 
 class DBStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
@@ -283,6 +289,7 @@ class DBStaticFiles(StaticFiles):
                 return await super().get_response("index.html", scope)
             else:
                 raise ex
+
 
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
@@ -297,6 +304,7 @@ app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POS
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
 
 app.add_middleware(TokenMiddleware)
+
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
@@ -341,6 +349,7 @@ async def main_page(request: Request):
     </html>
     """
 
+
 @app.post("/set_cookie")
 async def set_cookie(request: Request):
     form_data = await request.form()
@@ -354,6 +363,7 @@ async def set_cookie(request: Request):
     response.set_cookie(key="pixels_table", value=pixels_table)
     response.set_cookie(key="seg_dest_dir", value=seg_dest_dir)
     return response
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0")

@@ -157,7 +157,7 @@ def init_dicomweb_datastore(host, access_token, sql_warehouse_id, table) -> Data
 @mlflow.trace(span_type=SpanType.TOOL)
 def series_to_nifti(datastore, series_uid):
     #get image in .cache folder
-    image = datastore.get_image(series_uid)
+    datastore.get_image(series_uid)
     #get cached image uri
     nifti_path = datastore.get_image_uri(series_uid)
     #get cached image infos
@@ -176,7 +176,7 @@ def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
     command = itkbin_folder + "/itkimage2segimage"
     
     try:  os.chmod(command, 0o755)
-    except Exception as e:
+    except Exception:
         pass
     
     args = [
@@ -209,7 +209,7 @@ def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*
     unique_labels = unique_labels[unique_labels != 0]
 
     info = label_info[0] if label_info and 0 < len(label_info) else {}
-    model_name = info.get("model_name", "AIName")
+    info.get("model_name", "AIName")
 
     segment_attributes = []
     for i, idx in enumerate(unique_labels):

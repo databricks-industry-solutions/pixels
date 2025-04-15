@@ -1,7 +1,6 @@
 import mlflow
 import logging
 import os
-import sys
 
 from common.abstractmodel import DBModel
 from common.utils import series_to_nifti

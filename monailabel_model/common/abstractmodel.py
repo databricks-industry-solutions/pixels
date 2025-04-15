@@ -1,23 +1,45 @@
 import mlflow
 import sys
-
 import logging
 import os
-import time
-
 import json
-
-import numpy as np
 from base64 import b64encode
-
 from mlflow.entities import SpanType
-
 from abc import abstractmethod
-
-from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, series_to_nifti
+from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays
 
 logger = logging.getLogger(__name__)
 
+"""
+DBModel is an abstract base class that extends `mlflow.pyfunc.PythonModel` to provide a framework for handling 
+medical imaging models, specifically for DICOM and NIfTI file formats. This class includes methods for loading 
+context, handling input, performing inference, and converting NIfTI segmentations to DICOM SEG format.
+Methods:
+    __init__():
+        Initializes the DBModel instance and sets up environment variables.
+    load_context(context):
+        Loads the context for the model, including initializing the MONAI Label application.
+    upload_file(file_path, dest_path):
+        Uploads a file to the specified destination path in Databricks.
+    override_model_info(monailabel_info):
+        Abstract method to override model information based on MONAI Label info.
+    handle_input(input_action):
+        Handles input actions such as retrieving model information.
+    model_infer(datastore, series_uid, label_prompt=None, points=None, point_labels=None):
+        Abstract method for performing model inference on a given series.
+    to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt=None, points=None, point_labels=None, export_overlays=True, export_metrics=True):
+        Converts a NIfTI segmentation file to a DICOM SEG file and uploads it to the destination.
+    handle_labels(input):
+        Processes input to extract label prompts, points, and point labels, and initializes the datastore.
+    handle_params(input):
+        Processes input to extract parameters such as destination directory, export overlays, and export metrics.
+    security_path_check(file_path):
+        Abstract method to perform security checks on file paths.
+    predict(context, model_input, params=None):
+        Handles prediction requests, including inference, file retrieval, and input processing.
+Raises:
+    Exception: Raised for unhandled input actions or unknown operations.
+"""
 class DBModel(mlflow.pyfunc.PythonModel):
 
     IGNORE_PROMPT = set([])  
@@ -56,7 +78,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         if self.label_dict is None:
             labels = self.app.info()["models"][self.model_name]['labels']
             self.label_dict = {v: k for k, v in labels.items()}
-
+    
     def upload_file(self, file_path, dest_path):
         from databricks.sdk import WorkspaceClient
         w = WorkspaceClient()
@@ -83,10 +105,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
         pass
     
     @mlflow.trace(span_type=SpanType.TOOL)
-    def to_dicom_seg(self, dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt=None, points=None, point_labels=None, export_overlays=True, export_metrics=True):
+    def to_dicom_seg(self, dicom_path, nifti_seg_path, image_info, dest_dir):
         from lib.configs.colors import SOME_COLORS
 
-        prompts = None
         model_labels = [{} for _ in range(150)]
 
         for idx, label_name in enumerate(self.label_dict):
@@ -95,11 +116,6 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 "model_name": self.model_name,
                 "color": SOME_COLORS[idx+1]
             }
-
-        if label_prompt:
-            prompts = label_prompt
-        elif point_labels:
-            prompts = point_labels
 
         self.logger.warning(f"Starting conversion on image: {nifti_seg_path}")
         dicom_seg_file = nifti_to_dicom_seg(self.module_path+"/bin/", dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
@@ -201,7 +217,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 dest_dir, export_overlays, export_metrics = self.handle_params(input_params)
 
                 dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels)
-                dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt, points, point_labels, export_overlays, export_metrics)
+                dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
 
                 if export_overlays or export_metrics:
                     metrics = calculate_volumes_and_overlays(nifti_path, nifti_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/"+image_info['StudyInstanceUID'] + "/" + image_info['SeriesInstanceUID'] + "/", export_overlays=export_overlays, export_metrics=export_metrics)

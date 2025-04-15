@@ -65,7 +65,7 @@ class DicomPillowThumbnailExtractor(Transformer):
             )
 
     def dicom_pillow_thumbnail(
-        iterator: Iterator[Tuple[pd.Series, pd.Series]]
+        iterator: Iterator[Tuple[pd.Series, pd.Series]],
     ) -> Iterator[pd.Series]:
         """UDF Wrapper for thumbnail pandas udf"""
 
