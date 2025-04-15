@@ -187,7 +187,10 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     except Exception as e:
         print(e)
         resp = {"message": f"Error querying model: {e}"}
-        del cache_segmentations[q_params["image"]]
+
+        if q_params["image"] in cache_segmentations:
+            del cache_segmentations[q_params["image"]]
+        
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
 
