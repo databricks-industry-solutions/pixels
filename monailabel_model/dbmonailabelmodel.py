@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
+    """
+    MONAI Label Model for Databricks serving endpoint.
+    """
     
     def __init__(self, model="segmentation", labels=None):
         self.logger = logging.getLogger(__name__)

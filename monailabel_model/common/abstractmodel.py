@@ -10,37 +10,12 @@ from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, c
 
 logger = logging.getLogger(__name__)
 
-"""
-DBModel is an abstract base class that extends `mlflow.pyfunc.PythonModel` to provide a framework for handling 
-medical imaging models, specifically for DICOM and NIfTI file formats. This class includes methods for loading 
-context, handling input, performing inference, and converting NIfTI segmentations to DICOM SEG format.
-Methods:
-    __init__():
-        Initializes the DBModel instance and sets up environment variables.
-    load_context(context):
-        Loads the context for the model, including initializing the MONAI Label application.
-    upload_file(file_path, dest_path):
-        Uploads a file to the specified destination path in Databricks.
-    override_model_info(monailabel_info):
-        Abstract method to override model information based on MONAI Label info.
-    handle_input(input_action):
-        Handles input actions such as retrieving model information.
-    model_infer(datastore, series_uid, label_prompt=None, points=None, point_labels=None):
-        Abstract method for performing model inference on a given series.
-    to_dicom_seg(dicom_path, nifti_path, nifti_seg_path, image_info, dest_dir, label_prompt=None, points=None, point_labels=None, export_overlays=True, export_metrics=True):
-        Converts a NIfTI segmentation file to a DICOM SEG file and uploads it to the destination.
-    handle_labels(input):
-        Processes input to extract label prompts, points, and point labels, and initializes the datastore.
-    handle_params(input):
-        Processes input to extract parameters such as destination directory, export overlays, and export metrics.
-    security_path_check(file_path):
-        Abstract method to perform security checks on file paths.
-    predict(context, model_input, params=None):
-        Handles prediction requests, including inference, file retrieval, and input processing.
-Raises:
-    Exception: Raised for unhandled input actions or unknown operations.
-"""
 class DBModel(mlflow.pyfunc.PythonModel):
+    """
+    Abstract base class that extends `mlflow.pyfunc.PythonModel` to provide a framework for handling 
+    medical imaging models, specifically for DICOM and NIfTI file formats. This class includes methods for loading 
+    context, handling input, performing inference, and converting NIfTI segmentations to DICOM SEG format.
+    """
 
     IGNORE_PROMPT = set([])  
     EVERYTHING_PROMPT = list(set([i + 1 for i in range(1)]) - IGNORE_PROMPT)
@@ -62,7 +37,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         os.putenv("MASTER_PORT", "1234")
             
     def load_context(self, context):
-        from dblabelapp import DBMONAILabelApp
+        from common.dblabelapp import DBMONAILabelApp
      
         self.conf = {
             "models": "segmentation",
@@ -80,6 +55,12 @@ class DBModel(mlflow.pyfunc.PythonModel):
             self.label_dict = {v: k for k, v in labels.items()}
     
     def upload_file(self, file_path, dest_path):
+        """
+        Uploads a file to the specified destination path in Databricks.
+        Args:
+            file_path (str): The path to the file to be uploaded.
+            dest_path (str): The destination path in Databricks.
+        """
         from databricks.sdk import WorkspaceClient
         w = WorkspaceClient()
         w.files.upload(dest_path, open(file_path, mode="rb"))
@@ -87,10 +68,24 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
     @abstractmethod
     def override_model_info(self, monailabel_info):
-      pass
+        """
+        Override model information based on MONAI Label info.
+        Args:
+            monailabel_info (dict): The MONAI Label information.
+        """
+
+        pass
 
     @mlflow.trace(span_type=SpanType.TOOL)
     def handle_input(self, input_action):
+        """
+        Handles input actions such as retrieving model information.
+        Args:
+            input_action (dict): The input action to be handled.
+        Returns:
+            dict: The result of the input action.
+        """
+
         if "action" in input_action:
             if "info" == input_action["action"]:
                 monailabel_info = self.app.info()
@@ -102,10 +97,32 @@ class DBModel(mlflow.pyfunc.PythonModel):
     @mlflow.trace(span_type="MONAI")
     @abstractmethod
     def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None):
+        """
+        Performs model inference on a given series.
+        Args:
+            datastore (object): The datastore object for accessing DICOM images.
+            series_uid (str): The unique identifier for the series to be processed.
+            label_prompt (str): The label prompt for inference.
+            points (list): List of points for inference.
+            point_labels (list): List of point labels for inference.
+        Returns:
+            tuple: The dicom file path, The NIfTI file path, NIfTI seg file path,  and image information.
+        """
         pass
     
     @mlflow.trace(span_type=SpanType.TOOL)
     def to_dicom_seg(self, dicom_path, nifti_seg_path, image_info, dest_dir):
+        """
+        Converts a NIfTI segmentation file to a DICOM SEG file and uploads it to the destination.
+        Args:
+            dicom_path (str): The path to the DICOM file.
+            nifti_seg_path (str): The path to the NIfTI segmentation file.
+            image_info (dict): The image information dictionary.
+            dest_dir (str): The destination directory for the DICOM SEG file.
+        Returns:
+            str: The path to the DICOM SEG file.
+        """
+
         from lib.configs.colors import SOME_COLORS
 
         model_labels = [{} for _ in range(150)]
@@ -132,6 +149,14 @@ class DBModel(mlflow.pyfunc.PythonModel):
         return dicom_seg_path
     
     def handle_labels(self, input):
+        """
+        Processes input to extract label prompts, points, and point labels, and initializes the datastore.
+        Args:
+            input (dict): The input dictionary containing label prompts and points.
+        Returns:    
+            tuple: The label prompt, points, point labels, and datastore.
+        """
+
         label_prompt = None
         points = None
         point_labels = None
@@ -158,6 +183,14 @@ class DBModel(mlflow.pyfunc.PythonModel):
         return label_prompt, points, point_labels, datastore
 
     def handle_params(self, input):
+        """
+        Processes input to extract parameters such as destination directory, export overlays, and export metrics.
+        Args:
+            input (dict): The input dictionary containing parameters.
+        Returns:
+            tuple: The destination directory, export overlays, and export metrics.
+        """
+
         export_metrics = None
         export_overlays = None
         dest_dir = self.dest_dir
@@ -175,9 +208,26 @@ class DBModel(mlflow.pyfunc.PythonModel):
     
     @abstractmethod
     def security_path_check(self, file_path):
+        """
+        Perform security checks on file paths.
+        Args:
+            file_path (str): The file path to be checked.
+        Raises:
+            Exception: Raised if the file path is invalid.
+        """
         pass
 
     def predict(self, context, model_input, params=None):
+        """
+        Handles prediction requests, including inference, file retrieval, and input processing.
+        Args:
+            context (object): The context object for the prediction request.
+            model_input (dict): The input data for the prediction.
+            params (dict): Additional parameters for the prediction.
+        Returns:
+            str: The prediction result in JSON format.
+        """
+
         self.logger.warning(f"Processing {model_input.to_json()}")
 
         with mlflow.start_span(name=f"{self.model_name} - Inference", span_type="inference") as span:

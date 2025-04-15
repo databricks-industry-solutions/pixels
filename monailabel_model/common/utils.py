@@ -16,6 +16,16 @@ logger = logging.getLogger(__name__)
 
 @mlflow.trace(span_type=SpanType.TOOL)
 def to_nrrd(file_path, pixel_type="uint16"):
+    """
+    Converts a medical image file to NRRD format used in the OHIF Viewer.
+    Args:
+        file_path (str): Path to the input medical image file (NIfTI, DICOM).
+        pixel_type (str): Desired pixel type for the output NRRD file.
+    Returns:
+        str: Path to the converted NRRD file.
+    Raises:
+        Exception: If the input file format is not supported or conversion fails.
+    """
 
     if pixel_type.lower() == "uint8":
         output_pixel_type = sitk.sitkUInt8
@@ -36,6 +46,23 @@ def to_nrrd(file_path, pixel_type="uint16"):
 
 @mlflow.trace(span_type=SpanType.TOOL)
 def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_overlays=False, export_metrics=False, output_dir='overlaps', num_slices=5,  keys=['image','label'], window_center = 50, window_width = 400):
+    """
+    Calculate volumes and overlays for a given NIfTI file and segmentation file.
+    Args:
+        nifti_file (str): Path to the NIfTI file.
+        seg_file (str): Path to the segmentation file.
+        label_dict (dict): Dictionary mapping label indices to names.
+        export_overlays (bool): Whether to export overlay images.
+        export_metrics (bool): Whether to export volume metrics.
+        output_dir (str): Directory to save overlay images.
+        num_slices (int): Number of slices to export.
+        keys (list): List of keys for the transforms.
+        window_center (int): Window center for intensity scaling.
+        window_width (int): Window width for intensity scaling.
+    Returns:
+        dict: Dictionary containing volume metrics and overlay paths.
+    """
+
     from monai.transforms import Compose, LoadImageD, OrientationD, ScaleIntensityRangeD
     import cupy as cp
     import nibabel as nib
@@ -129,33 +156,62 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
     return output
 
 def init_dicomweb_datastore(host, access_token, sql_warehouse_id, table) -> Datastore:
+    """
+    Initialize a DICOMWeb Databricks Datastore client, used for retrieving DICOM images.
+    This function is used to create a connection to Databricks and configure the
+    necessary parameters for the Datastore client.
+    It is typically called during the initialization phase of the application.
+    The function checks if the provided host is a Databricks URL and initializes the
+    Databricks client accordingly. It also sets up the cache path, fetch by frame option,
+    search filter, and conversion to NIfTI options based on the application settings.
+    Args:
+        host (str): DICOMWeb server URL.
+        access_token (str): Access token for authentication.
+        sql_warehouse_id (str): SQL warehouse ID for Databricks.
+        table (str): Table name in Databricks.
+    Returns:
+        Datastore: Initialized DICOMWeb Datastore client.
+    """
 
-        from monailabel.config import settings
-        from monailabel.datastore.dicom import DICOMWebDatastore
-        from monailabel.datastore.databricks_client import DatabricksClient
+    from monailabel.config import settings
+    from monailabel.datastore.dicom import DICOMWebDatastore
+    from monailabel.datastore.databricks_client import DatabricksClient
 
-        if "databricks" in host:
-            dw_client = DatabricksClient(url=host, 
-                                         token=access_token, 
-                                         warehouse_id=sql_warehouse_id, 
-                                         table=table)
+    if "databricks" in host:
+        dw_client = DatabricksClient(url=host, 
+                                     token=access_token, 
+                                     warehouse_id=sql_warehouse_id, 
+                                     table=table)
 
-        cache_path = settings.MONAI_LABEL_DICOMWEB_CACHE_PATH
-        cache_path = cache_path.strip() if cache_path else ""
-        fetch_by_frame = settings.MONAI_LABEL_DICOMWEB_FETCH_BY_FRAME
-        search_filter = settings.MONAI_LABEL_DICOMWEB_SEARCH_FILTER
-        convert_to_nifti = settings.MONAI_LABEL_DICOMWEB_CONVERT_TO_NIFTI
-        
-        return DICOMWebDatastore(
-            client=dw_client,
-            search_filter=search_filter,
-            cache_path=cache_path if cache_path else None,
-            fetch_by_frame=fetch_by_frame,
-            convert_to_nifti=convert_to_nifti,
-        )
+    cache_path = settings.MONAI_LABEL_DICOMWEB_CACHE_PATH
+    cache_path = cache_path.strip() if cache_path else ""
+    fetch_by_frame = settings.MONAI_LABEL_DICOMWEB_FETCH_BY_FRAME
+    search_filter = settings.MONAI_LABEL_DICOMWEB_SEARCH_FILTER
+    convert_to_nifti = settings.MONAI_LABEL_DICOMWEB_CONVERT_TO_NIFTI
+    
+    return DICOMWebDatastore(
+        client=dw_client,
+        search_filter=search_filter,
+        cache_path=cache_path if cache_path else None,
+        fetch_by_frame=fetch_by_frame,
+        convert_to_nifti=convert_to_nifti,
+    )
 
 @mlflow.trace(span_type=SpanType.TOOL)
 def series_to_nifti(datastore, series_uid):
+    """
+    Convert a DICOM series to NIfTI format using the MONAI Label Datastore.
+    This function retrieves the DICOM series from Databricks, converts it to NIfTI format,
+    and saves it in the cache directory.
+    Args:
+        datastore (Datastore): MONAI Label Databricks Datastore client.
+        series_uid (str): Unique identifier for the DICOM series.
+    Returns:
+        tuple: Path to the NIfTI file and image information.
+    Raises:
+        Exception: If the series UID is not found in the Datastore.
+    """
+
     #get image in .cache folder
     datastore.get_image(series_uid)
     #get cached image uri
@@ -165,6 +221,19 @@ def series_to_nifti(datastore, series_uid):
     return nifti_path, image_info
 
 def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
+    """
+    Convert a NIfTI image to DICOM Segmentation using ITKImageToDICOMSegmentation.
+    Args:
+        itkbin_folder (str): Path to the ITK binaries folder.
+        label (str): Path to the NIfTI label file.
+        series_dir (str): Directory containing the DICOM series.
+        template (dict): Metadata template for DICOM Segmentation.
+    Returns:
+        str: Path to the output DICOM Segmentation file.
+    Raises:
+        Exception: If the ITK binary folder is not found or conversion fails.
+    """
+    
     from monailabel.utils.others.generic import run_command
 
     output_file = tempfile.NamedTemporaryFile(suffix=".dcm").name
@@ -196,6 +265,22 @@ def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
       
 @mlflow.trace(span_type=SpanType.TOOL)
 def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*", use_itk=True, series_description="segmentation") -> str:
+    """
+    Convert a NIfTI image to DICOM Segmentation format.
+    Args:
+        itkbin_folder (str): Path to the ITK binaries folder.
+        series_dir (str): Directory containing the DICOM series.
+        label (str): Path to the NIfTI label file.
+        label_info (list): List of label information dictionaries.
+        file_ext (str): File extension for DICOM files.
+        use_itk (bool): Whether to use ITK for conversion.
+        series_description (str): Description for the DICOM series.
+    Returns:
+        str: Path to the output DICOM Segmentation file.
+    Raises:
+        Exception: If the ITK binary folder is not found or conversion fails.
+    """
+    
     import pathlib
     import pydicom_seg
     from pydicom.filereader import dcmread

@@ -8,6 +8,9 @@ from common.utils import series_to_nifti
 logger = logging.getLogger(__name__)
 
 class DBVISTA3DModel(DBModel):
+    """
+    VISTA3D Model for MONAI Label compatible with Databricks' serving endpoint.
+    """
 
     IGNORE_PROMPT = set(
         [
