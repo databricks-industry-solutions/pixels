@@ -52,6 +52,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.dest_dir = os.environ["DEST_DIR"]
         self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
+        
+        if self.label_dict is None:
+            labels = self.app.info()["models"][self.model_name]['labels']
+            self.label_dict = {v: k for k, v in labels.items()}
 
     def upload_file(self, file_path, dest_path):
         from databricks.sdk import WorkspaceClient
