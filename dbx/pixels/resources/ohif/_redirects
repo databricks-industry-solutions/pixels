@@ -3,4 +3,4 @@
 # Configure redirects using netlify.toml
 
 # Spa
-# /* /index.html 200
+/* /index.html 200
