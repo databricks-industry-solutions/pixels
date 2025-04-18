@@ -89,7 +89,7 @@ class InferClass:
         logging.config.dictConfig(CONFIG)
         self.infer_transforms = parser.get_parsed_content("transforms_infer")
 
-        self.device = torch.device("cuda:0")
+        self.device = torch.device("cuda")
         model_registry = parser.get_parsed_content("model")
         model = vista_model_registry[model_registry](
             in_channels=input_channels, image_size=patch_size
