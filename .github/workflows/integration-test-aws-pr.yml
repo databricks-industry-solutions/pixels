@@ -28,7 +28,7 @@ jobs:
               "custom_tags": {
                 "ResourceClass": "JobCluster"
               },
-              "policy_id": "E05E27B13F0003A0",
+              "policy_id": "E05E27B13F0003A0"
             }
           notebook-params-json: >
             {
