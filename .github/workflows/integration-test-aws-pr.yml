@@ -5,7 +5,7 @@ on:
 
 jobs:
  run-databricks-notebook:
-   runs-on: ubuntu-latest
+   runs-on: html_publisher
    steps:
      - name: Checkout repo
        uses: actions/checkout@v2
@@ -31,6 +31,7 @@ jobs:
               "custom_tags": {
                   "ResourceClass": "SingleNode"
               },
+              "policy_id": "E0631F5C0D0006EA",
               "data_security_mode": "SINGLE_USER"
            }
          notebook-params-json: >
