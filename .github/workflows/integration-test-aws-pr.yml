@@ -21,13 +21,14 @@ jobs:
             {
               "num_workers": 1,
               "spark_version": "13.3.x-scala2.12",
-              "node_type_id": "i3.xlarge",
+              "node_type_id": "i3.large",
               "aws_attributes": {
                 "availability": "ON_DEMAND"
               },
               "custom_tags": {
                 "ResourceClass": "JobCluster"
-              }
+              },
+              "policy_id": "E05E27B13F0003A0",
             }
           notebook-params-json: >
             {
