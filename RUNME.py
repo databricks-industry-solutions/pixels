@@ -5,22 +5,47 @@
 
 # COMMAND ----------
 
-# DBTITLE 0, Install util packages
+# DBTITLE 0,Install packages with SDK version check
 # MAGIC %pip install --quiet git+https://github.com/databricks-academy/dbacademy@v1.0.13 \
 # MAGIC git+https://github.com/databricks-industry-solutions/notebook-solution-companion@serverless \
-# MAGIC databricks-sdk --upgrade
+# MAGIC databricks-sdk --upgrade --force-reinstall
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=false
 
 # COMMAND ----------
 
 from solacc.companion import NotebookSolutionCompanion
 from databricks.sdk import WorkspaceClient
 
-# Import with version compatibility check
+# -- Version compatibility handling --
 try:
+    # Strategy 1: New SDK structure (>= 0.21.0)
     from databricks.sdk.service.jobs import JobPermissionLevel, JobAccessControlRequest
+    CAN_MANAGE = JobPermissionLevel.CAN_MANAGE
 except ImportError:
-    # Fallback for older SDK versions
-    from databricks.sdk.service.jobs import PermissionLevel as JobPermissionLevel, JobAccessControlRequest
+    try:
+        # Strategy 2: Access via module (transitional versions)
+        from databricks.sdk.service import jobs
+        CAN_MANAGE = jobs.JobPermissionLevel.CAN_MANAGE
+        JobAccessControlRequest = jobs.JobAccessControlRequest
+    except AttributeError:
+        try:
+            # Strategy 3: Old SDK names (< 0.15.0)
+            from databricks.sdk.service.jobs import PermissionLevel, JobAccessControlRequest
+            CAN_MANAGE = PermissionLevel.CAN_MANAGE
+        except ImportError:
+            # Final fallback: Use strings (not recommended)
+            CAN_MANAGE = "CAN_MANAGE"
+            class JobAccessControlRequest(dict): 
+                """Fallback class for ACL entries"""
+                pass
+
+# Verify SDK version
+import databricks.sdk
+print(f"Using Databricks SDK version: {databricks.sdk.__version__}")
+print(f"Permission level resolved to: {CAN_MANAGE}")
 
 # COMMAND ----------
 
@@ -59,11 +84,10 @@ job_json = {
         {"name": "table", "default": "main.pixels_solacc.object_catalog"},
         {"name": "volume", "default": "main.pixels_solacc.pixels_volume"}
     ],
-    # Updated ACL configuration
     "access_control_list": [
         JobAccessControlRequest(
             group_name="users",
-            permission_level=JobPermissionLevel.CAN_MANAGE
+            permission_level=CAN_MANAGE
         )
     ]
 }
@@ -78,5 +102,14 @@ run_job = dbutils.widgets.get("run_job") == "True"
 
 # Deploy the job and get job_id
 print("Deploying job...")
-job_id = NotebookSolutionCompanion().deploy_compute(job_json, run_job=run_job)
+companion = NotebookSolutionCompanion()
+job_id = companion.deploy_compute(job_json, run_job=run_job)
 print(f"Job deployed with job_id: {job_id}")
+
+# Verify permissions
+if hasattr(companion, 'w') and isinstance(companion.w, WorkspaceClient):
+    try:
+        print("Current job permissions:")
+        print(companion.w.jobs.get_permission_levels(job_id=job_id))
+    except Exception as e:
+        print(f"Permission check failed: {str(e)}")
