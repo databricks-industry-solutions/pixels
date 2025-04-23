@@ -16,6 +16,7 @@ from databricks.sdk.service.jobs import JobAccessControlRequest, JobPermissionLe
 
 # COMMAND ----------
 
+# Define job configuration with ACLs
 job_json = {
     "timeout_seconds": 7200,
     "max_concurrent_runs": 1,
@@ -49,6 +50,13 @@ job_json = {
     "parameters": [
         {"name": "table", "default": "main.pixels_solacc.object_catalog"},
         {"name": "volume", "default": "main.pixels_solacc.pixels_volume"}
+    ],
+    # Add ACL configuration directly here
+    "access_control_list": [
+        {
+            "group_name": "users",
+            "permission_level": JobPermissionLevel.CAN_MANAGE
+        }
     ]
 }
 
@@ -64,21 +72,3 @@ run_job = dbutils.widgets.get("run_job") == "True"
 print("Deploying job...")
 job_id = NotebookSolutionCompanion().deploy_compute(job_json, run_job=run_job)
 print(f"Job deployed with job_id: {job_id}")
-
-# COMMAND ----------
-
-# Apply group-based ACL (CAN_VIEW to "users")
-print("Applying group permissions...")
-w = WorkspaceClient()
-w.jobs.update_access_control(
-    job_id=job_id,
-    access_control_list=[
-        JobAccessControlRequest(
-            group_name="users",
-            permission_level=JobPermissionLevel.CAN_MANAGE
-        )
-    ]
-)
-print(f"Granted CAN_VIEW to group 'users' on job {job_id}")
-
-# COMMAND ----------
