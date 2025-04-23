@@ -113,3 +113,4 @@ if hasattr(companion, 'w') and isinstance(companion.w, WorkspaceClient):
         print(companion.w.jobs.get_permission_levels(job_id=job_id))
     except Exception as e:
         print(f"Permission check failed: {str(e)}")
+#
