@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md 
 # MAGIC # Solution Accelerator Deployment
-# MAGIC This notebook sets up clusters, a multi-task job (workflow), and applies ACLs. 🎉
+# MAGIC This notebook sets up clusters, a multi-task job (workflow), and applies ACLs.
 
 # COMMAND ----------
 
@@ -14,10 +14,13 @@
 
 from solacc.companion import NotebookSolutionCompanion
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.jobs import JobPermissionLevel
 
-# If JobAccessControlRequest is available in the latest SDK version, you can import it like this:
-# from databricks.sdk.service.jobs import JobAccessControlRequest
+# Import with version compatibility check
+try:
+    from databricks.sdk.service.jobs import JobPermissionLevel, JobAccessControlRequest
+except ImportError:
+    # Fallback for older SDK versions
+    from databricks.sdk.service.jobs import PermissionLevel as JobPermissionLevel, JobAccessControlRequest
 
 # COMMAND ----------
 
@@ -33,20 +36,20 @@ job_json = {
     "tasks": [
         {
             "notebook_task": {
-                "notebook_path": f"00-README"
+                "notebook_path": "00-README"
             },
             "task_key": "00-README"
         },
         {
             "notebook_task": {
-                "notebook_path": f"01-dcm-demo"
+                "notebook_path": "01-dcm-demo"
             },
             "task_key": "01-dcm-demo",
             "depends_on": [{"task_key": "00-README"}]
         },
         {
             "notebook_task": {
-                "notebook_path": f"07-OHIF-Lakehouse-App"
+                "notebook_path": "07-OHIF-Lakehouse-App"
             },
             "task_key": "07-OHIF-Lakehouse-App",
             "depends_on": [{"task_key": "01-dcm-demo"}]
@@ -56,12 +59,12 @@ job_json = {
         {"name": "table", "default": "main.pixels_solacc.object_catalog"},
         {"name": "volume", "default": "main.pixels_solacc.pixels_volume"}
     ],
-    # Add ACL configuration directly here
+    # Updated ACL configuration
     "access_control_list": [
-        {
-            "group_name": "users",
-            "permission_level": JobPermissionLevel.CAN_MANAGE
-        }
+        JobAccessControlRequest(
+            group_name="users",
+            permission_level=JobPermissionLevel.CAN_MANAGE
+        )
     ]
 }
 
