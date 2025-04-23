@@ -38,9 +38,18 @@ except ImportError:
                 """Fallback class for ACL entries"""
                 pass
 
-# Verify SDK version
-import databricks.sdk
-print(f"Using Databricks SDK version: {databricks.sdk.__version__}")
+# Get and print SDK version safely
+try:
+    from importlib.metadata import version
+except ImportError:
+    from pkg_resources import get_distribution as version
+
+try:
+    sdk_version = version("databricks-sdk")
+except Exception as e:
+    sdk_version = f"Unknown (error fetching version: {str(e)})"
+
+print(f"Using Databricks SDK version: {sdk_version}")
 print(f"Permission level resolved to: {CAN_MANAGE}")
 
 # COMMAND ----------
@@ -109,4 +118,3 @@ if hasattr(companion, 'w') and isinstance(companion.w, WorkspaceClient):
         print(companion.w.jobs.get_permission_levels(job_id=job_id))
     except Exception as e:
         print(f"Permission check failed: {str(e)}")
-#
