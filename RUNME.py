@@ -5,14 +5,19 @@
 
 # COMMAND ----------
 
-# DBTITLE 0,Install util packages
-# MAGIC %pip install --quiet git+https://github.com/databricks-academy/dbacademy@v1.0.13 git+https://github.com/databricks-industry-solutions/notebook-solution-companion@serverless databricks-sdk
+# DBTITLE 0, Install util packages
+# MAGIC %pip install --quiet git+https://github.com/databricks-academy/dbacademy@v1.0.13 \
+# MAGIC git+https://github.com/databricks-industry-solutions/notebook-solution-companion@serverless \
+# MAGIC databricks-sdk --upgrade
 
 # COMMAND ----------
 
 from solacc.companion import NotebookSolutionCompanion
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.jobs import JobAccessControlRequest, JobPermissionLevel
+from databricks.sdk.service.jobs import JobPermissionLevel
+
+# If JobAccessControlRequest is available in the latest SDK version, you can import it like this:
+# from databricks.sdk.service.jobs import JobAccessControlRequest
 
 # COMMAND ----------
 
