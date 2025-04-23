@@ -12,10 +12,6 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./_resources/00-setup $reset_all_data=false
-
-# COMMAND ----------
-
 from solacc.companion import NotebookSolutionCompanion
 from databricks.sdk import WorkspaceClient
 
