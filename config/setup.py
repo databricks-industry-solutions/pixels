@@ -11,10 +11,10 @@ from pyspark.sql.types import StringType
 import sys
 
 @udf(StringType())
-def add_repo_to_path(repo_path):
+def add_repo_to_sys_path(repo_path):
     if repo_path not in sys.path:
         sys.path.append(repo_path)
-    return repo_path
+    return sys.path
 
 # COMMAND ----------
 
@@ -25,7 +25,7 @@ repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), o
 print("Installing Pixels Solution Accelerator from ", repo_main_folder)
 
 if ".internal" in repo_main_folder:
-    spark.range(1).withColumn("add_repo_path", lit(repo_main_folder)).collect()
+    spark.range(1).withColumn("add_repo_to_sys_path", add_repo_to_sys_path(lit(repo_main_folder))).show(1, False)
     %pip install --quiet -r {repo_main_folder}/requirements.txt
 else:
     %pip install --quiet {repo_main_folder}
