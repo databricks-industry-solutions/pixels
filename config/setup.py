@@ -12,8 +12,6 @@ import sys
 
 @udf(StringType())
 def add_repo_to_sys_path(repo_path):
-    if repo_path not in sys.path:
-        sys.path.append(repo_path)
     return sys.path
 
 # COMMAND ----------
