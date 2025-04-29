@@ -93,7 +93,7 @@ job_json = {
         JobAccessControlRequest(
             group_name="users",
             permission_level=CAN_MANAGE
-        )
+        ).as_dict()
     ]
 }
 
