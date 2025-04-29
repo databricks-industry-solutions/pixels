@@ -6,10 +6,16 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 dicognito==0.17.0 ff3==1.0.2
+import os
+import dbx
+
+repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
+print("Installing Pixels Solution Accelerator from ", repo_main_folder)
+%pip install --quiet {repo_main_folder}
+
+# COMMAND ----------
+
 # MAGIC %pip install --quiet --upgrade databricks-sdk==0.36.0
-# MAGIC %pip install --quiet ../ #Forcing install current pixels sol acc version to workers
-# MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
 
