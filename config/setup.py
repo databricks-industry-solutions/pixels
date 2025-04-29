@@ -6,8 +6,9 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 dicognito==0.17.0 ff3==1.0.2 #git+https://github.com/databricks-industry-solutions/pixels.git@feature/meta_anonymizer 
+# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 dicognito==0.17.0 ff3==1.0.2
 # MAGIC %pip install --quiet --upgrade databricks-sdk==0.36.0
+# MAGIC %pip install --quiet ../ #Forcing install current pixels sol acc version to workers
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
