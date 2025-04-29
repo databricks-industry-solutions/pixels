@@ -8,7 +8,11 @@
 # DBTITLE 0,Install packages with SDK version check
 # MAGIC %pip install --quiet git+https://github.com/databricks-academy/dbacademy@v1.0.13 \
 # MAGIC git+https://github.com/databricks-industry-solutions/notebook-solution-companion@serverless \
-# MAGIC databricks-sdk --upgrade --force-reinstall
+# MAGIC databricks-sdk==0.37 urllib3==1.26.20 --upgrade --force-reinstall
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
