@@ -12,7 +12,7 @@ jobs:
       - name: Run a databricks notebook
         uses: databricks/run-notebook@v0
         with:
-          local-notebook-path: RUNME.py
+          local-notebook-path: 01-dcm-demo.py
           git-commit: ${{ github.event.pull_request.head.sha }}
           databricks-host: https://e2-demo-west.cloud.databricks.com
           databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
@@ -34,7 +34,8 @@ jobs:
             }
           notebook-params-json: >
             {
-              "run_job": "True"
+              "table": "main.pixels_solacc_github_tests.object_catalog",
+              "volume": "main.pixels_solacc_github_tests.pixels_volume"
             }
           access-control-list-json: >
             [
