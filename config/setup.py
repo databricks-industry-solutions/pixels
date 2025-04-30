@@ -22,15 +22,8 @@ import dbx
 repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
 print("Installing Pixels Solution Accelerator from ", repo_main_folder)
 
-if ".internal" in repo_main_folder:
-    spark.range(1).withColumn("add_repo_to_sys_path", add_repo_to_sys_path(lit(repo_main_folder))).show(1, False)
-    %pip install --quiet -r {repo_main_folder}/requirements.txt
-else:
-    %pip install --quiet {repo_main_folder}
-
-# COMMAND ----------
-
-# MAGIC %pip install --quiet --upgrade databricks-sdk==0.36.0
+%pip install --quiet {repo_main_folder}
+%pip install --quiet --upgrade databricks-sdk==0.36.0
 
 # COMMAND ----------
 
