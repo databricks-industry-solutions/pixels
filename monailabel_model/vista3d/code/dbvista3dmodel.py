@@ -26,10 +26,10 @@ class DBVISTA3DModel(DBModel):
     )  
     EVERYTHING_PROMPT = list(set([i + 1 for i in range(133)]) - IGNORE_PROMPT)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, volumes_compatible=False):
+        super().__init__(volumes_compatible=volumes_compatible)
     
-    def load_context(self, context):
+    def load_context(self, context=None):
         import json
         import sys
         from monai import bundle
@@ -38,6 +38,8 @@ class DBVISTA3DModel(DBModel):
 
         self.module_path = os.path.dirname(os.path.abspath(__file__))
         sys.path.append(self.module_path)
+
+        self.bin_path = os.path.join(self.module_path, "bin")
 
         label_dict_path = f"{self.module_path}/vista3d_bundle/data/jsons/label_dict.json"
         label_ignore_dict_path = f"{self.module_path}/vista3d_bundle/data/jsons/label_ignore_dict.json"
@@ -71,17 +73,17 @@ class DBVISTA3DModel(DBModel):
             raise Exception("Invalid file path", file_path)
 
     @mlflow.trace(span_type="MONAI")
-    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None):
+    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
         from vista3d_bundle.scripts.infer import InferClass
 
         nifti_path, image_info = series_to_nifti(datastore, series_uid)
 
-        vista3d_model = InferClass(self.conf_file)
+        vista3d_model = InferClass(self.conf_file, torch_device=torch_device, file_ext=file_ext)
         vista3d_model.infer(image_info['path'], label_prompt=label_prompt, point=points, point_label=point_labels, save_mask=True)
 
         self.logger.warning(f"Inference completed on image: {nifti_path}")
 
         suffixes = [".nii", ".nii.gz", ".nrrd"]
         dicom_path = [nifti_path.replace(suffix, "") for suffix in suffixes if nifti_path.endswith(suffix)][0]
-        nifti_seg_path = self.output_path + "/" + series_uid + "/" + series_uid + "_seg.nii.gz"
+        nifti_seg_path = self.output_path + "/" + series_uid + "/" + series_uid + "_seg" + file_ext
         return dicom_path, nifti_path, nifti_seg_path, image_info

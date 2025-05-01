@@ -3,6 +3,7 @@ import sys
 import logging
 import os
 import json
+import shutil
 from base64 import b64encode
 from mlflow.entities import SpanType
 from abc import abstractmethod
@@ -17,10 +18,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
     context, handling input, performing inference, and converting NIfTI segmentations to DICOM SEG format.
     """
 
-    IGNORE_PROMPT = set([])  
+    IGNORE_PROMPT = set([])
     EVERYTHING_PROMPT = list(set([i + 1 for i in range(1)]) - IGNORE_PROMPT)
     
-    def __init__(self):
+    def __init__(self, volumes_compatible=False):
         mlflow.autolog(disable=True)
         self.logger = logging.getLogger(__name__)
 
@@ -30,15 +31,17 @@ class DBModel(mlflow.pyfunc.PythonModel):
         self.model_name = "GENERIC"
         self.labels = None
 
+        self.volumes_compatible = volumes_compatible
+
+        os.putenv("MASTER_ADDR", "127.0.0.1")
+        os.putenv("MASTER_PORT", "1234")
+            
+    def load_context(self, context=None):
         self.module_path = os.path.dirname(os.path.abspath(__file__))
         sys.path.append(self.module_path)
 
         self.bin_path = os.path.join(self.module_path, "bin")
 
-        os.putenv("MASTER_ADDR", "127.0.0.1")
-        os.putenv("MASTER_PORT", "1234")
-            
-    def load_context(self, context):
         from common.dblabelapp import DBMONAILabelApp
      
         self.conf = {
@@ -63,9 +66,13 @@ class DBModel(mlflow.pyfunc.PythonModel):
             file_path (str): The path to the file to be uploaded.
             dest_path (str): The destination path in Databricks.
         """
-        from databricks.sdk import WorkspaceClient
-        w = WorkspaceClient()
-        w.files.upload(dest_path, open(file_path, mode="rb"))
+        if self.volumes_compatible:
+            shutil.copy(file_path, dest_path)
+        else:
+            from databricks.sdk import WorkspaceClient
+            w = WorkspaceClient()
+            w.files.upload(dest_path, open(file_path, mode="rb"))
+        
         self.logger.warning(f"File uploaded to {dest_path}")
 
     @abstractmethod
@@ -98,7 +105,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
     
     @mlflow.trace(span_type="MONAI")
     @abstractmethod
-    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None):
+    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, file_ext=".nii.gz"):
         """
         Performs model inference on a given series.
         Args:
@@ -196,8 +203,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
         export_metrics = None
         export_overlays = None
         dest_dir = self.dest_dir
+        torch_device = None
 
-        if "dest_dir" in input:
+        if "dest_dir" in input and input["dest_dir"] is not None:
             dest_dir = input["dest_dir"]
 
         if "export_metrics" in input:
@@ -206,7 +214,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
         if "export_overlays" in input:
             export_overlays = input["export_overlays"]
         
-        return dest_dir, export_overlays, export_metrics
+        if "torch_device" in input:
+            torch_device = input["torch_device"]
+        
+        return dest_dir, export_overlays, export_metrics, torch_device
     
     @abstractmethod
     def security_path_check(self, file_path):
@@ -253,7 +264,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 elif "infer" in model_input['input'][0]:
                     label_prompt, points, point_labels, datastore = self.handle_labels(model_input["input"][0]['infer'])
                             
-                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels)
+                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
                     to_return = {"file": nifti_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
                 else:
@@ -266,9 +277,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
                     input_params = {}
                 
                 label_prompt, points, point_labels, datastore = self.handle_labels(input_params)
-                dest_dir, export_overlays, export_metrics = self.handle_params(input_params)
+                dest_dir, export_overlays, export_metrics, torch_device = self.handle_params(input_params)
 
-                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels)
+                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels, torch_device=torch_device, file_ext=".nii")
+                
                 dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
 
                 if export_overlays or export_metrics:
@@ -279,6 +291,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 to_return =  {"file_path": dicom_seg_path, "metrics": metrics}
 
                 span.set_outputs(to_return)
+            
             else:
                 raise Exception("Unknown operation", model_input) 
         

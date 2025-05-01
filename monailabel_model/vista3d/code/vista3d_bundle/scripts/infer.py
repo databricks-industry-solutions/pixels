@@ -89,12 +89,17 @@ class InferClass:
         logging.config.dictConfig(CONFIG)
         self.infer_transforms = parser.get_parsed_content("transforms_infer")
 
-        self.device = torch.device("cuda")
+        torch_device = f'cuda:{parser.get("torch_device")}' if parser.get("torch_device") else "cuda"
+        print(f"Using device {torch_device}")
+
+        self.device = torch.device(torch_device)
         model_registry = parser.get_parsed_content("model")
         model = vista_model_registry[model_registry](
             in_channels=input_channels, image_size=patch_size
         )
         self.model = model.to(self.device)
+
+        self.file_ext = parser.get("file_ext") if parser.get("file_ext") else ".nii.gz"
 
         pretrained_ckpt = torch.load(ckpt_name, map_location=self.device)
         self.model.load_state_dict(pretrained_ckpt, strict=False)
@@ -118,6 +123,7 @@ class InferClass:
             transforms.SaveImaged(
                 keys="pred",
                 meta_keys="pred_meta_dict",
+                output_ext=self.file_ext,
                 output_dir=output_path,
                 output_postfix="seg",
                 resample=False,
