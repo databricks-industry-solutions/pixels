@@ -58,7 +58,7 @@ def get_seg_dest_dir(request: Request):
     if request.cookies.get("seg_dest_dir"):
         return request.cookies.get("seg_dest_dir")
     else:
-        paths = request.cookies.get("pixels_table").split(".")
+        paths = get_pixels_table(request).split(".")
         return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
 
 
