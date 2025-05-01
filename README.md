@@ -199,4 +199,6 @@ DICOM® is recognized by the International Organization for Standardization as t
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
 | MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
+| Vista3D              | MONAI Versatile Imaging SegmenTation and Annotation model | Apache-2.0 license (code) - NCLS v1 (model weight) | https://github.com/Project-MONAI/VISTA/tree/main/vista3d |
+
 
