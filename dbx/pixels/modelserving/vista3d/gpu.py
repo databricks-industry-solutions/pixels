@@ -5,11 +5,12 @@ import pandas as pd
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql import functions as F
 
+
 class Vista3DGPUTransformer(Transformer):
     """
     A transformer that processes 3D medical images using VISTA3D model with GPU acceleration.
 
-    Details of the Vista3D model can be found at: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/monaitoolkit/models/monai_vista3d    
+    Details of the Vista3D model can be found at: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/monaitoolkit/models/monai_vista3d
 
     The transformer can be configured with the following parameters:
     - inputCol: The name of the input column containing the DICOM metadata. Default is "meta".
@@ -44,7 +45,7 @@ class Vista3DGPUTransformer(Transformer):
         secret=None,
         gpuCount=1,
         nWorkers=1,
-        tasksPerGpu=1
+        tasksPerGpu=1,
     ):
 
         self.inputCol = inputCol
@@ -63,7 +64,7 @@ class Vista3DGPUTransformer(Transformer):
         self.gpuCount = gpuCount
         self.nWorkers = nWorkers
         self.parallelization = int(self.gpuCount * nWorkers // tasksPerGpu)
-    
+
     def _transform(self, df):
         @F.pandas_udf("result string, error string")
         def autosegm_monai_udf(
@@ -92,8 +93,8 @@ class Vista3DGPUTransformer(Transformer):
             def process_series(series_uid, pid):
                 # Perf fix for single node multi gpu
                 if self.nWorkers == 1:
-                    params['torch_device'] = pid % self.gpuCount
-                
+                    params["torch_device"] = pid % self.gpuCount
+
                 try:
                     result = model.predict(
                         None, pd.DataFrame([{"series_uid": series_uid, "params": params}])
@@ -118,7 +119,8 @@ class Vista3DGPUTransformer(Transformer):
             .distinct()
             .repartition(self.parallelization)
             .withColumn(
-                "segmentation_result", autosegm_monai_udf(F.col("series_uid"), F.spark_partition_id())
+                "segmentation_result",
+                autosegm_monai_udf(F.col("series_uid"), F.spark_partition_id()),
             )
             .selectExpr("series_uid", "segmentation_result.*")
         )

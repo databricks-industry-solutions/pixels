@@ -1,15 +1,13 @@
-import json
 import os
-
 from typing import Iterator
 
 import pandas as pd
+from mlflow.deployments import get_deploy_client
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
-from mlflow.deployments import get_deploy_client
-
 from dbx.pixels.modelserving.serving_endpoint_client import MONAILabelClient
+
 
 class MONAILabelClient:
     def __init__(self, endpoint_name, max_retries=3, request_timeout_sec=300):
@@ -25,16 +23,17 @@ class MONAILabelClient:
         try:
             response = self.client.predict(
                 endpoint=self.endpoint,
-                inputs={"inputs": {"series_uid": series_uid, 'params': params}},
+                inputs={"inputs": {"series_uid": series_uid, "params": params}},
             )
             return (response.predictions, "")
         except Exception as e:
             return ("", str(e))
 
+
 class Vista3DMONAITransformer(Transformer):
     """
     Transformer class to generate autosegmentations of DICOM files using MONAILabel serving endpoint.
-    
+
     Details of the Vista3D model can be found at: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/monaitoolkit/models/monai_vista3d
 
     The transformer takes a DataFrame with DICOM metadata and generates segmentations using the MONAILabel
@@ -54,9 +53,19 @@ class Vista3DMONAITransformer(Transformer):
     - num_partitions: The number of partitions to use for the DataFrame. Default is 200.
     """
 
-    def __init__(self, endpoint_name="pixels-monai-uc-vista3d", inputCol="meta", table="main.pixels_solacc.object_catalog",
-        destDir="/Volumes/main/pixels_solacc/pixels_volume/vista3d/", labelPrompt=None, points=None, pointLabels=None, exportMetrics=False, exportOverlays=False,
-        num_partitions=200):
+    def __init__(
+        self,
+        endpoint_name="pixels-monai-uc-vista3d",
+        inputCol="meta",
+        table="main.pixels_solacc.object_catalog",
+        destDir="/Volumes/main/pixels_solacc/pixels_volume/vista3d/",
+        labelPrompt=None,
+        points=None,
+        pointLabels=None,
+        exportMetrics=False,
+        exportOverlays=False,
+        num_partitions=200,
+    ):
         self.inputCol = inputCol
         self.endpoint_name = endpoint_name
 
