@@ -33,7 +33,8 @@ jobs:
               },
               "custom_tags": {
                   "ResourceClass": "SingleNode"
-              }
+              },
+              "data_security_mode": "USER_ISOLATION"
            }
          notebook-params-json: >
            {
