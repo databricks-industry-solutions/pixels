@@ -7,7 +7,8 @@ import shutil
 from base64 import b64encode
 from mlflow.entities import SpanType
 from abc import abstractmethod
-from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays
+import datetime
+from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,15 @@ class DBModel(mlflow.pyfunc.PythonModel):
         if self.label_dict is None:
             labels = self.app.info()["models"][self.model_name]['labels']
             self.label_dict = {v: k for k, v in labels.items()}
-    
+
+        if "DATABRICKS_SCOPE" in os.environ and "CLIENT_ID" in os.environ and "CLIENT_SECRET" in os.environ:
+            self.logger.warning(f"Service principal credentials found. Will use service principal to authenticate.")
+            token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_ID"], os.environ["CLIENT_SECRET"])
+            os.environ["DATABRICKS_TOKEN"] = token['access_token']
+            self.token_expiration = datetime.datetime.now() + datetime.timedelta(seconds=(token['expires_in'] * 0.9))
+        else:
+            self.logger.warning(f"No service principal credentials found. Will fallback to PAT.")
+
     def upload_file(self, file_path, dest_path):
         """
         Uploads a file to the specified destination path in Databricks.
@@ -242,6 +251,12 @@ class DBModel(mlflow.pyfunc.PythonModel):
         """
 
         self.logger.warning(f"Processing {model_input.to_json()}")
+
+        if self.token_expiration is not None and datetime.datetime.now() > self.token_expiration:
+            self.logger.warning(f"Token expired, refreshing...")
+            token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_ID"], os.environ["CLIENT_SECRET"])
+            os.environ["DATABRICKS_TOKEN"] = token['access_token']
+            self.token_expiration = datetime.datetime.now() + datetime.timedelta(seconds=(token['expires_in'] * 0.9))
 
         with mlflow.start_span(name=f"{self.model_name} - Inference", span_type="inference") as span:
             span.set_attribute("model_name", self.model_name)
