@@ -318,6 +318,7 @@ async def main_page(request: Request):
             <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/70577.563792a4.chunk.css" crossorigin="anonymous">
             <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/59976.a356be26.chunk.css" crossorigin="anonymous">
             <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/62569.22f26a3b.chunk.css" crossorigin="anonymous">
+            <script>document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/monai/; Path=/; Expires=Session;"</script>
         </head>
         <body class="light-mode dark-mode-supported">
         <uses-legacy-bootstrap>
