@@ -110,7 +110,6 @@ async def _reverse_proxy_monai(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         resp = client.predict(
             endpoint=serving_endpoint,
             inputs={"inputs": to_send},
@@ -139,7 +138,6 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         res_json = json.loads(
             client.predict(
                 endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
@@ -178,7 +176,6 @@ async def _reverse_proxy_monai_nextsample_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         res_json = client.predict(endpoint=serving_endpoint, inputs={"inputs": {"input": to_send}})
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
@@ -215,7 +212,6 @@ async def _reverse_proxy_monai_train_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         res_json = client.predict(
             endpoint=serving_endpoint, inputs={"inputs": {"input": {"train": to_send}}}
         )

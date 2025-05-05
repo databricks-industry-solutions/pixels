@@ -179,7 +179,6 @@ class Catalog:
 
         # Trigger handling, defaults to availableNow
         if self._isStreaming:
-
             triggerParams = [triggerProcessingTime, triggerAvailableNow]
 
             if triggerParams.count(None) == 2:
