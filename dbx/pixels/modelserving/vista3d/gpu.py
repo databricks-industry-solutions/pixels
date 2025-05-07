@@ -27,7 +27,13 @@ class Vista3DGPUTransformer(Transformer):
     - gpuCount: The number of GPUs to use for processing. Default is 1.
     - nWorkers: The number of workers to use for processing. Default is 1.
     - tasksPerGpu: The number of tasks to run per GPU. Default is 1.
-    - parallelization: The number of partitions to use for the DataFrame. Default is 200.
+
+    The parallelization is determined by the number of GPUs and workers specified in the constructor.
+    
+    The transformer returns a DataFrame with the following columns:
+    - series_uid: The series UID of the input image.
+    - result: The segmentation result as a string.
+    - error: Any error messages encountered during processing.
     """
 
     def __init__(
