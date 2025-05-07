@@ -220,11 +220,11 @@ def series_to_nifti(datastore, series_uid):
     image_info = datastore.get_image_info(series_uid)
     return nifti_path, image_info
 
-def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
+def itk_image_to_dicom_seg(itkbin_path, label, series_dir, template) -> str:
     """
     Convert a NIfTI image to DICOM Segmentation using ITKImageToDICOMSegmentation.
     Args:
-        itkbin_folder (str): Path to the ITK binaries folder.
+        itkbin_path (str): Path to the ITK binaries folder.
         label (str): Path to the NIfTI label file.
         series_dir (str): Directory containing the DICOM series.
         template (dict): Metadata template for DICOM Segmentation.
@@ -241,12 +241,6 @@ def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
 
     with open(meta_data, "w") as fp:
         json.dump(template, fp)
-
-    command = itkbin_folder + "/itkimage2segimage"
-    
-    try:  os.chmod(command, 0o755)
-    except Exception:
-        pass
     
     args = [
         "--inputImageList",
@@ -259,7 +253,7 @@ def itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template) -> str:
         meta_data,
     ]
 
-    run_command(command, args)
+    run_command(itkbin_path, args)
     os.unlink(meta_data)
     return output_file
       
@@ -375,6 +369,42 @@ def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*
 
     logger.warning(f"nifti_to_dicom_seg latency : {time.time() - start} (sec)")
     return output_file
+
+def download_dcmqi_tools(app_dir):
+  import shutil
+  import platform
+
+  target = app_dir
+  os.makedirs(target, exist_ok=True)
+
+  dcmqi_tools = ["itkimage2segimage", "itkimage2segimage.exe"]
+  existing = [tool for tool in dcmqi_tools if shutil.which(tool) or os.path.exists(os.path.join(target, tool))]
+
+  if len(existing) in [len(dcmqi_tools), len(dcmqi_tools) // 2]:
+      return
+
+  target_os = "win64.zip" if any(platform.win32_ver()) else "linux.tar.gz"
+  with tempfile.TemporaryDirectory() as tmp:
+      url=f"https://github.com/QIICR/dcmqi/releases/download/v1.4.0/dcmqi-1.4.0-{target_os}"
+      
+      import urllib.request
+      import tarfile
+      import zipfile
+
+      download_path = os.path.join(tmp, "dcmqi_tools." + ("zip" if target_os.endswith("zip") else "tar.gz"))
+      urllib.request.urlretrieve(url, download_path)
+
+      if target_os.endswith("zip"):
+          with zipfile.ZipFile(download_path, 'r') as zip_ref:
+              zip_ref.extractall(tmp)
+      else:
+          with tarfile.open(download_path, 'r:gz') as tar_ref:
+              tar_ref.extractall(tmp)
+
+      for root, _, files in os.walk(tmp):
+          for f in files:
+              if f in dcmqi_tools:
+                  shutil.copy(os.path.join(root, f), target)
 
 def create_token_from_service_principal(host, scope, sp_id, sp_secret):
     import requests

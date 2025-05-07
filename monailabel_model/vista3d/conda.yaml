@@ -8,7 +8,7 @@ dependencies:
   - mlflow==2.21.3
   - torch>=2.5.1
   - numpy>=1.24.4
-  - https://github.com/erinaldidb/MONAILabel_DB/releases/download/v0.8.5/monailabel-0.8.5-py3-none-any.whl
+  - ./artifacts/monailabel-0.8.5-py3-none-any.whl
   - pydantic>=2.7.0
   - numba==0.59
   - dicomweb-client[gcp]>=0.59.1

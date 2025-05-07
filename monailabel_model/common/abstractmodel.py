@@ -41,7 +41,14 @@ class DBModel(mlflow.pyfunc.PythonModel):
         self.module_path = os.path.dirname(os.path.abspath(__file__))
         sys.path.append(self.module_path)
 
-        self.bin_path = os.path.join(self.module_path, "bin")
+        if context is not None:
+            self.bin_path = context.artifacts["itkimage2segimage"]
+            
+            try:  os.chmod(self.bin_path, 0o755)
+            except Exception as e:
+                logger.warning(e)
+        else:
+            self.bin_path = os.path.join(self.module_path, "../artifacts/itkimage2segimage")
 
         from common.dblabelapp import DBMONAILabelApp
      
@@ -55,6 +62,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.dest_dir = os.environ["DEST_DIR"]
         self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
+
+        self.token_expiration: Optional[datetime.datetime] = None
         
         if self.label_dict is None:
             labels = self.app.info()["models"][self.model_name]['labels']
