@@ -3308,8 +3308,13 @@ class MonaiLabelPanel extends react.Component {
       
       let text = new TextDecoder().decode(response.data);
       delete response.data
+
+      var start = 0; var end = 0; var i = 0;
+      let parts = []
+      let indexes = [...text.matchAll(new RegExp("--"+boundary, 'gi'))].map(a => a.index)
       
-      let parts = text.split(`--${boundary}`).filter(part => part.trim() !== '');
+      while(end < text.length) { end = indexes[i]; parts.push(text.slice(start, end).trim()); start = end; end = indexes[++i]; }
+      //let parts = text.split(`--${boundary}`).filter(part => part.trim() !== '');
       text = undefined
 
       // Find the JSON part and NRRD part
