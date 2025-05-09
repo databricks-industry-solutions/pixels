@@ -2261,7 +2261,6 @@ class MonaiLabelClient {
   static api_get(url) {
     console.debug('GET:: ' + url);
     return axios_default().get(url).then(function (response) {
-      console.debug(response);
       return response;
     }).catch(function (error) {
       return error;
@@ -2270,7 +2269,6 @@ class MonaiLabelClient {
   static api_delete(url) {
     console.debug('DELETE:: ' + url);
     return axios_default()["delete"](url).then(function (response) {
-      console.debug(response);
       return response;
     }).catch(function (error) {
       return error;
@@ -2290,7 +2288,6 @@ class MonaiLabelClient {
         accept: ['application/json', 'multipart/form-data']
       }
     }).then(function (response) {
-      console.debug(response);
       return response;
     }).catch(function (error) {
       return error;
@@ -3337,8 +3334,11 @@ class MonaiLabelPanel extends react.Component {
       let binaryData = nrrdPart.slice(nrrdPart.indexOf('NRRD'), nrrdPart.length);
       nrrdPart = undefined
       const binaryDataEnd = binaryData.lastIndexOf('\r\n') > 0 ? binaryData.lastIndexOf('\r\n') : binaryData.length;
-      
-      const nrrdArrayBuffer = new Uint8Array(binaryData.slice(0, binaryDataEnd).split('').map(c => c.charCodeAt(0))).buffer;
+
+      const nrrdArrayBuffer = new Uint8Array(binaryDataEnd).buffer;
+      for (let i = 0; i < binaryDataEnd; i++) {
+        new Uint8Array(nrrdArrayBuffer)[i] = binaryData.charCodeAt(i);
+      }
       binaryData = undefined
       
       return {
