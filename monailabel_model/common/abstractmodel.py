@@ -9,6 +9,7 @@ from mlflow.entities import SpanType
 from abc import abstractmethod
 import datetime
 from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal
+from monailabel.datastore.databricks_client import DatabricksClient
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         }
 
         self.dest_dir = os.environ["DEST_DIR"]
+
         self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
 
         self.token_expiration: Optional[datetime.datetime] = None
@@ -69,13 +71,24 @@ class DBModel(mlflow.pyfunc.PythonModel):
             labels = self.app.info()["models"][self.model_name]['labels']
             self.label_dict = {v: k for k, v in labels.items()}
 
-        if "DATABRICKS_SCOPE" in os.environ and "CLIENT_ID" in os.environ and "CLIENT_SECRET" in os.environ:
+        if "DATABRICKS_SCOPE" in os.environ and "CLIENT_APP_ID" in os.environ and "CLIENT_SECRET" in os.environ:
             self.logger.warning(f"Service principal credentials found. Will use service principal to authenticate.")
-            token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_ID"], os.environ["CLIENT_SECRET"])
-            os.environ["DATABRICKS_TOKEN"] = token['access_token']
-            self.token_expiration = datetime.datetime.now() + datetime.timedelta(seconds=(token['expires_in'] * 0.9))
+            self.refresh_token()
         else:
             self.logger.warning(f"No service principal credentials found. Will fallback to PAT.")
+
+    def refresh_token(self):
+        token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_APP_ID"], os.environ["CLIENT_SECRET"])
+        os.environ["DATABRICKS_TOKEN"] = token['access_token']
+        self.token_expiration = datetime.datetime.now() + datetime.timedelta(seconds=(token['expires_in'] * 0.9))
+            
+        #force refresh datastore with the new token
+        self.app._datastore._client = DatabricksClient(
+            url=os.environ["DATABRICKS_HOST"],
+            token=token,
+            warehouse_id=os.environ["DATABRICKS_WAREHOUSE_ID"],
+            table=os.environ["DATABRICKS_PIXELS_TABLE"],
+        )
 
     def upload_file(self, file_path, dest_path):
         """
@@ -263,9 +276,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         if self.token_expiration is not None and datetime.datetime.now() > self.token_expiration:
             self.logger.warning(f"Token expired, refreshing...")
-            token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_ID"], os.environ["CLIENT_SECRET"])
-            os.environ["DATABRICKS_TOKEN"] = token['access_token']
-            self.token_expiration = datetime.datetime.now() + datetime.timedelta(seconds=(token['expires_in'] * 0.9))
+            self.refresh_token()
 
         with mlflow.start_span(name=f"{self.model_name} - Inference", span_type="inference") as span:
             span.set_attribute("model_name", self.model_name)

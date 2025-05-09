@@ -406,12 +406,12 @@ def download_dcmqi_tools(app_dir):
               if f in dcmqi_tools:
                   shutil.copy(os.path.join(root, f), target)
 
-def create_token_from_service_principal(host, scope, sp_id, sp_secret):
+def create_token_from_service_principal(host, scope, sp_app_id, sp_secret):
     import requests
 
     url = f"{host}/oidc/v1/token"
     data = "grant_type=client_credentials&scope=all-apis"
     header = { "Content-Type": "application/x-www-form-urlencoded" }
-    auth = (sp_id, sp_secret)
+    auth = (sp_app_id, sp_secret)
     response = requests.post(url, data=data, headers=header, auth=auth)
     return response.json()
