@@ -3302,16 +3302,20 @@ class MonaiLabelPanel extends react.Component {
       }, info);
     };
     this.parseResponse = response => {
-      const buffer = response.data;
       const contentType = response.headers['content-type'];
       const boundaryMatch = contentType.match(/boundary=([^;]+)/i);
       const boundary = boundaryMatch ? boundaryMatch[1] : null;
-      const text = new TextDecoder().decode(buffer);
-      const parts = text.split(`--${boundary}`).filter(part => part.trim() !== '');
+      
+      let text = new TextDecoder().decode(response.data);
+      delete response.data
+      
+      let parts = text.split(`--${boundary}`).filter(part => part.trim() !== '');
+      text = undefined
 
       // Find the JSON part and NRRD part
       const jsonPart = parts.find(part => part.includes('Content-Type: application/json'));
-      const nrrdPart = parts.find(part => part.includes('Content-Type: application/octet-stream'));
+      let nrrdPart = parts.find(part => part.includes('Content-Type: application/octet-stream'));
+      parts = undefined
 
       // Extract JSON data
       const jsonStartIndex = jsonPart.indexOf('{');
@@ -3319,9 +3323,11 @@ class MonaiLabelPanel extends react.Component {
       const jsonData = JSON.parse(jsonPart.slice(jsonStartIndex, jsonEndIndex + 1));
 
       // Extract NRRD data
-      const binaryData = nrrdPart.split('\r\n\r\n')[1];
+      let binaryData = nrrdPart.split('\r\n\r\n')[1];
+      nrrdPart = undefined
       const binaryDataEnd = binaryData.lastIndexOf('\r\n');
       const nrrdArrayBuffer = new Uint8Array(binaryData.slice(0, binaryDataEnd).split('').map(c => c.charCodeAt(0))).buffer;
+      binaryData = undefiend
       return {
         data: nrrdArrayBuffer,
         centroids: jsonData.centroids
