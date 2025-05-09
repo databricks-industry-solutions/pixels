@@ -3327,7 +3327,8 @@ class MonaiLabelPanel extends react.Component {
       nrrdPart = undefined
       const binaryDataEnd = binaryData.lastIndexOf('\r\n');
       const nrrdArrayBuffer = new Uint8Array(binaryData.slice(0, binaryDataEnd).split('').map(c => c.charCodeAt(0))).buffer;
-      binaryData = undefiend
+      binaryData = undefined
+      
       return {
         data: nrrdArrayBuffer,
         centroids: jsonData.centroids
