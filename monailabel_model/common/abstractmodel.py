@@ -85,7 +85,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         #force refresh datastore with the new token
         self.app._datastore._client = DatabricksClient(
             url=os.environ["DATABRICKS_HOST"],
-            token=token,
+            token=token['access_token'],
             warehouse_id=os.environ["DATABRICKS_WAREHOUSE_ID"],
             table=os.environ["DATABRICKS_PIXELS_TABLE"],
         )
