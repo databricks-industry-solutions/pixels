@@ -3310,17 +3310,23 @@ class MonaiLabelPanel extends react.Component {
       delete response.data
 
       var start = 0; var end = 0; var i = 0;
-      let parts = []
       let indexes = [...text.matchAll(new RegExp("--"+boundary, 'gi'))].map(a => a.index)
+
+      let jsonPart = ""
+      let nrrdPart = ""
       
-      while(end < text.length) { end = indexes[i]; parts.push(text.slice(start, end).trim()); start = end; end = indexes[++i]; }
+      while(end < text.length) { 
+        end = indexes[i]; 
+        if (text.slice(start, end).indexOf('Content-Type: application/json') > 0) {
+          jsonPart = text.slice(start, end).trim()
+        }else if (text.slice(start, end).indexOf('Content-Type: application/octet-stream') > 0 ) {
+          nrrdPart = text.slice(start, end).trim()
+        }
+        start = end;
+        end = indexes[++i]; 
+      }
       //let parts = text.split(`--${boundary}`).filter(part => part.trim() !== '');
       text = undefined
-
-      // Find the JSON part and NRRD part
-      const jsonPart = parts.find(part => part.includes('Content-Type: application/json'));
-      let nrrdPart = parts.find(part => part.includes('Content-Type: application/octet-stream'));
-      parts = undefined
 
       // Extract JSON data
       const jsonStartIndex = jsonPart.indexOf('{');
@@ -3328,9 +3334,10 @@ class MonaiLabelPanel extends react.Component {
       const jsonData = JSON.parse(jsonPart.slice(jsonStartIndex, jsonEndIndex + 1));
 
       // Extract NRRD data
-      let binaryData = nrrdPart.split('\r\n\r\n')[1];
+      let binaryData = nrrdPart.slice(nrrdPart.indexOf('NRRD'), nrrdPart.length);
       nrrdPart = undefined
-      const binaryDataEnd = binaryData.lastIndexOf('\r\n');
+      const binaryDataEnd = binaryData.lastIndexOf('\r\n') > 0 ? binaryData.lastIndexOf('\r\n') : binaryData.length;
+      
       const nrrdArrayBuffer = new Uint8Array(binaryData.slice(0, binaryDataEnd).split('').map(c => c.charCodeAt(0))).buffer;
       binaryData = undefined
       
