@@ -3239,11 +3239,10 @@ class MonaiLabelPanel extends react.Component {
       if (!ret) {
         throw new Error('Failed to parse NRRD data');
       }
-      const {
-        image: buffer,
-        header
-      } = ret;
-      const data = new Uint16Array(buffer);
+      
+      delete response.data
+      const data = new Uint16Array(ret.image);
+      delete ret.image
 
       // reformat centroids
       const centroidsIJK = new Map();
