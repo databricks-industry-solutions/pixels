@@ -14,14 +14,15 @@ class DBVISTA3DModel(DBModel):
 
     IGNORE_PROMPT = set(
         [
-            2,  # kidney
+            2,   # kidney
             16,  # prostate or uterus
             18,  # rectum
             20,  # lung
             21,  # bone
-            129,  # kidney mass
-            130,  # liver tumor
-            131,  # vertebrae L6
+            129, # kidney mass
+            130, # liver tumor
+            131, # vertebrae L6
+            132  # airway
         ]
     )  
     EVERYTHING_PROMPT = list(set([i + 1 for i in range(133)]) - IGNORE_PROMPT)
