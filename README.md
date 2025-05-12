@@ -32,19 +32,51 @@ catalog_df = catalog.catalog(<path>)                        # 04
 
 # extract the DICOM metadata
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
- 
-# extract DICOM image thumbnails (optional)
-thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
- 
+
 # save your work for SQL access
-catalog.save(thumbnail_df)                                  # 07
+catalog.save(meta_df)                                       # 06
 ```
 You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
 
 
 ---
 ## Architecture
-![image](https://github.com/user-attachments/assets/ae5e27e0-1add-4db8-99d1-9c35adb90cbf)
+![image](https://github.com/user-attachments/assets/75decf47-3a37-446a-a672-d497d155f464)
+
+The image depicts the **Pixels Reference Solution Architecture**, which outlines a data processing and analytics framework designed for healthcare or imaging applications. Here's a breakdown of its components:
+
+### **Key Functional Areas**
+1. **AI/BI Analytics**: Supports cohort building and natural language-based analysis.
+   
+2. **Lakehouse Apps**: Includes an OHIF Viewer for labeling and customer-specific applications.
+
+3. **Deep Learning**: Facilitates active learning and customer model training.
+
+4. **Realtime Inferencing**: Implements MONAI (Medical Open Network for AI) for segmentation integration with the OHIF viewer. Customer provided proprietary models can be easily plugged in.
+
+### **Data Flow: Batch, Incremental, Streaming Lakeflow**
+The architecture processes data in stages:
+1. **Acquire**: from data in ADLS, S3, GCS cloud storage as governed by Unity Catalog (UC) Volumes.  Based on customer demand, due to the composible nature of the solution accelerator, sources VNA, PACS, CIFS, AWS HealthImaging can be added as needed.
+   
+2. **Ingest**:  Ultimately all the DICOM files are ingested. Ingesting and producing Nifti file formats are currently on the roadmap.
+
+3. **Extract & Index**: Unzips files, storing the extracted DICOM files into a UC volume. All of the DICOM metadata tags are extracted and stored in Databricks Data Intelligence Platform tables.
+
+4. **Protect – Metadata**: Applies PHI (Protected Health Information) redaction via format preserving encryption to all necessary tags.
+
+5. **Protect – Image**: Ensures PHI redaction for pixel-level data. This is under active integration based on work Databricks has done in previous solution accelerators.
+
+6. **Inferencing**: Utilizes industry-standard models pre-trained MONAI open source models sponsored by NVIDIA. Similarly, customers can fine tune the MONAI models or bring their own segmentation or featurization models.
+
+### **Supporting Layers**
+- **Governance Layer**: Unity Catalog provides data access controls, automatic capture of data lineage (including models)
+  
+- **Customer’s Cloud Storage**: Stores object indexes, folders, and ML models in open formats in customer's account.
+  
+- **Open Access**: Provides APIs, SQL connections, Spark integration, and credential vending via Delta Sharing.
+
+This architecture is designed to handle healthcare imaging data securely while enabling advanced analytics and AI-driven insights.
+
 
 ---
 ## Getting started
@@ -65,6 +97,27 @@ To enable unzip capability you need to set `extractZip`. The parameter `extractZ
 ```python
 catalog_df = catalog.catalog(path, extractZip=True, extractZipBasePath=<unzipPath>)
 ```
+
+## Metadata Anonymization
+Pixels provides a feature to anonymize DICOM metadata to ensure patient privacy and compliance with regulations. This feature can be enabled during the cataloging process. An example can be explored in the [03-Metadata-DeIdentification](https://github.com/databricks-industry-solutions/pixels/blob/main/03-Metadata-DeIdentification.py) notebook.
+
+To enable metadata anonymization, you can use the following extractor:
+```python
+metadata_df = DicomMetaAnonymizerExtractor(
+   catalog,
+   anonym_mode="METADATA",
+   fp_key=<fp_key>, #ONLY HEX STRING ALLOWED - 128, 192 or 256 bits
+   fp_tweak=<fp_tweak>,   #ONLY HEX STRING ALLOWED - 64 bits
+   anonymization_base_path=<anonym_path>
+).transform(catalog_df)
+```
+`fp_key` is the format preserving encryption key used to ensure that the anonymization process is consistent across different runs. This key is used to generate pseudonyms for sensitive data fields, ensuring that the same input value always maps to the same pseudonym. This is useful for maintaining the ability to link records across datasets without revealing the original sensitive information.
+
+`fp_tweak` is an optional parameter that can be used to add an additional layer of randomness to the pseudonymization process. This can be useful for further enhancing privacy.
+
+By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
+The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
+
 ---
 ## OHIF Viewer
 Inside `dbx.pixels` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
@@ -199,6 +252,8 @@ DICOM® is recognized by the International Organization for Standardization as t
 | pandas               | Pandas UDFs                         | BSD License (BSD-3-Clause)    | https://github.com/pandas-dev/pandas                    |
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
 | MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
+| DICOGNITO            | A library and command line tool for anonymizing DICOM files | MIT  | https://github.com/blairconrad/dicognito |
+| FF3                  | FPE - Format Preserving Encryption with FF3 in Python | Apache-2.0 license  | https://github.com/mysto/python-fpe |
 | Vista3D              | MONAI Versatile Imaging SegmenTation and Annotation model | Apache-2.0 license (code) - NCLS v1 (model weight) | https://github.com/Project-MONAI/VISTA/tree/main/vista3d |
 
 

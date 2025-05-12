@@ -4,21 +4,21 @@ on:
 
 jobs:
  run-databricks-notebook:
-   runs-on: ubuntu-latest
+   runs-on: html_publisher
    steps:
      - name: Checkout repo
        uses: actions/checkout@v2
      - name: Run a databricks notebook
        uses: databricks/run-notebook@v0
        with:
-         local-notebook-path: RUNME.py
+         local-notebook-path: 01-dcm-demo.py
          git-commit: ${{ github.event.pull_request.head.sha }}
          databricks-host: https://adb-984752964297111.11.azuredatabricks.net
          databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_MSA }}
          new-cluster-json: >
            {
              "num_workers": 0,
-             "spark_version": "13.3.x-scala2.12",
+             "spark_version": "14.3.x-scala2.12",
              "node_type_id": "Standard_DS4_v2",
              "azure_attributes": {
                   "availability": "ON_DEMAND_AZURE"
@@ -29,12 +29,13 @@ jobs:
               },
               "custom_tags": {
                   "ResourceClass": "SingleNode"
-              }
-                            
+              },
+              "data_security_mode": "USER_ISOLATION"
            }
          notebook-params-json: >
            {
-            "run_job": "True"
+            "table": "main.pixels_solacc_github_tests.object_catalog",
+            "volume": "main.pixels_solacc_github_tests.pixels_volume"
            }
          access-control-list-json: >
            [

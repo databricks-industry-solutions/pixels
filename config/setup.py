@@ -6,7 +6,24 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet pydicom==2.4.4 s3fs==2022.10.0 python-gdcm==3.0.19 python-magic==0.4.27 git+https://github.com/databricks-industry-solutions/pixels.git@2.0.0 
+from pyspark.sql.functions import udf, lit
+from pyspark.sql.types import StringType
+import sys
+
+@udf(StringType())
+def add_repo_to_sys_path(repo_path):
+    return sys.path
+
+# COMMAND ----------
+
+import os
+import dbx
+
+repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
+print("Installing Pixels Solution Accelerator dependencies from ", repo_main_folder)
+
+%pip install --quiet -r {repo_main_folder}/requirements.txt
+%pip install --quiet --upgrade databricks-sdk==0.36.0
 
 # COMMAND ----------
 
