@@ -29,7 +29,7 @@ class Vista3DGPUTransformer(Transformer):
     - tasksPerGpu: The number of tasks to run per GPU. Default is 1.
 
     The parallelization is determined by the number of GPUs and workers specified in the constructor.
-    
+
     The transformer returns a DataFrame with the following columns:
     - series_uid: The series UID of the input image.
     - result: The segmentation result as a string.

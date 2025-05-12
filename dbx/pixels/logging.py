@@ -1,6 +1,6 @@
 import logging
-import sys
 import os
+import sys
 
 
 class LoggerProvider:
@@ -23,7 +23,8 @@ class LoggerProvider:
 
             handler = logging.StreamHandler(sys.stdout)
             formatter = logging.Formatter(
-                f"%(asctime)s %(levelname)s [PIXELS] {name}: %(message)s", datefmt="%y/%m/%d %H:%M:%S"
+                f"%(asctime)s %(levelname)s [PIXELS] {name}: %(message)s",
+                datefmt="%y/%m/%d %H:%M:%S",
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
@@ -31,5 +32,5 @@ class LoggerProvider:
             self.list_loggers[name] = logger
 
             logger.debug("Logger created")
-        
+
         return self.list_loggers[name]

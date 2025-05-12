@@ -1,10 +1,9 @@
-import os
 from typing import Iterator
 
 import pandas as pd
 from mlflow.deployments import get_deploy_client
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, pandas_udf, monotonically_increasing_id
+from pyspark.sql.functions import col, monotonically_increasing_id, pandas_udf
 
 from dbx.pixels.modelserving.serving_endpoint_client import MONAILabelClient
 
@@ -12,16 +11,16 @@ from dbx.pixels.modelserving.serving_endpoint_client import MONAILabelClient
 class MONAILabelClient:
     """
     Client for interacting with MONAI Label endpoints deployed on Databricks.
-    
-    This class facilitates making inference requests to deep learning models that 
+
+    This class facilitates making inference requests to deep learning models that
     process medical imaging data, with built-in error handling and retry logic
     specifically designed for memory-intensive operations.
     """
-    
+
     def __init__(self, endpoint_name, max_retries=3):
         """
         Initialize a new instance of the MONAILabelClient.
-        
+
         Args:
             endpoint_name (str): The name of the MONAI Label endpoint deployed on Databricks.
             max_retries (int, optional): Maximum number of retry attempts for failed predictions.
@@ -34,11 +33,11 @@ class MONAILabelClient:
     def predict(self, series_uid, params, iteration=0, prev_error=None):
         """
         Execute the inference request to the Vista3D MONAI Label serving endpoint with built-in retry logic.
-        
+
         This method handles errors during prediction, with special treatment for
         CUDA out-of-memory errors which are not retried. Other errors trigger
         automatic retries up to the configured maximum.
-        
+
         Args:
             series_uid (str): Unique identifier for the medical image series.
             params (dict): Additional parameters for the prediction request.
@@ -46,7 +45,7 @@ class MONAILabelClient:
                 for recursion. Defaults to 0.
             prev_error (str, optional): Previous error message. Used internally for
                 error tracking. Defaults to None.
-                
+
         Returns:
             tuple: A tuple containing:
                 - First element (str): Inference results as returned by the endpoint,
@@ -70,7 +69,7 @@ class MONAILabelClient:
             # Special handling for CUDA out-of-memory errors - don't retry these
             if "torch.OutOfMemoryError: CUDA out of memory" in str(e):
                 return ("", str(e))
-            
+
             # For all other errors, retry up to max_retries
             return self.predict(series_uid, params, iteration + 1, prev_error=str(e))
 
@@ -124,7 +123,7 @@ class Vista3DMONAITransformer(Transformer):
             "export_overlays": exportOverlays,
         }
         self.num_partitions = num_partitions
-    
+
     def _partition_strategy(self, df):
         if self.num_partitions is None:
             return df.withColumn("id", monotonically_increasing_id()).repartition("id").drop("id")
@@ -145,11 +144,14 @@ class Vista3DMONAITransformer(Transformer):
 
                 yield pd.DataFrame({"result": results, "error": errors})
 
-        df = df.selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as series_uid") \
-            .filter("contains(meta:['00080008'], 'AXIAL')") \
+        df = (
+            df.selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as series_uid")
+            .filter("contains(meta:['00080008'], 'AXIAL')")
             .distinct()
-        
+        )
+
         df = self._partition_strategy(df)
-        
-        return df.withColumn("segmentation_result", autosegm_monai_udf(col("series_uid"))) \
-                 .selectExpr("series_uid", "segmentation_result.*")
+
+        return df.withColumn(
+            "segmentation_result", autosegm_monai_udf(col("series_uid"))
+        ).selectExpr("series_uid", "segmentation_result.*")
