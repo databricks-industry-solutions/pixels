@@ -4,6 +4,7 @@ from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
+
 from .configs import (
     CATALOG,
     CHECKPOINT_BASE_PATH,
