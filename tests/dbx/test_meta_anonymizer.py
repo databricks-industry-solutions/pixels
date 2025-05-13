@@ -6,7 +6,7 @@ from pyspark.sql import SparkSession
 from dbx.pixels import Catalog
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
-from .configs import (
+from conftest import (
     BASE_PATH,
     CATALOG,
     DEFAULT_FP_KEY,

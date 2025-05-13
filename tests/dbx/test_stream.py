@@ -5,7 +5,7 @@ from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
 
-from .configs import (
+from conftest import (
     CATALOG,
     CHECKPOINT_BASE_PATH,
     DICOM_FILE_PATH,

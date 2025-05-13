@@ -1,6 +1,6 @@
 from dbx.pixels.version import __version__
 
-from .configs import CATALOG, DICOM_FILE_PATH, SCHEMA, TABLE, VOLUME_UC
+from conftest import CATALOG, DICOM_FILE_PATH, SCHEMA, TABLE, VOLUME_UC
 
 
 def test_catalog_import(spark):
