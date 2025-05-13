@@ -5,18 +5,22 @@ from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
 
-FILE_PATH = "s3://hls-eng-data-public/dicom/ddsm/benigns_21*zip"
-TABLE = "main.pixels_solacc.object_catalog_test"
-VOLUME = f"main.pixels_solacc.pixels_volume_test"
-BASE_PATH = f"/Volumes/main/pixels_solacc/pixels_volume_test/pixels_acc_test"
-CHECKPOINT_BASE_PATH = f"{BASE_PATH}/checkpoints"
-UNZIP_BASE_PATH = f"{BASE_PATH}/unzipped"
+from .configs import (
+    BASE_PATH,
+    CATALOG,
+    CHECKPOINT_BASE_PATH,
+    SCHEMA,
+    TABLE,
+    UNZIP_BASE_PATH,
+    VOLUME_UC,
+    ZIP_FILE_PATH,
+)
 
 
 @pytest.fixture(autouse=True)
 def setup(spark: SparkSession):
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
-    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME}")
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {CATALOG}.{SCHEMA}")
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME_UC}")
     yield
 
     try:
@@ -31,12 +35,15 @@ def setup(spark: SparkSession):
 
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
+    spark.sql(f"DROP VOLUME IF EXISTS {VOLUME_UC}")
+    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA}")
 
 
 def test_catalog_unzip(spark: SparkSession):
-    catalog = Catalog(spark, table=TABLE, volume=VOLUME)
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME_UC)
     catalog_df = catalog.catalog(
-        path=FILE_PATH, extractZip=True, extractZipBasePath=UNZIP_BASE_PATH
+        path=ZIP_FILE_PATH, extractZip=True, extractZipBasePath=UNZIP_BASE_PATH
     )
 
     assert catalog_df is not None
@@ -47,9 +54,9 @@ def test_catalog_unzip(spark: SparkSession):
 
 
 def test_catalog_unzip_stream(spark: SparkSession):
-    catalog = Catalog(spark, table=TABLE, volume=VOLUME)
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME_UC)
     catalog_df = catalog.catalog(
-        path=FILE_PATH,
+        path=ZIP_FILE_PATH,
         extractZip=True,
         extractZipBasePath=UNZIP_BASE_PATH,
         streaming=True,

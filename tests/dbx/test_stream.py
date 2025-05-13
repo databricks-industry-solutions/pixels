@@ -4,16 +4,20 @@ from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
 from dbx.pixels import Catalog
-
-FILE_PATH = "s3://hls-eng-data-public/dicom/ddsm/benigns/patient0007/"
-TABLE = "main.pixels_solacc.object_catalog_stream"
-CHECKPOINT_BASE_PATH = "/tmp/pixels_acc_stream_test/checkpoints/"
+from .configs import (
+    CATALOG,
+    CHECKPOINT_BASE_PATH,
+    DICOM_FILE_PATH,
+    SCHEMA,
+    TABLE,
+    VOLUME_UC,
+)
 
 
 @pytest.fixture(autouse=True)
 def setup(spark: SparkSession):
-    spark.sql("CREATE DATABASE IF NOT EXISTS main.pixels_solacc")
-    spark.sql("CREATE VOLUME IF NOT EXISTS main.pixels_solacc.pixels_volume")
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {CATALOG}.{SCHEMA}")
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME_UC}")
     yield
 
     try:
@@ -27,12 +31,16 @@ def setup(spark: SparkSession):
             print(err)
 
     spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
+    spark.sql(f"DROP VOLUME IF EXISTS {VOLUME_UC}")
+    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA}")
 
 
 def test_catalog_stream(spark: SparkSession):
-    catalog = Catalog(spark, table=TABLE)
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME_UC)
     catalog_df = catalog.catalog(
-        path=FILE_PATH, streaming=True, streamCheckpointBasePath=CHECKPOINT_BASE_PATH
+        path=DICOM_FILE_PATH, streaming=True, streamCheckpointBasePath=CHECKPOINT_BASE_PATH
     )
 
     assert catalog_df is not None
