@@ -1,5 +1,5 @@
 import pytest
-from databricks.sdk import DatabricksError
+from databricks.sdk.core import DatabricksError
 from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
