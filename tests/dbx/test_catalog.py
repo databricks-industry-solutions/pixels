@@ -1,6 +1,6 @@
-import dbutils
 import pytest
 from databricks.sdk import DatabricksError
+from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
 from conftest import BASE_PATH, CATALOG, DICOM_FILE_PATH, SCHEMA, TABLE, VOLUME_UC
