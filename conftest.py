@@ -29,7 +29,7 @@ DEFAULT_FP_KEY = "00112233445566778899aabbccddeeff"
 DEFAULT_FP_TWEAK = "a1b2c3d4e5f60708"
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def spark() -> SparkSession:
     """
     Create a SparkSession (the entry point to Spark functionality) on
@@ -41,3 +41,25 @@ def spark() -> SparkSession:
     if os.path.exists("./wheels/databricks_pixels.zip"):
         sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
     return sparkSession
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_teardown_database(spark: SparkSession):
+    """
+    Session-scoped fixture that creates the database and volume at the start of the test session
+    and drops them after all tests are completed.
+    """
+    # Setup: Create database and volume
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {CATALOG}.{SCHEMA}")
+    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME_UC}")
+    
+    yield
+
+    # Drop all related tables
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
+    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
+    
+    # Drop volume and database
+    spark.sql(f"DROP VOLUME IF EXISTS {VOLUME_UC}")
+    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA}")

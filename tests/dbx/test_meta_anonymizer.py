@@ -1,14 +1,8 @@
-import pytest
-from databricks.sdk.core import DatabricksError
-from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
 from conftest import (
-    BASE_PATH,
-    CATALOG,
     DEFAULT_FP_KEY,
     DEFAULT_FP_TWEAK,
-    SCHEMA,
     TABLE,
     UNZIP_BASE_PATH,
     VOLUME_UC,
@@ -16,29 +10,6 @@ from conftest import (
 )
 from dbx.pixels import Catalog
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
-
-
-@pytest.fixture(autouse=True)
-def setup(spark: SparkSession):
-    spark.sql(f"CREATE DATABASE IF NOT EXISTS {CATALOG}.{SCHEMA}")
-    spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME_UC}")
-    yield
-
-    try:
-        folders = list(dbutils.fs.ls(BASE_PATH))
-        if len(folders) > 0:
-            dbutils.fs.rm(BASE_PATH, True)
-    except DatabricksError as err:
-        if "No file or directory exists on path" in str(err):
-            print("Checkpoints folder clean, nothing to do")
-        else:
-            print(err)
-
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
-    spark.sql(f"DROP VOLUME IF EXISTS {VOLUME_UC}")
-    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA}")
 
 
 def test_meta_anonym(spark: SparkSession):
