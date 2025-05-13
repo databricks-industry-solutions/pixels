@@ -16,7 +16,7 @@ VOLUME_UC = f"{CATALOG}.{SCHEMA}.{VOLUME_NAME}"
 TABLE = f"{CATALOG}.{SCHEMA}.object_catalog_test"
 
 # Path configurations
-BASE_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME_NAME}/pixels_acc_test"
+BASE_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME_NAME}/"
 CHECKPOINT_BASE_PATH = f"{BASE_PATH}/checkpoints"
 UNZIP_BASE_PATH = f"{BASE_PATH}/unzipped"
 
