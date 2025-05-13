@@ -5,7 +5,7 @@ from conftest import (
     TABLE,
     UNZIP_BASE_PATH,
     VOLUME_UC,
-    ZIP_FILE_PATH,
+    ZIP_FILE_PATH
 )
 from dbx.pixels import Catalog
 
@@ -38,3 +38,4 @@ def test_catalog_unzip_stream(spark: SparkSession):
     catalog.save(df=catalog_df)
 
     assert catalog.load().count() == 30
+    
