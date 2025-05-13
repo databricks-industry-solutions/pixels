@@ -6,7 +6,7 @@ from conftest import (
     TABLE,
     UNZIP_BASE_PATH,
     VOLUME_UC,
-    ZIP_FILE_PATH
+    ZIP_FILE_PATH,
 )
 from dbx.pixels import Catalog
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
