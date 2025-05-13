@@ -136,5 +136,5 @@ dmypy.json
 .databricks
 dbx/pixels/resources/ohif/app-config-custom.js
 dbx/pixels/resources/lakehouse_app/app.yaml
-
+itkimage2segimage
 .databricks

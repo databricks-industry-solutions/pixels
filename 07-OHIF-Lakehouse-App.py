@@ -145,7 +145,7 @@ w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
   ]
 )
 
-#Grant SELECT permissions on TABLE
+#Grant ALL PRIVILEGES permissions on TABLE
 w.grants.update(full_name=table,
   securable_type=catalog.SecurableType.TABLE,
   changes=[
@@ -156,7 +156,7 @@ w.grants.update(full_name=table,
   ]
 )
 
-#Grant READ_VOLUME permissions on VOLUME
+#Grant ALL PRIVILEGES permissions on VOLUME
 w.grants.update(full_name=volume,
   securable_type=catalog.SecurableType.VOLUME,
   changes=[

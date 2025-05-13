@@ -1,0 +1,480 @@
+{
+    "training": [
+        {
+            "image": "images/FLARE22_Tr_0001_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0001_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0001.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images/FLARE22_Tr_0009_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0009_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0009.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0010_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0010_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0010.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0035_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0035_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0035.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0026_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0026_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0026.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0011_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0011_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0011.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0004_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0004_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0004.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images/FLARE22_Tr_0040_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0040_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0040.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0033_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0033_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0033.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0033_0000/FLARE22_Tr_0033_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0036_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0036_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0036.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0036_0000/FLARE22_Tr_0036_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0017_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0017_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0017.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0017_0000/FLARE22_Tr_0017_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0020_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0020_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0020.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0020_0000/FLARE22_Tr_0020_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0013_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0013_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0013.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0013_0000/FLARE22_Tr_0013_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0012_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0012_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0012.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0012_0000/FLARE22_Tr_0012_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0024_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0024_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0024.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0024_0000/FLARE22_Tr_0024_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0014_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0014_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0014.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0014_0000/FLARE22_Tr_0014_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0039_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0039_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0039.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0039_0000/FLARE22_Tr_0039_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0027_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0027_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0027.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0027_0000/FLARE22_Tr_0027_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0007_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0007_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0007.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0007_0000/FLARE22_Tr_0007_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0005_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0005_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0005.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0005_0000/FLARE22_Tr_0005_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0016_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0016_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0016.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0016_0000/FLARE22_Tr_0016_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0031_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0031_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0031.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0031_0000/FLARE22_Tr_0031_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0029_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0029_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0029.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0029_0000/FLARE22_Tr_0029_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0049_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0049_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0049.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0049_0000/FLARE22_Tr_0049_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0030_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0030_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0030.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0030_0000/FLARE22_Tr_0030_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0003_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0003_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0003.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0003_0000/FLARE22_Tr_0003_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0021_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0021_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0021.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0021_0000/FLARE22_Tr_0021_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0015_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0015_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0015.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0015_0000/FLARE22_Tr_0015_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0048_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0048_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0048.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0048_0000/FLARE22_Tr_0048_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0041_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0041_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0041.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0041_0000/FLARE22_Tr_0041_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0006_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0006_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0006.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images/FLARE22_Tr_0019_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0019_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0019.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0019_0000/FLARE22_Tr_0019_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0038_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0038_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0038.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0038_0000/FLARE22_Tr_0038_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0025_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0025_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0025.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0025_0000/FLARE22_Tr_0025_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0045_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0045_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0045.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0045_0000/FLARE22_Tr_0045_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0034_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0034_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0034.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0034_0000/FLARE22_Tr_0034_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0037_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0037_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0037.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0037_0000/FLARE22_Tr_0037_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0002_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0002_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0002.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0002_0000/FLARE22_Tr_0002_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0050_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0050_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0050.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0050_0000/FLARE22_Tr_0050_0000_seg.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0008_0000.nii.gz",
+            "pseudo_label": "images/FLARE22_Tr_0008_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0008.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/FLARE22_100/FLARE22_Tr_0008_0000/FLARE22_Tr_0008_0000_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "liver",
+        "2": "right kidney",
+        "3": "spleen",
+        "4": "pancreas",
+        "5": "aorta",
+        "6": "inferior vena cava",
+        "7": "right adrenal gland",
+        "8": "left adrenal gland",
+        "9": "gallbladder",
+        "10": "esophagus",
+        "11": "stomach",
+        "12": "duodenum",
+        "13": "left kidney"
+    },
+    "original_label_dict": {
+        "1": "liver",
+        "2": "right kidney",
+        "3": "spleen",
+        "4": "pancreas",
+        "5": "aorta",
+        "6": "inferior vena cava",
+        "7": "right adrenal gland",
+        "8": "left adrenal gland",
+        "9": "gallbladder",
+        "10": "esophagus",
+        "11": "stomach",
+        "12": "duodenum",
+        "13": "left kidney"
+    },
+    "testing": [
+        {
+            "image": "images/FLARE22_Tr_0042_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0042.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0018_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0018.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0023_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0023.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0043_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0043.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0028_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0028.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0044_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0044.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0047_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0047.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0046_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0046.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0032_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0032.nii.gz"
+        },
+        {
+            "image": "images/FLARE22_Tr_0022_0000.nii.gz",
+            "label": "labels/FLARE22_Tr_0022.nii.gz"
+        }
+    ]
+}

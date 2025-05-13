@@ -1,0 +1,516 @@
+{
+    "training": [
+        {
+            "image": "HCC_076-HCC_076/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_076-HCC_076/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_020-HCC_020/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_020-HCC_020/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_041-HCC_041/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_041-HCC_041/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_003-HCC_003/0_img.nii.gz",
+            "label": "HCC_003-HCC_003/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_069-HCC_069/7-Recon_3_LIVER_2_PHASE_(C_A_P)_7.nii.gz",
+            "label": "HCC_069-HCC_069/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_039-HCC_039/5-Recon_2_3_PHASE_LIVER_(ABD)_5.nii.gz",
+            "label": "HCC_039-HCC_039/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_092-HCC_092/0_img.nii.gz",
+            "label": "HCC_092-HCC_092/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_083-HCC_083/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_083-HCC_083/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_021-HCC_021/103-LIVER_3_PHASE_(AP)_103.nii.gz",
+            "label": "HCC_021-HCC_021/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_017-HCC_017/5-Recon_3_3_PHASE_LIVER_(ABD)_5.nii.gz",
+            "label": "HCC_017-HCC_017/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_034-HCC_034/5-Recon_3_LIVER_3_PHASE_(AP)_5.nii.gz",
+            "label": "HCC_034-HCC_034/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_014-HCC_014/103-LIVER_3_PHASE_(AP)_103.nii.gz",
+            "label": "HCC_014-HCC_014/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_015-HCC_015/4-Recon_2_LIVER_3_PHASE_(AP)_4.nii.gz",
+            "label": "HCC_015-HCC_015/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_088-HCC_088/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_088-HCC_088/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_072-HCC_072/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_072-HCC_072/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_097-HCC_097/5-2.5_STANDARD_5_Eq_1.nii.gz",
+            "label": "HCC_097-HCC_097/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_010-HCC_010/0_img.nii.gz",
+            "label": "HCC_010-HCC_010/seg__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "HCC_001-HCC_001/3-C-A-P_3_Eq_1.nii.gz",
+            "label": "HCC_001-HCC_001/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_084-HCC_084/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_084-HCC_084/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_011-HCC_011/4_Recon.nii.gz",
+            "label": "HCC_011-HCC_011/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_051-HCC_051/6-Recon_3_LIVER_2PHASE_WITH_CON_6.nii.gz",
+            "label": "HCC_051-HCC_051/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_019-HCC_019/103-LIVER_3_PHASE_(AP)_103.nii.gz",
+            "label": "HCC_019-HCC_019/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_048-HCC_048/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_048-HCC_048/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_090-HCC_090/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_090-HCC_090/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_013-HCC_013/5-Recon_3_LIVER_3_PHASE_(AP)_5.nii.gz",
+            "label": "HCC_013-HCC_013/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_070-HCC_070/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_070-HCC_070/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_009-HCC_009/4-Recon_2_LIVER_3_PHASE_(C_A_P)_4.nii.gz",
+            "label": "HCC_009-HCC_009/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_025-HCC_025/5-Recon_3_LIVER_3_PHASE_(AP)_5.nii.gz",
+            "label": "HCC_025-HCC_025/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_079-HCC_079/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_079-HCC_079/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_040-HCC_040/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_040-HCC_040/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_071-HCC_071/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_071-HCC_071/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_068-HCC_068/6-2.5_SOFT_6_Eq_1.nii.gz",
+            "label": "HCC_068-HCC_068/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_101-HCC_101/6-2.5_STANDARD_6_Eq_1.nii.gz",
+            "label": "HCC_101-HCC_101/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_066-HCC_066/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_066-HCC_066/seg__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "HCC_077-HCC_077/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_077-HCC_077/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_037-HCC_037/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_037-HCC_037/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_063-HCC_063/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_063-HCC_063/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_036-HCC_036/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_036-HCC_036/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_073-HCC_073/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_073-HCC_073/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_033-HCC_033/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_033-HCC_033/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_007-HCC_007/0_img.nii.gz",
+            "label": "HCC_007-HCC_007/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_061-HCC_061/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_061-HCC_061/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_099-HCC_099/6-2.5_STANDARD_6_Eq_1.nii.gz",
+            "label": "HCC_099-HCC_099/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_089-HCC_089/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_089-HCC_089/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_074-HCC_074/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_074-HCC_074/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_006-HCC_006/4-Recon_2_LIVER_3_PHASE_(AP)_4.nii.gz",
+            "label": "HCC_006-HCC_006/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_038-HCC_038/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_038-HCC_038/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_012-HCC_012/5-Recon_2_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_012-HCC_012/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_016-HCC_016/4-Recon_2_LIVER_3_PHASE_(AP)_4.nii.gz",
+            "label": "HCC_016-HCC_016/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_054-HCC_054/11-C-A-P_11.nii.gz",
+            "label": "HCC_054-HCC_054/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_030-HCC_030/0_img.nii.gz",
+            "label": "HCC_030-HCC_030/seg__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "HCC_078-HCC_078/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_078-HCC_078/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_045-HCC_045/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_045-HCC_045/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_085-HCC_085/6-Recon_3_LIVER_2PHASE_CAP_6_Eq_1.nii.gz",
+            "label": "HCC_085-HCC_085/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_004-HCC_004/4-Recon_2_LIVER_3_PHASE_(AP)_4.nii.gz",
+            "label": "HCC_004-HCC_004/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_093-HCC_093/0_img.nii.gz",
+            "label": "HCC_093-HCC_093/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_049-HCC_049/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_049-HCC_049/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_002-HCC_002/0_img.nii.gz",
+            "label": "HCC_002-HCC_002/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_024-HCC_024/103-LIVER_3_PHASE_(AP)_103.nii.gz",
+            "label": "HCC_024-HCC_024/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_052-HCC_052/6-Recon_3_LIVER_3_PHASE_(AP)_6.nii.gz",
+            "label": "HCC_052-HCC_052/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_027-HCC_027/100_100.nii.gz",
+            "label": "HCC_027-HCC_027/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_086-HCC_086/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_086-HCC_086/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_081-HCC_081/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_081-HCC_081/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_065-HCC_065/7-VENOUS_7.nii.gz",
+            "label": "HCC_065-HCC_065/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_035-HCC_035/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_035-HCC_035/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_060-HCC_060/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_060-HCC_060/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_062-HCC_062/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_062-HCC_062/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_067-HCC_067/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_067-HCC_067/seg__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "HCC_080-HCC_080/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_080-HCC_080/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_008-HCC_008/103_3_PHASE_LIVER.nii.gz",
+            "label": "HCC_008-HCC_008/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_023-HCC_023/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_023-HCC_023/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_058-HCC_058/6-Recon_3_LIVER_3_PHASE_(AP)_6.nii.gz",
+            "label": "HCC_058-HCC_058/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_005-HCC_005/4-Recon_2_LIVER_3_PHASE_(AP)_4.nii.gz",
+            "label": "HCC_005-HCC_005/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_095-HCC_095/3-2.5_SOFT_3.nii.gz",
+            "label": "HCC_095-HCC_095/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_103-HCC_103/6-2.5_STANDARD_6_Eq_1.nii.gz",
+            "label": "HCC_103-HCC_103/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_064-HCC_064/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_064-HCC_064/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_050-HCC_050/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_050-HCC_050/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_029-HCC_029/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_029-HCC_029/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_053-HCC_053/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_053-HCC_053/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_032-HCC_032/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_032-HCC_032/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_100-HCC_100/0_img.nii.gz",
+            "label": "HCC_100-HCC_100/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_091-HCC_091/7-2.5_STANDARD_7_Eq_1.nii.gz",
+            "label": "HCC_091-HCC_091/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_056-HCC_056/6-Recon_3_LIVER_3_PHASE_(AP)_6.nii.gz",
+            "label": "HCC_056-HCC_056/seg__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "HCC_102-HCC_102/0_img.nii.gz",
+            "label": "HCC_102-HCC_102/seg__fix.nii.gz",
+            "fold": 4
+        }
+    ],
+    "testing": [
+        {
+            "image": "HCC_082-HCC_082/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6_Eq_1.nii.gz",
+            "label": "HCC_082-HCC_082/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_031-HCC_031/5-Recon_3_LIVER_3_PHASE_(AP)_5.nii.gz",
+            "label": "HCC_031-HCC_031/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_105-HCC_105/0_img.nii.gz",
+            "label": "HCC_105-HCC_105/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_059-HCC_059/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_059-HCC_059/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_094-HCC_094/5-2.5_STANDARD_5_Eq_1.nii.gz",
+            "label": "HCC_094-HCC_094/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_042-HCC_042/7-Recon_3_LIVER_3_PHASE_(AP)_7.nii.gz",
+            "label": "HCC_042-HCC_042/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_057-HCC_057/6-Recon_3_LIVER_2PHASE_WITH_CON_6.nii.gz",
+            "label": "HCC_057-HCC_057/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_026-HCC_026/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_026-HCC_026/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_075-HCC_075/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_075-HCC_075/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_098-HCC_098/7-Recon_3_LIVER_2PHASE_CAP_7.nii.gz",
+            "label": "HCC_098-HCC_098/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_104-HCC_104/0_img.nii.gz",
+            "label": "HCC_104-HCC_104/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_018-HCC_018/3-LIVER_3_PHASE_(C_A_P)_3.nii.gz",
+            "label": "HCC_018-HCC_018/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_087-HCC_087/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_087-HCC_087/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_055-HCC_055/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_055-HCC_055/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_043-HCC_043/6-Recon_3_LIVER_3_PHASE_(AP)_6.nii.gz",
+            "label": "HCC_043-HCC_043/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_028-HCC_028/6-Recon_3_LIVER_3_PHASE_(AP)_6.nii.gz",
+            "label": "HCC_028-HCC_028/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_044-HCC_044/6-Recon_3_LIVER_3_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_044-HCC_044/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_047-HCC_047/6-Recon_3_LIVER_2PHASE_CAP_6.nii.gz",
+            "label": "HCC_047-HCC_047/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_046-HCC_046/6-Recon_3_LIVER_2_PHASE_(C_A_P)_6.nii.gz",
+            "label": "HCC_046-HCC_046/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_096-HCC_096/0_img.nii.gz",
+            "label": "HCC_096-HCC_096/seg__fix.nii.gz"
+        },
+        {
+            "image": "HCC_022-HCC_022/5-Recon_3_LIVER_3_PHASE_(C_A_P)_5.nii.gz",
+            "label": "HCC_022-HCC_022/seg__fix.nii.gz"
+        }
+    ],
+    "label_dict": {
+        "2": "hepatic tumor"
+    },
+    "original_label_dict": {
+        "2": "hepatic tumor"
+    }
+}

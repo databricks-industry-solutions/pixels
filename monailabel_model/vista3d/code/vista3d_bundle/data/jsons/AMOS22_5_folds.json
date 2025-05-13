@@ -1,0 +1,2245 @@
+{
+    "training": [
+        {
+            "image": "imagesTr/amos_0060.nii.gz",
+            "pseudo_label": "imagesTr/amos_0060.nii.gz",
+            "label": "labelsTr/amos_0060.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0348.nii.gz",
+            "pseudo_label": "imagesTr/amos_0348.nii.gz",
+            "label": "labelsTr/amos_0348.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesVa/amos_0244.nii.gz",
+            "pseudo_label": "imagesVa/amos_0244.nii.gz",
+            "label": "labelsVa/amos_0244.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesVa/amos_0310.nii.gz",
+            "pseudo_label": "imagesVa/amos_0310.nii.gz",
+            "label": "labelsVa/amos_0310.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesVa/amos_0120.nii.gz",
+            "pseudo_label": "imagesVa/amos_0120.nii.gz",
+            "label": "labelsVa/amos_0120.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0027.nii.gz",
+            "pseudo_label": "imagesTr/amos_0027.nii.gz",
+            "label": "labelsTr/amos_0027.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0268.nii.gz",
+            "pseudo_label": "imagesTr/amos_0268.nii.gz",
+            "label": "labelsTr/amos_0268.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0079.nii.gz",
+            "pseudo_label": "imagesTr/amos_0079.nii.gz",
+            "label": "labelsTr/amos_0079.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0250.nii.gz",
+            "pseudo_label": "imagesVa/amos_0250.nii.gz",
+            "label": "labelsVa/amos_0250.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0160.nii.gz",
+            "pseudo_label": "imagesTr/amos_0160.nii.gz",
+            "label": "labelsTr/amos_0160.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0278.nii.gz",
+            "pseudo_label": "imagesVa/amos_0278.nii.gz",
+            "label": "labelsVa/amos_0278.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0057.nii.gz",
+            "pseudo_label": "imagesTr/amos_0057.nii.gz",
+            "label": "labelsTr/amos_0057.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0124.nii.gz",
+            "pseudo_label": "imagesTr/amos_0124.nii.gz",
+            "label": "labelsTr/amos_0124.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0237.nii.gz",
+            "pseudo_label": "imagesTr/amos_0237.nii.gz",
+            "label": "labelsTr/amos_0237.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0133.nii.gz",
+            "pseudo_label": "imagesTr/amos_0133.nii.gz",
+            "label": "labelsTr/amos_0133.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0032.nii.gz",
+            "pseudo_label": "imagesVa/amos_0032.nii.gz",
+            "label": "labelsVa/amos_0032.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0170.nii.gz",
+            "pseudo_label": "imagesTr/amos_0170.nii.gz",
+            "label": "labelsTr/amos_0170.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0321.nii.gz",
+            "pseudo_label": "imagesTr/amos_0321.nii.gz",
+            "label": "labelsTr/amos_0321.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0099.nii.gz",
+            "pseudo_label": "imagesTr/amos_0099.nii.gz",
+            "label": "labelsTr/amos_0099.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/amos_0405.nii.gz",
+            "pseudo_label": "imagesTr/amos_0405.nii.gz",
+            "label": "labelsTr/amos_0405.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0022.nii.gz",
+            "pseudo_label": "imagesVa/amos_0022.nii.gz",
+            "label": "labelsVa/amos_0022.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0376.nii.gz",
+            "pseudo_label": "imagesTr/amos_0376.nii.gz",
+            "label": "labelsTr/amos_0376.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0231.nii.gz",
+            "pseudo_label": "imagesTr/amos_0231.nii.gz",
+            "label": "labelsTr/amos_0231.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0188.nii.gz",
+            "pseudo_label": "imagesTr/amos_0188.nii.gz",
+            "label": "labelsTr/amos_0188.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0374.nii.gz",
+            "pseudo_label": "imagesTr/amos_0374.nii.gz",
+            "label": "labelsTr/amos_0374.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0150.nii.gz",
+            "pseudo_label": "imagesVa/amos_0150.nii.gz",
+            "label": "labelsVa/amos_0150.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0159.nii.gz",
+            "pseudo_label": "imagesTr/amos_0159.nii.gz",
+            "label": "labelsTr/amos_0159.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0235.nii.gz",
+            "pseudo_label": "imagesTr/amos_0235.nii.gz",
+            "label": "labelsTr/amos_0235.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0396.nii.gz",
+            "pseudo_label": "imagesTr/amos_0396.nii.gz",
+            "label": "labelsTr/amos_0396.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0225.nii.gz",
+            "pseudo_label": "imagesTr/amos_0225.nii.gz",
+            "label": "labelsTr/amos_0225.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/amos_0362.nii.gz",
+            "pseudo_label": "imagesTr/amos_0362.nii.gz",
+            "label": "labelsTr/amos_0362.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0286.nii.gz",
+            "pseudo_label": "imagesVa/amos_0286.nii.gz",
+            "label": "labelsVa/amos_0286.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0333.nii.gz",
+            "pseudo_label": "imagesVa/amos_0333.nii.gz",
+            "label": "labelsVa/amos_0333.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0365.nii.gz",
+            "pseudo_label": "imagesVa/amos_0365.nii.gz",
+            "label": "labelsVa/amos_0365.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0121.nii.gz",
+            "pseudo_label": "imagesTr/amos_0121.nii.gz",
+            "label": "labelsTr/amos_0121.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0353.nii.gz",
+            "pseudo_label": "imagesTr/amos_0353.nii.gz",
+            "label": "labelsTr/amos_0353.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesVa/amos_0207.nii.gz",
+            "pseudo_label": "imagesVa/amos_0207.nii.gz",
+            "label": "labelsVa/amos_0207.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0273.nii.gz",
+            "pseudo_label": "imagesTr/amos_0273.nii.gz",
+            "label": "labelsTr/amos_0273.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0153.nii.gz",
+            "pseudo_label": "imagesTr/amos_0153.nii.gz",
+            "label": "labelsTr/amos_0153.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/amos_0317.nii.gz",
+            "pseudo_label": "imagesTr/amos_0317.nii.gz",
+            "label": "labelsTr/amos_0317.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0352.nii.gz",
+            "pseudo_label": "imagesVa/amos_0352.nii.gz",
+            "label": "labelsVa/amos_0352.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0043.nii.gz",
+            "pseudo_label": "imagesTr/amos_0043.nii.gz",
+            "label": "labelsTr/amos_0043.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0238.nii.gz",
+            "pseudo_label": "imagesVa/amos_0238.nii.gz",
+            "label": "labelsVa/amos_0238.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0341.nii.gz",
+            "pseudo_label": "imagesTr/amos_0341.nii.gz",
+            "label": "labelsTr/amos_0341.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesTr/amos_0390.nii.gz",
+            "pseudo_label": "imagesTr/amos_0390.nii.gz",
+            "label": "labelsTr/amos_0390.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0195.nii.gz",
+            "pseudo_label": "imagesTr/amos_0195.nii.gz",
+            "label": "labelsTr/amos_0195.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesTr/amos_0395.nii.gz",
+            "pseudo_label": "imagesTr/amos_0395.nii.gz",
+            "label": "labelsTr/amos_0395.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "imagesVa/amos_0346.nii.gz",
+            "pseudo_label": "imagesVa/amos_0346.nii.gz",
+            "label": "labelsVa/amos_0346.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "imagesVa/amos_0013.nii.gz",
+            "pseudo_label": "imagesVa/amos_0013.nii.gz",
+            "label": "labelsVa/amos_0013.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0013/amos_0013_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0158.nii.gz",
+            "pseudo_label": "imagesTr/amos_0158.nii.gz",
+            "label": "labelsTr/amos_0158.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0158/amos_0158_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0048.nii.gz",
+            "pseudo_label": "imagesTr/amos_0048.nii.gz",
+            "label": "labelsTr/amos_0048.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0048/amos_0048_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0194.nii.gz",
+            "pseudo_label": "imagesVa/amos_0194.nii.gz",
+            "label": "labelsVa/amos_0194.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0194/amos_0194_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0113.nii.gz",
+            "pseudo_label": "imagesTr/amos_0113.nii.gz",
+            "label": "labelsTr/amos_0113.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0113/amos_0113_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0051.nii.gz",
+            "pseudo_label": "imagesVa/amos_0051.nii.gz",
+            "label": "labelsVa/amos_0051.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0051/amos_0051_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0176.nii.gz",
+            "pseudo_label": "imagesVa/amos_0176.nii.gz",
+            "label": "labelsVa/amos_0176.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0176/amos_0176_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0007.nii.gz",
+            "pseudo_label": "imagesTr/amos_0007.nii.gz",
+            "label": "labelsTr/amos_0007.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0007/amos_0007_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0217.nii.gz",
+            "pseudo_label": "imagesTr/amos_0217.nii.gz",
+            "label": "labelsTr/amos_0217.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0217/amos_0217_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0064.nii.gz",
+            "pseudo_label": "imagesTr/amos_0064.nii.gz",
+            "label": "labelsTr/amos_0064.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0064/amos_0064_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0016.nii.gz",
+            "pseudo_label": "imagesTr/amos_0016.nii.gz",
+            "label": "labelsTr/amos_0016.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0016/amos_0016_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0311.nii.gz",
+            "pseudo_label": "imagesVa/amos_0311.nii.gz",
+            "label": "labelsVa/amos_0311.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0311/amos_0311_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0409.nii.gz",
+            "pseudo_label": "imagesVa/amos_0409.nii.gz",
+            "label": "labelsVa/amos_0409.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0409/amos_0409_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0116.nii.gz",
+            "pseudo_label": "imagesTr/amos_0116.nii.gz",
+            "label": "labelsTr/amos_0116.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0116/amos_0116_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0172.nii.gz",
+            "pseudo_label": "imagesTr/amos_0172.nii.gz",
+            "label": "labelsTr/amos_0172.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0172/amos_0172_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0339.nii.gz",
+            "pseudo_label": "imagesVa/amos_0339.nii.gz",
+            "label": "labelsVa/amos_0339.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0339/amos_0339_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0198.nii.gz",
+            "pseudo_label": "imagesTr/amos_0198.nii.gz",
+            "label": "labelsTr/amos_0198.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0198/amos_0198_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0157.nii.gz",
+            "pseudo_label": "imagesVa/amos_0157.nii.gz",
+            "label": "labelsVa/amos_0157.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0157/amos_0157_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0014.nii.gz",
+            "pseudo_label": "imagesTr/amos_0014.nii.gz",
+            "label": "labelsTr/amos_0014.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0014/amos_0014_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0334.nii.gz",
+            "pseudo_label": "imagesVa/amos_0334.nii.gz",
+            "label": "labelsVa/amos_0334.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0334/amos_0334_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0381.nii.gz",
+            "pseudo_label": "imagesTr/amos_0381.nii.gz",
+            "label": "labelsTr/amos_0381.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0381/amos_0381_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0143.nii.gz",
+            "pseudo_label": "imagesTr/amos_0143.nii.gz",
+            "label": "labelsTr/amos_0143.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0143/amos_0143_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0125.nii.gz",
+            "pseudo_label": "imagesTr/amos_0125.nii.gz",
+            "label": "labelsTr/amos_0125.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0125/amos_0125_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0202.nii.gz",
+            "pseudo_label": "imagesVa/amos_0202.nii.gz",
+            "label": "labelsVa/amos_0202.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0202/amos_0202_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0134.nii.gz",
+            "pseudo_label": "imagesTr/amos_0134.nii.gz",
+            "label": "labelsTr/amos_0134.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0134/amos_0134_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0402.nii.gz",
+            "pseudo_label": "imagesTr/amos_0402.nii.gz",
+            "label": "labelsTr/amos_0402.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0402/amos_0402_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0115.nii.gz",
+            "pseudo_label": "imagesTr/amos_0115.nii.gz",
+            "label": "labelsTr/amos_0115.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0115/amos_0115_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0063.nii.gz",
+            "pseudo_label": "imagesVa/amos_0063.nii.gz",
+            "label": "labelsVa/amos_0063.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0063/amos_0063_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0004.nii.gz",
+            "pseudo_label": "imagesTr/amos_0004.nii.gz",
+            "label": "labelsTr/amos_0004.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0004/amos_0004_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0372.nii.gz",
+            "pseudo_label": "imagesVa/amos_0372.nii.gz",
+            "label": "labelsVa/amos_0372.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0372/amos_0372_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0336.nii.gz",
+            "pseudo_label": "imagesTr/amos_0336.nii.gz",
+            "label": "labelsTr/amos_0336.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0336/amos_0336_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0368.nii.gz",
+            "pseudo_label": "imagesVa/amos_0368.nii.gz",
+            "label": "labelsVa/amos_0368.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0368/amos_0368_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0129.nii.gz",
+            "pseudo_label": "imagesTr/amos_0129.nii.gz",
+            "label": "labelsTr/amos_0129.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0129/amos_0129_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0177.nii.gz",
+            "pseudo_label": "imagesTr/amos_0177.nii.gz",
+            "label": "labelsTr/amos_0177.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0177/amos_0177_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0350.nii.gz",
+            "pseudo_label": "imagesTr/amos_0350.nii.gz",
+            "label": "labelsTr/amos_0350.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0350/amos_0350_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0380.nii.gz",
+            "pseudo_label": "imagesTr/amos_0380.nii.gz",
+            "label": "labelsTr/amos_0380.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0380/amos_0380_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0083.nii.gz",
+            "pseudo_label": "imagesTr/amos_0083.nii.gz",
+            "label": "labelsTr/amos_0083.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0083/amos_0083_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0071.nii.gz",
+            "pseudo_label": "imagesTr/amos_0071.nii.gz",
+            "label": "labelsTr/amos_0071.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0071/amos_0071_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0218.nii.gz",
+            "pseudo_label": "imagesVa/amos_0218.nii.gz",
+            "label": "labelsVa/amos_0218.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0218/amos_0218_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0001.nii.gz",
+            "pseudo_label": "imagesTr/amos_0001.nii.gz",
+            "label": "labelsTr/amos_0001.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0001/amos_0001_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0280.nii.gz",
+            "pseudo_label": "imagesVa/amos_0280.nii.gz",
+            "label": "labelsVa/amos_0280.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0280/amos_0280_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0206.nii.gz",
+            "pseudo_label": "imagesVa/amos_0206.nii.gz",
+            "label": "labelsVa/amos_0206.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0206/amos_0206_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0132.nii.gz",
+            "pseudo_label": "imagesVa/amos_0132.nii.gz",
+            "label": "labelsVa/amos_0132.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0132/amos_0132_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0196.nii.gz",
+            "pseudo_label": "imagesTr/amos_0196.nii.gz",
+            "label": "labelsTr/amos_0196.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0196/amos_0196_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0308.nii.gz",
+            "pseudo_label": "imagesVa/amos_0308.nii.gz",
+            "label": "labelsVa/amos_0308.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0308/amos_0308_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0045.nii.gz",
+            "pseudo_label": "imagesTr/amos_0045.nii.gz",
+            "label": "labelsTr/amos_0045.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0045/amos_0045_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0008.nii.gz",
+            "pseudo_label": "imagesVa/amos_0008.nii.gz",
+            "label": "labelsVa/amos_0008.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0008/amos_0008_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0370.nii.gz",
+            "pseudo_label": "imagesTr/amos_0370.nii.gz",
+            "label": "labelsTr/amos_0370.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0370/amos_0370_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0344.nii.gz",
+            "pseudo_label": "imagesVa/amos_0344.nii.gz",
+            "label": "labelsVa/amos_0344.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0344/amos_0344_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0072.nii.gz",
+            "pseudo_label": "imagesTr/amos_0072.nii.gz",
+            "label": "labelsTr/amos_0072.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0072/amos_0072_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0287.nii.gz",
+            "pseudo_label": "imagesVa/amos_0287.nii.gz",
+            "label": "labelsVa/amos_0287.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0287/amos_0287_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0307.nii.gz",
+            "pseudo_label": "imagesTr/amos_0307.nii.gz",
+            "label": "labelsTr/amos_0307.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0307/amos_0307_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0392.nii.gz",
+            "pseudo_label": "imagesTr/amos_0392.nii.gz",
+            "label": "labelsTr/amos_0392.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0392/amos_0392_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0299.nii.gz",
+            "pseudo_label": "imagesTr/amos_0299.nii.gz",
+            "label": "labelsTr/amos_0299.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0299/amos_0299_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0111.nii.gz",
+            "pseudo_label": "imagesTr/amos_0111.nii.gz",
+            "label": "labelsTr/amos_0111.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0111/amos_0111_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0061.nii.gz",
+            "pseudo_label": "imagesVa/amos_0061.nii.gz",
+            "label": "labelsVa/amos_0061.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0061/amos_0061_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0316.nii.gz",
+            "pseudo_label": "imagesVa/amos_0316.nii.gz",
+            "label": "labelsVa/amos_0316.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0316/amos_0316_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0197.nii.gz",
+            "pseudo_label": "imagesTr/amos_0197.nii.gz",
+            "label": "labelsTr/amos_0197.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0197/amos_0197_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0304.nii.gz",
+            "pseudo_label": "imagesVa/amos_0304.nii.gz",
+            "label": "labelsVa/amos_0304.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0304/amos_0304_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0398.nii.gz",
+            "pseudo_label": "imagesTr/amos_0398.nii.gz",
+            "label": "labelsTr/amos_0398.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0398/amos_0398_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0258.nii.gz",
+            "pseudo_label": "imagesVa/amos_0258.nii.gz",
+            "label": "labelsVa/amos_0258.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0258/amos_0258_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0233.nii.gz",
+            "pseudo_label": "imagesVa/amos_0233.nii.gz",
+            "label": "labelsVa/amos_0233.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0233/amos_0233_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0087.nii.gz",
+            "pseudo_label": "imagesVa/amos_0087.nii.gz",
+            "label": "labelsVa/amos_0087.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0087/amos_0087_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0075.nii.gz",
+            "pseudo_label": "imagesTr/amos_0075.nii.gz",
+            "label": "labelsTr/amos_0075.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0075/amos_0075_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0131.nii.gz",
+            "pseudo_label": "imagesTr/amos_0131.nii.gz",
+            "label": "labelsTr/amos_0131.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0131/amos_0131_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0223.nii.gz",
+            "pseudo_label": "imagesVa/amos_0223.nii.gz",
+            "label": "labelsVa/amos_0223.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0223/amos_0223_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0141.nii.gz",
+            "pseudo_label": "imagesTr/amos_0141.nii.gz",
+            "label": "labelsTr/amos_0141.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0141/amos_0141_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0245.nii.gz",
+            "pseudo_label": "imagesTr/amos_0245.nii.gz",
+            "label": "labelsTr/amos_0245.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0245/amos_0245_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0110.nii.gz",
+            "pseudo_label": "imagesTr/amos_0110.nii.gz",
+            "label": "labelsTr/amos_0110.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0110/amos_0110_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0401.nii.gz",
+            "pseudo_label": "imagesTr/amos_0401.nii.gz",
+            "label": "labelsTr/amos_0401.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0401/amos_0401_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0085.nii.gz",
+            "pseudo_label": "imagesVa/amos_0085.nii.gz",
+            "label": "labelsVa/amos_0085.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0085/amos_0085_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0263.nii.gz",
+            "pseudo_label": "imagesTr/amos_0263.nii.gz",
+            "label": "labelsTr/amos_0263.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0263/amos_0263_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0297.nii.gz",
+            "pseudo_label": "imagesTr/amos_0297.nii.gz",
+            "label": "labelsTr/amos_0297.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0297/amos_0297_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0162.nii.gz",
+            "pseudo_label": "imagesTr/amos_0162.nii.gz",
+            "label": "labelsTr/amos_0162.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0162/amos_0162_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0391.nii.gz",
+            "pseudo_label": "imagesTr/amos_0391.nii.gz",
+            "label": "labelsTr/amos_0391.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0391/amos_0391_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0357.nii.gz",
+            "pseudo_label": "imagesVa/amos_0357.nii.gz",
+            "label": "labelsVa/amos_0357.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0357/amos_0357_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0190.nii.gz",
+            "pseudo_label": "imagesTr/amos_0190.nii.gz",
+            "label": "labelsTr/amos_0190.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0190/amos_0190_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0149.nii.gz",
+            "pseudo_label": "imagesTr/amos_0149.nii.gz",
+            "label": "labelsTr/amos_0149.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0149/amos_0149_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0081.nii.gz",
+            "pseudo_label": "imagesTr/amos_0081.nii.gz",
+            "label": "labelsTr/amos_0081.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0081/amos_0081_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0056.nii.gz",
+            "pseudo_label": "imagesVa/amos_0056.nii.gz",
+            "label": "labelsVa/amos_0056.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0056/amos_0056_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0332.nii.gz",
+            "pseudo_label": "imagesTr/amos_0332.nii.gz",
+            "label": "labelsTr/amos_0332.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0332/amos_0332_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0105.nii.gz",
+            "pseudo_label": "imagesTr/amos_0105.nii.gz",
+            "label": "labelsTr/amos_0105.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0105/amos_0105_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0364.nii.gz",
+            "pseudo_label": "imagesVa/amos_0364.nii.gz",
+            "label": "labelsVa/amos_0364.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0364/amos_0364_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0257.nii.gz",
+            "pseudo_label": "imagesVa/amos_0257.nii.gz",
+            "label": "labelsVa/amos_0257.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0257/amos_0257_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0106.nii.gz",
+            "pseudo_label": "imagesVa/amos_0106.nii.gz",
+            "label": "labelsVa/amos_0106.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0106/amos_0106_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0077.nii.gz",
+            "pseudo_label": "imagesTr/amos_0077.nii.gz",
+            "label": "labelsTr/amos_0077.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0077/amos_0077_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0215.nii.gz",
+            "pseudo_label": "imagesTr/amos_0215.nii.gz",
+            "label": "labelsTr/amos_0215.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0215/amos_0215_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0351.nii.gz",
+            "pseudo_label": "imagesTr/amos_0351.nii.gz",
+            "label": "labelsTr/amos_0351.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0351/amos_0351_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0255.nii.gz",
+            "pseudo_label": "imagesVa/amos_0255.nii.gz",
+            "label": "labelsVa/amos_0255.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0255/amos_0255_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0318.nii.gz",
+            "pseudo_label": "imagesVa/amos_0318.nii.gz",
+            "label": "labelsVa/amos_0318.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0318/amos_0318_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0264.nii.gz",
+            "pseudo_label": "imagesTr/amos_0264.nii.gz",
+            "label": "labelsTr/amos_0264.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0264/amos_0264_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0128.nii.gz",
+            "pseudo_label": "imagesVa/amos_0128.nii.gz",
+            "label": "labelsVa/amos_0128.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0128/amos_0128_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0041.nii.gz",
+            "pseudo_label": "imagesVa/amos_0041.nii.gz",
+            "label": "labelsVa/amos_0041.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0041/amos_0041_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0069.nii.gz",
+            "pseudo_label": "imagesTr/amos_0069.nii.gz",
+            "label": "labelsTr/amos_0069.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0069/amos_0069_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0283.nii.gz",
+            "pseudo_label": "imagesVa/amos_0283.nii.gz",
+            "label": "labelsVa/amos_0283.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0283/amos_0283_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0104.nii.gz",
+            "pseudo_label": "imagesTr/amos_0104.nii.gz",
+            "label": "labelsTr/amos_0104.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0104/amos_0104_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0066.nii.gz",
+            "pseudo_label": "imagesTr/amos_0066.nii.gz",
+            "label": "labelsTr/amos_0066.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0066/amos_0066_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0326.nii.gz",
+            "pseudo_label": "imagesVa/amos_0326.nii.gz",
+            "label": "labelsVa/amos_0326.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0326/amos_0326_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0152.nii.gz",
+            "pseudo_label": "imagesTr/amos_0152.nii.gz",
+            "label": "labelsTr/amos_0152.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0152/amos_0152_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0147.nii.gz",
+            "pseudo_label": "imagesTr/amos_0147.nii.gz",
+            "label": "labelsTr/amos_0147.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0147/amos_0147_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0009.nii.gz",
+            "pseudo_label": "imagesTr/amos_0009.nii.gz",
+            "label": "labelsTr/amos_0009.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0009/amos_0009_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0078.nii.gz",
+            "pseudo_label": "imagesTr/amos_0078.nii.gz",
+            "label": "labelsTr/amos_0078.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0078/amos_0078_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0052.nii.gz",
+            "pseudo_label": "imagesTr/amos_0052.nii.gz",
+            "label": "labelsTr/amos_0052.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0052/amos_0052_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0070.nii.gz",
+            "pseudo_label": "imagesVa/amos_0070.nii.gz",
+            "label": "labelsVa/amos_0070.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0070/amos_0070_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0406.nii.gz",
+            "pseudo_label": "imagesTr/amos_0406.nii.gz",
+            "label": "labelsTr/amos_0406.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0406/amos_0406_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0017.nii.gz",
+            "pseudo_label": "imagesTr/amos_0017.nii.gz",
+            "label": "labelsTr/amos_0017.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0017/amos_0017_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0403.nii.gz",
+            "pseudo_label": "imagesTr/amos_0403.nii.gz",
+            "label": "labelsTr/amos_0403.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0403/amos_0403_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0038.nii.gz",
+            "pseudo_label": "imagesTr/amos_0038.nii.gz",
+            "label": "labelsTr/amos_0038.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0038/amos_0038_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0200.nii.gz",
+            "pseudo_label": "imagesVa/amos_0200.nii.gz",
+            "label": "labelsVa/amos_0200.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0200/amos_0200_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0302.nii.gz",
+            "pseudo_label": "imagesTr/amos_0302.nii.gz",
+            "label": "labelsTr/amos_0302.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0302/amos_0302_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0029.nii.gz",
+            "pseudo_label": "imagesVa/amos_0029.nii.gz",
+            "label": "labelsVa/amos_0029.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0029/amos_0029_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0397.nii.gz",
+            "pseudo_label": "imagesVa/amos_0397.nii.gz",
+            "label": "labelsVa/amos_0397.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0397/amos_0397_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0179.nii.gz",
+            "pseudo_label": "imagesTr/amos_0179.nii.gz",
+            "label": "labelsTr/amos_0179.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0179/amos_0179_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0378.nii.gz",
+            "pseudo_label": "imagesTr/amos_0378.nii.gz",
+            "label": "labelsTr/amos_0378.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0378/amos_0378_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0059.nii.gz",
+            "pseudo_label": "imagesTr/amos_0059.nii.gz",
+            "label": "labelsTr/amos_0059.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0059/amos_0059_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0228.nii.gz",
+            "pseudo_label": "imagesVa/amos_0228.nii.gz",
+            "label": "labelsVa/amos_0228.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0228/amos_0228_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0021.nii.gz",
+            "pseudo_label": "imagesTr/amos_0021.nii.gz",
+            "label": "labelsTr/amos_0021.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0021/amos_0021_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0294.nii.gz",
+            "pseudo_label": "imagesTr/amos_0294.nii.gz",
+            "label": "labelsTr/amos_0294.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0294/amos_0294_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0088.nii.gz",
+            "pseudo_label": "imagesTr/amos_0088.nii.gz",
+            "label": "labelsTr/amos_0088.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0088/amos_0088_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0214.nii.gz",
+            "pseudo_label": "imagesTr/amos_0214.nii.gz",
+            "label": "labelsTr/amos_0214.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0214/amos_0214_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0284.nii.gz",
+            "pseudo_label": "imagesVa/amos_0284.nii.gz",
+            "label": "labelsVa/amos_0284.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0284/amos_0284_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0239.nii.gz",
+            "pseudo_label": "imagesTr/amos_0239.nii.gz",
+            "label": "labelsTr/amos_0239.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0239/amos_0239_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0361.nii.gz",
+            "pseudo_label": "imagesTr/amos_0361.nii.gz",
+            "label": "labelsTr/amos_0361.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0361/amos_0361_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0010.nii.gz",
+            "pseudo_label": "imagesTr/amos_0010.nii.gz",
+            "label": "labelsTr/amos_0010.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0010/amos_0010_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0290.nii.gz",
+            "pseudo_label": "imagesVa/amos_0290.nii.gz",
+            "label": "labelsVa/amos_0290.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0290/amos_0290_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0086.nii.gz",
+            "pseudo_label": "imagesTr/amos_0086.nii.gz",
+            "label": "labelsTr/amos_0086.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0086/amos_0086_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0296.nii.gz",
+            "pseudo_label": "imagesTr/amos_0296.nii.gz",
+            "label": "labelsTr/amos_0296.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0296/amos_0296_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0408.nii.gz",
+            "pseudo_label": "imagesTr/amos_0408.nii.gz",
+            "label": "labelsTr/amos_0408.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0408/amos_0408_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0127.nii.gz",
+            "pseudo_label": "imagesTr/amos_0127.nii.gz",
+            "label": "labelsTr/amos_0127.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0127/amos_0127_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0119.nii.gz",
+            "pseudo_label": "imagesTr/amos_0119.nii.gz",
+            "label": "labelsTr/amos_0119.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0119/amos_0119_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0400.nii.gz",
+            "pseudo_label": "imagesTr/amos_0400.nii.gz",
+            "label": "labelsTr/amos_0400.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0400/amos_0400_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0248.nii.gz",
+            "pseudo_label": "imagesTr/amos_0248.nii.gz",
+            "label": "labelsTr/amos_0248.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0248/amos_0248_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0193.nii.gz",
+            "pseudo_label": "imagesTr/amos_0193.nii.gz",
+            "label": "labelsTr/amos_0193.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0193/amos_0193_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0293.nii.gz",
+            "pseudo_label": "imagesVa/amos_0293.nii.gz",
+            "label": "labelsVa/amos_0293.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0293/amos_0293_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0011.nii.gz",
+            "pseudo_label": "imagesTr/amos_0011.nii.gz",
+            "label": "labelsTr/amos_0011.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0011/amos_0011_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0123.nii.gz",
+            "pseudo_label": "imagesVa/amos_0123.nii.gz",
+            "label": "labelsVa/amos_0123.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0123/amos_0123_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0204.nii.gz",
+            "pseudo_label": "imagesVa/amos_0204.nii.gz",
+            "label": "labelsVa/amos_0204.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0204/amos_0204_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0212.nii.gz",
+            "pseudo_label": "imagesTr/amos_0212.nii.gz",
+            "label": "labelsTr/amos_0212.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0212/amos_0212_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0137.nii.gz",
+            "pseudo_label": "imagesTr/amos_0137.nii.gz",
+            "label": "labelsTr/amos_0137.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0137/amos_0137_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0189.nii.gz",
+            "pseudo_label": "imagesVa/amos_0189.nii.gz",
+            "label": "labelsVa/amos_0189.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0189/amos_0189_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0373.nii.gz",
+            "pseudo_label": "imagesVa/amos_0373.nii.gz",
+            "label": "labelsVa/amos_0373.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0373/amos_0373_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0328.nii.gz",
+            "pseudo_label": "imagesVa/amos_0328.nii.gz",
+            "label": "labelsVa/amos_0328.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0328/amos_0328_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0404.nii.gz",
+            "pseudo_label": "imagesTr/amos_0404.nii.gz",
+            "label": "labelsTr/amos_0404.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0404/amos_0404_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0112.nii.gz",
+            "pseudo_label": "imagesVa/amos_0112.nii.gz",
+            "label": "labelsVa/amos_0112.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0112/amos_0112_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0226.nii.gz",
+            "pseudo_label": "imagesTr/amos_0226.nii.gz",
+            "label": "labelsTr/amos_0226.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0226/amos_0226_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0098.nii.gz",
+            "pseudo_label": "imagesTr/amos_0098.nii.gz",
+            "label": "labelsTr/amos_0098.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0098/amos_0098_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0089.nii.gz",
+            "pseudo_label": "imagesTr/amos_0089.nii.gz",
+            "label": "labelsTr/amos_0089.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0089/amos_0089_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0136.nii.gz",
+            "pseudo_label": "imagesVa/amos_0136.nii.gz",
+            "label": "labelsVa/amos_0136.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0136/amos_0136_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0301.nii.gz",
+            "pseudo_label": "imagesTr/amos_0301.nii.gz",
+            "label": "labelsTr/amos_0301.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0301/amos_0301_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0363.nii.gz",
+            "pseudo_label": "imagesVa/amos_0363.nii.gz",
+            "label": "labelsVa/amos_0363.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0363/amos_0363_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0171.nii.gz",
+            "pseudo_label": "imagesTr/amos_0171.nii.gz",
+            "label": "labelsTr/amos_0171.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0171/amos_0171_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0156.nii.gz",
+            "pseudo_label": "imagesTr/amos_0156.nii.gz",
+            "label": "labelsTr/amos_0156.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0156/amos_0156_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0173.nii.gz",
+            "pseudo_label": "imagesTr/amos_0173.nii.gz",
+            "label": "labelsTr/amos_0173.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0173/amos_0173_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0323.nii.gz",
+            "pseudo_label": "imagesVa/amos_0323.nii.gz",
+            "label": "labelsVa/amos_0323.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0323/amos_0323_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0272.nii.gz",
+            "pseudo_label": "imagesTr/amos_0272.nii.gz",
+            "label": "labelsTr/amos_0272.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0272/amos_0272_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0050.nii.gz",
+            "pseudo_label": "imagesTr/amos_0050.nii.gz",
+            "label": "labelsTr/amos_0050.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0050/amos_0050_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0385.nii.gz",
+            "pseudo_label": "imagesVa/amos_0385.nii.gz",
+            "label": "labelsVa/amos_0385.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0385/amos_0385_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0135.nii.gz",
+            "pseudo_label": "imagesTr/amos_0135.nii.gz",
+            "label": "labelsTr/amos_0135.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0135/amos_0135_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0185.nii.gz",
+            "pseudo_label": "imagesTr/amos_0185.nii.gz",
+            "label": "labelsTr/amos_0185.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0185/amos_0185_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0090.nii.gz",
+            "pseudo_label": "imagesVa/amos_0090.nii.gz",
+            "label": "labelsVa/amos_0090.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0090/amos_0090_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0117.nii.gz",
+            "pseudo_label": "imagesVa/amos_0117.nii.gz",
+            "label": "labelsVa/amos_0117.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0117/amos_0117_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0018.nii.gz",
+            "pseudo_label": "imagesVa/amos_0018.nii.gz",
+            "label": "labelsVa/amos_0018.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0018/amos_0018_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0019.nii.gz",
+            "pseudo_label": "imagesTr/amos_0019.nii.gz",
+            "label": "labelsTr/amos_0019.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0019/amos_0019_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0379.nii.gz",
+            "pseudo_label": "imagesTr/amos_0379.nii.gz",
+            "label": "labelsTr/amos_0379.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0379/amos_0379_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0126.nii.gz",
+            "pseudo_label": "imagesTr/amos_0126.nii.gz",
+            "label": "labelsTr/amos_0126.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0126/amos_0126_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0208.nii.gz",
+            "pseudo_label": "imagesVa/amos_0208.nii.gz",
+            "label": "labelsVa/amos_0208.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0208/amos_0208_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0219.nii.gz",
+            "pseudo_label": "imagesVa/amos_0219.nii.gz",
+            "label": "labelsVa/amos_0219.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0219/amos_0219_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0142.nii.gz",
+            "pseudo_label": "imagesTr/amos_0142.nii.gz",
+            "label": "labelsTr/amos_0142.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0142/amos_0142_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0166.nii.gz",
+            "pseudo_label": "imagesTr/amos_0166.nii.gz",
+            "label": "labelsTr/amos_0166.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0166/amos_0166_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0274.nii.gz",
+            "pseudo_label": "imagesTr/amos_0274.nii.gz",
+            "label": "labelsTr/amos_0274.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0274/amos_0274_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0247.nii.gz",
+            "pseudo_label": "imagesVa/amos_0247.nii.gz",
+            "label": "labelsVa/amos_0247.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0247/amos_0247_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0094.nii.gz",
+            "pseudo_label": "imagesTr/amos_0094.nii.gz",
+            "label": "labelsTr/amos_0094.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0094/amos_0094_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0167.nii.gz",
+            "pseudo_label": "imagesVa/amos_0167.nii.gz",
+            "label": "labelsVa/amos_0167.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0167/amos_0167_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0118.nii.gz",
+            "pseudo_label": "imagesTr/amos_0118.nii.gz",
+            "label": "labelsTr/amos_0118.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0118/amos_0118_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0192.nii.gz",
+            "pseudo_label": "imagesTr/amos_0192.nii.gz",
+            "label": "labelsTr/amos_0192.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0192/amos_0192_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0035.nii.gz",
+            "pseudo_label": "imagesTr/amos_0035.nii.gz",
+            "label": "labelsTr/amos_0035.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0035/amos_0035_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0387.nii.gz",
+            "pseudo_label": "imagesTr/amos_0387.nii.gz",
+            "label": "labelsTr/amos_0387.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0387/amos_0387_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0047.nii.gz",
+            "pseudo_label": "imagesTr/amos_0047.nii.gz",
+            "label": "labelsTr/amos_0047.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0047/amos_0047_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0203.nii.gz",
+            "pseudo_label": "imagesVa/amos_0203.nii.gz",
+            "label": "labelsVa/amos_0203.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0203/amos_0203_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0337.nii.gz",
+            "pseudo_label": "imagesTr/amos_0337.nii.gz",
+            "label": "labelsTr/amos_0337.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0337/amos_0337_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0097.nii.gz",
+            "pseudo_label": "imagesTr/amos_0097.nii.gz",
+            "label": "labelsTr/amos_0097.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0097/amos_0097_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0242.nii.gz",
+            "pseudo_label": "imagesTr/amos_0242.nii.gz",
+            "label": "labelsTr/amos_0242.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0242/amos_0242_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0023.nii.gz",
+            "pseudo_label": "imagesTr/amos_0023.nii.gz",
+            "label": "labelsTr/amos_0023.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0023/amos_0023_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0042.nii.gz",
+            "pseudo_label": "imagesTr/amos_0042.nii.gz",
+            "label": "labelsTr/amos_0042.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0042/amos_0042_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0320.nii.gz",
+            "pseudo_label": "imagesTr/amos_0320.nii.gz",
+            "label": "labelsTr/amos_0320.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0320/amos_0320_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0040.nii.gz",
+            "pseudo_label": "imagesVa/amos_0040.nii.gz",
+            "label": "labelsVa/amos_0040.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0040/amos_0040_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0033.nii.gz",
+            "pseudo_label": "imagesTr/amos_0033.nii.gz",
+            "label": "labelsTr/amos_0033.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0033/amos_0033_seg.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0155.nii.gz",
+            "pseudo_label": "imagesVa/amos_0155.nii.gz",
+            "label": "labelsVa/amos_0155.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0155/amos_0155_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0109.nii.gz",
+            "pseudo_label": "imagesTr/amos_0109.nii.gz",
+            "label": "labelsTr/amos_0109.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0109/amos_0109_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0276.nii.gz",
+            "pseudo_label": "imagesTr/amos_0276.nii.gz",
+            "label": "labelsTr/amos_0276.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0276/amos_0276_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0199.nii.gz",
+            "pseudo_label": "imagesTr/amos_0199.nii.gz",
+            "label": "labelsTr/amos_0199.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0199/amos_0199_seg.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0025.nii.gz",
+            "pseudo_label": "imagesTr/amos_0025.nii.gz",
+            "label": "labelsTr/amos_0025.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AMOS22_100/amos_0025/amos_0025_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "aorta",
+        "9": "inferior vena cava",
+        "10": "pancreas",
+        "11": "right adrenal gland",
+        "12": "left adrenal gland",
+        "13": "duodenum",
+        "14": "bladder",
+        "15": "prostate or uterus"
+    },
+    "original_label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "aorta",
+        "9": "postcava",
+        "10": "pancreas",
+        "11": "right adrenal gland",
+        "12": "left adrenal gland",
+        "13": "duodenum",
+        "14": "bladder",
+        "15": "prostate or uterus"
+    },
+    "testing": [
+        {
+            "image": "imagesTr/amos_0015.nii.gz",
+            "label": "labelsTr/amos_0015.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0103.nii.gz",
+            "label": "labelsTr/amos_0103.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0288.nii.gz",
+            "label": "labelsTr/amos_0288.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0371.nii.gz",
+            "label": "labelsTr/amos_0371.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0049.nii.gz",
+            "label": "labelsTr/amos_0049.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0292.nii.gz",
+            "label": "labelsVa/amos_0292.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0367.nii.gz",
+            "label": "labelsTr/amos_0367.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0102.nii.gz",
+            "label": "labelsTr/amos_0102.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0175.nii.gz",
+            "label": "labelsTr/amos_0175.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0279.nii.gz",
+            "label": "labelsTr/amos_0279.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0377.nii.gz",
+            "label": "labelsVa/amos_0377.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0349.nii.gz",
+            "label": "labelsTr/amos_0349.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0224.nii.gz",
+            "label": "labelsTr/amos_0224.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0030.nii.gz",
+            "label": "labelsTr/amos_0030.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0076.nii.gz",
+            "label": "labelsTr/amos_0076.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0180.nii.gz",
+            "label": "labelsTr/amos_0180.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0383.nii.gz",
+            "label": "labelsTr/amos_0383.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0024.nii.gz",
+            "label": "labelsTr/amos_0024.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0174.nii.gz",
+            "label": "labelsVa/amos_0174.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0358.nii.gz",
+            "label": "labelsTr/amos_0358.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0084.nii.gz",
+            "label": "labelsTr/amos_0084.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0289.nii.gz",
+            "label": "labelsVa/amos_0289.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0054.nii.gz",
+            "label": "labelsTr/amos_0054.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0249.nii.gz",
+            "label": "labelsTr/amos_0249.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0399.nii.gz",
+            "label": "labelsVa/amos_0399.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0144.nii.gz",
+            "label": "labelsVa/amos_0144.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0067.nii.gz",
+            "label": "labelsTr/amos_0067.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0005.nii.gz",
+            "label": "labelsTr/amos_0005.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0006.nii.gz",
+            "label": "labelsTr/amos_0006.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0259.nii.gz",
+            "label": "labelsTr/amos_0259.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0230.nii.gz",
+            "label": "labelsTr/amos_0230.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0073.nii.gz",
+            "label": "labelsVa/amos_0073.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0154.nii.gz",
+            "label": "labelsTr/amos_0154.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0216.nii.gz",
+            "label": "labelsVa/amos_0216.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0191.nii.gz",
+            "label": "labelsVa/amos_0191.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0410.nii.gz",
+            "label": "labelsTr/amos_0410.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0254.nii.gz",
+            "label": "labelsTr/amos_0254.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0186.nii.gz",
+            "label": "labelsTr/amos_0186.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0356.nii.gz",
+            "label": "labelsVa/amos_0356.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0184.nii.gz",
+            "label": "labelsTr/amos_0184.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0138.nii.gz",
+            "label": "labelsTr/amos_0138.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0108.nii.gz",
+            "label": "labelsVa/amos_0108.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0309.nii.gz",
+            "label": "labelsVa/amos_0309.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0282.nii.gz",
+            "label": "labelsTr/amos_0282.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0034.nii.gz",
+            "label": "labelsVa/amos_0034.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0058.nii.gz",
+            "label": "labelsTr/amos_0058.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0330.nii.gz",
+            "label": "labelsTr/amos_0330.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0036.nii.gz",
+            "label": "labelsTr/amos_0036.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0092.nii.gz",
+            "label": "labelsTr/amos_0092.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0181.nii.gz",
+            "label": "labelsTr/amos_0181.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0388.nii.gz",
+            "label": "labelsTr/amos_0388.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0044.nii.gz",
+            "label": "labelsTr/amos_0044.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0140.nii.gz",
+            "label": "labelsVa/amos_0140.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0281.nii.gz",
+            "label": "labelsTr/amos_0281.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0313.nii.gz",
+            "label": "labelsVa/amos_0313.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0384.nii.gz",
+            "label": "labelsTr/amos_0384.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0342.nii.gz",
+            "label": "labelsVa/amos_0342.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0366.nii.gz",
+            "label": "labelsTr/amos_0366.nii.gz"
+        },
+        {
+            "image": "imagesTr/amos_0161.nii.gz",
+            "label": "labelsTr/amos_0161.nii.gz"
+        },
+        {
+            "image": "imagesVa/amos_0325.nii.gz",
+            "label": "labelsVa/amos_0325.nii.gz"
+        }
+    ]
+}

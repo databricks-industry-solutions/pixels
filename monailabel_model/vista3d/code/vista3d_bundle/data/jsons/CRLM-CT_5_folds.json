@@ -1,0 +1,1491 @@
+{
+    "training": [
+        {
+            "image": "CRLM-CT-1028/2_ct_cap_wcontrast.nii.gz",
+            "pseudo_label": "CRLM-CT-1028/2_ct_cap_wcontrast.nii.gz",
+            "label": "CRLM-CT-1028/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1154/101_bind217624271512.nii.gz",
+            "pseudo_label": "CRLM-CT-1154/101_bind217624271512.nii.gz",
+            "label": "CRLM-CT-1154/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1185/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1185/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1185/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1017/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1017/101_.nii.gz",
+            "label": "CRLM-CT-1017/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1093/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1093/101_.nii.gz",
+            "label": "CRLM-CT-1093/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1061/101_bind57214233483.nii.gz",
+            "pseudo_label": "CRLM-CT-1061/101_bind57214233483.nii.gz",
+            "label": "CRLM-CT-1061/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1089/2_abdomen.nii.gz",
+            "pseudo_label": "CRLM-CT-1089/2_abdomen.nii.gz",
+            "label": "CRLM-CT-1089/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1194/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1194/2_.nii.gz",
+            "label": "CRLM-CT-1194/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1032/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1032/101_.nii.gz",
+            "label": "CRLM-CT-1032/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1045/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1045/101_.nii.gz",
+            "label": "CRLM-CT-1045/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1165/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1165/2_.nii.gz",
+            "label": "CRLM-CT-1165/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1150/2_ct_abpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1150/2_ct_abpel.nii.gz",
+            "label": "CRLM-CT-1150/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1030/101_bind183835190403.nii.gz",
+            "pseudo_label": "CRLM-CT-1030/101_bind183835190403.nii.gz",
+            "label": "CRLM-CT-1030/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1136/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1136/2_.nii.gz",
+            "label": "CRLM-CT-1136/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1105/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1105/101_.nii.gz",
+            "label": "CRLM-CT-1105/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1079/2_chestabdomenpelvis.nii.gz",
+            "pseudo_label": "CRLM-CT-1079/2_chestabdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1079/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1191/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1191/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1191/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1117/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1117/101_.nii.gz",
+            "label": "CRLM-CT-1117/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1037/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1037/101_.nii.gz",
+            "label": "CRLM-CT-1037/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1188/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1188/101_.nii.gz",
+            "label": "CRLM-CT-1188/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1069/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1069/101_.nii.gz",
+            "label": "CRLM-CT-1069/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1001/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1001/101_.nii.gz",
+            "label": "CRLM-CT-1001/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1057/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1057/101_.nii.gz",
+            "label": "CRLM-CT-1057/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1041/2_chestabdomenpelvis.nii.gz",
+            "pseudo_label": "CRLM-CT-1041/2_chestabdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1041/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1090/2_ct_abdomen.nii.gz",
+            "pseudo_label": "CRLM-CT-1090/2_ct_abdomen.nii.gz",
+            "label": "CRLM-CT-1090/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1087/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1087/2_.nii.gz",
+            "label": "CRLM-CT-1087/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1133/101_bind206963277526.nii.gz",
+            "pseudo_label": "CRLM-CT-1133/101_bind206963277526.nii.gz",
+            "label": "CRLM-CT-1133/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1007/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1007/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1007/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1099/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1099/102_.nii.gz",
+            "label": "CRLM-CT-1099/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1196/103_.nii.gz",
+            "pseudo_label": "CRLM-CT-1196/103_.nii.gz",
+            "label": "CRLM-CT-1196/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1080/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1080/101_.nii.gz",
+            "label": "CRLM-CT-1080/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1073/2_chabdpel_5x5.nii.gz",
+            "pseudo_label": "CRLM-CT-1073/2_chabdpel_5x5.nii.gz",
+            "label": "CRLM-CT-1073/mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1114/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1114/101_.nii.gz",
+            "label": "CRLM-CT-1114/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1114/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1131/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1131/2_.nii.gz",
+            "label": "CRLM-CT-1131/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1131/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1110/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1110/101_.nii.gz",
+            "label": "CRLM-CT-1110/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1110/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1010/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1010/101_.nii.gz",
+            "label": "CRLM-CT-1010/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1010/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1183/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1183/101_.nii.gz",
+            "label": "CRLM-CT-1183/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1122/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1122/101_.nii.gz",
+            "label": "CRLM-CT-1122/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1122/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1127/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1127/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1127/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1127/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1016/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1016/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1016/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1016/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1101/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1101/2_.nii.gz",
+            "label": "CRLM-CT-1101/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1101/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1070/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1070/101_.nii.gz",
+            "label": "CRLM-CT-1070/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1070/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1159/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1159/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1159/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1159/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1179/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1179/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1179/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1179/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1178/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1178/102_.nii.gz",
+            "label": "CRLM-CT-1178/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1178/102_/102__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1156/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1156/2_.nii.gz",
+            "label": "CRLM-CT-1156/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1156/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1197/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1197/101_.nii.gz",
+            "label": "CRLM-CT-1197/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1197/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1039/2_post_con.nii.gz",
+            "pseudo_label": "CRLM-CT-1039/2_post_con.nii.gz",
+            "label": "CRLM-CT-1039/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1039/2_post_con/2_post_con_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1113/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1113/101_.nii.gz",
+            "label": "CRLM-CT-1113/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1113/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1193/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1193/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1193/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1193/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1077/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1077/101_.nii.gz",
+            "label": "CRLM-CT-1077/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1077/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1146/2_ct_abdomenpelvis.nii.gz",
+            "pseudo_label": "CRLM-CT-1146/2_ct_abdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1146/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1146/2_ct_abdomenpelvis/2_ct_abdomenpelvis_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1098/104_.nii.gz",
+            "pseudo_label": "CRLM-CT-1098/104_.nii.gz",
+            "label": "CRLM-CT-1098/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1098/104_/104__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1182/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1182/102_.nii.gz",
+            "label": "CRLM-CT-1182/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1182/102_/102__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1052/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1052/101_.nii.gz",
+            "label": "CRLM-CT-1052/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1052/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1033/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1033/102_.nii.gz",
+            "label": "CRLM-CT-1033/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1033/102_/102__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1119/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1119/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1119/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1119/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1174/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1174/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1174/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1174/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1055/101_bind24514171390.nii.gz",
+            "pseudo_label": "CRLM-CT-1055/101_bind24514171390.nii.gz",
+            "label": "CRLM-CT-1055/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1055/101_bind24514171390/101_bind24514171390_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1187/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1187/101_.nii.gz",
+            "label": "CRLM-CT-1187/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1187/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1107/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1107/101_.nii.gz",
+            "label": "CRLM-CT-1107/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1107/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1003/105_.nii.gz",
+            "pseudo_label": "CRLM-CT-1003/105_.nii.gz",
+            "label": "CRLM-CT-1003/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1003/105_/105__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1046/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1046/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1046/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1046/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1011/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1011/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1011/mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1011/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1038/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1038/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1038/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1038/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1020/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1020/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1020/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1020/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1189/4_.nii.gz",
+            "pseudo_label": "CRLM-CT-1189/4_.nii.gz",
+            "label": "CRLM-CT-1189/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1189/4_/4__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1049/101_bind24615277520.nii.gz",
+            "pseudo_label": "CRLM-CT-1049/101_bind24615277520.nii.gz",
+            "label": "CRLM-CT-1049/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1049/101_bind24615277520/101_bind24615277520_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1065/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1065/102_.nii.gz",
+            "label": "CRLM-CT-1065/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1065/102_/102__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1059/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1059/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1059/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1059/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1195/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1195/101_.nii.gz",
+            "label": "CRLM-CT-1195/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1195/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1126/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1126/101_.nii.gz",
+            "label": "CRLM-CT-1126/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1126/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1082/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1082/101_.nii.gz",
+            "label": "CRLM-CT-1082/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1082/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1125/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1125/101_.nii.gz",
+            "label": "CRLM-CT-1125/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1125/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1163/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1163/2_.nii.gz",
+            "label": "CRLM-CT-1163/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1163/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1044/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1044/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1044/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1044/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1152/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1152/101_.nii.gz",
+            "label": "CRLM-CT-1152/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1152/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1085/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1085/2_.nii.gz",
+            "label": "CRLM-CT-1085/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1085/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1158/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1158/101_.nii.gz",
+            "label": "CRLM-CT-1158/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1158/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1142/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1142/101_.nii.gz",
+            "label": "CRLM-CT-1142/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1142/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1064/3_.nii.gz",
+            "pseudo_label": "CRLM-CT-1064/3_.nii.gz",
+            "label": "CRLM-CT-1064/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1064/3_/3__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1181/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1181/101_.nii.gz",
+            "label": "CRLM-CT-1181/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1181/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1139/101_bind21866441131.nii.gz",
+            "pseudo_label": "CRLM-CT-1139/101_bind21866441131.nii.gz",
+            "label": "CRLM-CT-1139/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1139/101_bind21866441131/101_bind21866441131_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1123/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1123/101_.nii.gz",
+            "label": "CRLM-CT-1123/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1123/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1035/2_post_con.nii.gz",
+            "pseudo_label": "CRLM-CT-1035/2_post_con.nii.gz",
+            "label": "CRLM-CT-1035/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1035/2_post_con/2_post_con_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1144/2_ct_abpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1144/2_ct_abpel.nii.gz",
+            "label": "CRLM-CT-1144/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1144/2_ct_abpel/2_ct_abpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1005/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1005/101_.nii.gz",
+            "label": "CRLM-CT-1005/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1005/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1051/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1051/101_.nii.gz",
+            "label": "CRLM-CT-1051/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1051/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1134/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1134/2_.nii.gz",
+            "label": "CRLM-CT-1134/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1134/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1157/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1157/2_.nii.gz",
+            "label": "CRLM-CT-1157/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1157/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1103/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1103/101_.nii.gz",
+            "label": "CRLM-CT-1103/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1103/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1063/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1063/2_.nii.gz",
+            "label": "CRLM-CT-1063/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1063/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1151/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1151/101_.nii.gz",
+            "label": "CRLM-CT-1151/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1151/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1096/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1096/101_.nii.gz",
+            "label": "CRLM-CT-1096/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1096/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1143/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1143/101_.nii.gz",
+            "label": "CRLM-CT-1143/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1143/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1008/101_bind170954277465.nii.gz",
+            "pseudo_label": "CRLM-CT-1008/101_bind170954277465.nii.gz",
+            "label": "CRLM-CT-1008/mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1008/101_bind170954277465/101_bind170954277465_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1112/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1112/101_.nii.gz",
+            "label": "CRLM-CT-1112/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1112/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1091/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1091/102_.nii.gz",
+            "label": "CRLM-CT-1091/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1091/102_/102__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1132/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1132/2_.nii.gz",
+            "label": "CRLM-CT-1132/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1132/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1075/5_abdomen_50_b40s.nii.gz",
+            "pseudo_label": "CRLM-CT-1075/5_abdomen_50_b40s.nii.gz",
+            "label": "CRLM-CT-1075/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1075/5_abdomen_50_b40s/5_abdomen_50_b40s_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1169/102_bind195715159254.nii.gz",
+            "pseudo_label": "CRLM-CT-1169/102_bind195715159254.nii.gz",
+            "label": "CRLM-CT-1169/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1169/102_bind195715159254/102_bind195715159254_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1062/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1062/101_.nii.gz",
+            "label": "CRLM-CT-1062/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1062/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1047/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1047/2_.nii.gz",
+            "label": "CRLM-CT-1047/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1047/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1161/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1161/2_.nii.gz",
+            "label": "CRLM-CT-1161/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1161/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1012/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1012/101_.nii.gz",
+            "label": "CRLM-CT-1012/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1012/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1155/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1155/2_.nii.gz",
+            "label": "CRLM-CT-1155/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1155/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1145/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1145/101_.nii.gz",
+            "label": "CRLM-CT-1145/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1145/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1095/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1095/101_.nii.gz",
+            "label": "CRLM-CT-1095/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1095/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1050/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1050/101_.nii.gz",
+            "label": "CRLM-CT-1050/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1050/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1026/101_bind28954246509.nii.gz",
+            "pseudo_label": "CRLM-CT-1026/101_bind28954246509.nii.gz",
+            "label": "CRLM-CT-1026/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1153/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1153/101_.nii.gz",
+            "label": "CRLM-CT-1153/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1192/2_.nii.gz",
+            "pseudo_label": "CRLM-CT-1192/2_.nii.gz",
+            "label": "CRLM-CT-1192/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1192/2_/2__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1129/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1129/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1129/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1129/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1031/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1031/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1031/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1031/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1040/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1040/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1040/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1040/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1072/100_.nii.gz",
+            "pseudo_label": "CRLM-CT-1072/100_.nii.gz",
+            "label": "CRLM-CT-1072/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1115/2_abdomenpelvis.nii.gz",
+            "pseudo_label": "CRLM-CT-1115/2_abdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1115/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1115/2_abdomenpelvis/2_abdomenpelvis_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1130/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1130/101_.nii.gz",
+            "label": "CRLM-CT-1130/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1130/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1006/100_.nii.gz",
+            "pseudo_label": "CRLM-CT-1006/100_.nii.gz",
+            "label": "CRLM-CT-1006/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1006/100_/100__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1043/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1043/101_.nii.gz",
+            "label": "CRLM-CT-1043/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1043/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1081/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1081/101_.nii.gz",
+            "label": "CRLM-CT-1081/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1081/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1166/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1166/101_.nii.gz",
+            "label": "CRLM-CT-1166/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1086/103_.nii.gz",
+            "pseudo_label": "CRLM-CT-1086/103_.nii.gz",
+            "label": "CRLM-CT-1086/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1086/103_/103__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1048/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1048/101_.nii.gz",
+            "label": "CRLM-CT-1048/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1048/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1141/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1141/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1141/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1141/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1076/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1076/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1076/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1076/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1014/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1014/101_.nii.gz",
+            "label": "CRLM-CT-1014/mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1014/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1106/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1106/101_.nii.gz",
+            "label": "CRLM-CT-1106/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1106/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1168/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1168/101_.nii.gz",
+            "label": "CRLM-CT-1168/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1168/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1068/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1068/101_.nii.gz",
+            "label": "CRLM-CT-1068/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1100/102_.nii.gz",
+            "pseudo_label": "CRLM-CT-1100/102_.nii.gz",
+            "label": "CRLM-CT-1100/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CRLM-CT-1023/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1023/101_.nii.gz",
+            "label": "CRLM-CT-1023/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1023/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1002/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1002/101_.nii.gz",
+            "label": "CRLM-CT-1002/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CRLM-CT-1118/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1118/101_.nii.gz",
+            "label": "CRLM-CT-1118/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1118/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1053/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1053/101_.nii.gz",
+            "label": "CRLM-CT-1053/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1053/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1124/103_.nii.gz",
+            "pseudo_label": "CRLM-CT-1124/103_.nii.gz",
+            "label": "CRLM-CT-1124/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1124/103_/103__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1120/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1120/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1120/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1120/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1025/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1025/101_.nii.gz",
+            "label": "CRLM-CT-1025/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1025/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1071/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1071/101_.nii.gz",
+            "label": "CRLM-CT-1071/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1071/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1162/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1162/101_.nii.gz",
+            "label": "CRLM-CT-1162/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1162/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1167/101_bind188214252475.nii.gz",
+            "pseudo_label": "CRLM-CT-1167/101_bind188214252475.nii.gz",
+            "label": "CRLM-CT-1167/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1167/101_bind188214252475/101_bind188214252475_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1034/3_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1034/3_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1034/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1034/3_ct_chabpel/3_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1058/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1058/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1058/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1058/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1083/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1083/101_.nii.gz",
+            "label": "CRLM-CT-1083/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1083/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1019/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1019/101_.nii.gz",
+            "label": "CRLM-CT-1019/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1019/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1021/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1021/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1021/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1021/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1094/2_chestabdomenpelvis.nii.gz",
+            "pseudo_label": "CRLM-CT-1094/2_chestabdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1094/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1094/2_chestabdomenpelvis/2_chestabdomenpelvis_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1078/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1078/101_.nii.gz",
+            "label": "CRLM-CT-1078/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1078/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1042/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1042/101_.nii.gz",
+            "label": "CRLM-CT-1042/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1042/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1116/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1116/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1116/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1116/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1177/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1177/101_.nii.gz",
+            "label": "CRLM-CT-1177/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1177/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1009/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1009/101_.nii.gz",
+            "label": "CRLM-CT-1009/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1009/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1170/101_bind24644277514.nii.gz",
+            "pseudo_label": "CRLM-CT-1170/101_bind24644277514.nii.gz",
+            "label": "CRLM-CT-1170/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1170/101_bind24644277514/101_bind24644277514_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1067/2_ct_chabpel.nii.gz",
+            "pseudo_label": "CRLM-CT-1067/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1067/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1067/2_ct_chabpel/2_ct_chabpel_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1164/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1164/101_.nii.gz",
+            "label": "CRLM-CT-1164/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1164/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1013/101_.nii.gz",
+            "pseudo_label": "CRLM-CT-1013/101_.nii.gz",
+            "label": "CRLM-CT-1013/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1013/101_/101__seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1066/2_abdomen_5755.nii.gz",
+            "pseudo_label": "CRLM-CT-1066/2_abdomen_5755.nii.gz",
+            "label": "CRLM-CT-1066/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1066/2_abdomen_5755/2_abdomen_5755_seg.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1102/101_bind192104130266.nii.gz",
+            "pseudo_label": "CRLM-CT-1102/101_bind192104130266.nii.gz",
+            "label": "CRLM-CT-1102/mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CRLM-CT_100/CRLM-CT-1102/101_bind192104130266/101_bind192104130266_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "3": "hepatic vessel",
+        "4": "portal vein and splenic vein",
+        "5": "liver tumor"
+    },
+    "original_label_dict": {
+        "1": "Liver",
+        "2": "Liver Remnant",
+        "3": "Hepatic Vein",
+        "4": "Portal Vein",
+        "5": "Tumor"
+    },
+    "testing": [
+        {
+            "image": "CRLM-CT-1004/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1004/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1135/101_.nii.gz",
+            "label": "CRLM-CT-1135/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1054/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1054/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1138/101_.nii.gz",
+            "label": "CRLM-CT-1138/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1186/101_.nii.gz",
+            "label": "CRLM-CT-1186/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1128/102_bind22865296561.nii.gz",
+            "label": "CRLM-CT-1128/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1104/2_.nii.gz",
+            "label": "CRLM-CT-1104/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1074/102_.nii.gz",
+            "label": "CRLM-CT-1074/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1140/2_chestabdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1140/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1092/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1092/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1149/101_.nii.gz",
+            "label": "CRLM-CT-1149/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1137/101_.nii.gz",
+            "label": "CRLM-CT-1137/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1111/101_.nii.gz",
+            "label": "CRLM-CT-1111/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1180/2_.nii.gz",
+            "label": "CRLM-CT-1180/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1109/101_.nii.gz",
+            "label": "CRLM-CT-1109/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1084/2_chabdpel_5x5.nii.gz",
+            "label": "CRLM-CT-1084/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1015/7_.nii.gz",
+            "label": "CRLM-CT-1015/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1148/101_.nii.gz",
+            "label": "CRLM-CT-1148/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1036/2_.nii.gz",
+            "label": "CRLM-CT-1036/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1160/2_.nii.gz",
+            "label": "CRLM-CT-1160/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1198/101_.nii.gz",
+            "label": "CRLM-CT-1198/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1060/2_ct_abdomenpelvis.nii.gz",
+            "label": "CRLM-CT-1060/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1056/101_.nii.gz",
+            "label": "CRLM-CT-1056/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1108/102_.nii.gz",
+            "label": "CRLM-CT-1108/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1171/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1171/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1027/2_.nii.gz",
+            "label": "CRLM-CT-1027/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1190/109_.nii.gz",
+            "label": "CRLM-CT-1190/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1147/101_.nii.gz",
+            "label": "CRLM-CT-1147/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1018/101_.nii.gz",
+            "label": "CRLM-CT-1018/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1088/104_.nii.gz",
+            "label": "CRLM-CT-1088/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1184/2_ct_chabpel.nii.gz",
+            "label": "CRLM-CT-1184/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1172/2_ct_chestabd.nii.gz",
+            "label": "CRLM-CT-1172/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1029/101_.nii.gz",
+            "label": "CRLM-CT-1029/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1121/101_bind41264314545.nii.gz",
+            "label": "CRLM-CT-1121/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1173/2_.nii.gz",
+            "label": "CRLM-CT-1173/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1176/2_.nii.gz",
+            "label": "CRLM-CT-1176/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1175/101_bind56834214434.nii.gz",
+            "label": "CRLM-CT-1175/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1097/101_.nii.gz",
+            "label": "CRLM-CT-1097/mask.nii.gz"
+        },
+        {
+            "image": "CRLM-CT-1022/2_.nii.gz",
+            "label": "CRLM-CT-1022/mask.nii.gz"
+        }
+    ]
+}

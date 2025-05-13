@@ -1,0 +1,928 @@
+{
+    "training": [
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0005_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0005_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0005_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0076_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0076_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0076_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0080_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0080_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0080_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0065_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0065_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0065_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0045_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0045_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0045_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0004_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0004_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0004_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0021_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0021_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0021_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0017_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0017_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0017_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0053_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0053_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0053_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0066_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0066_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0066_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0009_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0009_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0009_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0038_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0038_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0038_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0086_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0086_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0086_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0101_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0101_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0101_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0007_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0007_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0007_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0012_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0012_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0012_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0030_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0030_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0030_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0061_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0061_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0061_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0077_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0077_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0077_mask_4label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0015_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0015_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0015_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0015_data/dataset6_CLINIC_0015_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0027_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0027_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0027_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0027_data/dataset6_CLINIC_0027_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0051_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0051_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0051_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0051_data/dataset6_CLINIC_0051_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0039_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0039_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0039_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0049_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0049_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0049_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0049_data/dataset6_CLINIC_0049_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0099_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0099_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0099_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0099_data/dataset6_CLINIC_0099_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0019_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0019_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0019_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0019_data/dataset6_CLINIC_0019_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0014_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0014_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0014_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0014_data/dataset6_CLINIC_0014_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0003_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0003_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0003_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0003_data/dataset7_CLINIC_metal_0003_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0062_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0062_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0062_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0001_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0001_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0001_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0001_data/dataset7_CLINIC_metal_0001_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0070_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0070_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0070_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0070_data/dataset6_CLINIC_0070_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0024_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0024_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0024_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0024_data/dataset6_CLINIC_0024_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0013_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0013_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0013_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0013_data/dataset6_CLINIC_0013_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0092_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0092_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0092_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0035_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0035_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0035_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0035_data/dataset6_CLINIC_0035_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0032_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0032_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0032_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0032_data/dataset6_CLINIC_0032_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0056_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0056_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0056_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0056_data/dataset6_CLINIC_0056_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0102_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0102_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0102_mask_4label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0102_data/dataset6_CLINIC_0102_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0008_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0008_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0008_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0036_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0036_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0036_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0008_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0008_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0008_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0008_data/dataset7_CLINIC_metal_0008_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0002_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0002_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0002_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0002_data/dataset6_CLINIC_0002_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0001_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0001_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0001_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0001_data/dataset6_CLINIC_0001_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0029_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0029_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0029_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0029_data/dataset6_CLINIC_0029_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0023_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0023_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0023_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0023_data/dataset6_CLINIC_0023_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0054_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0054_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0054_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0054_data/dataset6_CLINIC_0054_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0073_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0073_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0073_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0073_data/dataset6_CLINIC_0073_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0085_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0085_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0085_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0085_data/dataset6_CLINIC_0085_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0058_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0058_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0058_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0058_data/dataset6_CLINIC_0058_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0078_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0078_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0078_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0078_data/dataset6_CLINIC_0078_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0064_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0064_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0064_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0064_data/dataset6_CLINIC_0064_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0088_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0088_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0088_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0088_data/dataset6_CLINIC_0088_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0000_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0000_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0000_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0000_data/dataset7_CLINIC_metal_0000_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0081_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0081_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0081_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0081_data/dataset6_CLINIC_0081_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0003_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0003_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0003_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0003_data/dataset6_CLINIC_0003_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0089_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0089_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0089_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0089_data/dataset6_CLINIC_0089_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0069_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0069_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0069_mask_4label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0069_data/dataset6_CLINIC_0069_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0034_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0034_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0034_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0034_data/dataset6_CLINIC_0034_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0071_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0071_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0071_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0071_data/dataset6_CLINIC_0071_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0083_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0083_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0083_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0083_data/dataset6_CLINIC_0083_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0020_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0020_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0020_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0020_data/dataset6_CLINIC_0020_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0037_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0037_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0037_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0037_data/dataset6_CLINIC_0037_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0063_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0063_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0063_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0063_data/dataset6_CLINIC_0063_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0103_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0103_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0103_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0068_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0068_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0068_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0040_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0040_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0040_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0040_data/dataset6_CLINIC_0040_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0084_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0084_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0084_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0084_data/dataset6_CLINIC_0084_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0079_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0079_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0079_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0079_data/dataset6_CLINIC_0079_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0050_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0050_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0050_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0050_data/dataset6_CLINIC_0050_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0094_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0094_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0094_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0006_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0006_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0006_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0006_data/dataset6_CLINIC_0006_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0007_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0007_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0007_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0007_data/dataset7_CLINIC_metal_0007_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0072_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0072_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0072_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0072_data/dataset6_CLINIC_0072_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0090_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0090_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0090_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0090_data/dataset6_CLINIC_0090_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0093_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0093_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0093_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0093_data/dataset6_CLINIC_0093_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0098_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0098_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0098_mask_4label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0098_data/dataset6_CLINIC_0098_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0025_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0025_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0025_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0025_data/dataset6_CLINIC_0025_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0067_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0067_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0067_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0067_data/dataset6_CLINIC_0067_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0041_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0041_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0041_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0041_data/dataset6_CLINIC_0041_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0011_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0011_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0011_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0011_data/dataset6_CLINIC_0011_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0010_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0010_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0010_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0010_data/dataset6_CLINIC_0010_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0060_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0060_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0060_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0060_data/dataset6_CLINIC_0060_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0033_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0033_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0033_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0033_data/dataset6_CLINIC_0033_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0074_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0074_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0074_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0074_data/dataset6_CLINIC_0074_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0048_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0048_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0048_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0048_data/dataset6_CLINIC_0048_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0052_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0052_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0052_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0052_data/dataset6_CLINIC_0052_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0011_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0011_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0011_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0011_data/dataset7_CLINIC_metal_0011_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0012_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0012_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0012_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0012_data/dataset7_CLINIC_metal_0012_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0016_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0016_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0016_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0016_data/dataset6_CLINIC_0016_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0010_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0010_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0010_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0010_data/dataset7_CLINIC_metal_0010_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0009_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0009_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0009_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset7_CLINIC_metal_0009_data/dataset7_CLINIC_metal_0009_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0091_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0091_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0091_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0091_data/dataset6_CLINIC_0091_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0097_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0097_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0097_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0097_data/dataset6_CLINIC_0097_data_seg.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0005_data.nii.gz",
+            "pseudo_label": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0005_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0005_mask_4label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CTPelvic1K-CLINIC_100/dataset6_CLINIC_0005_data/dataset6_CLINIC_0005_data_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "sacrum",
+        "2": "left hip",
+        "3": "right hip",
+        "4": "lumbar spine"
+    },
+    "original_label_dict": {
+        "1": "sacrum",
+        "2": "left hip",
+        "3": "right hip",
+        "4": "lumbar spine"
+    },
+    "testing": [
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0082_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0082_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0031_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0031_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0013_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0013_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0059_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0059_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0002_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0002_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0095_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0095_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0042_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0042_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0057_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0057_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0026_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0026_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0100_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0100_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0075_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0075_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0006_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0006_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset7_data/dataset7_CLINIC_metal_0004_data.nii.gz",
+            "label": "CTPelvic1K_dataset7_mask/CLINIC_metal_0004_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0018_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0018_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0087_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0087_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0055_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0055_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0043_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0043_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0028_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0028_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0044_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0044_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0047_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0047_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0046_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0046_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0096_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0096_mask_4label.nii.gz"
+        },
+        {
+            "image": "CTPelvic1K_dataset6_data/dataset6_CLINIC_0022_data.nii.gz",
+            "label": "ipcai2021_dataset6_Anonymized/dataset6_CLINIC_0022_mask_4label.nii.gz"
+        }
+    ]
+}

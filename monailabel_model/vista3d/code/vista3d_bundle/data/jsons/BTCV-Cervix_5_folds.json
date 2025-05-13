@@ -1,0 +1,318 @@
+{
+    "training": [
+        {
+            "image": "FixedData/Training/img/8745574-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/8745574-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/8745574-Mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/7657884-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/7657884-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/7657884-Mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/1565722-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/1565722-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/1565722-Mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/1578068-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/1578068-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/1578068-Mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/3744998-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/3744998-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/3744998-Mask.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/5458334-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/5458334-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/5458334-Mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/5458334-Image/5458334-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/2780380-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/2780380-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/2780380-Mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "FixedData/Training/img/0507688-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/0507688-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/0507688-Mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/0507688-Image/0507688-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/6682806-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/6682806-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/6682806-Mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/6682806-Image/6682806-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/7742556-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/7742556-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/7742556-Mask.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/1411226-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/1411226-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/1411226-Mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/1411226-Image/1411226-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/3463338-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/3463338-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/3463338-Mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/6171298-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/6171298-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/6171298-Mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/6171298-Image/6171298-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/0773652-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/0773652-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/0773652-Mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/0773652-Image/0773652-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/1577656-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/1577656-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/1577656-Mask.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/1577656-Image/1577656-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/2088692-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/2088692-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/2088692-Mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/2088692-Image/2088692-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/9570942-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/9570942-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/9570942-Mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/9570942-Image/9570942-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/5502532-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/5502532-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/5502532-Mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/5502532-Image/5502532-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/2469782-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/2469782-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/2469782-Mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "FixedData/Training/img/4526856-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/4526856-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/4526856-Mask.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/4526856-Image/4526856-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/6798630-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/6798630-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/6798630-Mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/6798630-Image/6798630-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/5176452-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/5176452-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/5176452-Mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/5176452-Image/5176452-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/0763890-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/0763890-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/0763890-Mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/0763890-Image/0763890-Image_seg.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/0759564-Image.nii.gz",
+            "pseudo_label": "FixedData/Training/img/0759564-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/0759564-Mask.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/BTCV-Cervix_100/0759564-Image/0759564-Image_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "bladder",
+        "2": "prostate or uterus",
+        "3": "rectum",
+        "4": "small bowel"
+    },
+    "original_label_dict": {
+        "1": "bladder",
+        "2": "uterus",
+        "3": "rectum",
+        "4": "small bowel"
+    },
+    "testing": [
+        {
+            "image": "FixedData/Training/img/2477092-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/2477092-Mask.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/6339208-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/6339208-Mask.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/2609008-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/2609008-Mask.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/3388252-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/3388252-Mask.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/3089528-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/3089528-Mask.nii.gz"
+        },
+        {
+            "image": "FixedData/Training/img/5664630-Image.nii.gz",
+            "label": "FixedDataV2/Training/label/5664630-Mask.nii.gz"
+        }
+    ]
+}

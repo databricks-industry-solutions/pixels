@@ -1,0 +1,39 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.11.10
+- pip<=24.2
+- cuda-toolkit
+- pip:
+  - mlflow==2.21.3
+  - torch>=2.5.1
+  - numpy>=1.24.4
+  - ./artifacts/monailabel-0.8.5-py3-none-any.whl
+  - pydantic>=2.7.0
+  - numba==0.59
+  - dicomweb-client[gcp]>=0.59.1
+  - expiring_dict>=1.1.0
+  - expiringdict>=1.2.2
+  - girder-client>=3.2.3
+  - numpymaxflow>=0.0.7
+  - passlib>=1.7.4
+  - pydantic-settings>=2.2.1
+  - pydicom>=2.4.4
+  - pydicom-seg>=0.4.1
+  - pynetdicom>=2.0.2
+  - pynrrd>=1.0.0
+  - python-dotenv>=1.0.1
+  - python-multipart>=0.0.9
+  - requests-toolbelt>=1.0.0
+  - schedule>=1.2.1
+  - shapely>=2.0.4
+  - timeloop>=1.0.2
+  - uvicorn>=0.29.0
+  - fire==0.6.0
+  - watchdog==4.0.0
+  - itk>=5.2
+  - nibabel
+  - scikit-image>=0.19.0
+  - cucim-cu12
+  - databricks-sdk==0.36
+name: mlflow-env
