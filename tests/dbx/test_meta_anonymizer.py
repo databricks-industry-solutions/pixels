@@ -3,9 +3,6 @@ from databricks.sdk.core import DatabricksError
 from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
-from dbx.pixels import Catalog
-from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
-
 from conftest import (
     BASE_PATH,
     CATALOG,
@@ -17,6 +14,8 @@ from conftest import (
     VOLUME_UC,
     ZIP_FILE_PATH,
 )
+from dbx.pixels import Catalog
+from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
 
 @pytest.fixture(autouse=True)

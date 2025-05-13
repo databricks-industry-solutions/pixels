@@ -3,8 +3,6 @@ from databricks.sdk.core import DatabricksError
 from databricks.sdk.runtime import dbutils
 from pyspark.sql import SparkSession
 
-from dbx.pixels import Catalog
-
 from conftest import (
     CATALOG,
     CHECKPOINT_BASE_PATH,
@@ -13,6 +11,7 @@ from conftest import (
     TABLE,
     VOLUME_UC,
 )
+from dbx.pixels import Catalog
 
 
 @pytest.fixture(autouse=True)
