@@ -84,7 +84,6 @@ def unzip(path, unzipped_base_path):
 
     for file_name in zip_archive.namelist():
         if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
-
             logger.debug(f"- UNZIP - Unzipping file {file_name} in {path}")
 
             file_object = zip_archive.open(file_name, "r")
