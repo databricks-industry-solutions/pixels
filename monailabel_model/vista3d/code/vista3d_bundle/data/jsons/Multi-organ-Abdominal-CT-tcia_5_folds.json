@@ -1,0 +1,415 @@
+{
+    "training": [
+        {
+            "image": "images_tcia/PANCREAS_0045.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0045.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0045.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0003.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0003.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0003.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0028.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0028.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0028.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0043.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0043.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0043.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0027.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0027.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0027.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0040.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0040.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0040.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0008.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0008.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0008.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0024.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0024.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0024.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0024/PANCREAS_0024_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0016.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0016.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0016.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0016/PANCREAS_0016_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0010.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0010.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0010.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0010/PANCREAS_0010_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0011.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0011.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0011.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0032.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0032.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0032.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0032/PANCREAS_0032_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0006.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0006.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0006.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0030.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0030.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0030.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0046.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0046.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0046.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0046/PANCREAS_0046_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0005.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0005.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0005.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0005/PANCREAS_0005_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0047.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0047.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0047.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0047/PANCREAS_0047_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0034.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0034.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0034.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0034/PANCREAS_0034_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0017.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0017.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0017.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images_tcia/PANCREAS_0021.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0021.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0021.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0039.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0039.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0039.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_tcia/PANCREAS_0009.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0009.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0009.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images_tcia/PANCREAS_0022.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0022.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0022.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0022/PANCREAS_0022_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0004.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0004.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0004.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0004/PANCREAS_0004_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0019.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0019.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0019.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0019/PANCREAS_0019_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0014.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0014.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0014.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0014/PANCREAS_0014_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0013.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0013.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0013.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0013/PANCREAS_0013_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0038.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0038.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0038.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0038/PANCREAS_0038_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0048.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0048.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0048.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0048/PANCREAS_0048_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0033.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0033.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0033.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0033/PANCREAS_0033_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0042.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0042.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0042.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0042/PANCREAS_0042_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0007.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0007.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0007.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0007/PANCREAS_0007_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0002.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0002.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0002.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0002/PANCREAS_0002_seg.nii.gz"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0018.nii",
+            "pseudo_label": "images_tcia/PANCREAS_0018.nii.gz",
+            "label": "label_tcia_multiorgan+rkidney/label0018.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-tcia_100/PANCREAS_0018/PANCREAS_0018_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "pancreas",
+        "9": "duodenum"
+    },
+    "original_label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "pancreas",
+        "9": "duodenum"
+    },
+    "testing": [
+        {
+            "image": "images_tcia/PANCREAS_0029.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0029.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0041.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0041.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0012.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0012.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0044.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0044.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0020.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0020.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0026.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0026.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0031.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0031.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0035.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0035.nii"
+        },
+        {
+            "image": "images_tcia/PANCREAS_0025.nii",
+            "label": "label_tcia_multiorgan+rkidney/label0025.nii"
+        }
+    ]
+}

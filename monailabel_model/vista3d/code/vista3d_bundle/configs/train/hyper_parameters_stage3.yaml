@@ -1,0 +1,121 @@
+amp: true
+bundle_root: ./work_dir_stage3
+comments: "After training for several epoch, remove the unlabeled dataset from train_datasets."
+json_dir: ./data/jsons
+ckpt_path: $@bundle_root + '/model_fold' + str(@fold)
+model: "vista3d_segresnet_d"
+weighted_sampling: false
+drop_label_prob: 0
+drop_point_prob: 1
+finetune: {activate: true, exclude_vars: null, pretrained_ckpt_name: $'/workspace/vista3d/models/model.pt'}
+fold: 0
+image_key: image
+input_channels: 1
+iter_num: 5
+label_key: label
+label_sv_key: label_sv
+pseudo_label_key: pseudo_label
+learning_rate: 0.00002
+log_output_file: $@bundle_root + '/model_fold' + str(@fold) + '/training.log'
+loss: {_target_: DiceCELoss, include_background: false, sigmoid: true, smooth_dr: 1.0e-05, smooth_nr: 0, softmax: false, squared_pred: true,
+  to_onehot_y: false}
+lr_scheduler: {_target_: monai.optimizers.WarmupCosineSchedule, optimizer: $@optimizer,
+  t_total: $@num_epochs+1, warmup_multiplier: 0.1, warmup_steps: 0}
+max_backprompt: 4
+max_foreprompt: 32
+max_point: 3
+max_prompt: null
+num_epochs: 200
+freeze_epoch: 1000
+freeze_head: 'point'
+save_last: false
+save_all: false
+num_epochs_per_validation: 5
+num_images_per_batch: 1
+num_patches_per_image: 2
+num_patches_per_iter: 1
+optimizer: {_target_: torch.optim.AdamW, lr: '@learning_rate', weight_decay: 1.0e-05}
+output_classes: 133
+overlap_ratio: 0.5
+patch_size: [128, 128, 128]
+random_seed: 0
+resample_to_spacing: [1.5, 1.5, 1.5]
+skip_iter_prob: 1
+train_datasets: [CTPelvic1K-CLINIC, AbdomenCT-1K, AeroPath, AMOS22, BTCV-Abdomen,
+  BTCV-Cervix, CT-ORG, FLARE22, Multi-organ-Abdominal-CT-btcv, Multi-organ-Abdominal-CT-tcia,
+  Pancreas-CT, Task03, Task06, Task07, Task08, Task09, Task10, VerSe, CRLM-CT,
+  TotalSegmentatorV2, NLST, LIDC, StonyBrook-CT, TCIA_Colon]
+val_datasets: ['TotalSegmentatorV2']
+transforms_train:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    allow_missing_keys: true
+  - _target_: DeleteItemsd
+    keys: ['@label_sv_key']
+  - _target_: CropForegroundd
+    allow_smaller: true
+    end_coord_key: null
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    margin: 10
+    source_key: '@image_key'
+    start_coord_key: null
+    allow_missing_keys: true
+  - _target_: Spacingd
+    keys: ["@image_key", "@label_key", '@pseudo_label_key']
+    pixdim: [1.5, 1.5, 1.5]
+    mode: [bilinear, nearest, nearest]
+    align_corners: [true, true, true]
+    allow_missing_keys: true
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    allow_missing_keys: true
+  - _target_: EnsureTyped
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    allow_missing_keys: true
+    track_meta: false
+  - _target_: SpatialPadd
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    allow_missing_keys: true
+    mode: [constant, constant, constant]
+    spatial_size: '@patch_size'
+  - "Placeholder for dataset-specific transform"
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.int32, $torch.int32]
+    keys: ['@image_key', '@label_key', '@pseudo_label_key']
+    allow_missing_keys: true
+transforms_validate:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key', '@label_key']
+  - _target_: CropForegroundd
+    allow_smaller: true
+    keys: ['@image_key', '@label_key']
+    margin: 10
+    source_key: '@image_key'
+  - _target_: Spacingd
+    keys: ["@image_key", "@label_key"]
+    pixdim: [1.5, 1.5, 1.5]
+    mode: [bilinear, nearest]
+    align_corners: [true, true]
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key', '@label_key']
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.uint8]
+    keys: ['@image_key', '@label_key']
+  - _target_: EnsureTyped
+    keys: ['@image_key', '@label_key']
+    track_meta: true
+  - "Placeholder for dataset-specific transform"

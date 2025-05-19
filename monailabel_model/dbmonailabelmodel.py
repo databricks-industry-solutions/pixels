@@ -1,6 +1,4 @@
 import mlflow
-import pandas as pd
-import dblabelapp
 from dblabelapp import DBMONAILabelApp
 import logging
 import os
@@ -24,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
+    """
+    MONAI Label Model for Databricks serving endpoint.
+    """
     
     def __init__(self, model="segmentation", labels=None):
         self.logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
         import hashlib
         from databricks.sdk import WorkspaceClient
 
-        w = WorkspaceClient()
+        WorkspaceClient()
 
         fp = open(file_path, "rb")
         with pydicom.dcmread(fp, defer_size=1000, stop_before_pixels=True) as ds:
@@ -124,11 +125,11 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
 
     @mlflow.trace
     def infer_autosegmentation(self, series_uid):
-            from monailabel.utils.others.generic import device_list, file_ext
+            from monailabel.utils.others.generic import device_list
             from lib.configs.colors import SOME_COLORS
             
             #get image in .cache folder
-            image = self.app.datastore().get_image(series_uid)
+            self.app.datastore().get_image(series_uid)
             #get cached image uri
             image_uri = self.app.datastore().get_image_uri(series_uid)
             #get cached image infos
@@ -158,7 +159,7 @@ class DBMONAILabelModel(mlflow.pyfunc.PythonModel):
             dicom_seg_file = nifti_to_dicom_seg(image_path, res_img, label_names, use_itk=True, series_description=image_info['SeriesDescription'])
             self.logger.warning(f"Conversion completed on image: {res_img}, temp file path: {dicom_seg_file}")
 
-            label_json = result["params"]
+            result["params"]
 
             label_file = os.path.join(self.dest_dir, image_info['StudyInstanceUID'], series_uid+".dcm")
             self.logger.warning(f"Destination file path: {label_file}")
@@ -194,7 +195,7 @@ def nifti_to_dicom_seg(series_dir, label, label_info, file_ext="*", use_itk=True
     unique_labels = unique_labels[unique_labels != 0]
 
     info = label_info[0] if label_info and 0 < len(label_info) else {}
-    model_name = info.get("model_name", "AIName")
+    info.get("model_name", "AIName")
 
     segment_attributes = []
     for i, idx in enumerate(unique_labels):

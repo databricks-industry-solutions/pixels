@@ -58,7 +58,6 @@ os.environ["DEST_DIR"] = "/Volumes/main/pixels_solacc/pixels_volume/monai_servin
 
 # COMMAND ----------
 
-import dbmonailabelmodel
 from dbmonailabelmodel import DBMONAILabelModel
 
 model = DBMONAILabelModel()
@@ -75,7 +74,6 @@ model.load_context(context=None)
 # COMMAND ----------
 
 from mlflow.models import infer_signature
-from typing import Optional
 
 input_examples = [
       { "input": { "action": "info" }},                   #retrieve informations about the monailabel server

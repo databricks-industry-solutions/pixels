@@ -1,0 +1,266 @@
+{
+    "training": [
+        {
+            "image": "Adrenal_Ki67_Seg_026-Adrenal_Ki67_Seg_026/8-_OMNIPAQUE_350_VL100_FC12_ORG_8.nii.gz",
+            "label": "Adrenal_Ki67_Seg_026-Adrenal_Ki67_Seg_026/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_007-Adrenal_Ki67_Seg_007/2-AX_W_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_007-Adrenal_Ki67_Seg_007/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_027-Adrenal_Ki67_Seg_027/14-No_series_description_14.nii.gz",
+            "label": "Adrenal_Ki67_Seg_027-Adrenal_Ki67_Seg_027/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_017-Adrenal_Ki67_Seg_017/5-ABD_(2.5MM_SOFT)_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_017-Adrenal_Ki67_Seg_017/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_042-Adrenal_Ki67_Seg_042/10-No_series_description_10.nii.gz",
+            "label": "Adrenal_Ki67_Seg_042-Adrenal_Ki67_Seg_042/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_037-Adrenal_Ki67_Seg_037/2-ABD_PEL_W_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_037-Adrenal_Ki67_Seg_037/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_039-Adrenal_Ki67_Seg_039/5-3_AX_VENOUS_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_039-Adrenal_Ki67_Seg_039/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_004-Adrenal_Ki67_Seg_004/6-Venous_3.0_B31f_6.nii.gz",
+            "label": "Adrenal_Ki67_Seg_004-Adrenal_Ki67_Seg_004/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_034-Adrenal_Ki67_Seg_034/930-CAP_W_5mm_(SafeCT)_930.nii.gz",
+            "label": "Adrenal_Ki67_Seg_034-Adrenal_Ki67_Seg_034/seg-1__fix.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_031-Adrenal_Ki67_Seg_031/5-Abd_Pel_with_5.0_B30f_ST_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_031-Adrenal_Ki67_Seg_031/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_020-Adrenal_Ki67_Seg_020/5-Recon_2_ABD_PLVS_W_CONTRAST_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_020-Adrenal_Ki67_Seg_020/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_052-Adrenal_Ki67_Seg_052/10-No_series_description_10.nii.gz",
+            "label": "Adrenal_Ki67_Seg_052-Adrenal_Ki67_Seg_052/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_049-Adrenal_Ki67_Seg_049/3-CAP_W_O_5.0_I30f_3_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_049-Adrenal_Ki67_Seg_049/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_019-Adrenal_Ki67_Seg_019/13-No_series_description_13.nii.gz",
+            "label": "Adrenal_Ki67_Seg_019-Adrenal_Ki67_Seg_019/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_033-Adrenal_Ki67_Seg_033/7-CAP_AX_VENOUS_7.nii.gz",
+            "label": "Adrenal_Ki67_Seg_033-Adrenal_Ki67_Seg_033/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_015-Adrenal_Ki67_Seg_015/3-ABDOMEN_WITH_CONTRAST_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_015-Adrenal_Ki67_Seg_015/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_053-Adrenal_Ki67_Seg_053/7-ABD_AX_3_PV_7.nii.gz",
+            "label": "Adrenal_Ki67_Seg_053-Adrenal_Ki67_Seg_053/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_051-Adrenal_Ki67_Seg_051/401-ABD_AX_ART_iDose_(4)_401.nii.gz",
+            "label": "Adrenal_Ki67_Seg_051-Adrenal_Ki67_Seg_051/seg-1__fix.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_003-Adrenal_Ki67_Seg_003/2_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_003-Adrenal_Ki67_Seg_003/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_001-Adrenal_Ki67_Seg_001/5-Abd_Venous_5.0_B40f_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_001-Adrenal_Ki67_Seg_001/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_040-Adrenal_Ki67_Seg_040/3-No_series_description_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_040-Adrenal_Ki67_Seg_040/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_005-Adrenal_Ki67_Seg_005/5-No_series_description_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_005-Adrenal_Ki67_Seg_005/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_035-Adrenal_Ki67_Seg_035/7-Venous_7.nii.gz",
+            "label": "Adrenal_Ki67_Seg_035-Adrenal_Ki67_Seg_035/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_050-Adrenal_Ki67_Seg_050/201-ABDOMEN_PELVIS_W_iDose_(3)_201.nii.gz",
+            "label": "Adrenal_Ki67_Seg_050-Adrenal_Ki67_Seg_050/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_036-Adrenal_Ki67_Seg_036/5-No_series_description_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_036-Adrenal_Ki67_Seg_036/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_009-Adrenal_Ki67_Seg_009/4-Abd_Pelvis_4.nii.gz",
+            "label": "Adrenal_Ki67_Seg_009-Adrenal_Ki67_Seg_009/seg-1__fix.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_014-Adrenal_Ki67_Seg_014/3-Abd_Only_5.0_B31f_ABDOMEN_ONLY_WO_20061104105641_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_014-Adrenal_Ki67_Seg_014/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_029-Adrenal_Ki67_Seg_029/2-Abdomen_3mm_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_029-Adrenal_Ki67_Seg_029/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_030-Adrenal_Ki67_Seg_030/14-No_series_description_14.nii.gz",
+            "label": "Adrenal_Ki67_Seg_030-Adrenal_Ki67_Seg_030/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_013-Adrenal_Ki67_Seg_013/3-WITH_CONTRAST_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_013-Adrenal_Ki67_Seg_013/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_006-Adrenal_Ki67_Seg_006/4-_CE_FC01_4.nii.gz",
+            "label": "Adrenal_Ki67_Seg_006-Adrenal_Ki67_Seg_006/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_025-Adrenal_Ki67_Seg_025/103-ABD_PEL-W_103.nii.gz",
+            "label": "Adrenal_Ki67_Seg_025-Adrenal_Ki67_Seg_025/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_048-Adrenal_Ki67_Seg_048/2_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_048-Adrenal_Ki67_Seg_048/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_008-Adrenal_Ki67_Seg_008/103-THINS_103.nii.gz",
+            "label": "Adrenal_Ki67_Seg_008-Adrenal_Ki67_Seg_008/seg-1__fix.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_010-Adrenal_Ki67_Seg_010/12-180_SEC_120_OMNI_12.nii.gz",
+            "label": "Adrenal_Ki67_Seg_010-Adrenal_Ki67_Seg_010/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_002-Adrenal_Ki67_Seg_002/6-POST_FC12_ORG_6.nii.gz",
+            "label": "Adrenal_Ki67_Seg_002-Adrenal_Ki67_Seg_002/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_021-Adrenal_Ki67_Seg_021/3-VENOUS_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_021-Adrenal_Ki67_Seg_021/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_016-Adrenal_Ki67_Seg_016/2770-ABDPL_2770.nii.gz",
+            "label": "Adrenal_Ki67_Seg_016-Adrenal_Ki67_Seg_016/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_038-Adrenal_Ki67_Seg_038/3_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_038-Adrenal_Ki67_Seg_038/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_041-Adrenal_Ki67_Seg_041/2-ABD_PELVIS_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_041-Adrenal_Ki67_Seg_041/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_024-Adrenal_Ki67_Seg_024/4-ABD_PEL_W_5.0_B31s_4.nii.gz",
+            "label": "Adrenal_Ki67_Seg_024-Adrenal_Ki67_Seg_024/seg-1__fix.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_012-Adrenal_Ki67_Seg_012/5-VENOGRAM_5.nii.gz",
+            "label": "Adrenal_Ki67_Seg_012-Adrenal_Ki67_Seg_012/seg-1__fix.nii.gz",
+            "fold": 4
+        }
+    ],
+    "testing": [
+        {
+            "image": "Adrenal_Ki67_Seg_011-Adrenal_Ki67_Seg_011/2-ABDOMEN_AXIAL_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_011-Adrenal_Ki67_Seg_011/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_045-Adrenal_Ki67_Seg_045/2-CHEST_ABD_WITH_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_045-Adrenal_Ki67_Seg_045/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_018-Adrenal_Ki67_Seg_018/13-No_series_description_13.nii.gz",
+            "label": "Adrenal_Ki67_Seg_018-Adrenal_Ki67_Seg_018/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_023-Adrenal_Ki67_Seg_023/2-AXIALS_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_023-Adrenal_Ki67_Seg_023/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_043-Adrenal_Ki67_Seg_043/10-No_series_description_10.nii.gz",
+            "label": "Adrenal_Ki67_Seg_043-Adrenal_Ki67_Seg_043/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_028-Adrenal_Ki67_Seg_028/3-UROGRAM_WITH_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_028-Adrenal_Ki67_Seg_028/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_044-Adrenal_Ki67_Seg_044/3-Recon_2_AXIAL_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_044-Adrenal_Ki67_Seg_044/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_047-Adrenal_Ki67_Seg_047/2-ABD_PELV_SFT_TISSUE_3X3_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_047-Adrenal_Ki67_Seg_047/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_046-Adrenal_Ki67_Seg_046/4-No_series_description_4.nii.gz",
+            "label": "Adrenal_Ki67_Seg_046-Adrenal_Ki67_Seg_046/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_032-Adrenal_Ki67_Seg_032/3-ST_3.nii.gz",
+            "label": "Adrenal_Ki67_Seg_032-Adrenal_Ki67_Seg_032/seg-1__fix.nii.gz"
+        },
+        {
+            "image": "Adrenal_Ki67_Seg_022-Adrenal_Ki67_Seg_022/2_2.nii.gz",
+            "label": "Adrenal_Ki67_Seg_022-Adrenal_Ki67_Seg_022/seg-1__fix.nii.gz"
+        }
+    ],
+    "label_dict": {
+        "1": "adrenocortical tumor"
+    },
+    "original_label_dict": {
+        "1": "adrenocortical tumor"
+    }
+}

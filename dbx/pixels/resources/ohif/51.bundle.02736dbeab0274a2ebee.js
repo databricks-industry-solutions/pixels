@@ -1883,10 +1883,14 @@ const commandsModule = _ref => {
       labelmapObj.segmentsOnLabelmap.forEach(segmentIndex => {
         // segmentation service already has a color for each segment
         const segment = segmentationInOHIF?.segments[segmentIndex];
-        const {
-          label,
-          color
-        } = segment;
+        var label = "unknown"
+        var color = [255, 255, 255]
+        if (segment !== undefined) {
+          var {
+            label,
+            color
+          } = segment;
+        }
         const RecommendedDisplayCIELabValue = dcmjs_es["default"].data.Colors.rgb2DICOMLAB(color.slice(0, 3).map(value => value / 255)).map(value => Math.round(value));
         const segmentMetadata = {
           SegmentNumber: segmentIndex.toString(),

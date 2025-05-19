@@ -1,0 +1,667 @@
+{
+    "training": [
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0008.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0008.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0008.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0019.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0019.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0019.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0068.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0068.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0068.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0067.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0067.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0067.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0031.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0031.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0031.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0072.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0072.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0072.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0005.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0005.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0005.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0006.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0006.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0006.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0014.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0014.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0014.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0017.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0017.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0017.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0002.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0002.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0002.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0079.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0079.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0079.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0028.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0028.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0028.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0004.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0004.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0004.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0004/PANCREAS_0004_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0077.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0077.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0077.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0077/PANCREAS_0077_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0020.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0020.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0020.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0020/PANCREAS_0020_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0054.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0054.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0054.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0054/PANCREAS_0054_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0052.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0052.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0052.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0052/PANCREAS_0052_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0081.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0081.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0081.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0081/PANCREAS_0081_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0034.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0034.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0034.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0034/PANCREAS_0034_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0041.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0041.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0041.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0041/PANCREAS_0041_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0033.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0033.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0033.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0033/PANCREAS_0033_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0001.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0001.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0001.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0001/PANCREAS_0001_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0064.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0064.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0064.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0064/PANCREAS_0064_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0040.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0040.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0040.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0040/PANCREAS_0040_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0011.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0011.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0011.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0011/PANCREAS_0011_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0059.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0059.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0059.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0059/PANCREAS_0059_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0046.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0046.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0046.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0046/PANCREAS_0046_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0024.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0024.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0024.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0024/PANCREAS_0024_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0039.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0039.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0039.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0039/PANCREAS_0039_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0074.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0074.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0074.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0074/PANCREAS_0074_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0010.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0010.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0010.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0010/PANCREAS_0010_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0012.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0012.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0012.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0012/PANCREAS_0012_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0078.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0078.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0078.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0078/PANCREAS_0078_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0066.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0066.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0066.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0066/PANCREAS_0066_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0003.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0003.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0003.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0003/PANCREAS_0003_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0071.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0071.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0071.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0071/PANCREAS_0071_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0026.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0026.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0026.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0026/PANCREAS_0026_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0063.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0063.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0063.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0063/PANCREAS_0063_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0069.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0069.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0069.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0069/PANCREAS_0069_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0042.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0042.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0042.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0042/PANCREAS_0042_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0037.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0037.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0037.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0053.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0053.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0053.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0053/PANCREAS_0053_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0050.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0050.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0050.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0050/PANCREAS_0050_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0007.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0007.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0007.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0007/PANCREAS_0007_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0009.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0009.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0009.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0009/PANCREAS_0009_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0049.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0049.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0049.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0049/PANCREAS_0049_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0036.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0036.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0036.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0036/PANCREAS_0036_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0051.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0051.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0051.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0051/PANCREAS_0051_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0035.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0035.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0035.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0035/PANCREAS_0035_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0061.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0061.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0061.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0061/PANCREAS_0061_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0013.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0013.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0013.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0013/PANCREAS_0013_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0057.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0057.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0057.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0057/PANCREAS_0057_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0015.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0015.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0015.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0015/PANCREAS_0015_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0055.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0055.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0055.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0055/PANCREAS_0055_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0030.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0030.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0030.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0030/PANCREAS_0030_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0062.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0062.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0062.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0062/PANCREAS_0062_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0021.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0021.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0021.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0021/PANCREAS_0021_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0038.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0038.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0038.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0038/PANCREAS_0038_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0065.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0065.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0065.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0065/PANCREAS_0065_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0032.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0032.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0032.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0032/PANCREAS_0032_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0016.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0016.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0016.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0016/PANCREAS_0016_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0080.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0080.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0080.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0080/PANCREAS_0080_seg.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0023.nii.gz",
+            "pseudo_label": "manifest-1599750808610/nifti/PANCREAS_0023.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0023.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Pancreas-CT_100/PANCREAS_0023/PANCREAS_0023_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "pancreas"
+    },
+    "original_label_dict": {
+        "1": "pancreas"
+    },
+    "testing": [
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0082.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0082.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0060.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0060.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0073.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0073.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0043.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0043.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0058.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0058.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0027.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0027.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0076.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0076.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0075.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0075.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0018.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0018.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0056.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0056.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0044.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0044.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0029.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0029.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0045.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0045.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0048.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0048.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0047.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0047.nii.gz"
+        },
+        {
+            "image": "manifest-1599750808610/nifti/PANCREAS_0022.nii.gz",
+            "label": "TCIA_pancreas_labels-02-05-2017/label0022.nii.gz"
+        }
+    ]
+}

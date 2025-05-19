@@ -1,0 +1,163 @@
+amp: true
+train_number: 89
+comment: 'finetune on murine datasets.'
+bundle_root: $'./work_dir_ft_final_finetune_murine_' +  str(@train_number)
+label_set: [0,1,2,3,4]
+mapped_label_set: [0,115,121,30,28]
+model: "vista3d_segresnet_d"
+use_folds: true
+data_file_base_dir: '/data/micro-ct-murine/1_nativeCTdata_nifti/'
+data_list_file_path: './data/external/micro-ct-murine-native_5_folds.json'
+ckpt_path: $@bundle_root + '/model_fold' + str(@fold)
+drop_label_prob: 0
+drop_point_prob: 1
+finetune: {activate: true, exclude_vars: null, pretrained_ckpt_name: $'/workspace/vista3d/models/model.pt'}
+fold: 0
+image_key: image
+input_channels: 1
+iter_num: 5
+label_key: label
+learning_rate: 0.00005
+log_output_file: $@bundle_root + '/model_fold' + str(@fold) + '/finetune_word.log'
+loss: {_target_: DiceCELoss, include_background: false, sigmoid: true, smooth_dr: 1.0e-05, smooth_nr: 0, softmax: false, squared_pred: true,
+  to_onehot_y: false}
+lr_scheduler: {_target_: monai.optimizers.WarmupCosineSchedule, optimizer: $@optimizer,
+  t_total: $@num_epochs+1, warmup_multiplier: 0.1, warmup_steps: 0}
+max_backprompt: null
+max_foreprompt: null
+ignore_labelset: false
+max_point: 3
+max_prompt: null
+num_epochs: 200
+freeze_epoch: 0
+freeze_head: 'point'
+save_last: false
+save_all: false
+num_epochs_per_validation: 5
+num_images_per_batch: 1
+num_patches_per_image: 2
+num_patches_per_iter: 1
+optimizer: {_target_: torch.optim.AdamW, lr: '@learning_rate', weight_decay: 1.0e-05}
+output_classes: 133
+overlap_ratio: 0.625
+patch_size: [224, 224, 144]
+random_seed: 0
+skip_iter_prob: 1
+transforms_train:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key', '@label_key']
+    allow_missing_keys: true
+  - _target_: CropForegroundd
+    allow_smaller: true
+    end_coord_key: null
+    keys: ['@image_key', '@label_key']
+    margin: 10
+    source_key: '@image_key'
+    start_coord_key: null
+    allow_missing_keys: true
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key', '@label_key']
+    allow_missing_keys: true
+  - _target_: EnsureTyped
+    keys: ['@image_key', '@label_key']
+    allow_missing_keys: true
+    track_meta: false
+  - _target_: SpatialPadd
+    keys: ['@image_key', '@label_key']
+    allow_missing_keys: true
+    mode: [constant, constant]
+    spatial_size: '@patch_size'
+  - _target_: RandCropByLabelClassesd
+    keys:
+      - '@image_key'
+      - '@label_key'
+    label_key: '@label_key'
+    num_classes: 5
+    num_samples: '@num_patches_per_image'
+    spatial_size: '@patch_size'
+    ratios: $tuple(float(i >= 0) for i in range(5))
+    warn: false
+    allow_missing_keys: true
+  - _target_: RandZoomd
+    keys:
+      - '@image_key'
+      - '@label_key'
+    min_zoom: 0.8
+    max_zoom: 1.2
+    mode:
+      - trilinear
+      - nearest
+    prob: 0.2
+    allow_missing_keys: true
+  - _target_: RandSimulateLowResolutiond
+    keys:
+      - '@image_key'
+    zoom_range:
+      - 0.3
+      - 1
+    prob: 0.2
+    allow_missing_keys: true
+  - _target_: RandGaussianSmoothd
+    keys:
+      - '@image_key'
+    prob: 0.2
+    sigma_x:
+      - 0.5
+      - 1
+    sigma_y:
+      - 0.5
+      - 1
+    sigma_z:
+      - 0.5
+      - 1
+  - _target_: RandScaleIntensityd
+    keys:
+      - '@image_key'
+    factors: 0.1
+    prob: 0.2
+  - _target_: RandShiftIntensityd
+    keys:
+      - '@image_key'
+    offsets: 0.1
+    prob: 0.2
+  - _target_: RandGaussianNoised
+    keys:
+      - '@image_key'
+    prob: 0.2
+    mean: 0
+    std: 0.2
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.int32]
+    keys: ['@image_key', '@label_key']
+    allow_missing_keys: true
+
+transforms_validate:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key', '@label_key']
+  - _target_: CopyItemsd
+    names: 'label_gt'
+    keys: '@label_key'
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key', '@label_key']
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.uint8]
+    keys: ['@image_key', '@label_key']
+  - _target_: EnsureTyped
+    keys: ['@image_key', '@label_key']
+    track_meta: true
+
+transforms_infer: $@transforms_validate
