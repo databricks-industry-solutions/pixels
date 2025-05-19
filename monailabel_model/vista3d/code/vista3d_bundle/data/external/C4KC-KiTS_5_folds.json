@@ -1,0 +1,1022 @@
+{
+    "training": [
+        {
+            "image": "KiTS-00186/2_arterial.nii.gz",
+            "label": "KiTS-00186/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00066/3_arterial.nii.gz",
+            "label": "KiTS-00066/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00012/2_arterial.nii.gz",
+            "label": "KiTS-00012/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00055/2_arterial.nii.gz",
+            "label": "KiTS-00055/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00193/100_arterial.nii.gz",
+            "label": "KiTS-00193/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00142/7_arterial.nii.gz",
+            "label": "KiTS-00142/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00069/3_arterial.nii.gz",
+            "label": "KiTS-00069/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00124/2_arterial.nii.gz",
+            "label": "KiTS-00124/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00208/2_arterial.nii.gz",
+            "label": "KiTS-00208/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00116/9_arterial.nii.gz",
+            "label": "KiTS-00116/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00156/9_arterial.nii.gz",
+            "label": "KiTS-00156/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00048/2_arterial.nii.gz",
+            "label": "KiTS-00048/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00085/5_arterial.nii.gz",
+            "label": "KiTS-00085/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00080/3_arterial.nii.gz",
+            "label": "KiTS-00080/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00001/5_arterial.nii.gz",
+            "label": "KiTS-00001/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00026/9_arterial.nii.gz",
+            "label": "KiTS-00026/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00031/3_arterial.nii.gz",
+            "label": "KiTS-00031/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00007/5_arterial.nii.gz",
+            "label": "KiTS-00007/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00016/2_arterial.nii.gz",
+            "label": "KiTS-00016/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00042/7_arterial.nii.gz",
+            "label": "KiTS-00042/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00140/6_arterial.nii.gz",
+            "label": "KiTS-00140/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00008/3_arterial.nii.gz",
+            "label": "KiTS-00008/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00024/2_arterial.nii.gz",
+            "label": "KiTS-00024/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00067/2_arterial.nii.gz",
+            "label": "KiTS-00067/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00092/6_arterial.nii.gz",
+            "label": "KiTS-00092/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00047/4_arterial.nii.gz",
+            "label": "KiTS-00047/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00165/3_arterial.nii.gz",
+            "label": "KiTS-00165/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00051/4_arterial.nii.gz",
+            "label": "KiTS-00051/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00006/4_arterial.nii.gz",
+            "label": "KiTS-00006/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00192/2_arterial.nii.gz",
+            "label": "KiTS-00192/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00044/2_arterial.nii.gz",
+            "label": "KiTS-00044/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00005/6_arterial.nii.gz",
+            "label": "KiTS-00005/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00177/2_arterial.nii.gz",
+            "label": "KiTS-00177/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00157/9_arterial.nii.gz",
+            "label": "KiTS-00157/mask.nii.gz",
+            "fold": 0
+        },
+        {
+            "image": "KiTS-00061/4_arterial.nii.gz",
+            "label": "KiTS-00061/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00040/3_arterial.nii.gz",
+            "label": "KiTS-00040/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00068/7_arterial.nii.gz",
+            "label": "KiTS-00068/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00036/2_arterial.nii.gz",
+            "label": "KiTS-00036/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00153/8_arterial.nii.gz",
+            "label": "KiTS-00153/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00189/2_arterial.nii.gz",
+            "label": "KiTS-00189/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00091/7_arterial.nii.gz",
+            "label": "KiTS-00091/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00110/3_arterial.nii.gz",
+            "label": "KiTS-00110/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00046/2_arterial.nii.gz",
+            "label": "KiTS-00046/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00178/3_arterial.nii.gz",
+            "label": "KiTS-00178/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00075/2_arterial.nii.gz",
+            "label": "KiTS-00075/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00037/6_arterial.nii.gz",
+            "label": "KiTS-00037/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00130/9_arterial.nii.gz",
+            "label": "KiTS-00130/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00063/6_arterial.nii.gz",
+            "label": "KiTS-00063/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00205/4_arterial.nii.gz",
+            "label": "KiTS-00205/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00167/2_arterial.nii.gz",
+            "label": "KiTS-00167/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00059/8_arterial.nii.gz",
+            "label": "KiTS-00059/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00172/3_arterial.nii.gz",
+            "label": "KiTS-00172/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00093/7_arterial.nii.gz",
+            "label": "KiTS-00093/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00197/2_arterial.nii.gz",
+            "label": "KiTS-00197/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00081/5_arterial.nii.gz",
+            "label": "KiTS-00081/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00203/3_arterial.nii.gz",
+            "label": "KiTS-00203/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00089/9_arterial.nii.gz",
+            "label": "KiTS-00089/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00198/4_arterial.nii.gz",
+            "label": "KiTS-00198/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00187/2_arterial.nii.gz",
+            "label": "KiTS-00187/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00064/5_arterial.nii.gz",
+            "label": "KiTS-00064/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00191/3_arterial.nii.gz",
+            "label": "KiTS-00191/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00078/5_arterial.nii.gz",
+            "label": "KiTS-00078/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00179/2_arterial.nii.gz",
+            "label": "KiTS-00179/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00022/7_arterial.nii.gz",
+            "label": "KiTS-00022/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00196/6_arterial.nii.gz",
+            "label": "KiTS-00196/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00175/2_arterial.nii.gz",
+            "label": "KiTS-00175/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00131/5_arterial.nii.gz",
+            "label": "KiTS-00131/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00149/4_arterial.nii.gz",
+            "label": "KiTS-00149/mask.nii.gz",
+            "fold": 1
+        },
+        {
+            "image": "KiTS-00088/2_arterial.nii.gz",
+            "label": "KiTS-00088/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00202/3_arterial.nii.gz",
+            "label": "KiTS-00202/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00087/4_arterial.nii.gz",
+            "label": "KiTS-00087/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00035/2_arterial.nii.gz",
+            "label": "KiTS-00035/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00019/2_arterial.nii.gz",
+            "label": "KiTS-00019/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00166/6_arterial.nii.gz",
+            "label": "KiTS-00166/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00206/5_arterial.nii.gz",
+            "label": "KiTS-00206/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00152/3_arterial.nii.gz",
+            "label": "KiTS-00152/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00168/3_arterial.nii.gz",
+            "label": "KiTS-00168/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00011/3_arterial.nii.gz",
+            "label": "KiTS-00011/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00071/9_arterial.nii.gz",
+            "label": "KiTS-00071/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00123/3_arterial.nii.gz",
+            "label": "KiTS-00123/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00103/8_arterial.nii.gz",
+            "label": "KiTS-00103/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00000/7_arterial.nii.gz",
+            "label": "KiTS-00000/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00151/7_arterial.nii.gz",
+            "label": "KiTS-00151/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00018/5_arterial.nii.gz",
+            "label": "KiTS-00018/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00070/2_arterial.nii.gz",
+            "label": "KiTS-00070/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00134/3_arterial.nii.gz",
+            "label": "KiTS-00134/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00129/3_arterial.nii.gz",
+            "label": "KiTS-00129/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00122/5_arterial.nii.gz",
+            "label": "KiTS-00122/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00045/6_arterial.nii.gz",
+            "label": "KiTS-00045/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00132/7_arterial.nii.gz",
+            "label": "KiTS-00132/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00104/4_arterial.nii.gz",
+            "label": "KiTS-00104/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00015/5_arterial.nii.gz",
+            "label": "KiTS-00015/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00194/2_arterial.nii.gz",
+            "label": "KiTS-00194/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00041/3_arterial.nii.gz",
+            "label": "KiTS-00041/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00029/2_arterial.nii.gz",
+            "label": "KiTS-00029/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00023/4_arterial.nii.gz",
+            "label": "KiTS-00023/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00079/3_arterial.nii.gz",
+            "label": "KiTS-00079/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00060/2_arterial.nii.gz",
+            "label": "KiTS-00060/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00094/4_arterial.nii.gz",
+            "label": "KiTS-00094/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00077/2_arterial.nii.gz",
+            "label": "KiTS-00077/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00053/7_arterial.nii.gz",
+            "label": "KiTS-00053/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00115/14_arterial.nii.gz",
+            "label": "KiTS-00115/mask.nii.gz",
+            "fold": 2
+        },
+        {
+            "image": "KiTS-00148/4_arterial.nii.gz",
+            "label": "KiTS-00148/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00098/7_arterial.nii.gz",
+            "label": "KiTS-00098/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00010/4_arterial.nii.gz",
+            "label": "KiTS-00010/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00057/5_arterial.nii.gz",
+            "label": "KiTS-00057/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00160/12_arterial.nii.gz",
+            "label": "KiTS-00160/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00099/2_arterial.nii.gz",
+            "label": "KiTS-00099/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00127/5_arterial.nii.gz",
+            "label": "KiTS-00127/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00188/2_arterial.nii.gz",
+            "label": "KiTS-00188/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00195/2_arterial.nii.gz",
+            "label": "KiTS-00195/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00128/3_arterial.nii.gz",
+            "label": "KiTS-00128/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00204/5_arterial.nii.gz",
+            "label": "KiTS-00204/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00154/9_arterial.nii.gz",
+            "label": "KiTS-00154/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00118/6_arterial.nii.gz",
+            "label": "KiTS-00118/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00032/2_arterial.nii.gz",
+            "label": "KiTS-00032/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00083/2_arterial.nii.gz",
+            "label": "KiTS-00083/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00073/2_arterial.nii.gz",
+            "label": "KiTS-00073/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00049/6_arterial.nii.gz",
+            "label": "KiTS-00049/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00141/7_arterial.nii.gz",
+            "label": "KiTS-00141/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00164/2_arterial.nii.gz",
+            "label": "KiTS-00164/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00200/4_arterial.nii.gz",
+            "label": "KiTS-00200/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00121/2_arterial.nii.gz",
+            "label": "KiTS-00121/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00139/2_arterial.nii.gz",
+            "label": "KiTS-00139/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00084/6_arterial.nii.gz",
+            "label": "KiTS-00084/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00137/5_arterial.nii.gz",
+            "label": "KiTS-00137/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00150/3_arterial.nii.gz",
+            "label": "KiTS-00150/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00074/3_arterial.nii.gz",
+            "label": "KiTS-00074/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00039/2_arterial.nii.gz",
+            "label": "KiTS-00039/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00020/2_arterial.nii.gz",
+            "label": "KiTS-00020/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00108/8_arterial.nii.gz",
+            "label": "KiTS-00108/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00038/2_arterial.nii.gz",
+            "label": "KiTS-00038/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00117/4_arterial.nii.gz",
+            "label": "KiTS-00117/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00004/7_arterial.nii.gz",
+            "label": "KiTS-00004/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00030/4_arterial.nii.gz",
+            "label": "KiTS-00030/mask.nii.gz",
+            "fold": 3
+        },
+        {
+            "image": "KiTS-00100/6_arterial.nii.gz",
+            "label": "KiTS-00100/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00113/2_arterial.nii.gz",
+            "label": "KiTS-00113/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00114/11_arterial.nii.gz",
+            "label": "KiTS-00114/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00105/9_arterial.nii.gz",
+            "label": "KiTS-00105/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00050/3_arterial.nii.gz",
+            "label": "KiTS-00050/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00159/7_arterial.nii.gz",
+            "label": "KiTS-00159/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00097/2_arterial.nii.gz",
+            "label": "KiTS-00097/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00013/2_arterial.nii.gz",
+            "label": "KiTS-00013/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00155/7_arterial.nii.gz",
+            "label": "KiTS-00155/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00120/7_arterial.nii.gz",
+            "label": "KiTS-00120/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00207/2_arterial.nii.gz",
+            "label": "KiTS-00207/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00125/2_arterial.nii.gz",
+            "label": "KiTS-00125/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00033/3_arterial.nii.gz",
+            "label": "KiTS-00033/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00112/3_arterial.nii.gz",
+            "label": "KiTS-00112/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00181/2_arterial.nii.gz",
+            "label": "KiTS-00181/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00056/2_arterial.nii.gz",
+            "label": "KiTS-00056/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00111/2_arterial.nii.gz",
+            "label": "KiTS-00111/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00162/3_arterial.nii.gz",
+            "label": "KiTS-00162/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00144/2_arterial.nii.gz",
+            "label": "KiTS-00144/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00043/3_arterial.nii.gz",
+            "label": "KiTS-00043/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00096/7_arterial.nii.gz",
+            "label": "KiTS-00096/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00076/6_arterial.nii.gz",
+            "label": "KiTS-00076/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00185/6_arterial.nii.gz",
+            "label": "KiTS-00185/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00065/5_arterial.nii.gz",
+            "label": "KiTS-00065/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00062/2_arterial.nii.gz",
+            "label": "KiTS-00062/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00163/3_arterial.nii.gz",
+            "label": "KiTS-00163/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00176/3_arterial.nii.gz",
+            "label": "KiTS-00176/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00161/5_arterial.nii.gz",
+            "label": "KiTS-00161/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00101/6_arterial.nii.gz",
+            "label": "KiTS-00101/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00028/2_arterial.nii.gz",
+            "label": "KiTS-00028/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00009/5_arterial.nii.gz",
+            "label": "KiTS-00009/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00199/2_arterial.nii.gz",
+            "label": "KiTS-00199/mask.nii.gz",
+            "fold": 4
+        },
+        {
+            "image": "KiTS-00143/2_arterial.nii.gz",
+            "label": "KiTS-00143/mask.nii.gz",
+            "fold": 4
+        }
+    ],
+    "testing": [
+        {
+            "image": "KiTS-00002/10_arterial.nii.gz",
+            "label": "KiTS-00002/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00003/7_arterial.nii.gz",
+            "label": "KiTS-00003/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00133/2_arterial.nii.gz",
+            "label": "KiTS-00133/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00052/7_arterial.nii.gz",
+            "label": "KiTS-00052/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00136/8_arterial.nii.gz",
+            "label": "KiTS-00136/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00180/5_arterial.nii.gz",
+            "label": "KiTS-00180/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00126/2_arterial.nii.gz",
+            "label": "KiTS-00126/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00102/7_arterial.nii.gz",
+            "label": "KiTS-00102/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00072/2_arterial.nii.gz",
+            "label": "KiTS-00072/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00138/301_arterial.nii.gz",
+            "label": "KiTS-00138/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00090/5_arterial.nii.gz",
+            "label": "KiTS-00090/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00147/6_arterial.nii.gz",
+            "label": "KiTS-00147/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00135/8_arterial.nii.gz",
+            "label": "KiTS-00135/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00109/3_arterial.nii.gz",
+            "label": "KiTS-00109/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00190/2_arterial.nii.gz",
+            "label": "KiTS-00190/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00183/8_arterial.nii.gz",
+            "label": "KiTS-00183/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00107/2_arterial.nii.gz",
+            "label": "KiTS-00107/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00082/2_arterial.nii.gz",
+            "label": "KiTS-00082/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00014/3_arterial.nii.gz",
+            "label": "KiTS-00014/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00146/6_arterial.nii.gz",
+            "label": "KiTS-00146/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00034/3_arterial.nii.gz",
+            "label": "KiTS-00034/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00158/6_arterial.nii.gz",
+            "label": "KiTS-00158/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00209/2_arterial.nii.gz",
+            "label": "KiTS-00209/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00058/2_arterial.nii.gz",
+            "label": "KiTS-00058/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00054/2_arterial.nii.gz",
+            "label": "KiTS-00054/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00106/2_arterial.nii.gz",
+            "label": "KiTS-00106/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00169/4_arterial.nii.gz",
+            "label": "KiTS-00169/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00184/2_arterial.nii.gz",
+            "label": "KiTS-00184/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00025/3_arterial.nii.gz",
+            "label": "KiTS-00025/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00201/3_arterial.nii.gz",
+            "label": "KiTS-00201/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00145/4_arterial_soft.nii.gz",
+            "label": "KiTS-00145/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00017/2_arterial.nii.gz",
+            "label": "KiTS-00017/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00086/4_arterial.nii.gz",
+            "label": "KiTS-00086/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00182/2_arterial.nii.gz",
+            "label": "KiTS-00182/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00170/4_arterial.nii.gz",
+            "label": "KiTS-00170/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00027/8_arterial.nii.gz",
+            "label": "KiTS-00027/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00119/2_arterial.nii.gz",
+            "label": "KiTS-00119/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00171/2_arterial.nii.gz",
+            "label": "KiTS-00171/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00174/5_arterial.nii.gz",
+            "label": "KiTS-00174/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00173/2_arterial.nii.gz",
+            "label": "KiTS-00173/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00095/6_arterial.nii.gz",
+            "label": "KiTS-00095/mask.nii.gz"
+        },
+        {
+            "image": "KiTS-00021/6_arterial.nii.gz",
+            "label": "KiTS-00021/mask.nii.gz"
+        }
+    ],
+    "label_dict": {
+        "1": "kidney",
+        "2": "kidney mass"
+    },
+    "original_label_dict": {
+        "1": "Kidney",
+        "2": "Mass"
+    }
+}

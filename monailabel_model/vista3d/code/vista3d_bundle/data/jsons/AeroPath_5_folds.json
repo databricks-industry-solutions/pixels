@@ -1,0 +1,297 @@
+{
+    "training": [
+        {
+            "image": "8/8_CT_HR.nii.gz",
+            "pseudo_label": "8/8_CT_HR.nii.gz",
+            "label": "8/8_CT_HR_label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "6/6_CT_HR.nii.gz",
+            "pseudo_label": "6/6_CT_HR.nii.gz",
+            "label": "6/6_CT_HR_label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "14/14_CT_HR.nii.gz",
+            "pseudo_label": "14/14_CT_HR.nii.gz",
+            "label": "14/14_CT_HR_label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "16/16_CT_HR.nii.gz",
+            "pseudo_label": "16/16_CT_HR.nii.gz",
+            "label": "16/16_CT_HR_label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "15/15_CT_HR.nii.gz",
+            "pseudo_label": "15/15_CT_HR.nii.gz",
+            "label": "15/15_CT_HR_label.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "27/27_CT_HR.nii.gz",
+            "pseudo_label": "27/27_CT_HR.nii.gz",
+            "label": "27/27_CT_HR_label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/27_CT_HR/27_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "20/20_CT_HR.nii.gz",
+            "pseudo_label": "20/20_CT_HR.nii.gz",
+            "label": "20/20_CT_HR_label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/20_CT_HR/20_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "1/1_CT_HR.nii.gz",
+            "pseudo_label": "1/1_CT_HR.nii.gz",
+            "label": "1/1_CT_HR_label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/1_CT_HR/1_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "18/18_CT_HR.nii.gz",
+            "pseudo_label": "18/18_CT_HR.nii.gz",
+            "label": "18/18_CT_HR_label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/18_CT_HR/18_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "25/25_CT_HR.nii.gz",
+            "pseudo_label": "25/25_CT_HR.nii.gz",
+            "label": "25/25_CT_HR_label.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/25_CT_HR/25_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "13/13_CT_HR.nii.gz",
+            "pseudo_label": "13/13_CT_HR.nii.gz",
+            "label": "13/13_CT_HR_label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/13_CT_HR/13_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "23/23_CT_HR.nii.gz",
+            "pseudo_label": "23/23_CT_HR.nii.gz",
+            "label": "23/23_CT_HR_label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/23_CT_HR/23_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "5/5_CT_HR.nii.gz",
+            "pseudo_label": "5/5_CT_HR.nii.gz",
+            "label": "5/5_CT_HR_label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/5_CT_HR/5_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "10/10_CT_HR.nii.gz",
+            "pseudo_label": "10/10_CT_HR.nii.gz",
+            "label": "10/10_CT_HR_label.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/10_CT_HR/10_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "17/17_CT_HR.nii.gz",
+            "pseudo_label": "17/17_CT_HR.nii.gz",
+            "label": "17/17_CT_HR_label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/17_CT_HR/17_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "12/12_CT_HR.nii.gz",
+            "pseudo_label": "12/12_CT_HR.nii.gz",
+            "label": "12/12_CT_HR_label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/12_CT_HR/12_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "3/3_CT_HR.nii.gz",
+            "pseudo_label": "3/3_CT_HR.nii.gz",
+            "label": "3/3_CT_HR_label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/3_CT_HR/3_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "24/24_CT_HR.nii.gz",
+            "pseudo_label": "24/24_CT_HR.nii.gz",
+            "label": "24/24_CT_HR_label.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/24_CT_HR/24_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "9/9_CT_HR.nii.gz",
+            "pseudo_label": "9/9_CT_HR.nii.gz",
+            "label": "9/9_CT_HR_label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/9_CT_HR/9_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "26/26_CT_HR.nii.gz",
+            "pseudo_label": "26/26_CT_HR.nii.gz",
+            "label": "26/26_CT_HR_label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/26_CT_HR/26_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "11/11_CT_HR.nii.gz",
+            "pseudo_label": "11/11_CT_HR.nii.gz",
+            "label": "11/11_CT_HR_label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/11_CT_HR/11_CT_HR_seg.nii.gz"
+        },
+        {
+            "image": "7/7_CT_HR.nii.gz",
+            "pseudo_label": "7/7_CT_HR.nii.gz",
+            "label": "7/7_CT_HR_label.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/AeroPath_100/7_CT_HR/7_CT_HR_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "2": "airway"
+    },
+    "original_label_dict": {
+        "1": "lung",
+        "2": "airway"
+    },
+    "testing": [
+        {
+            "image": "19/19_CT_HR.nii.gz",
+            "label": "19/19_CT_HR_label.nii.gz"
+        },
+        {
+            "image": "2/2_CT_HR.nii.gz",
+            "label": "2/2_CT_HR_label.nii.gz"
+        },
+        {
+            "image": "22/22_CT_HR.nii.gz",
+            "label": "22/22_CT_HR_label.nii.gz"
+        },
+        {
+            "image": "21/21_CT_HR.nii.gz",
+            "label": "21/21_CT_HR_label.nii.gz"
+        },
+        {
+            "image": "4/4_CT_HR.nii.gz",
+            "label": "4/4_CT_HR_label.nii.gz"
+        }
+    ]
+}
