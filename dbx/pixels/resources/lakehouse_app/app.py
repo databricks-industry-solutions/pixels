@@ -10,21 +10,17 @@ import uvicorn
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
-from mlflow.deployments import get_deploy_client
 from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 import dbx.pixels.resources
 
-client = get_deploy_client("databricks")
-
 cfg = Config()
-os.environ["DATABRICKS_TOKEN"] = cfg.authenticate()["Authorization"].split(" ")[1]
-os.environ["DATABRICKS_HOST"] = f"https://{os.environ['DATABRICKS_HOST']}"
 
 warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
 
@@ -43,7 +39,6 @@ tracking = ["mlflow", ""]
 
 app = FastAPI(title="Pixels")
 
-# TODO Implement multi step communication between ohif viewer and serving endpoint
 cache_segmentations = {}
 
 
@@ -53,14 +48,13 @@ def get_pixels_table(request: Request):
     else:
         return os.environ["DATABRICKS_PIXELS_TABLE"]
 
-
 def get_seg_dest_dir(request: Request):
     if request.cookies.get("seg_dest_dir"):
         return request.cookies.get("seg_dest_dir")
     else:
         paths = get_pixels_table(request).split(".")
         return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
-
+    
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -113,9 +107,17 @@ async def _reverse_proxy_files(request: Request):
     )
 
 
-async def _reverse_proxy_monai(request: Request):
+def _reverse_proxy_monai(request: Request):
+    from mlflow.deployments import get_deploy_client
+
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
+
+    if request.cookies.get("is_local").lower() == "true":
+        return JSONResponse(
+            status_code=501,
+            content={"message": "Local files are not supported yet"}
+        )
 
     if "info" in str(url):
         to_send = {"input": {"action": "info"}}
@@ -124,7 +126,7 @@ async def _reverse_proxy_monai(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-        resp = client.predict(
+        resp = get_deploy_client("databricks").predict(
             endpoint=serving_endpoint,
             inputs={"inputs": to_send},
         )
@@ -137,6 +139,8 @@ async def _reverse_proxy_monai(request: Request):
 
 
 async def _reverse_proxy_monai_infer_post(request: Request):
+    from mlflow.deployments import get_deploy_client
+
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
     q_params = request.query_params
     form_data = await request.form()
@@ -159,12 +163,11 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     try:
       
         if q_params["image"] not in cache_segmentations:
-
-            res_json = json.loads(
-                client.predict(
+            file_res = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
                     endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
-                ).predictions
-            )
+                ))
+
+            res_json = json.loads(file_res.predictions)
 
             file_path = res_json["file"]
             params = res_json["params"]
@@ -173,17 +176,15 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             file_path = cache_segmentations[q_params["image"]]["file_path"]
             params = cache_segmentations[q_params["image"]]["params"]
 
-        resp_file = json.loads(
-            client.predict(
+        file_content = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
                 endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path}}}
-            ).predictions
-        )
+            ))
 
         res_fields = dict()
         res_fields["params"] = (None, json.dumps(params), "application/json")
         res_fields["image"] = (
             file_path,
-            base64.b64decode(resp_file["file_content"]),
+            base64.b64decode(json.loads(file_content.predictions)["file_content"]),
             "application/octet-stream",
         )
 
@@ -199,7 +200,9 @@ async def _reverse_proxy_monai_infer_post(request: Request):
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
 
-async def _reverse_proxy_monai_nextsample_post(request: Request):
+def _reverse_proxy_monai_nextsample_post(request: Request):
+    from mlflow.deployments import get_deploy_client
+
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
 
     to_send = {"action": str(url)[1:]}
@@ -210,7 +213,7 @@ async def _reverse_proxy_monai_nextsample_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-        res_json = client.predict(endpoint=serving_endpoint, inputs={"inputs": {"input": to_send}})
+        res_json = get_deploy_client("databricks").predict(endpoint=serving_endpoint, inputs={"inputs": {"input": to_send}})
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
         print(e)
@@ -219,6 +222,8 @@ async def _reverse_proxy_monai_nextsample_post(request: Request):
 
 
 async def _reverse_proxy_monai_train_post(request: Request):
+    from mlflow.deployments import get_deploy_client
+
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
     body = await request.json()
     model = list(body.keys())[0]
@@ -248,9 +253,9 @@ async def _reverse_proxy_monai_train_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-        res_json = client.predict(
+        res_json = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
             endpoint=serving_endpoint, inputs={"inputs": {"input": {"train": to_send}}}
-        )
+        ))
 
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
@@ -276,6 +281,9 @@ class TokenMiddleware(BaseHTTPMiddleware):
             if user_token:
                 new_body  # TODO
             return Response(content=new_body, media_type="text/javascript")
+        elif request.url.path.endswith("local"):
+            body = open(f"{ohif_path}/index.html", "rb").read()
+            return Response(content=body.replace(b"./",b"/ohif/"), media_type="text/html")
         response = await call_next(request)
         return response
 
@@ -290,6 +298,20 @@ class DBStaticFiles(StaticFiles):
             else:
                 raise ex
 
+@app.get("/ohif/viewer/{path:path}")
+async def local_redirect_viewer(request: Request):
+    file_requested = httpx.URL(path=request.url.path.replace("/viewer/", "/"))
+    return RedirectResponse(file_requested.path, status_code=302)
+
+@app.get("/ohif/segmentation/{path:path}")
+async def local_redirect_segmentation(request: Request):
+    file_requested = httpx.URL(path=request.url.path.replace("/segmentation/", "/"))
+    return RedirectResponse(file_requested.path, status_code=302)
+
+@app.get("/ohif/monai-label/{path:path}")
+async def local_redirect_monai(request: Request):
+    file_requested = httpx.URL(path=request.url.path.replace("/monai-label/", "/"))
+    return RedirectResponse(file_requested.path, status_code=302)
 
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
@@ -325,18 +347,19 @@ async def main_page(request: Request):
             <div id="login-page">
                 <div>
                     <div id="login-container" class="container">
-                    <img src="{os.environ["DATABRICKS_HOST"]}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
+                    <img src="https://{os.environ['DATABRICKS_HOST']}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
                         <div class="login-form" style="min-width:600px">
                             <h3 class="sub-header">Pixels Solution Accelerator</h3>
                             <div class="tab-child">
                             <p class="instructions">This form allows you to customize some configurations of the ohif viewer.</p>
-                            <form action="/set_cookie" method="post">
+                            <form action="/set_cookie" id="config" method="post">
                                 <p class="instructions">Select your preferred pixels catalog table.</p>
                                 <input type="text" id="pixels_table" name="pixels_table" value="{pixels_table}" style="width:100%" required>
                                 <p class="instructions">Choose the destination directory for the ohif segmentation and measurements results.</p>
                                 <input type="text" id="seg_dest_dir" name="seg_dest_dir" value="{seg_dest_dir}" style="width:100%" required>
                                 <p class="instructions">Only Volumes are supported</p>
-                                <button class="btn btn-primary btn-large sso-btn" type="submit">Confirm</button>
+                                <button name="path" value="/ohif/" class="btn btn-primary btn-large" type="submit">Confirm</button>
+                                <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
                             </form>
                             </div>
                         </div>
@@ -356,13 +379,15 @@ async def set_cookie(request: Request):
     form_data = await request.form()
     pixels_table = form_data.get("pixels_table")
     seg_dest_dir = form_data.get("seg_dest_dir")
+    path = form_data.get("path")
 
     if not seg_dest_dir.startswith("/Volumes/"):
         raise HTTPException(status_code=400, detail="Destination directory must be in Volumes")
 
-    response = RedirectResponse(url="/ohif/", status_code=302)
+    response = RedirectResponse(url=path, status_code=302)
     response.set_cookie(key="pixels_table", value=pixels_table)
     response.set_cookie(key="seg_dest_dir", value=seg_dest_dir)
+    response.set_cookie(key="is_local", value=("local" in path))
     return response
 
 
