@@ -12,11 +12,16 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
-from starlette.concurrency import run_in_threadpool
+from starlette.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 
 import dbx.pixels.resources
 
@@ -48,13 +53,14 @@ def get_pixels_table(request: Request):
     else:
         return os.environ["DATABRICKS_PIXELS_TABLE"]
 
+
 def get_seg_dest_dir(request: Request):
     if request.cookies.get("seg_dest_dir"):
         return request.cookies.get("seg_dest_dir")
     else:
         paths = get_pixels_table(request).split(".")
         return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
-    
+
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -115,8 +121,7 @@ def _reverse_proxy_monai(request: Request):
 
     if request.cookies.get("is_local").lower() == "true":
         return JSONResponse(
-            status_code=501,
-            content={"message": "Local files are not supported yet"}
+            status_code=501, content={"message": "Local files are not supported yet"}
         )
 
     if "info" in str(url):
@@ -161,11 +166,13 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-      
+
         if q_params["image"] not in cache_segmentations:
-            file_res = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
+            file_res = await run_in_threadpool(
+                lambda: get_deploy_client("databricks").predict(
                     endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
-                ))
+                )
+            )
 
             res_json = json.loads(file_res.predictions)
 
@@ -176,9 +183,11 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             file_path = cache_segmentations[q_params["image"]]["file_path"]
             params = cache_segmentations[q_params["image"]]["params"]
 
-        file_content = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
+        file_content = await run_in_threadpool(
+            lambda: get_deploy_client("databricks").predict(
                 endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path}}}
-            ))
+            )
+        )
 
         res_fields = dict()
         res_fields["params"] = (None, json.dumps(params), "application/json")
@@ -213,7 +222,9 @@ def _reverse_proxy_monai_nextsample_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-        res_json = get_deploy_client("databricks").predict(endpoint=serving_endpoint, inputs={"inputs": {"input": to_send}})
+        res_json = get_deploy_client("databricks").predict(
+            endpoint=serving_endpoint, inputs={"inputs": {"input": to_send}}
+        )
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
         print(e)
@@ -253,9 +264,11 @@ async def _reverse_proxy_monai_train_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-        res_json = await run_in_threadpool(lambda: get_deploy_client("databricks").predict(
-            endpoint=serving_endpoint, inputs={"inputs": {"input": {"train": to_send}}}
-        ))
+        res_json = await run_in_threadpool(
+            lambda: get_deploy_client("databricks").predict(
+                endpoint=serving_endpoint, inputs={"inputs": {"input": {"train": to_send}}}
+            )
+        )
 
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
@@ -283,7 +296,7 @@ class TokenMiddleware(BaseHTTPMiddleware):
             return Response(content=new_body, media_type="text/javascript")
         elif request.url.path.endswith("local"):
             body = open(f"{ohif_path}/index.html", "rb").read()
-            return Response(content=body.replace(b"./",b"/ohif/"), media_type="text/html")
+            return Response(content=body.replace(b"./", b"/ohif/"), media_type="text/html")
         response = await call_next(request)
         return response
 
@@ -298,20 +311,24 @@ class DBStaticFiles(StaticFiles):
             else:
                 raise ex
 
+
 @app.get("/ohif/viewer/{path:path}")
 async def local_redirect_viewer(request: Request):
     file_requested = httpx.URL(path=request.url.path.replace("/viewer/", "/"))
     return RedirectResponse(file_requested.path, status_code=302)
+
 
 @app.get("/ohif/segmentation/{path:path}")
 async def local_redirect_segmentation(request: Request):
     file_requested = httpx.URL(path=request.url.path.replace("/segmentation/", "/"))
     return RedirectResponse(file_requested.path, status_code=302)
 
+
 @app.get("/ohif/monai-label/{path:path}")
 async def local_redirect_monai(request: Request):
     file_requested = httpx.URL(path=request.url.path.replace("/monai-label/", "/"))
     return RedirectResponse(file_requested.path, status_code=302)
+
 
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
