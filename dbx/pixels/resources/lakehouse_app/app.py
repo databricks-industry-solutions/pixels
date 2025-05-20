@@ -146,7 +146,10 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     to_send["image"] = q_params["image"]
     del to_send["result_compress"]  # TODO fix boolean type in model
 
-    to_send["pixels_table"] = get_pixels_table(request)
+    if "vista3d" in to_send["model"]:
+        to_send["pixels_table"] = get_pixels_table(request)
+    else:
+        print("Table override not available in this model")
 
     print({"inputs": {"input": {"infer": to_send}}})
 
