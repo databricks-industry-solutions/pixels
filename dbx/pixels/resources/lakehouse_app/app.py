@@ -25,6 +25,10 @@ from starlette.responses import (
 
 import dbx.pixels.resources
 
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider("OHIF")
+
 cfg = Config()
 
 warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
@@ -60,7 +64,15 @@ def get_seg_dest_dir(request: Request):
     else:
         paths = get_pixels_table(request).split(".")
         return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
-
+    
+def log(message, request, log_type="info"):
+    email = request.headers.get("X-Forwarded-Email")
+    if log_type == "error":
+        logger.error(f"{email} | {message}")
+    elif log_type == "debug":
+        logger.debug(f"{email} | {message}")
+    elif log_type == "info":
+        logger.info(f"{email} | {message}")
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -73,7 +85,7 @@ async def _reverse_proxy_statements(request: Request):
 
         dest_dir = get_seg_dest_dir(request)
         body["statement"] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body["statement"])
-        print("Overriding dest dir to", dest_dir)
+        log(f"Overriding dest dir to {dest_dir}", request, "debug")
     else:
         body = {}
 
@@ -98,7 +110,7 @@ async def _reverse_proxy_files(request: Request):
     if request.method == "PUT":
         dest_dir = get_seg_dest_dir(request)
         url = httpx.URL(path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path))
-        print("Overriding dest dir to", url)
+        log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
     rp_req = client.build_request(
         request.method, url, headers=cfg.authenticate(), content=request.stream()
@@ -138,7 +150,7 @@ def _reverse_proxy_monai(request: Request):
 
         return Response(content=resp.predictions, media_type="application/json")
     except Exception as e:
-        print(e)
+        log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
         return Response(content=str(resp), media_type="application/text", status_code=500)
 
@@ -158,9 +170,9 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     if "vista3d" in to_send["model"]:
         to_send["pixels_table"] = get_pixels_table(request)
     else:
-        print("Table override not available in this model")
+        log("Table override not available in this model", request)
 
-    print({"inputs": {"input": {"infer": to_send}}})
+    log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
     resp = ""
 
@@ -200,7 +212,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
         return_message = MultipartEncoder(fields=res_fields)
         return Response(content=return_message.to_string(), media_type=return_message.content_type)
     except Exception as e:
-        print(e)
+        log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
 
         if q_params["image"] in cache_segmentations:
@@ -227,7 +239,7 @@ def _reverse_proxy_monai_nextsample_post(request: Request):
         )
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
-        print(e)
+        log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
@@ -258,7 +270,7 @@ async def _reverse_proxy_monai_train_post(request: Request):
 
     to_send["pixels_table"] = get_pixels_table(request)
 
-    print({"inputs": {"input": {"train": to_send}}})
+    log({"inputs": {"input": {"train": to_send}}}, request, "debug")
 
     resp = ""
 
@@ -272,7 +284,7 @@ async def _reverse_proxy_monai_train_post(request: Request):
 
         return Response(content=res_json.predictions, media_type="application/json")
     except Exception as e:
-        print(e)
+        log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
@@ -299,6 +311,17 @@ class TokenMiddleware(BaseHTTPMiddleware):
             return Response(content=body.replace(b"./", b"/ohif/"), media_type="text/html")
         response = await call_next(request)
         return response
+
+app.add_middleware(TokenMiddleware)
+    
+class LoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        email = request.headers.get("X-Forwarded-Email")
+        response = await call_next(request)
+        logger.info(f" {email} | {request.method} {request.url.path} {response.status_code}")
+        return response
+
+app.add_middleware(LoggingMiddleware)
 
 
 class DBStaticFiles(StaticFiles):
@@ -341,9 +364,6 @@ app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsamp
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
-
-app.add_middleware(TokenMiddleware)
-
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
@@ -409,4 +429,4 @@ async def set_cookie(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0")
+    uvicorn.run(app, host="0.0.0.0", log_config=None)
