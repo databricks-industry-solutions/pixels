@@ -24,7 +24,6 @@ from starlette.responses import (
 )
 
 import dbx.pixels.resources
-
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("OHIF")
@@ -64,7 +63,8 @@ def get_seg_dest_dir(request: Request):
     else:
         paths = get_pixels_table(request).split(".")
         return f"/Volumes/{paths[0]}/{paths[1]}/pixels_volume/ohif/exports/"
-    
+
+
 def log(message, request, log_type="info"):
     email = request.headers.get("X-Forwarded-Email")
     if log_type == "error":
@@ -73,6 +73,7 @@ def log(message, request, log_type="info"):
         logger.debug(f"{email} | {message}")
     elif log_type == "info":
         logger.info(f"{email} | {message}")
+
 
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -312,14 +313,17 @@ class TokenMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         return response
 
+
 app.add_middleware(TokenMiddleware)
-    
+
+
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         email = request.headers.get("X-Forwarded-Email")
         response = await call_next(request)
         logger.info(f" {email} | {request.method} {request.url.path} {response.status_code}")
         return response
+
 
 app.add_middleware(LoggingMiddleware)
 
@@ -364,6 +368,7 @@ app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsamp
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
