@@ -119,7 +119,7 @@ def _reverse_proxy_monai(request: Request):
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
 
-    if request.cookies.get("is_local").lower() == "true":
+    if request.cookies.get("is_local") and request.cookies.get("is_local").lower() == "true":
         return JSONResponse(
             status_code=501, content={"message": "Local files are not supported yet"}
         )
