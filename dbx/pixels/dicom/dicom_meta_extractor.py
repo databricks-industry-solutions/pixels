@@ -1,12 +1,11 @@
 import hashlib
+from typing import Dict, List
 
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, lit, udf, explode, expr
+from pyspark.sql.functions import col, explode, expr, lit, udf
 
 from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata
-
-from typing import List, Dict
 
 
 class DicomMetaExtractor(Transformer):
@@ -52,7 +51,9 @@ class DicomMetaExtractor(Transformer):
         """
 
         @udf(returnType=t.ArrayType(t.StringType()))
-        def dicom_meta_udf(path: str, deep: bool = True, anon: bool = False, file_type: str = "") -> List[Dict]:
+        def dicom_meta_udf(
+            path: str, deep: bool = True, anon: bool = False, file_type: str = ""
+        ) -> List[Dict]:
             """Extract metadata from header of dicom image file
             params:
             path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
@@ -74,19 +75,20 @@ class DicomMetaExtractor(Transformer):
                         return json.dumps(meta_js)
                 except Exception as err:
                     except_str = {
-                            "udf": "dicom_meta_udf.process_dicom",
-                            "error": str(err),
-                            "args": str(err.args),
-                            "path": real_path,
-                        }
+                        "udf": "dicom_meta_udf.process_dicom",
+                        "error": str(err),
+                        "args": str(err.args),
+                        "path": real_path,
+                    }
                     return json.dumps(except_str)
+
             try:
                 if "zip" in file_type.lower():
-                    import zipfile
                     import os
+                    import zipfile
 
                     list_meta = []
-                    with zipfile.ZipFile(path, 'r') as z:
+                    with zipfile.ZipFile(path, "r") as z:
                         for file in z.infolist():
                             if file.filename.endswith("/"):
                                 continue
@@ -94,7 +96,11 @@ class DicomMetaExtractor(Transformer):
                                 if not read_preamble(z_file, force=True):
                                     continue
                                 z_file.seek(0)
-                                list_meta.append(process_dicom(z_file, os.path.join(path, file.filename), file.file_size))
+                                list_meta.append(
+                                    process_dicom(
+                                        z_file, os.path.join(path, file.filename), file.file_size
+                                    )
+                                )
                     return list_meta
                 elif "dicom" in file_type.lower():
                     fp, fsize = cloud_open(path, anon)
@@ -104,16 +110,25 @@ class DicomMetaExtractor(Transformer):
                     return [process_dicom(fp, path, fsize)]
             except Exception as err:
                 except_str = {
-                        "udf": "dicom_meta_udf",
-                        "error": str(err),
-                        "args": str(err.args),
-                        "path": path,
-                    }
+                    "udf": "dicom_meta_udf",
+                    "error": str(err),
+                    "args": str(err.args),
+                    "path": path,
+                }
                 return [json.dumps(except_str)]
 
         self.check_input_type(df.schema)
-        return df.withColumn("is_anon", lit(self.catalog.is_anon())) \
-            .withColumn(self.outputCol, explode(dicom_meta_udf(col(self.inputCol), lit(self.deep), col("is_anon"), col("file_type")))) \
-            .withColumn("meta", expr(f"parse_json({self.outputCol})")) \
-            .withColumn("path", expr(f"concat('dbfs:',{self.outputCol}:path::string)")) \
+        return (
+            df.withColumn("is_anon", lit(self.catalog.is_anon()))
+            .withColumn(
+                self.outputCol,
+                explode(
+                    dicom_meta_udf(
+                        col(self.inputCol), lit(self.deep), col("is_anon"), col("file_type")
+                    )
+                ),
+            )
+            .withColumn("meta", expr(f"parse_json({self.outputCol})"))
+            .withColumn("path", expr(f"concat('dbfs:',{self.outputCol}:path::string)"))
             .withColumn("relative_path", expr(f"{self.outputCol}:path::string"))
+        )

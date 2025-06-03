@@ -3,9 +3,8 @@ import json
 import os
 import os.path
 import re
-from pathlib import Path
-
 from io import BytesIO
+from pathlib import Path
 
 import httpx
 import uvicorn
@@ -127,7 +126,9 @@ def _reverse_proxy_files(request: Request):
         target_file = base_path.split(".zip/")[1]
         token = os.environ["DATABRICKS_TOKEN"]
 
-        with DatabricksRemoteZip(token, zip_path, base_url = os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files") as zip_ref:
+        with DatabricksRemoteZip(
+            token, zip_path, base_url=os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files"
+        ) as zip_ref:
             # List files (downloads only central directory)
             files = zip_ref.namelist()
             print(f"Archive contains {len(files)} files")
@@ -137,11 +138,13 @@ def _reverse_proxy_files(request: Request):
                 print(f"File: {target_file}")
                 print(f"Compressed size: {info.compress_size} bytes")
                 print(f"Uncompressed size: {info.file_size} bytes")
-                
+
                 # Extract and decompress the file
                 with zip_ref.open(target_file) as f:
                     file_content = f.read()
-                    return StreamingResponse(BytesIO(file_content), media_type="application/octet-stream")
+                    return StreamingResponse(
+                        BytesIO(file_content), media_type="application/octet-stream"
+                    )
             else:
                 raise HTTPException(status_code=404, detail="File not found in zip archive")
 
@@ -149,7 +152,7 @@ def _reverse_proxy_files(request: Request):
         request.method, url, headers=cfg.authenticate(), content=request.stream()
     )
 
-    rp_resp = client.send(rp_req, stream=True) # TODO: FIX ASYNC call
+    rp_resp = client.send(rp_req, stream=True)  # TODO: FIX ASYNC call
     return StreamingResponse(
         rp_resp.aiter_raw(),
         status_code=rp_resp.status_code,
