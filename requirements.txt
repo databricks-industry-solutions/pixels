@@ -3,7 +3,7 @@ pydicom==2.4.4
 Pillow
 matplotlib
 pyarrow
-python-gdcm==3.0.19
+python-gdcm
 s3fs==2022.10.0
 python-magic==0.4.27
 dicognito==0.17.0

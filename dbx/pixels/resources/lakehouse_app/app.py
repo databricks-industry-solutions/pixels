@@ -5,6 +5,8 @@ import os.path
 import re
 from pathlib import Path
 
+from io import BytesIO
+
 import httpx
 import uvicorn
 from databricks.sdk.core import Config
@@ -87,6 +89,10 @@ async def _reverse_proxy_statements(request: Request):
         dest_dir = get_seg_dest_dir(request)
         body["statement"] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body["statement"])
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
+
+        body["statement"] = re.sub(r"Value.0.", "Value[0]::string", body["statement"])
+        body["statement"] = re.sub(r"'] as", "']::string as", body["statement"])
+        body["statement"] = re.sub(r"'],", "']::string,", body["statement"])
     else:
         body = {}
 
@@ -103,7 +109,9 @@ async def _reverse_proxy_statements(request: Request):
     )
 
 
-async def _reverse_proxy_files(request: Request):
+def _reverse_proxy_files(request: Request):
+    from dbx.pixels.db_remote_zip import DatabricksRemoteZip
+
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
@@ -113,11 +121,35 @@ async def _reverse_proxy_files(request: Request):
         url = httpx.URL(path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path))
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
+    if request.method == "GET" and ".zip/" in url.path:
+        base_path = url.path.replace("api/2.0/fs/files", "")
+        zip_path = base_path.split(".zip/")[0] + ".zip"
+        target_file = base_path.split(".zip/")[1]
+        token = os.environ["DATABRICKS_TOKEN"]
+
+        with DatabricksRemoteZip(token, zip_path, base_url = os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files") as zip_ref:
+            # List files (downloads only central directory)
+            files = zip_ref.namelist()
+            print(f"Archive contains {len(files)} files")
+
+            if target_file in files:
+                info = zip_ref.getinfo(target_file)
+                print(f"File: {target_file}")
+                print(f"Compressed size: {info.compress_size} bytes")
+                print(f"Uncompressed size: {info.file_size} bytes")
+                
+                # Extract and decompress the file
+                with zip_ref.open(target_file) as f:
+                    file_content = f.read()
+                    return StreamingResponse(BytesIO(file_content), media_type="application/octet-stream")
+            else:
+                raise HTTPException(status_code=404, detail="File not found in zip archive")
+
     rp_req = client.build_request(
         request.method, url, headers=cfg.authenticate(), content=request.stream()
     )
 
-    rp_resp = await client.send(rp_req, stream=True)
+    rp_resp = client.send(rp_req, stream=True) # TODO: FIX ASYNC call
     return StreamingResponse(
         rp_resp.aiter_raw(),
         status_code=rp_resp.status_code,
