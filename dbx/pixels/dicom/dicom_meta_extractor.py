@@ -69,7 +69,7 @@ class DicomMetaExtractor(Transformer):
                 try:
                     with dcmread(file_obj, stop_before_pixels=(not deep)) as dataset:
                         meta_js = extract_metadata(dataset, deep)
-                        meta_js["hash"] = hashlib.sha1(file_obj.read()).hexdigest()
+                        #meta_js["hash"] = hashlib.sha1(file_obj.read()).hexdigest()
                         meta_js["file_size"] = size
                         meta_js["path"] = real_path
                         return json.dumps(meta_js)
@@ -83,12 +83,13 @@ class DicomMetaExtractor(Transformer):
                     return json.dumps(except_str)
 
             try:
+                fp, fsize = cloud_open(path, anon)
                 if "zip" in file_type.lower():
                     import os
                     import zipfile
 
                     list_meta = []
-                    with zipfile.ZipFile(path, "r") as z:
+                    with zipfile.ZipFile(fp, "r") as z:
                         for file in z.infolist():
                             if file.filename.endswith("/"):
                                 continue
@@ -103,10 +104,8 @@ class DicomMetaExtractor(Transformer):
                                 )
                     return list_meta
                 elif "dicom" in file_type.lower():
-                    fp, fsize = cloud_open(path, anon)
                     return [process_dicom(fp, path, fsize)]
                 else:
-                    fp, fsize = cloud_open(path, anon)
                     return [process_dicom(fp, path, fsize)]
             except Exception as err:
                 except_str = {
@@ -128,7 +127,7 @@ class DicomMetaExtractor(Transformer):
                     )
                 ),
             )
-            .withColumn("meta", expr(f"parse_json({self.outputCol})"))
             .withColumn("path", expr(f"concat('dbfs:',{self.outputCol}:path::string)"))
             .withColumn("relative_path", expr(f"{self.outputCol}:path::string"))
+            ##.withColumn("meta", expr(f"parse_json({self.outputCol})"))
         )

@@ -4,16 +4,20 @@ import os
 import numpy as np
 from pydicom import Dataset
 
+import boto3
+import botocore
+import botocore.client
+import smart_open
 
 def cloud_open(path: str, anon: bool = False):
+
     try:
         if path.startswith("s3://"):
             """Read from S3 directly"""
-            import s3fs
-
-            fs = s3fs.S3FileSystem(anon)
-            fp = fs.open(path)
-            fsize = fs.size(path)
+            config = botocore.client.Config(signature_version=botocore.UNSIGNED)
+            params = {'client': boto3.client('s3', config=config)}
+            fp = smart_open.open(path, 'rb', transport_params=params)
+            fsize = 0 #s3_anonym_smart_open_params['client'].head_object(Bucket=path.split("/")[2], Key="/".join(path.split("/")[3:]))["ContentLength"]
         else:
             """Read from local filesystem"""
             fp = open(path, "rb")

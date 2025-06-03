@@ -27,6 +27,9 @@ from starlette.responses import (
 import dbx.pixels.resources
 from dbx.pixels.logging import LoggerProvider
 
+import smart_open
+import zipfile
+
 logger = LoggerProvider("OHIF")
 
 cfg = Config()
@@ -120,33 +123,38 @@ def _reverse_proxy_files(request: Request):
         url = httpx.URL(path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path))
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
-    if request.method == "GET" and ".zip/" in url.path:
+    if request.method == "GET":
         base_path = url.path.replace("api/2.0/fs/files", "")
-        zip_path = base_path.split(".zip/")[0] + ".zip"
-        target_file = base_path.split(".zip/")[1]
-        token = os.environ["DATABRICKS_TOKEN"]
+        if ".zip/" in url.path:
+            zip_path = base_path.split(".zip/")[0] + ".zip"
+            target_file = base_path.split(".zip/")[1]
 
-        with DatabricksRemoteZip(
-            token, zip_path, base_url=os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files"
-        ) as zip_ref:
-            # List files (downloads only central directory)
-            files = zip_ref.namelist()
-            print(f"Archive contains {len(files)} files")
+            fp =  smart_open.open(
+                "https://" + os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files" + zip_path, 
+                mode="rb", 
+                transport_params={"headers":cfg.authenticate()}
+            ) 
+            with zipfile.ZipFile(fp, "r") as zip_ref:
+                # List files (downloads only central directory)
+                files = zip_ref.namelist()
 
-            if target_file in files:
-                info = zip_ref.getinfo(target_file)
-                print(f"File: {target_file}")
-                print(f"Compressed size: {info.compress_size} bytes")
-                print(f"Uncompressed size: {info.file_size} bytes")
-
-                # Extract and decompress the file
-                with zip_ref.open(target_file) as f:
-                    file_content = f.read()
-                    return StreamingResponse(
-                        BytesIO(file_content), media_type="application/octet-stream"
-                    )
-            else:
-                raise HTTPException(status_code=404, detail="File not found in zip archive")
+                if target_file in files:
+                    info = zip_ref.getinfo(target_file)
+                    # Extract and decompress the file
+                    with zip_ref.open(target_file) as f:
+                        file_content = f.read()
+                        return StreamingResponse(
+                            BytesIO(file_content), media_type="application/octet-stream"
+                        )
+                else:
+                    raise HTTPException(status_code=404, detail="File not found in zip archive")
+        else:
+            fp =  smart_open.open(
+                "https://" + os.environ["DATABRICKS_HOST"] + "/api/2.0/fs/files" + base_path, 
+                mode="rb", 
+                transport_params={"headers":cfg.authenticate()}
+            )
+            return StreamingResponse(BytesIO(fp.read()), media_type="application/octet-stream")
 
     rp_req = client.build_request(
         request.method, url, headers=cfg.authenticate(), content=request.stream()

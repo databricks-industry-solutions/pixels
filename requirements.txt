@@ -1,11 +1,11 @@
 pandas
-pydicom==2.4.4
+pydicom==3.0.1
 Pillow
 matplotlib
 pyarrow
 python-gdcm
-s3fs==2022.10.0
 python-magic==0.4.27
 dicognito==0.17.0
 ff3==1.0.2
 databricks-sdk==0.36.0
+smart_open==7.1.0
