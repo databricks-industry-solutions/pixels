@@ -61,6 +61,12 @@ class DBModel(mlflow.pyfunc.PythonModel):
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
 
+        if "MONAI_BUNDLES" in os.environ:
+            self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
+            del self.conf['models']
+        elif "MONAI_MODELS" in os.environ:
+            self.conf['models'] = os.environ["MONAI_MODELS"]
+
         self.dest_dir = os.environ["DEST_DIR"]
 
         self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
