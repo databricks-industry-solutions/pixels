@@ -1,0 +1,1743 @@
+{
+  "datasets" : [ {
+    "name" : "ca4b24b9",
+    "displayName" : "cohort-builder",
+    "query" : "-- cohort builder for Pixels Dashboard\nwith base (\n\nselect\n  meta:['00100010'].Value[0].Alphabetic as PatientName,\n  meta:['00100020'].Value[0] PatientID,\n  to_date(meta:['00100030'].Value[0],\"yyyyMMdd\") as PatientBirthDate,\n  cast(left(meta:['00101010'].Value[0],3) as int) as PatientAge,\n  meta:['00100040'].Value[0] PatientSex,\n  to_date(meta:['00080020'].Value[0],\"yyyyMMdd\") as StudyDate,\n  meta:['00080030'].Value[0] StudyTime,\n  meta:['00080050'].Value[0] AccessionNumber,\n  meta:['00080060'].Value[0] Modality,\n  meta:['00080008'].Value[0] ImageType,\n  meta:['00081030'].Value[0] StudyDescription,\n  meta:['0008103E'].Value[0] SeriesDescription,\n  meta:['0020000D'].Value[0] StudyInstanceUID,\n  meta:['0020000E'].Value[0] SeriesInstanceUID,\n  meta:['00200010'].Value[0] StudyID,\n  meta:['00200011'].Value[0] SeriesNumber,\n  meta:['00200013'].Value[0] InstanceNumber,\n  meta:['00180015'].Value[0] BodyPartExamined,\n  meta:['00181030'].Value[0] ProtocolName,\n  meta:['00080070'].Value[0] Manufacturer,\n  meta:['00080080'].Value[0] InstitutionName,\n  meta:['00080081'].Value[0] InstitutionAddress,\n  meta:['0018700A'].Value[0] DetectorManufacturerName,\n  meta:['0018700B'].Value[0] DetectorManufacturersModelName,\n  meta:['00189024'].Value[0] MRTransmitCoilManufacturerName,\n  meta:['00189025'].Value[0] ReceiveCoilManufacturerName,\n  meta:['00120063'].Value[0] DeidentificationMethod,\n  meta:['0008001C'].Value[0] SyntheticData,\n  meta:['00120064'].Value[0] CodingSchemeVersion,\n  meta:['00282110'].Value[0] LossyImageCompression,\n  meta:['00131010'].Value[0] Creator,\n  meta:['pixel_hash'] pixel_hash,\n  meta:['hash'] hash,\n  path,\n  length,\n  modificationTime,\n  meta\nfrom identifier(:table)\n)\nSELECT *\nFROM base\nLIMIT :row_limit",
+    "parameters" : [ {
+      "displayName" : "table",
+      "keyword" : "table",
+      "dataType" : "STRING",
+      "defaultSelection" : {
+        "values" : {
+          "dataType" : "STRING",
+          "values" : [ {
+            "value" : "hls_radiology.tcia.object_catalog"
+          } ]
+        }
+      }
+    }, {
+      "displayName" : "row_limit",
+      "keyword" : "row_limit",
+      "dataType" : "INTEGER",
+      "defaultSelection" : {
+        "values" : {
+          "dataType" : "INTEGER",
+          "values" : [ {
+            "value" : "1000000"
+          } ]
+        }
+      }
+    } ],
+    "catalog" : "hls_radiology",
+    "schema" : "tcia"
+  } ],
+  "pages" : [ {
+    "name" : "temp_page_name",
+    "displayName" : "Main",
+    "layout" : [ {
+      "widget" : {
+        "name" : "temp_text_box_name",
+        "textbox_spec" : "# Pixels Medical Imaging summary dashboard\n\nBased on DICOM files that have been acquired, unzipped, ingested and parsed using the Pixels Solution Accelerator\n    "
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 0,
+        "width" : 3,
+        "height" : 5
+      }
+    }, {
+      "widget" : {
+        "name" : "c538671a",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "Modality",
+              "expression" : "`Modality`"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "histogram",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "Modality",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "natural-order"
+                }
+              },
+              "displayName" : "Modality"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "Modality",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 10,
+        "width" : 3,
+        "height" : 4
+      }
+    }, {
+      "widget" : {
+        "name" : "4e812c6b",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "bin(PatientAge, binWidth=5)",
+              "expression" : "BIN_FLOOR(`PatientAge`, 5)"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "histogram",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "bin(PatientAge, binWidth=5)",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "natural-order"
+                }
+              },
+              "displayName" : "PatientAge"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "PatientAge distribution",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 6,
+        "width" : 3,
+        "height" : 4
+      }
+    }, {
+      "widget" : {
+        "name" : "ef5e964d",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "PatientSex",
+              "expression" : "`PatientSex`"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "PatientSex",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "displayName" : "PatientSex"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "Sex",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 10,
+        "width" : 3,
+        "height" : 4
+      }
+    }, {
+      "widget" : {
+        "name" : "740a0bd5",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "BodyPartExamined",
+              "expression" : "`BodyPartExamined`"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "BodyPartExamined",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "y-reversed"
+                }
+              },
+              "displayName" : "BodyPartExamined"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "Body Part Examined",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 6,
+        "width" : 3,
+        "height" : 4
+      }
+    }, {
+      "widget" : {
+        "name" : "66b4a203",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(PatientID)",
+              "expression" : "COUNT(DISTINCT `PatientID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "counter",
+          "encodings" : {
+            "value" : {
+              "fieldName" : "countdistinct(PatientID)",
+              "displayName" : "Count of Unique PatientID"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "# Patients"
+          }
+        }
+      },
+      "position" : {
+        "x" : 5,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "7ff54fbe",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(StudyInstanceUID)",
+              "expression" : "COUNT(DISTINCT `StudyInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "counter",
+          "encodings" : {
+            "value" : {
+              "fieldName" : "countdistinct(StudyInstanceUID)",
+              "displayName" : "Count of Unique StudyInstanceUID"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "# Studies"
+          }
+        }
+      },
+      "position" : {
+        "x" : 4,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "1e66f7cd",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "PatientName",
+              "expression" : "`PatientName`"
+            }, {
+              "name" : "PatientID",
+              "expression" : "`PatientID`"
+            }, {
+              "name" : "PatientBirthDate",
+              "expression" : "`PatientBirthDate`"
+            }, {
+              "name" : "PatientAge",
+              "expression" : "`PatientAge`"
+            }, {
+              "name" : "PatientSex",
+              "expression" : "`PatientSex`"
+            }, {
+              "name" : "StudyDate",
+              "expression" : "`StudyDate`"
+            }, {
+              "name" : "AccessionNumber",
+              "expression" : "`AccessionNumber`"
+            }, {
+              "name" : "Modality",
+              "expression" : "`Modality`"
+            }, {
+              "name" : "ImageType",
+              "expression" : "`ImageType`"
+            }, {
+              "name" : "StudyDescription",
+              "expression" : "`StudyDescription`"
+            }, {
+              "name" : "SeriesDescription",
+              "expression" : "`SeriesDescription`"
+            }, {
+              "name" : "StudyInstanceUID",
+              "expression" : "`StudyInstanceUID`"
+            }, {
+              "name" : "SeriesInstanceUID",
+              "expression" : "`SeriesInstanceUID`"
+            }, {
+              "name" : "StudyID",
+              "expression" : "`StudyID`"
+            }, {
+              "name" : "SeriesNumber",
+              "expression" : "`SeriesNumber`"
+            }, {
+              "name" : "InstanceNumber",
+              "expression" : "`InstanceNumber`"
+            }, {
+              "name" : "BodyPartExamined",
+              "expression" : "`BodyPartExamined`"
+            }, {
+              "name" : "ProtocolName",
+              "expression" : "`ProtocolName`"
+            }, {
+              "name" : "Manufacturer",
+              "expression" : "`Manufacturer`"
+            }, {
+              "name" : "InstitutionName",
+              "expression" : "`InstitutionName`"
+            }, {
+              "name" : "InstitutionAddress",
+              "expression" : "`InstitutionAddress`"
+            }, {
+              "name" : "LossyImageCompression",
+              "expression" : "`LossyImageCompression`"
+            }, {
+              "name" : "Creator",
+              "expression" : "`Creator`"
+            }, {
+              "name" : "pixel_hash",
+              "expression" : "`pixel_hash`"
+            }, {
+              "name" : "path",
+              "expression" : "`path`"
+            }, {
+              "name" : "length",
+              "expression" : "`length`"
+            } ],
+            "disaggregated" : true
+          }
+        } ],
+        "spec" : {
+          "version" : 1,
+          "widgetType" : "table",
+          "encodings" : {
+            "columns" : [ {
+              "fieldName" : "PatientName",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100000,
+              "title" : "PatientName",
+              "allowSearch" : true,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientName"
+            }, {
+              "fieldName" : "PatientID",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100001,
+              "title" : "PatientID",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientID"
+            }, {
+              "fieldName" : "PatientBirthDate",
+              "dateTimeFormat" : "YYYY-MM-DD",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "date",
+              "displayAs" : "datetime",
+              "visible" : true,
+              "order" : 100002,
+              "title" : "PatientBirthDate",
+              "allowSearch" : false,
+              "alignContent" : "right",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientBirthDate"
+            }, {
+              "fieldName" : "PatientAge",
+              "numberFormat" : "0",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "integer",
+              "displayAs" : "number",
+              "visible" : true,
+              "order" : 100003,
+              "title" : "PatientAge",
+              "allowSearch" : false,
+              "alignContent" : "right",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientAge"
+            }, {
+              "fieldName" : "PatientSex",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100004,
+              "title" : "PatientSex",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientSex"
+            }, {
+              "fieldName" : "StudyDate",
+              "dateTimeFormat" : "YYYY-MM-DD",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "date",
+              "displayAs" : "datetime",
+              "visible" : true,
+              "order" : 100005,
+              "title" : "StudyDate",
+              "allowSearch" : false,
+              "alignContent" : "right",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "StudyDate"
+            }, {
+              "fieldName" : "AccessionNumber",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100007,
+              "title" : "AccessionNumber",
+              "allowSearch" : true,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "AccessionNumber"
+            }, {
+              "fieldName" : "Modality",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100008,
+              "title" : "Modality",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "Modality"
+            }, {
+              "fieldName" : "ImageType",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100009,
+              "title" : "ImageType",
+              "allowSearch" : true,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "ImageType"
+            }, {
+              "fieldName" : "StudyDescription",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100010,
+              "title" : "StudyDescription",
+              "allowSearch" : true,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "StudyDescription"
+            }, {
+              "fieldName" : "SeriesDescription",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100011,
+              "title" : "SeriesDescription",
+              "allowSearch" : true,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "SeriesDescription"
+            }, {
+              "fieldName" : "StudyInstanceUID",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100012,
+              "title" : "StudyInstanceUID",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "StudyInstanceUID"
+            }, {
+              "fieldName" : "SeriesInstanceUID",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100013,
+              "title" : "SeriesInstanceUID",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "SeriesInstanceUID"
+            }, {
+              "fieldName" : "StudyID",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100014,
+              "title" : "StudyID",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "StudyID"
+            }, {
+              "fieldName" : "SeriesNumber",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100015,
+              "title" : "SeriesNumber",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "SeriesNumber"
+            }, {
+              "fieldName" : "InstanceNumber",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100016,
+              "title" : "InstanceNumber",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "InstanceNumber"
+            }, {
+              "fieldName" : "BodyPartExamined",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100017,
+              "title" : "BodyPartExamined",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "BodyPartExamined"
+            }, {
+              "fieldName" : "ProtocolName",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100018,
+              "title" : "ProtocolName",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "ProtocolName"
+            }, {
+              "fieldName" : "Manufacturer",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100019,
+              "title" : "Manufacturer",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "Manufacturer"
+            }, {
+              "fieldName" : "InstitutionName",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100020,
+              "title" : "InstitutionName",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "InstitutionName"
+            }, {
+              "fieldName" : "InstitutionAddress",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100021,
+              "title" : "InstitutionAddress",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "InstitutionAddress"
+            }, {
+              "fieldName" : "LossyImageCompression",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100029,
+              "title" : "LossyImageCompression",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "LossyImageCompression"
+            }, {
+              "fieldName" : "Creator",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100030,
+              "title" : "Creator",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "Creator"
+            }, {
+              "fieldName" : "pixel_hash",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100031,
+              "title" : "pixel_hash",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "pixel_hash"
+            }, {
+              "fieldName" : "path",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 100033,
+              "title" : "path",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "path"
+            }, {
+              "fieldName" : "length",
+              "numberFormat" : "0",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "integer",
+              "displayAs" : "number",
+              "visible" : true,
+              "order" : 100034,
+              "title" : "length",
+              "allowSearch" : false,
+              "alignContent" : "right",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "length"
+            } ]
+          },
+          "invisibleColumns" : [ {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "StudyTime",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100006,
+            "title" : "StudyTime",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "DetectorManufacturerName",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100022,
+            "title" : "DetectorManufacturerName",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "DetectorManufacturersModelName",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100023,
+            "title" : "DetectorManufacturersModelName",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "MRTransmitCoilManufacturerName",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100024,
+            "title" : "MRTransmitCoilManufacturerName",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "ReceiveCoilManufacturerName",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100025,
+            "title" : "ReceiveCoilManufacturerName",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "DeidentificationMethod",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100026,
+            "title" : "DeidentificationMethod",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "SyntheticData",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100027,
+            "title" : "SyntheticData",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "CodingSchemeVersion",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100028,
+            "title" : "CodingSchemeVersion",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "hash",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100032,
+            "title" : "hash",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "dateTimeFormat" : "YYYY-MM-DD HH:mm:ss.SSS",
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "modificationTime",
+            "type" : "datetime",
+            "displayAs" : "datetime",
+            "order" : 100035,
+            "title" : "modificationTime",
+            "allowSearch" : false,
+            "alignContent" : "right",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "meta",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 100036,
+            "title" : "meta",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          } ],
+          "allowHTMLByDefault" : false,
+          "itemsPerPage" : 25,
+          "paginationSize" : "default",
+          "condensed" : true,
+          "withRowNumber" : false
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 25,
+        "width" : 6,
+        "height" : 9
+      }
+    }, {
+      "widget" : {
+        "name" : "d0f8e93a",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "Creator",
+              "expression" : "`Creator`"
+            }, {
+              "name" : "count(*)",
+              "expression" : "COUNT(`*`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "Creator",
+              "scale" : {
+                "type" : "categorical"
+              },
+              "displayName" : "Creator"
+            },
+            "y" : {
+              "fieldName" : "count(*)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Records"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Creator"
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 2,
+        "width" : 3,
+        "height" : 4
+      }
+    }, {
+      "widget" : {
+        "name" : "b188bf2b",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "Manufacturer",
+              "expression" : "`Manufacturer`"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "Manufacturer",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "y-reversed"
+                }
+              },
+              "displayName" : "Manufacturer"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "Manufacturer",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 18,
+        "width" : 3,
+        "height" : 7
+      }
+    }, {
+      "widget" : {
+        "name" : "a4259bfe",
+        "queries" : [ {
+          "name" : "parameter_dashboards/01efb13d144c1c3d8cab4287cf7b316f/datasets/01f040e5548814c4befdf63e21ce86a6_table",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "parameters" : [ {
+              "name" : "table",
+              "keyword" : "table"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "filter-single-select",
+          "encodings" : {
+            "fields" : [ {
+              "parameterName" : "table",
+              "queryName" : "parameter_dashboards/01efb13d144c1c3d8cab4287cf7b316f/datasets/01f040e5548814c4befdf63e21ce86a6_table"
+            } ]
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Object Catalog"
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 5,
+        "width" : 3,
+        "height" : 1
+      }
+    }, {
+      "widget" : {
+        "name" : "137b7050",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            }, {
+              "name" : "InstitutionName",
+              "expression" : "`InstitutionName`"
+            } ],
+            "filters" : [ {
+              "expression" : "`InstitutionName` IS NOT NULL"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            },
+            "y" : {
+              "fieldName" : "InstitutionName",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "x-reversed"
+                }
+              },
+              "displayName" : "InstitutionName"
+            }
+          },
+          "frame" : {
+            "title" : "Institution",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 14,
+        "width" : 3,
+        "height" : 11
+      }
+    }, {
+      "widget" : {
+        "name" : "5747a96a",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "counter",
+          "encodings" : {
+            "value" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "# Series"
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "839d15d2",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "ImageType",
+              "expression" : "`ImageType`"
+            }, {
+              "name" : "countdistinct(SeriesInstanceUID)",
+              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "histogram",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "ImageType",
+              "scale" : {
+                "type" : "categorical",
+                "sort" : {
+                  "by" : "natural-order"
+                }
+              },
+              "displayName" : "ImageType"
+            },
+            "y" : {
+              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Unique SeriesInstanceUID"
+            }
+          },
+          "frame" : {
+            "title" : "Image Type",
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 14,
+        "width" : 3,
+        "height" : 4
+      }
+    } ],
+    "pageType" : "PAGE_TYPE_CANVAS"
+  }, {
+    "name" : "08b30e71",
+    "displayName" : "Files",
+    "layout" : [ {
+      "widget" : {
+        "name" : "8c9490c4",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "bin(length, binWidth=20000000)",
+              "expression" : "BIN_FLOOR(`length`, 20000000)"
+            }, {
+              "name" : "count(*)",
+              "expression" : "COUNT(`*`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "histogram",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "bin(length, binWidth=20000000)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "length"
+            },
+            "y" : {
+              "fieldName" : "count(*)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Records"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "File size (bytes)"
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 2,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "aa822c87",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "modificationTime",
+              "expression" : "`modificationTime`"
+            }, {
+              "name" : "count(*)",
+              "expression" : "COUNT(`*`)"
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 3,
+          "widgetType" : "bar",
+          "encodings" : {
+            "x" : {
+              "fieldName" : "modificationTime",
+              "scale" : {
+                "type" : "temporal"
+              },
+              "displayName" : "modificationTime"
+            },
+            "y" : {
+              "fieldName" : "count(*)",
+              "scale" : {
+                "type" : "quantitative"
+              },
+              "displayName" : "Count of Records"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "Modification Time"
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 2,
+        "width" : 3,
+        "height" : 6
+      }
+    }, {
+      "widget" : {
+        "name" : "94b26125",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(pixel_hash)",
+              "expression" : "COUNT(DISTINCT `pixel_hash`)"
+            } ],
+            "parameterValues" : [ {
+              "keyword" : "row_limit",
+              "selection" : {
+                "values" : {
+                  "dataType" : "INTEGER",
+                  "values" : [ {
+                    "value" : "1000000"
+                  } ]
+                }
+              }
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "counter",
+          "encodings" : {
+            "value" : {
+              "fieldName" : "countdistinct(pixel_hash)",
+              "displayName" : "Count of Unique pixel_hash"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "# Distinct Pixel Arrays"
+          }
+        }
+      },
+      "position" : {
+        "x" : 5,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "f6f4367a",
+        "textbox_spec" : "# File Metadata Info\nData associated with the file rather than the contents of the header"
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 0,
+        "width" : 3,
+        "height" : 2
+      }
+    }, {
+      "widget" : {
+        "name" : "8a1b58e5",
+        "queries" : [ {
+          "name" : "main_query",
+          "query" : {
+            "datasetName" : "ca4b24b9",
+            "fields" : [ {
+              "name" : "countdistinct(path)",
+              "expression" : "COUNT(DISTINCT `path`)"
+            } ],
+            "parameterValues" : [ {
+              "keyword" : "row_limit",
+              "selection" : {
+                "values" : {
+                  "dataType" : "INTEGER",
+                  "values" : [ {
+                    "value" : "1000000"
+                  } ]
+                }
+              }
+            } ],
+            "disaggregated" : false
+          }
+        } ],
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "counter",
+          "encodings" : {
+            "value" : {
+              "fieldName" : "countdistinct(path)",
+              "displayName" : "Count of Unique path"
+            }
+          },
+          "frame" : {
+            "showTitle" : true,
+            "title" : "# Distinct Files"
+          }
+        }
+      },
+      "position" : {
+        "x" : 3,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    } ],
+    "pageType" : "PAGE_TYPE_CANVAS"
+  } ]
+}
