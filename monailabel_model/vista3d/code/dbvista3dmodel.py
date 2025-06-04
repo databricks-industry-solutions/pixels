@@ -37,11 +37,6 @@ class DBVISTA3DModel(DBModel):
 
         self.model_name = "vista3d"
 
-        self.module_path = os.path.dirname(os.path.abspath(__file__))
-        sys.path.append(self.module_path)
-
-        self.bin_path = os.path.join(self.module_path, "bin")
-
         label_dict_path = f"{self.module_path}/vista3d_bundle/data/jsons/label_dict.json"
         label_ignore_dict_path = f"{self.module_path}/vista3d_bundle/data/jsons/label_ignore_dict.json"
         label_dict = json.load(open(label_dict_path))

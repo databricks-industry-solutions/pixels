@@ -31,7 +31,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         self.app_dir = "./"
 
         self.model_name = "GENERIC"
-        self.labels = None
+        self.label_dict = None
 
         self.volumes_compatible = volumes_compatible
 
@@ -41,6 +41,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
     def load_context(self, context=None):
         self.module_path = os.path.dirname(os.path.abspath(__file__))
         sys.path.append(self.module_path)
+
+        self.bin_path = os.path.join(self.module_path, "bin")
 
         if context is not None:
             self.bin_path = context.artifacts["itkimage2segimage"]
@@ -57,15 +59,16 @@ class DBModel(mlflow.pyfunc.PythonModel):
             "models": "segmentation",
             "preload": "false",
             "output": "dicom_seg",
-            "labels": self.labels,
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
 
         if "MONAI_BUNDLES" in os.environ:
             self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
+            self.model_name = os.environ["MONAI_BUNDLES"]
             del self.conf['models']
         elif "MONAI_MODELS" in os.environ:
             self.conf['models'] = os.environ["MONAI_MODELS"]
+            self.model_name = os.environ["MONAI_MODELS"]
 
         self.dest_dir = os.environ["DEST_DIR"]
 
@@ -104,6 +107,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
             dest_path (str): The destination path in Databricks.
         """
         if self.volumes_compatible:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             shutil.copy(file_path, dest_path)
         else:
             from databricks.sdk import WorkspaceClient
@@ -142,7 +146,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
     
     @mlflow.trace(span_type="MONAI")
     @abstractmethod
-    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, file_ext=".nii.gz"):
+    def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
         """
         Performs model inference on a given series.
         Args:
