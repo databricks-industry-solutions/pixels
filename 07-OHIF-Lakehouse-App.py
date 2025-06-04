@@ -19,6 +19,9 @@
 # MAGIC # Initializing Environment and Setting Up Application
 # MAGIC
 # MAGIC Initialize widgets to capture the SQL warehouse ID, table, and volume. We also set up the environment and define the application name as "pixels-ohif-viewer".
+# MAGIC 1. table is the default object index, in the form catalog.schema.table
+# MAGIC 2. is the datawarehouse instance id (a hexidecimal number)
+# MAGIC 3. Is the <catalog>,<schema>.<volume_name> of the volume containing the DICOM files. Read-only is sufficient for viewing and Read-Write for saving segmentations from the OHIF viewer back to the Lakehouse.
 
 # COMMAND ----------
 
@@ -145,26 +148,28 @@ w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
   ]
 )
 
-#Grant ALL PRIVILEGES permissions on TABLE
+#Grant SELECT permissions on TABLE
 w.grants.update(full_name=table,
   securable_type=catalog.SecurableType.TABLE,
   changes=[
     catalog.PermissionsChange(
-      add=[catalog.Privilege.ALL_PRIVILEGES],
+      add=[catalog.Privilege.SELECT],
       principal=service_principal_id
     )
   ]
 )
 
-#Grant ALL PRIVILEGES permissions on VOLUME
+#Grant READ VOLUME permissions on VOLUME
 w.grants.update(full_name=volume,
   securable_type=catalog.SecurableType.VOLUME,
   changes=[
     catalog.PermissionsChange(
-      add=[catalog.Privilege.ALL_PRIVILEGES],
+      add=[catalog.Privilege.READ_VOLUME],
       principal=service_principal_id
     )
   ]
 )
+
+#TODO: Handle WRITE_VOLUME for local volumes, but READ_VOLUME for delta shares.
 
 print("PERMISSIONS GRANTED")
