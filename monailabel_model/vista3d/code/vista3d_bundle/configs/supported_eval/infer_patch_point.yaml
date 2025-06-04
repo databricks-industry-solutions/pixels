@@ -1,0 +1,52 @@
+amp: true
+exps: models
+output_path: "$'/workspace/vista3d/' + @exps"
+ckpt: "$@output_path + '/model.pt'"
+dataset_name: "TotalSegmentatorV2"
+label_set: null
+overlap: 0.625
+json_name: "$@dataset_name + '_5_folds.json'"
+data_file_base_dir: "$'/data/' + @dataset_name"
+data_list_file_path: "$'./data/jsons/' + @json_name"
+log_output_file: "$@output_path + '/validation_1point_' + @dataset_name + '.log'"
+list_key: 'testing'
+save_metric: false
+argmax_first: false
+val_auto: false
+fold: 0
+input_channels: 1
+image_key: image
+label_key: label
+patch_size: [128, 128, 128]
+transforms_infer:
+  _target_: Compose
+  transforms:
+  - _target_: LoadImaged
+    ensure_channel_first: true
+    image_only: true
+    keys: ['@image_key','@label_key']
+  - _target_: CopyItemsd
+    names: 'label_gt'
+    keys: '@label_key'
+  - _target_: CropForegroundd
+    allow_smaller: true
+    keys: ['@image_key', '@label_key']
+    margin: 10
+    source_key: '@image_key'
+  - _target_: Spacingd
+    keys: ["@image_key",'@label_key']
+    pixdim: [1.5, 1.5, 1.5]
+    mode: [bilinear,nearest]
+    align_corners: [true, true]
+  - {_target_: ScaleIntensityRanged, a_max: 1053.678477684517, a_min: -963.8247715525971,
+    b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+  - _target_: Orientationd
+    axcodes: RAS
+    keys: ['@image_key','@label_key']
+  - _target_: CastToTyped
+    dtype: [$torch.float32, $torch.uint8]
+    keys: ['@image_key','@label_key']
+  - _target_: EnsureTyped
+    keys: ['@image_key','@label_key']
+    track_meta: true
+model: "vista3d_segresnet_d"

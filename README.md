@@ -19,6 +19,11 @@
 ![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
 
 ---
+## Build Dashboards over DICOM metadata
+add any features extracted too!
+![Dashboard](images/pixels-dashboard.png)
+
+---
 ## DICOM data ingestion is easy
 
 ```python
@@ -32,15 +37,11 @@ catalog_df = catalog.catalog(<path>)                        # 04
 
 # extract the DICOM metadata
 meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
- 
-# extract DICOM image thumbnails (optional)
-thumbnail_df = DicomThumbnailExtractor().transform(meta_df) # 06
- 
+
 # save your work for SQL access
-catalog.save(thumbnail_df)                                  # 07
+catalog.save(meta_df)                                       # 06
 ```
 You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
-
 
 ---
 ## Architecture
@@ -257,5 +258,6 @@ DICOM® is recognized by the International Organization for Standardization as t
 | MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
 | DICOGNITO            | A library and command line tool for anonymizing DICOM files | MIT  | https://github.com/blairconrad/dicognito |
 | FF3                  | FPE - Format Preserving Encryption with FF3 in Python | Apache-2.0 license  | https://github.com/mysto/python-fpe |
+| Vista3D              | MONAI Versatile Imaging SegmenTation and Annotation model | Apache-2.0 license (code) - NCLS v1 (model weight) | https://github.com/Project-MONAI/VISTA/tree/main/vista3d |
 
 

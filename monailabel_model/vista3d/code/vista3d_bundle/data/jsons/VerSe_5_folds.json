@@ -1,0 +1,2785 @@
+{
+    "training": [
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse054/sub-verse054_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse054/sub-verse054_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse054/sub-verse054_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse701/sub-verse701_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse701/sub-verse701_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse701/sub-verse701_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse585/sub-verse585_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse585/sub-verse585_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse585/sub-verse585_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse101/sub-verse101_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse101/sub-verse101_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse101/sub-verse101_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse769/sub-verse769_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse769/sub-verse769_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse769/sub-verse769_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse605/sub-verse605_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse605/sub-verse605_dir-sag_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse605/sub-verse605_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl453/sub-gl453_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl453/sub-gl453_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl453/sub-gl453_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse706/sub-verse706_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse706/sub-verse706_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse706/sub-verse706_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse014/sub-verse014_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse014/sub-verse014_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse014/sub-verse014_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse116/sub-verse116_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse116/sub-verse116_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse116/sub-verse116_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse761/sub-verse761_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse761/sub-verse761_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse761/sub-verse761_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse757/sub-verse757_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse757/sub-verse757_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse757/sub-verse757_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse100/sub-verse100_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse100/sub-verse100_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse100/sub-verse100_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse085/sub-verse085_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse085/sub-verse085_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse085/sub-verse085_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse105/sub-verse105_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse105/sub-verse105_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse105/sub-verse105_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse621/sub-verse621_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse621/sub-verse621_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse621/sub-verse621_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl428/sub-gl428_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl428/sub-gl428_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl428/sub-gl428_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse502/sub-verse502_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse502/sub-verse502_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse502/sub-verse502_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl216/sub-gl216_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl216/sub-gl216_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl216/sub-gl216_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl108/sub-gl108_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl108/sub-gl108_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl108/sub-gl108_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse514/sub-verse514_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse514/sub-verse514_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse514/sub-verse514_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse076/sub-verse076_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse076/sub-verse076_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse076/sub-verse076_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse554/sub-verse554_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse554/sub-verse554_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse554/sub-verse554_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse813/sub-verse813_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse813/sub-verse813_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse813/sub-verse813_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse536/sub-verse536_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse536/sub-verse536_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse536/sub-verse536_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse513/sub-verse513_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse513/sub-verse513_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse513/sub-verse513_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse112/sub-verse112_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse112/sub-verse112_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse112/sub-verse112_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse627/sub-verse627_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse627/sub-verse627_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse627/sub-verse627_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse018/sub-verse018_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse018/sub-verse018_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse018/sub-verse018_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse503/sub-verse503_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse503/sub-verse503_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse503/sub-verse503_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse152/sub-verse152_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse152/sub-verse152_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse152/sub-verse152_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse135/sub-verse135_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse135/sub-verse135_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse135/sub-verse135_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse137/sub-verse137_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse137/sub-verse137_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse137/sub-verse137_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse271/sub-verse271_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse271/sub-verse271_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse271/sub-verse271_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse082/sub-verse082_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse082/sub-verse082_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse082/sub-verse082_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse022/sub-verse022_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse022/sub-verse022_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse022/sub-verse022_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse408/sub-verse408_split-verse265_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse408/sub-verse408_split-verse265_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse408/sub-verse408_split-verse265_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse559/sub-verse559_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse559/sub-verse559_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse559/sub-verse559_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse651/sub-verse651_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse651/sub-verse651_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse651/sub-verse651_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse537/sub-verse537_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse537/sub-verse537_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse537/sub-verse537_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse088/sub-verse088_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse088/sub-verse088_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse088/sub-verse088_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse530/sub-verse530_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse530/sub-verse530_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse530/sub-verse530_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse615/sub-verse615_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse615/sub-verse615_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse615/sub-verse615_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse145/sub-verse145_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse145/sub-verse145_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse145/sub-verse145_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl099/sub-gl099_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl099/sub-gl099_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl099/sub-gl099_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse092/sub-verse092_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse092/sub-verse092_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse092/sub-verse092_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse141/sub-verse141_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse141/sub-verse141_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse141/sub-verse141_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse242/sub-verse242_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse242/sub-verse242_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse242/sub-verse242_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse414/sub-verse414_split-verse241_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse414/sub-verse414_split-verse241_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse414/sub-verse414_split-verse241_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse647/sub-verse647_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse647/sub-verse647_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse647/sub-verse647_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse650/sub-verse650_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse650/sub-verse650_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse650/sub-verse650_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse545/sub-verse545_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse545/sub-verse545_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse545/sub-verse545_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl059/sub-gl059_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl059/sub-gl059_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl059/sub-gl059_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse709/sub-verse709_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse709/sub-verse709_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse709/sub-verse709_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse507/sub-verse507_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse507/sub-verse507_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse507/sub-verse507_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse719/sub-verse719_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse719/sub-verse719_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse719/sub-verse719_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl003/sub-gl003_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl003/sub-gl003_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl003/sub-gl003_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse629/sub-verse629_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse629/sub-verse629_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse629/sub-verse629_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse097/sub-verse097_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse097/sub-verse097_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse097/sub-verse097_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse276/sub-verse276_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse276/sub-verse276_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse276/sub-verse276_seg-vert_msk.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse700/sub-verse700_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse700/sub-verse700_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse700/sub-verse700_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse700_dir-sag_ct/sub-verse700_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl352/sub-gl352_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl352/sub-gl352_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl352/sub-gl352_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl352_ct/sub-gl352_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse616/sub-verse616_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse616/sub-verse616_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse616/sub-verse616_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse616_dir-iso_ct/sub-verse616_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse758/sub-verse758_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse758/sub-verse758_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse758/sub-verse758_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse758_dir-sag_ct/sub-verse758_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse149/sub-verse149_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse149/sub-verse149_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse149/sub-verse149_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse149_ct/sub-verse149_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse509/sub-verse509_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse509/sub-verse509_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse509/sub-verse509_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse509_dir-iso_ct/sub-verse509_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse047/sub-verse047_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse047/sub-verse047_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse047/sub-verse047_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse047_ct/sub-verse047_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse713/sub-verse713_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse713/sub-verse713_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse713/sub-verse713_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse713_ct/sub-verse713_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse582/sub-verse582_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse582/sub-verse582_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse582/sub-verse582_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse582_dir-iso_ct/sub-verse582_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse581/sub-verse581_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse581/sub-verse581_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse581/sub-verse581_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse581_dir-ax_ct/sub-verse581_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse550/sub-verse550_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse550/sub-verse550_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse550/sub-verse550_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse550_dir-iso_ct/sub-verse550_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse113/sub-verse113_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse113/sub-verse113_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse113/sub-verse113_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse113_ct/sub-verse113_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse811/sub-verse811_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse811/sub-verse811_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse811/sub-verse811_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse811_dir-ax_ct/sub-verse811_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse500/sub-verse500_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse500/sub-verse500_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse500/sub-verse500_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse500_dir-ax_ct/sub-verse500_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse518/sub-verse518_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse518/sub-verse518_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse518/sub-verse518_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse518_dir-ax_ct/sub-verse518_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse264/sub-verse264_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse264/sub-verse264_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse264/sub-verse264_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse264_ct/sub-verse264_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse406/sub-verse406_split-verse261_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse406/sub-verse406_split-verse261_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse406/sub-verse406_split-verse261_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse406_split-verse261_ct/sub-verse406_split-verse261_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse802/sub-verse802_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse802/sub-verse802_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse802/sub-verse802_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse802_ct/sub-verse802_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse408/sub-verse408_split-verse223_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse408/sub-verse408_split-verse223_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse408/sub-verse408_split-verse223_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse408_split-verse223_ct/sub-verse408_split-verse223_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl364/sub-gl364_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl364/sub-gl364_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl364/sub-gl364_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl364_dir-ax_ct/sub-gl364_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse401/sub-verse401_split-verse201_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse401/sub-verse401_split-verse201_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse401/sub-verse401_split-verse201_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse401_split-verse201_ct/sub-verse401_split-verse201_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl419/sub-gl419_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl419/sub-gl419_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl419/sub-gl419_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl419_dir-ax_ct/sub-gl419_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse134/sub-verse134_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse134/sub-verse134_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse134/sub-verse134_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse134_ct/sub-verse134_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse030/sub-verse030_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse030/sub-verse030_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse030/sub-verse030_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse030_ct/sub-verse030_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse609/sub-verse609_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse609/sub-verse609_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse609/sub-verse609_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse609_ct/sub-verse609_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse539/sub-verse539_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse539/sub-verse539_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse539/sub-verse539_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse539_dir-ax_ct/sub-verse539_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse073/sub-verse073_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse073/sub-verse073_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse073/sub-verse073_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse073_ct/sub-verse073_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse556/sub-verse556_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse556/sub-verse556_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse556/sub-verse556_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse556_dir-ax_ct/sub-verse556_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse572/sub-verse572_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse572/sub-verse572_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse572/sub-verse572_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse572_dir-sag_ct/sub-verse572_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse402/sub-verse402_split-verse251_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse402/sub-verse402_split-verse251_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse402/sub-verse402_split-verse251_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse402_split-verse251_ct/sub-verse402_split-verse251_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse125/sub-verse125_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse125/sub-verse125_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse125/sub-verse125_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse125_ct/sub-verse125_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse236/sub-verse236_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse236/sub-verse236_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse236/sub-verse236_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse236_ct/sub-verse236_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse716/sub-verse716_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse716/sub-verse716_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse716/sub-verse716_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse716_dir-iso_ct/sub-verse716_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse754/sub-verse754_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse754/sub-verse754_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse754/sub-verse754_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse754_dir-sag_ct/sub-verse754_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse078/sub-verse078_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse078/sub-verse078_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse078/sub-verse078_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse078_ct/sub-verse078_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl017/sub-gl017_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl017/sub-gl017_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl017/sub-gl017_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl017_ct/sub-gl017_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse412/sub-verse412_split-verse290_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse412/sub-verse412_split-verse290_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse412/sub-verse412_split-verse290_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse412_split-verse290_ct/sub-verse412_split-verse290_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse221/sub-verse221_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse221/sub-verse221_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse221/sub-verse221_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse221_ct/sub-verse221_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse768/sub-verse768_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse768/sub-verse768_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse768/sub-verse768_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse768_dir-ax_ct/sub-verse768_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse107/sub-verse107_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse107/sub-verse107_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse107/sub-verse107_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse107_ct/sub-verse107_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse512/sub-verse512_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse512/sub-verse512_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse512/sub-verse512_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse512_dir-iso_ct/sub-verse512_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse407/sub-verse407_split-verse215_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse407/sub-verse407_split-verse215_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse407/sub-verse407_split-verse215_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse407_split-verse215_ct/sub-verse407_split-verse215_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl016/sub-gl016_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl016/sub-gl016_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl016/sub-gl016_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl016_dir-ax_ct/sub-gl016_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse416/sub-verse416_split-verse279_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse416/sub-verse416_split-verse279_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse416/sub-verse416_split-verse279_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse416_split-verse279_ct/sub-verse416_split-verse279_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse151/sub-verse151_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse151/sub-verse151_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse151/sub-verse151_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse151_ct/sub-verse151_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse826/sub-verse826_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse826/sub-verse826_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse826/sub-verse826_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse826_ct/sub-verse826_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse598/sub-verse598_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse598/sub-verse598_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse598/sub-verse598_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse598_ct/sub-verse598_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse576/sub-verse576_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse576/sub-verse576_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse576/sub-verse576_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse576_ct/sub-verse576_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse055/sub-verse055_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse055/sub-verse055_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse055/sub-verse055_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse055_ct/sub-verse055_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse400/sub-verse400_split-verse155_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse400/sub-verse400_split-verse155_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse400/sub-verse400_split-verse155_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse400_split-verse155_ct/sub-verse400_split-verse155_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse642/sub-verse642_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse642/sub-verse642_dir-sag_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse642/sub-verse642_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse642_dir-sag_ct/sub-verse642_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse522/sub-verse522_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse522/sub-verse522_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse522/sub-verse522_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse522_ct/sub-verse522_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse593/sub-verse593_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse593/sub-verse593_dir-sag_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse593/sub-verse593_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse593_dir-sag_ct/sub-verse593_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse411/sub-verse411_split-verse270_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse411/sub-verse411_split-verse270_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse411/sub-verse411_split-verse270_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse411_split-verse270_ct/sub-verse411_split-verse270_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse417/sub-verse417_split-verse277_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse417/sub-verse417_split-verse277_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse417/sub-verse417_split-verse277_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse417_split-verse277_ct/sub-verse417_split-verse277_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse402/sub-verse402_split-verse202_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse402/sub-verse402_split-verse202_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse402/sub-verse402_split-verse202_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse402_split-verse202_ct/sub-verse402_split-verse202_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse041/sub-verse041_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse041/sub-verse041_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse041/sub-verse041_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse041_ct/sub-verse041_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse707/sub-verse707_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse707/sub-verse707_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse707/sub-verse707_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse707_ct/sub-verse707_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse416/sub-verse416_split-verse247_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse416/sub-verse416_split-verse247_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse416/sub-verse416_split-verse247_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse416_split-verse247_ct/sub-verse416_split-verse247_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse260/sub-verse260_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse260/sub-verse260_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse260/sub-verse260_seg-vert_msk.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse260_ct/sub-verse260_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse150/sub-verse150_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse150/sub-verse150_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse150/sub-verse150_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse150_ct/sub-verse150_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse533/sub-verse533_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse533/sub-verse533_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse533/sub-verse533_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse533_dir-ax_ct/sub-verse533_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse584/sub-verse584_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse584/sub-verse584_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse584/sub-verse584_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse584_dir-ax_ct/sub-verse584_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse075/sub-verse075_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse075/sub-verse075_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse075/sub-verse075_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse075_ct/sub-verse075_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse816/sub-verse816_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse816/sub-verse816_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse816/sub-verse816_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse816_ct/sub-verse816_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse820/sub-verse820_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse820/sub-verse820_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse820/sub-verse820_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse820_dir-ax_ct/sub-verse820_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse808/sub-verse808_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse808/sub-verse808_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse808/sub-verse808_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse808_dir-iso_ct/sub-verse808_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse825/sub-verse825_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse825/sub-verse825_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse825/sub-verse825_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse825_dir-ax_ct/sub-verse825_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse547/sub-verse547_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse547/sub-verse547_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse547/sub-verse547_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse547_ct/sub-verse547_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse032/sub-verse032_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse032/sub-verse032_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse032/sub-verse032_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse032_ct/sub-verse032_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse407/sub-verse407_split-verse262_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse407/sub-verse407_split-verse262_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse407/sub-verse407_split-verse262_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse407_split-verse262_ct/sub-verse407_split-verse262_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse833/sub-verse833_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse833/sub-verse833_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse833/sub-verse833_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse833_dir-ax_ct/sub-verse833_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse763/sub-verse763_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse763/sub-verse763_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse763/sub-verse763_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse763_ct/sub-verse763_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse015/sub-verse015_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse015/sub-verse015_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse015/sub-verse015_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse015_ct/sub-verse015_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse217/sub-verse217_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse217/sub-verse217_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse217/sub-verse217_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse217_ct/sub-verse217_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse765/sub-verse765_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse765/sub-verse765_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse765/sub-verse765_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse765_ct/sub-verse765_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl479/sub-gl479_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl479/sub-gl479_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl479/sub-gl479_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl479_ct/sub-gl479_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse415/sub-verse415_split-verse243_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse415/sub-verse415_split-verse243_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse415/sub-verse415_split-verse243_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse415_split-verse243_ct/sub-verse415_split-verse243_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse755/sub-verse755_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse755/sub-verse755_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse755/sub-verse755_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse755_ct/sub-verse755_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse401/sub-verse401_split-verse253_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse401/sub-verse401_split-verse253_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse401/sub-verse401_split-verse253_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse401_split-verse253_ct/sub-verse401_split-verse253_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl295/sub-gl295_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl295/sub-gl295_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl295/sub-gl295_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl295_dir-ax_ct/sub-gl295_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse640/sub-verse640_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse640/sub-verse640_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse640/sub-verse640_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse640_ct/sub-verse640_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse009/sub-verse009_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse009/sub-verse009_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse009/sub-verse009_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse009_ct/sub-verse009_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse573/sub-verse573_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse573/sub-verse573_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse573/sub-verse573_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse573_ct/sub-verse573_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse511/sub-verse511_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse511/sub-verse511_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse511/sub-verse511_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse511_dir-ax_ct/sub-verse511_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse549/sub-verse549_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse549/sub-verse549_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse549/sub-verse549_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse549_ct/sub-verse549_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse810/sub-verse810_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse810/sub-verse810_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse810/sub-verse810_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse810_dir-iso_ct/sub-verse810_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse067/sub-verse067_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse067/sub-verse067_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse067/sub-verse067_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse067_ct/sub-verse067_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse404/sub-verse404_split-verse209_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse404/sub-verse404_split-verse209_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse404/sub-verse404_split-verse209_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse404_split-verse209_ct/sub-verse404_split-verse209_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse750/sub-verse750_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse750/sub-verse750_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse750/sub-verse750_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse750_dir-ax_ct/sub-verse750_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse405/sub-verse405_split-verse258_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse405/sub-verse405_split-verse258_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse405/sub-verse405_split-verse258_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse405_split-verse258_ct/sub-verse405_split-verse258_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse061/sub-verse061_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse061/sub-verse061_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse061/sub-verse061_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse061_ct/sub-verse061_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse753/sub-verse753_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse753/sub-verse753_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse753/sub-verse753_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse753_ct/sub-verse753_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse619/sub-verse619_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse619/sub-verse619_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse619/sub-verse619_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse619_dir-ax_ct/sub-verse619_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse006/sub-verse006_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse006/sub-verse006_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse006/sub-verse006_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse006_ct/sub-verse006_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse565/sub-verse565_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse565/sub-verse565_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse565/sub-verse565_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse565_dir-ax_ct/sub-verse565_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse065/sub-verse065_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse065/sub-verse065_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse065/sub-verse065_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse065_ct/sub-verse065_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse711/sub-verse711_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse711/sub-verse711_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse711/sub-verse711_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse711_ct/sub-verse711_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse144/sub-verse144_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse144/sub-verse144_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse144/sub-verse144_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse144_ct/sub-verse144_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse038/sub-verse038_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse038/sub-verse038_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse038/sub-verse038_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse038_ct/sub-verse038_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse011/sub-verse011_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse011/sub-verse011_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse011/sub-verse011_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse011_ct/sub-verse011_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse552/sub-verse552_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse552/sub-verse552_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse552/sub-verse552_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse552_dir-ax_ct/sub-verse552_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse600/sub-verse600_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse600/sub-verse600_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse600/sub-verse600_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse600_dir-ax_ct/sub-verse600_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse607/sub-verse607_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse607/sub-verse607_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse607/sub-verse607_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse607_dir-sag_ct/sub-verse607_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse130/sub-verse130_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse130/sub-verse130_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse130/sub-verse130_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse130_ct/sub-verse130_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse623/sub-verse623_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse623/sub-verse623_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse623/sub-verse623_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse623_ct/sub-verse623_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse104/sub-verse104_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse104/sub-verse104_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse104/sub-verse104_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse104_ct/sub-verse104_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse080/sub-verse080_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse080/sub-verse080_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse080/sub-verse080_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse080_ct/sub-verse080_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse409/sub-verse409_split-verse226_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse409/sub-verse409_split-verse226_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse409/sub-verse409_split-verse226_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse409_split-verse226_ct/sub-verse409_split-verse226_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse603/sub-verse603_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse603/sub-verse603_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse603/sub-verse603_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse603_ct/sub-verse603_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse614/sub-verse614_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse614/sub-verse614_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse614/sub-verse614_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse614_ct/sub-verse614_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse005/sub-verse005_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse005/sub-verse005_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse005/sub-verse005_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse005_ct/sub-verse005_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse146/sub-verse146_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse146/sub-verse146_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse146/sub-verse146_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse146_ct/sub-verse146_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse023/sub-verse023_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse023/sub-verse023_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse023/sub-verse023_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse023_ct/sub-verse023_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse544/sub-verse544_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse544/sub-verse544_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse544/sub-verse544_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse544_dir-ax_ct/sub-verse544_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse801/sub-verse801_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse801/sub-verse801_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse801/sub-verse801_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse801_dir-iso_ct/sub-verse801_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse764/sub-verse764_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse764/sub-verse764_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse764/sub-verse764_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse764_dir-iso_ct/sub-verse764_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse526/sub-verse526_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse526/sub-verse526_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse526/sub-verse526_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse526_dir-iso_ct/sub-verse526_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse708/sub-verse708_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse708/sub-verse708_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse708/sub-verse708_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse708_dir-iso_ct/sub-verse708_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse604/sub-verse604_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse604/sub-verse604_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse604/sub-verse604_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse604_dir-iso_ct/sub-verse604_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse594/sub-verse594_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse594/sub-verse594_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse594/sub-verse594_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse594_dir-ax_ct/sub-verse594_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse617/sub-verse617_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse617/sub-verse617_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse617/sub-verse617_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse617_dir-iso_ct/sub-verse617_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse542/sub-verse542_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse542/sub-verse542_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse542/sub-verse542_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse542_dir-iso_ct/sub-verse542_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl195/sub-gl195_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl195/sub-gl195_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl195/sub-gl195_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl195_dir-ax_ct/sub-gl195_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse024/sub-verse024_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse024/sub-verse024_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse024/sub-verse024_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse024_ct/sub-verse024_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse254/sub-verse254_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse254/sub-verse254_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse254/sub-verse254_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse254_ct/sub-verse254_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse702/sub-verse702_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse702/sub-verse702_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse702/sub-verse702_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse702_dir-sag_ct/sub-verse702_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse004/sub-verse004_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse004/sub-verse004_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse004/sub-verse004_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse004_ct/sub-verse004_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse504/sub-verse504_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse504/sub-verse504_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse504/sub-verse504_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse504_dir-iso_ct/sub-verse504_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse710/sub-verse710_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse710/sub-verse710_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse710/sub-verse710_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse710_dir-iso_ct/sub-verse710_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse070/sub-verse070_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse070/sub-verse070_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse070/sub-verse070_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse070_ct/sub-verse070_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse417/sub-verse417_split-verse278_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse417/sub-verse417_split-verse278_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse417/sub-verse417_split-verse278_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse417_split-verse278_ct/sub-verse417_split-verse278_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse519/sub-verse519_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse519/sub-verse519_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse519/sub-verse519_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse519_dir-iso_ct/sub-verse519_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse641/sub-verse641_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse641/sub-verse641_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse641/sub-verse641_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse641_dir-ax_ct/sub-verse641_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse020/sub-verse020_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse020/sub-verse020_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse020/sub-verse020_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse020_ct/sub-verse020_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse817/sub-verse817_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse817/sub-verse817_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse817/sub-verse817_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse817_ct/sub-verse817_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse571/sub-verse571_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse571/sub-verse571_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse571/sub-verse571_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse571_ct/sub-verse571_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse095/sub-verse095_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse095/sub-verse095_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse095/sub-verse095_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse095_ct/sub-verse095_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse596/sub-verse596_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse596/sub-verse596_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse596/sub-verse596_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse596_dir-ax_ct/sub-verse596_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl045/sub-gl045_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl045/sub-gl045_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl045/sub-gl045_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl045_ct/sub-gl045_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse521/sub-verse521_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse521/sub-verse521_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse521/sub-verse521_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse521_dir-ax_ct/sub-verse521_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse631/sub-verse631_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse631/sub-verse631_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse631/sub-verse631_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse631_ct/sub-verse631_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse413/sub-verse413_split-verse239_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse413/sub-verse413_split-verse239_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse413/sub-verse413_split-verse239_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse413_split-verse239_ct/sub-verse413_split-verse239_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse767/sub-verse767_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse767/sub-verse767_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse767/sub-verse767_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse767_ct/sub-verse767_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse561/sub-verse561_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse561/sub-verse561_dir-sag_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse561/sub-verse561_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse561_dir-sag_ct/sub-verse561_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse602/sub-verse602_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse602/sub-verse602_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse602/sub-verse602_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse602_dir-iso_ct/sub-verse602_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse007/sub-verse007_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse007/sub-verse007_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse007/sub-verse007_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse007_ct/sub-verse007_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse804/sub-verse804_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse804/sub-verse804_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse804/sub-verse804_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse804_dir-iso_ct/sub-verse804_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse111/sub-verse111_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse111/sub-verse111_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse111/sub-verse111_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse111_ct/sub-verse111_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse803/sub-verse803_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse803/sub-verse803_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse803/sub-verse803_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse803_dir-iso_ct/sub-verse803_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse821/sub-verse821_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse821/sub-verse821_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse821/sub-verse821_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse821_ct/sub-verse821_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse618/sub-verse618_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse618/sub-verse618_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse618/sub-verse618_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse618_ct/sub-verse618_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse524/sub-verse524_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse524/sub-verse524_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse524/sub-verse524_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse524_dir-iso_ct/sub-verse524_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse555/sub-verse555_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse555/sub-verse555_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse555/sub-verse555_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse555_dir-iso_ct/sub-verse555_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl144/sub-gl144_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl144/sub-gl144_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl144/sub-gl144_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl144_ct/sub-gl144_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl146/sub-gl146_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-gl146/sub-gl146_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl146/sub-gl146_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl146_dir-ax_ct/sub-gl146_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse093/sub-verse093_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse093/sub-verse093_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse093/sub-verse093_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse093_ct/sub-verse093_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse074/sub-verse074_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse074/sub-verse074_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse074/sub-verse074_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse074_ct/sub-verse074_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse138/sub-verse138_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse138/sub-verse138_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse138/sub-verse138_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse138_ct/sub-verse138_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse153/sub-verse153_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse153/sub-verse153_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse153/sub-verse153_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse153_ct/sub-verse153_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse415/sub-verse415_split-verse275_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse415/sub-verse415_split-verse275_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse415/sub-verse415_split-verse275_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse415_split-verse275_ct/sub-verse415_split-verse275_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse823/sub-verse823_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse823/sub-verse823_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse823/sub-verse823_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse823_dir-iso_ct/sub-verse823_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse760/sub-verse760_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse760/sub-verse760_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse760/sub-verse760_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse760_dir-iso_ct/sub-verse760_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse824/sub-verse824_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse824/sub-verse824_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse824/sub-verse824_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse824_dir-ax_ct/sub-verse824_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse230/sub-verse230_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse230/sub-verse230_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse230/sub-verse230_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse230_ct/sub-verse230_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse805/sub-verse805_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse805/sub-verse805_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse805/sub-verse805_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse805_ct/sub-verse805_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl124/sub-gl124_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl124/sub-gl124_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl124/sub-gl124_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl124_dir-ax_ct/sub-gl124_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse644/sub-verse644_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse644/sub-verse644_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse644/sub-verse644_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse644_ct/sub-verse644_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse597/sub-verse597_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse597/sub-verse597_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse597/sub-verse597_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse597_dir-iso_ct/sub-verse597_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl068/sub-gl068_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl068/sub-gl068_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl068/sub-gl068_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl068_ct/sub-gl068_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse096/sub-verse096_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse096/sub-verse096_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse096/sub-verse096_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse096_ct/sub-verse096_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse712/sub-verse712_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse712/sub-verse712_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse712/sub-verse712_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse712_dir-iso_ct/sub-verse712_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse066/sub-verse066_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse066/sub-verse066_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse066/sub-verse066_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse066_ct/sub-verse066_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse051/sub-verse051_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse051/sub-verse051_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse051/sub-verse051_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse051_ct/sub-verse051_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse717/sub-verse717_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse717/sub-verse717_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse717/sub-verse717_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse717_ct/sub-verse717_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse060/sub-verse060_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse060/sub-verse060_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse060/sub-verse060_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse060_ct/sub-verse060_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse508/sub-verse508_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse508/sub-verse508_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse508/sub-verse508_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse508_dir-ax_ct/sub-verse508_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse506/sub-verse506_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse506/sub-verse506_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse506/sub-verse506_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse506_dir-iso_ct/sub-verse506_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse409/sub-verse409_split-verse266_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse409/sub-verse409_split-verse266_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse409/sub-verse409_split-verse266_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse409_split-verse266_ct/sub-verse409_split-verse266_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse715/sub-verse715_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse715/sub-verse715_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse715/sub-verse715_seg-vert_msk.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse715_ct/sub-verse715_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse029/sub-verse029_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse029/sub-verse029_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse029/sub-verse029_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse029_ct/sub-verse029_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse570/sub-verse570_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse570/sub-verse570_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse570/sub-verse570_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse570_dir-iso_ct/sub-verse570_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse068/sub-verse068_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse068/sub-verse068_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse068/sub-verse068_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse068_ct/sub-verse068_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse532/sub-verse532_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse532/sub-verse532_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse532/sub-verse532_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse532_dir-ax_ct/sub-verse532_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse809/sub-verse809_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse809/sub-verse809_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse809/sub-verse809_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse809_dir-iso_ct/sub-verse809_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse703/sub-verse703_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse703/sub-verse703_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse703/sub-verse703_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse703_ct/sub-verse703_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse059/sub-verse059_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse059/sub-verse059_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse059/sub-verse059_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse059_ct/sub-verse059_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse714/sub-verse714_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse714/sub-verse714_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse714/sub-verse714_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse714_dir-iso_ct/sub-verse714_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse414/sub-verse414_split-verse273_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse414/sub-verse414_split-verse273_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse414/sub-verse414_split-verse273_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse414_split-verse273_ct/sub-verse414_split-verse273_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse531/sub-verse531_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse531/sub-verse531_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse531/sub-verse531_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse531_ct/sub-verse531_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse558/sub-verse558_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse558/sub-verse558_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse558/sub-verse558_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse558_dir-sag_ct/sub-verse558_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse529/sub-verse529_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse529/sub-verse529_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse529/sub-verse529_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse529_ct/sub-verse529_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse613/sub-verse613_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse613/sub-verse613_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse613/sub-verse613_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse613_dir-iso_ct/sub-verse613_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse133/sub-verse133_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse133/sub-verse133_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse133/sub-verse133_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse133_ct/sub-verse133_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse207/sub-verse207_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse207/sub-verse207_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse207/sub-verse207_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse207_ct/sub-verse207_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse592/sub-verse592_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse592/sub-verse592_dir-ax_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse592/sub-verse592_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse592_dir-ax_ct/sub-verse592_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse225/sub-verse225_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse225/sub-verse225_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse225/sub-verse225_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse225_ct/sub-verse225_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse269/sub-verse269_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse269/sub-verse269_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse269/sub-verse269_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse269_ct/sub-verse269_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse534/sub-verse534_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse534/sub-verse534_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse534/sub-verse534_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse534_dir-iso_ct/sub-verse534_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse033/sub-verse033_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse033/sub-verse033_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse033/sub-verse033_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse033_ct/sub-verse033_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse124/sub-verse124_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse124/sub-verse124_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse124/sub-verse124_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse124_ct/sub-verse124_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse577/sub-verse577_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-verse577/sub-verse577_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse577/sub-verse577_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse577_dir-ax_ct/sub-verse577_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse046/sub-verse046_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse046/sub-verse046_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse046/sub-verse046_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse046_ct/sub-verse046_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse756/sub-verse756_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse756/sub-verse756_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse756/sub-verse756_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse756_dir-iso_ct/sub-verse756_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse404/sub-verse404_split-verse256_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse404/sub-verse404_split-verse256_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse404/sub-verse404_split-verse256_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse404_split-verse256_ct/sub-verse404_split-verse256_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse413/sub-verse413_split-verse272_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse413/sub-verse413_split-verse272_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse413/sub-verse413_split-verse272_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse413_split-verse272_ct/sub-verse413_split-verse272_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse102/sub-verse102_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse102/sub-verse102_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse102/sub-verse102_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse102_ct/sub-verse102_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse406/sub-verse406_split-verse214_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse406/sub-verse406_split-verse214_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse406/sub-verse406_split-verse214_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse406_split-verse214_ct/sub-verse406_split-verse214_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse563/sub-verse563_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse563/sub-verse563_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse563/sub-verse563_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse563_dir-iso_ct/sub-verse563_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse505/sub-verse505_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse505/sub-verse505_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse505/sub-verse505_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse505_ct/sub-verse505_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse751/sub-verse751_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse751/sub-verse751_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse751/sub-verse751_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse751_dir-sag_ct/sub-verse751_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse762/sub-verse762_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse762/sub-verse762_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse762/sub-verse762_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse762_dir-iso_ct/sub-verse762_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse031/sub-verse031_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse031/sub-verse031_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse031/sub-verse031_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse031_ct/sub-verse031_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse649/sub-verse649_dir-sag_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse649/sub-verse649_dir-sag_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse649/sub-verse649_dir-sag_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse649_dir-sag_ct/sub-verse649_dir-sag_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse050/sub-verse050_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse050/sub-verse050_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse050/sub-verse050_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse050_ct/sub-verse050_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse705/sub-verse705_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse705/sub-verse705_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse705/sub-verse705_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse705_ct/sub-verse705_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse013/sub-verse013_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse013/sub-verse013_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse013/sub-verse013_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse013_ct/sub-verse013_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse008/sub-verse008_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse008/sub-verse008_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse008/sub-verse008_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse008_ct/sub-verse008_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse405/sub-verse405_split-verse259_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse405/sub-verse405_split-verse259_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse405/sub-verse405_split-verse259_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse405_split-verse259_ct/sub-verse405_split-verse259_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse089/sub-verse089_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse089/sub-verse089_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse089/sub-verse089_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse089_ct/sub-verse089_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse147/sub-verse147_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse147/sub-verse147_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse147/sub-verse147_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse147_ct/sub-verse147_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse612/sub-verse612_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse612/sub-verse612_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse612/sub-verse612_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse612_ct/sub-verse612_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse058/sub-verse058_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse058/sub-verse058_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse058/sub-verse058_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse058_ct/sub-verse058_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse403/sub-verse403_split-verse208_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse403/sub-verse403_split-verse208_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse403/sub-verse403_split-verse208_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse403_split-verse208_ct/sub-verse403_split-verse208_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse252/sub-verse252_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse252/sub-verse252_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse252/sub-verse252_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse252_ct/sub-verse252_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse043/sub-verse043_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse043/sub-verse043_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse043/sub-verse043_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse043_ct/sub-verse043_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse400/sub-verse400_split-verse090_ct.nii.gz",
+            "pseudo_label": "dataset-verse19validation/rawdata/sub-verse400/sub-verse400_split-verse090_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse400/sub-verse400_split-verse090_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse400_split-verse090_ct/sub-verse400_split-verse090_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl240/sub-gl240_dir-ax_ct.nii.gz",
+            "pseudo_label": "dataset-01training/rawdata/sub-gl240/sub-gl240_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl240/sub-gl240_dir-ax_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl240_dir-ax_ct/sub-gl240_dir-ax_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse154/sub-verse154_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse154/sub-verse154_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse154/sub-verse154_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse154_ct/sub-verse154_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse048/sub-verse048_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse048/sub-verse048_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse048/sub-verse048_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse048_ct/sub-verse048_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse606/sub-verse606_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-verse606/sub-verse606_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse606/sub-verse606_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse606_ct/sub-verse606_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse143/sub-verse143_ct.nii.gz",
+            "pseudo_label": "dataset-verse19test/rawdata/sub-verse143/sub-verse143_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse143/sub-verse143_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse143_ct/sub-verse143_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse410/sub-verse410_split-verse267_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse410/sub-verse410_split-verse267_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse410/sub-verse410_split-verse267_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse410_split-verse267_ct/sub-verse410_split-verse267_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse704/sub-verse704_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse704/sub-verse704_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse704/sub-verse704_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse704_dir-iso_ct/sub-verse704_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse517/sub-verse517_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse517/sub-verse517_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse517/sub-verse517_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse517_dir-iso_ct/sub-verse517_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl380/sub-gl380_ct.nii.gz",
+            "pseudo_label": "dataset-02validation/rawdata/sub-gl380/sub-gl380_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl380/sub-gl380_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-gl380_ct/sub-gl380_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse410/sub-verse410_split-verse227_ct.nii.gz",
+            "pseudo_label": "dataset-verse19training/rawdata/sub-verse410/sub-verse410_split-verse227_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse410/sub-verse410_split-verse227_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse410_split-verse227_ct/sub-verse410_split-verse227_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse587/sub-verse587_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse587/sub-verse587_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse587/sub-verse587_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse587_dir-iso_ct/sub-verse587_dir-iso_ct_seg.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse540/sub-verse540_dir-iso_ct.nii.gz",
+            "pseudo_label": "dataset-03test/rawdata/sub-verse540/sub-verse540_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse540/sub-verse540_dir-iso_seg-vert_msk.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/VerSe_100/sub-verse540_dir-iso_ct/sub-verse540_dir-iso_ct_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "vertebrae C1",
+        "2": "vertebrae C2",
+        "3": "vertebrae C3",
+        "4": "vertebrae C4",
+        "5": "vertebrae C5",
+        "6": "vertebrae C6",
+        "7": "vertebrae C7",
+        "8": "vertebrae T1",
+        "9": "vertebrae T2",
+        "10": "vertebrae T3",
+        "11": "vertebrae T4",
+        "12": "vertebrae T5",
+        "13": "vertebrae T6",
+        "14": "vertebrae T7",
+        "15": "vertebrae T8",
+        "16": "vertebrae T9",
+        "17": "vertebrae T10",
+        "18": "vertebrae T11",
+        "19": "vertebrae T12",
+        "20": "vertebrae L1",
+        "21": "vertebrae L2",
+        "22": "vertebrae L3",
+        "23": "vertebrae L4",
+        "24": "vertebrae L5",
+        "25": "vertebrae L6"
+    },
+    "original_label_dict": {
+        "1": "vertebrae C1",
+        "2": "vertebrae C2",
+        "3": "vertebrae C3",
+        "4": "vertebrae C4",
+        "5": "vertebrae C5",
+        "6": "vertebrae C6",
+        "7": "vertebrae C7",
+        "8": "vertebrae T1",
+        "9": "vertebrae T2",
+        "10": "vertebrae T3",
+        "11": "vertebrae T4",
+        "12": "vertebrae T5",
+        "13": "vertebrae T6",
+        "14": "vertebrae T7",
+        "15": "vertebrae T8",
+        "16": "vertebrae T9",
+        "17": "vertebrae T10",
+        "18": "vertebrae T11",
+        "19": "vertebrae T12",
+        "20": "vertebrae L1",
+        "21": "vertebrae L2",
+        "22": "vertebrae L3",
+        "23": "vertebrae L4",
+        "24": "vertebrae L5",
+        "25": "vertebrae L6"
+    },
+    "testing": [
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse016/sub-verse016_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse016/sub-verse016_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl492/sub-gl492_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl492/sub-gl492_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse569/sub-verse569_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse569/sub-verse569_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse525/sub-verse525_dir-sag_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse525/sub-verse525_dir-sag_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse119/sub-verse119_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse119/sub-verse119_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse122/sub-verse122_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse122/sub-verse122_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl247/sub-gl247_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl247/sub-gl247_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse034/sub-verse034_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse034/sub-verse034_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse718/sub-verse718_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse718/sub-verse718_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse551/sub-verse551_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse551/sub-verse551_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse588/sub-verse588_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse588/sub-verse588_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse053/sub-verse053_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse053/sub-verse053_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse645/sub-verse645_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse645/sub-verse645_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-gl153/sub-gl153_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-gl153/sub-gl153_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse807/sub-verse807_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse807/sub-verse807_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse071/sub-verse071_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse071/sub-verse071_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse036/sub-verse036_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse036/sub-verse036_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse835/sub-verse835_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse835/sub-verse835_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl348/sub-gl348_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl348/sub-gl348_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse599/sub-verse599_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse599/sub-verse599_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse541/sub-verse541_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse541/sub-verse541_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse127/sub-verse127_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse127/sub-verse127_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse591/sub-verse591_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse591/sub-verse591_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse405/sub-verse405_split-verse212_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse405/sub-verse405_split-verse212_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse560/sub-verse560_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse560/sub-verse560_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse064/sub-verse064_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse064/sub-verse064_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse139/sub-verse139_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse139/sub-verse139_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse620/sub-verse620_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse620/sub-verse620_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse510/sub-verse510_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse510/sub-verse510_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse108/sub-verse108_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse108/sub-verse108_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse578/sub-verse578_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse578/sub-verse578_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse646/sub-verse646_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse646/sub-verse646_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse010/sub-verse010_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse010/sub-verse010_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse557/sub-verse557_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse557/sub-verse557_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse806/sub-verse806_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse806/sub-verse806_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse412/sub-verse412_split-verse235_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse412/sub-verse412_split-verse235_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse083/sub-verse083_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse083/sub-verse083_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse586/sub-verse586_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse586/sub-verse586_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl047/sub-gl047_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl047/sub-gl047_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-gl090/sub-gl090_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-gl090/sub-gl090_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse257/sub-verse257_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse257/sub-verse257_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse815/sub-verse815_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse815/sub-verse815_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse759/sub-verse759_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse759/sub-verse759_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse012/sub-verse012_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse012/sub-verse012_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse411/sub-verse411_split-verse232_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse411/sub-verse411_split-verse232_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse580/sub-verse580_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse580/sub-verse580_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse250/sub-verse250_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse250/sub-verse250_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse131/sub-verse131_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse131/sub-verse131_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse752/sub-verse752_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse752/sub-verse752_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse814/sub-verse814_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse814/sub-verse814_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse643/sub-verse643_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse643/sub-verse643_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse205/sub-verse205_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse205/sub-verse205_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse636/sub-verse636_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse636/sub-verse636_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse553/sub-verse553_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse553/sub-verse553_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse040/sub-verse040_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse040/sub-verse040_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse056/sub-verse056_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse056/sub-verse056_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl279/sub-gl279_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl279/sub-gl279_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse766/sub-verse766_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse766/sub-verse766_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse564/sub-verse564_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse564/sub-verse564_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse546/sub-verse546_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse546/sub-verse546_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse527/sub-verse527_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse527/sub-verse527_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse403/sub-verse403_split-verse255_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse403/sub-verse403_split-verse255_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse818/sub-verse818_dir-ax_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse818/sub-verse818_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse635/sub-verse635_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse635/sub-verse635_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse648/sub-verse648_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse648/sub-verse648_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-01training/rawdata/sub-verse535/sub-verse535_dir-iso_ct.nii.gz",
+            "label": "dataset-01training/derivatives/sub-verse535/sub-verse535_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19test/rawdata/sub-verse081/sub-verse081_ct.nii.gz",
+            "label": "dataset-verse19test/derivatives/sub-verse081/sub-verse081_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-gl217/sub-gl217_dir-ax_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-gl217/sub-gl217_dir-ax_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse063/sub-verse063_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse063/sub-verse063_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19validation/rawdata/sub-verse026/sub-verse026_ct.nii.gz",
+            "label": "dataset-verse19validation/derivatives/sub-verse026/sub-verse026_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse626/sub-verse626_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse626/sub-verse626_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse091/sub-verse091_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse091/sub-verse091_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-03test/rawdata/sub-verse590/sub-verse590_dir-iso_ct.nii.gz",
+            "label": "dataset-03test/derivatives/sub-verse590/sub-verse590_dir-iso_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-02validation/rawdata/sub-verse601/sub-verse601_ct.nii.gz",
+            "label": "dataset-02validation/derivatives/sub-verse601/sub-verse601_seg-vert_msk.nii.gz"
+        },
+        {
+            "image": "dataset-verse19training/rawdata/sub-verse072/sub-verse072_ct.nii.gz",
+            "label": "dataset-verse19training/derivatives/sub-verse072/sub-verse072_seg-vert_msk.nii.gz"
+        }
+    ]
+}

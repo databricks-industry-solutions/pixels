@@ -1,0 +1,24 @@
+# This is the weights for weighted sampling in stage2 and stage4
+{
+    "CTPelvic1K-CLINIC": 1.3333333333333333,
+    "AbdomenCT-1K": 0.15625,
+    "AeroPath": 5.882352941176471,
+    "AMOS22": 0.5208333333333334,
+    "BTCV-Abdomen": 5.2631578947368425,
+    "BTCV-Cervix": 5.2631578947368425,
+    "CT-ORG": 1.1494252873563218,
+    "FLARE22": 3.125,
+    "Multi-organ-Abdominal-CT-btcv": 3.3333333333333335,
+    "Multi-organ-Abdominal-CT-tcia": 3.7037037037037037,
+    "Pancreas-CT": 1.9607843137254901,
+    "Task03": 1.1904761904761905,
+    "Task06": 2.5,
+    "Task07": 0.5555555555555556,
+    "Task08": 0.5181347150259067,
+    "Task09": 3.8461538461538463,
+    "Task10": 1.25,
+    "VerSe": 0.41841004184100417,
+    "Bone-NIH": 0.5291005291005291,
+    "CRLM-CT": 0.7936507936507936,
+    "TotalSegmentatorV2": 0.12755102040816327
+}

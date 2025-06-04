@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: html_publisher
     strategy:
       matrix:
         python-version: ["3.10"] 

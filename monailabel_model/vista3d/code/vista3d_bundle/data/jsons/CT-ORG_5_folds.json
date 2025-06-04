@@ -1,0 +1,1059 @@
+{
+    "training": [
+        {
+            "image": "OrganSegmentations/volume-128.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-128.nii.gz",
+            "label": "OrganSegmentations/labels-128.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-14.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-14.nii.gz",
+            "label": "OrganSegmentations/labels-14.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "fixed_affine/volume-28.nii.gz",
+            "pseudo_label": "fixed_affine/volume-28.nii.gz",
+            "label": "fixed_affine/labels-28.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-126.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-126.nii.gz",
+            "label": "OrganSegmentations/labels-126.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-88.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-88.nii.gz",
+            "label": "OrganSegmentations/labels-88.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-94.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-94.nii.gz",
+            "label": "OrganSegmentations/labels-94.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-127.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-127.nii.gz",
+            "label": "OrganSegmentations/labels-127.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-10.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-10.nii.gz",
+            "label": "OrganSegmentations/labels-10.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-15.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-15.nii.gz",
+            "label": "OrganSegmentations/labels-15.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-8.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-8.nii.gz",
+            "label": "OrganSegmentations/labels-8.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-108.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-108.nii.gz",
+            "label": "OrganSegmentations/labels-108.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-60.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-60.nii.gz",
+            "label": "OrganSegmentations/labels-60.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-96.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-96.nii.gz",
+            "label": "OrganSegmentations/labels-96.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-5.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-5.nii.gz",
+            "label": "OrganSegmentations/labels-5.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-1.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-1.nii.gz",
+            "label": "OrganSegmentations/labels-1.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-25.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-25.nii.gz",
+            "label": "OrganSegmentations/labels-25.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-62.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-62.nii.gz",
+            "label": "OrganSegmentations/labels-62.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-77.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-77.nii.gz",
+            "label": "OrganSegmentations/labels-77.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "fixed_affine/volume-38.nii.gz",
+            "pseudo_label": "fixed_affine/volume-38.nii.gz",
+            "label": "fixed_affine/labels-38.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "fixed_affine/volume-139.nii.gz",
+            "pseudo_label": "fixed_affine/volume-139.nii.gz",
+            "label": "fixed_affine/labels-139.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "fixed_affine/volume-138.nii.gz",
+            "pseudo_label": "fixed_affine/volume-138.nii.gz",
+            "label": "fixed_affine/labels-138.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-63.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-63.nii.gz",
+            "label": "OrganSegmentations/labels-63.nii.gz",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-52.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-52.nii.gz",
+            "label": "OrganSegmentations/labels-52.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-52/volume-52_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-98.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-98.nii.gz",
+            "label": "OrganSegmentations/labels-98.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-98/volume-98_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-111.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-111.nii.gz",
+            "label": "OrganSegmentations/labels-111.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-111/volume-111_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-95.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-95.nii.gz",
+            "label": "OrganSegmentations/labels-95.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-95/volume-95_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-16.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-16.nii.gz",
+            "label": "OrganSegmentations/labels-16.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-16/volume-16_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-57.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-57.nii.gz",
+            "label": "OrganSegmentations/labels-57.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-57/volume-57_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-46.nii.gz",
+            "pseudo_label": "fixed_affine/volume-46.nii.gz",
+            "label": "fixed_affine/labels-46.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-46/volume-46_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-34.nii.gz",
+            "pseudo_label": "fixed_affine/volume-34.nii.gz",
+            "label": "fixed_affine/labels-34.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-34/volume-34_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-61.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-61.nii.gz",
+            "label": "OrganSegmentations/labels-61.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-61/volume-61_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-17.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-17.nii.gz",
+            "label": "OrganSegmentations/labels-17.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-17/volume-17_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-123.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-123.nii.gz",
+            "label": "OrganSegmentations/labels-123.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-123/volume-123_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-130.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-130.nii.gz",
+            "label": "OrganSegmentations/labels-130.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-130/volume-130_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-54.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-54.nii.gz",
+            "label": "OrganSegmentations/labels-54.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-54/volume-54_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-83.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-83.nii.gz",
+            "label": "OrganSegmentations/labels-83.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-83/volume-83_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-30.nii.gz",
+            "pseudo_label": "fixed_affine/volume-30.nii.gz",
+            "label": "fixed_affine/labels-30.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-30/volume-30_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-4.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-4.nii.gz",
+            "label": "OrganSegmentations/labels-4.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-4/volume-4_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-90.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-90.nii.gz",
+            "label": "OrganSegmentations/labels-90.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-90/volume-90_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-124.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-124.nii.gz",
+            "label": "OrganSegmentations/labels-124.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-124/volume-124_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-12.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-12.nii.gz",
+            "label": "OrganSegmentations/labels-12.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-12/volume-12_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-106.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-106.nii.gz",
+            "label": "OrganSegmentations/labels-106.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-106/volume-106_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-24.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-24.nii.gz",
+            "label": "OrganSegmentations/labels-24.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-24/volume-24_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-82.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-82.nii.gz",
+            "label": "OrganSegmentations/labels-82.nii.gz",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-82/volume-82_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-78.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-78.nii.gz",
+            "label": "OrganSegmentations/labels-78.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-78/volume-78_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-136.nii.gz",
+            "pseudo_label": "fixed_affine/volume-136.nii.gz",
+            "label": "fixed_affine/labels-136.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-136/volume-136_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-132.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-132.nii.gz",
+            "label": "OrganSegmentations/labels-132.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-132/volume-132_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-53.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-53.nii.gz",
+            "label": "OrganSegmentations/labels-53.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-53/volume-53_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-137.nii.gz",
+            "pseudo_label": "fixed_affine/volume-137.nii.gz",
+            "label": "fixed_affine/labels-137.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-137/volume-137_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-39.nii.gz",
+            "pseudo_label": "fixed_affine/volume-39.nii.gz",
+            "label": "fixed_affine/labels-39.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-39/volume-39_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-36.nii.gz",
+            "pseudo_label": "fixed_affine/volume-36.nii.gz",
+            "label": "fixed_affine/labels-36.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-36/volume-36_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-85.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-85.nii.gz",
+            "label": "OrganSegmentations/labels-85.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-85/volume-85_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-92.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-92.nii.gz",
+            "label": "OrganSegmentations/labels-92.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-92/volume-92_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-49.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-49.nii.gz",
+            "label": "OrganSegmentations/labels-49.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-49/volume-49_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-97.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-97.nii.gz",
+            "label": "OrganSegmentations/labels-97.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-97/volume-97_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-41.nii.gz",
+            "pseudo_label": "fixed_affine/volume-41.nii.gz",
+            "label": "fixed_affine/labels-41.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-41/volume-41_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-101.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-101.nii.gz",
+            "label": "OrganSegmentations/labels-101.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-101/volume-101_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-119.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-119.nii.gz",
+            "label": "OrganSegmentations/labels-119.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-119/volume-119_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-109.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-109.nii.gz",
+            "label": "OrganSegmentations/labels-109.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-109/volume-109_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-2.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-2.nii.gz",
+            "label": "OrganSegmentations/labels-2.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-2/volume-2_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-112.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-112.nii.gz",
+            "label": "OrganSegmentations/labels-112.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-112/volume-112_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-93.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-93.nii.gz",
+            "label": "OrganSegmentations/labels-93.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-93/volume-93_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-100.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-100.nii.gz",
+            "label": "OrganSegmentations/labels-100.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-100/volume-100_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-75.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-75.nii.gz",
+            "label": "OrganSegmentations/labels-75.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-75/volume-75_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-86.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-86.nii.gz",
+            "label": "OrganSegmentations/labels-86.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-86/volume-86_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-133.nii.gz",
+            "pseudo_label": "fixed_affine/volume-133.nii.gz",
+            "label": "fixed_affine/labels-133.nii.gz",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-133/volume-133_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-21.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-21.nii.gz",
+            "label": "OrganSegmentations/labels-21.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-21/volume-21_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-102.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-102.nii.gz",
+            "label": "OrganSegmentations/labels-102.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-102/volume-102_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-72.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-72.nii.gz",
+            "label": "OrganSegmentations/labels-72.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-72/volume-72_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-87.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-87.nii.gz",
+            "label": "OrganSegmentations/labels-87.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-87/volume-87_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-68.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-68.nii.gz",
+            "label": "OrganSegmentations/labels-68.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-68/volume-68_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-3.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-3.nii.gz",
+            "label": "OrganSegmentations/labels-3.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-3/volume-3_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-64.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-64.nii.gz",
+            "label": "OrganSegmentations/labels-64.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-64/volume-64_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-107.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-107.nii.gz",
+            "label": "OrganSegmentations/labels-107.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-107/volume-107_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-40.nii.gz",
+            "pseudo_label": "fixed_affine/volume-40.nii.gz",
+            "label": "fixed_affine/labels-40.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-40/volume-40_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-67.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-67.nii.gz",
+            "label": "OrganSegmentations/labels-67.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-67/volume-67_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-0.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-0.nii.gz",
+            "label": "OrganSegmentations/labels-0.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-0/volume-0_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-103.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-103.nii.gz",
+            "label": "OrganSegmentations/labels-103.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-103/volume-103_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-35.nii.gz",
+            "pseudo_label": "fixed_affine/volume-35.nii.gz",
+            "label": "fixed_affine/labels-35.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-35/volume-35_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-42.nii.gz",
+            "pseudo_label": "fixed_affine/volume-42.nii.gz",
+            "label": "fixed_affine/labels-42.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-42/volume-42_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-105.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-105.nii.gz",
+            "label": "OrganSegmentations/labels-105.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "fixed_affine/volume-33.nii.gz",
+            "pseudo_label": "fixed_affine/volume-33.nii.gz",
+            "label": "fixed_affine/labels-33.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-33/volume-33_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-58.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-58.nii.gz",
+            "label": "OrganSegmentations/labels-58.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-58/volume-58_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-27.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-27.nii.gz",
+            "label": "OrganSegmentations/labels-27.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "fixed_affine/volume-43.nii.gz",
+            "pseudo_label": "fixed_affine/volume-43.nii.gz",
+            "label": "fixed_affine/labels-43.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-43/volume-43_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-20.nii.gz",
+            "pseudo_label": "fixed_affine/volume-20.nii.gz",
+            "label": "fixed_affine/labels-20.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-20/volume-20_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-11.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-11.nii.gz",
+            "label": "OrganSegmentations/labels-11.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-11/volume-11_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-131.nii.gz",
+            "pseudo_label": "fixed_affine/volume-131.nii.gz",
+            "label": "fixed_affine/labels-131.nii.gz",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-131/volume-131_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-80.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-80.nii.gz",
+            "label": "OrganSegmentations/labels-80.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-69.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-69.nii.gz",
+            "label": "OrganSegmentations/labels-69.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-69/volume-69_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-55.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-55.nii.gz",
+            "label": "OrganSegmentations/labels-55.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-55/volume-55_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-115.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-115.nii.gz",
+            "label": "OrganSegmentations/labels-115.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "fixed_affine/volume-37.nii.gz",
+            "pseudo_label": "fixed_affine/volume-37.nii.gz",
+            "label": "fixed_affine/labels-37.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-37/volume-37_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-79.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-79.nii.gz",
+            "label": "OrganSegmentations/labels-79.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-116.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-116.nii.gz",
+            "label": "OrganSegmentations/labels-116.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-66.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-66.nii.gz",
+            "label": "OrganSegmentations/labels-66.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-66/volume-66_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-50.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-50.nii.gz",
+            "label": "OrganSegmentations/labels-50.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-121.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-121.nii.gz",
+            "label": "OrganSegmentations/labels-121.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-18.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-18.nii.gz",
+            "label": "OrganSegmentations/labels-18.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-18/volume-18_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-32.nii.gz",
+            "pseudo_label": "fixed_affine/volume-32.nii.gz",
+            "label": "fixed_affine/labels-32.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-91.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-91.nii.gz",
+            "label": "OrganSegmentations/labels-91.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-91/volume-91_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-45.nii.gz",
+            "pseudo_label": "fixed_affine/volume-45.nii.gz",
+            "label": "fixed_affine/labels-45.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-65.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-65.nii.gz",
+            "label": "OrganSegmentations/labels-65.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-134.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-134.nii.gz",
+            "label": "OrganSegmentations/labels-134.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-134/volume-134_seg.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-29.nii.gz",
+            "pseudo_label": "fixed_affine/volume-29.nii.gz",
+            "label": "fixed_affine/labels-29.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "OrganSegmentations/volume-13.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-13.nii.gz",
+            "label": "OrganSegmentations/labels-13.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "OrganSegmentations/volume-118.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-118.nii.gz",
+            "label": "OrganSegmentations/labels-118.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-118/volume-118_seg.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-9.nii.gz",
+            "pseudo_label": "OrganSegmentations/volume-9.nii.gz",
+            "label": "OrganSegmentations/labels-9.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "fixed_affine/volume-135.nii.gz",
+            "pseudo_label": "fixed_affine/volume-135.nii.gz",
+            "label": "fixed_affine/labels-135.nii.gz",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/CT-ORG_100/volume-135/volume-135_seg.nii.gz"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "liver",
+        "2": "bladder",
+        "3": "lung",
+        "4": "kidney",
+        "5": "bone",
+        "6": "brain"
+    },
+    "original_label_dict": {
+        "1": "liver",
+        "2": "bladder",
+        "3": "lungs",
+        "4": "kidneys",
+        "5": "bone",
+        "6": "brain"
+    },
+    "testing": [
+        {
+            "image": "OrganSegmentations/volume-104.nii.gz",
+            "label": "OrganSegmentations/labels-104.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-73.nii.gz",
+            "label": "OrganSegmentations/labels-73.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-89.nii.gz",
+            "label": "OrganSegmentations/labels-89.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-23.nii.gz",
+            "label": "OrganSegmentations/labels-23.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-81.nii.gz",
+            "label": "OrganSegmentations/labels-81.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-71.nii.gz",
+            "label": "OrganSegmentations/labels-71.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-48.nii.gz",
+            "label": "OrganSegmentations/labels-48.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-31.nii.gz",
+            "label": "fixed_affine/labels-31.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-56.nii.gz",
+            "label": "OrganSegmentations/labels-56.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-110.nii.gz",
+            "label": "OrganSegmentations/labels-110.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-114.nii.gz",
+            "label": "OrganSegmentations/labels-114.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-44.nii.gz",
+            "label": "fixed_affine/labels-44.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-129.nii.gz",
+            "label": "OrganSegmentations/labels-129.nii.gz"
+        },
+        {
+            "image": "fixed_affine/volume-47.nii.gz",
+            "label": "fixed_affine/labels-47.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-125.nii.gz",
+            "label": "OrganSegmentations/labels-125.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-99.nii.gz",
+            "label": "OrganSegmentations/labels-99.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-26.nii.gz",
+            "label": "OrganSegmentations/labels-26.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-22.nii.gz",
+            "label": "OrganSegmentations/labels-22.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-59.nii.gz",
+            "label": "OrganSegmentations/labels-59.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-7.nii.gz",
+            "label": "OrganSegmentations/labels-7.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-120.nii.gz",
+            "label": "OrganSegmentations/labels-120.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-113.nii.gz",
+            "label": "OrganSegmentations/labels-113.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-51.nii.gz",
+            "label": "OrganSegmentations/labels-51.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-122.nii.gz",
+            "label": "OrganSegmentations/labels-122.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-84.nii.gz",
+            "label": "OrganSegmentations/labels-84.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-6.nii.gz",
+            "label": "OrganSegmentations/labels-6.nii.gz"
+        },
+        {
+            "image": "OrganSegmentations/volume-117.nii.gz",
+            "label": "OrganSegmentations/labels-117.nii.gz"
+        }
+    ]
+}

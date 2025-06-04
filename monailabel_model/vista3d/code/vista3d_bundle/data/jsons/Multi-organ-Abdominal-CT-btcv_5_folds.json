@@ -1,0 +1,461 @@
+{
+    "training": [
+        {
+            "image": "images_btcv/img0067.nii",
+            "pseudo_label": "images_btcv/img0067.nii.gz",
+            "label": "label_btcv_multiorgan/label0067.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images_btcv/img0007.nii",
+            "pseudo_label": "images_btcv/img0007.nii.gz",
+            "label": "label_btcv_multiorgan/label0007.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0027.nii",
+            "pseudo_label": "images_btcv/img0027.nii.gz",
+            "label": "label_btcv_multiorgan/label0027.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0008.nii",
+            "pseudo_label": "images_btcv/img0008.nii.gz",
+            "label": "label_btcv_multiorgan/label0008.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images_btcv/img0075.nii",
+            "pseudo_label": "images_btcv/img0075.nii.gz",
+            "label": "label_btcv_multiorgan/label0075.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0002.nii",
+            "pseudo_label": "images_btcv/img0002.nii.gz",
+            "label": "label_btcv_multiorgan/label0002.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0006.nii",
+            "pseudo_label": "images_btcv/img0006.nii.gz",
+            "label": "label_btcv_multiorgan/label0006.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0078.nii",
+            "pseudo_label": "images_btcv/img0078.nii.gz",
+            "label": "label_btcv_multiorgan/label0078.nii",
+            "fold": 0,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0079.nii",
+            "pseudo_label": "images_btcv/img0079.nii.gz",
+            "label": "label_btcv_multiorgan/label0079.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0079/img0079_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0037.nii",
+            "pseudo_label": "images_btcv/img0037.nii.gz",
+            "label": "label_btcv_multiorgan/label0037.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0037/img0037_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0064.nii",
+            "pseudo_label": "images_btcv/img0064.nii.gz",
+            "label": "label_btcv_multiorgan/label0064.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0064/img0064_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0063.nii",
+            "pseudo_label": "images_btcv/img0063.nii.gz",
+            "label": "label_btcv_multiorgan/label0063.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0063/img0063_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0070.nii",
+            "pseudo_label": "images_btcv/img0070.nii.gz",
+            "label": "label_btcv_multiorgan/label0070.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0070/img0070_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0004.nii",
+            "pseudo_label": "images_btcv/img0004.nii.gz",
+            "label": "label_btcv_multiorgan/label0004.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0004/img0004_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0080.nii",
+            "pseudo_label": "images_btcv/img0080.nii.gz",
+            "label": "label_btcv_multiorgan/label0080.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 1
+        },
+        {
+            "image": "images_btcv/img0003.nii",
+            "pseudo_label": "images_btcv/img0003.nii.gz",
+            "label": "label_btcv_multiorgan/label0003.nii",
+            "fold": 1,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0003/img0003_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0001.nii",
+            "pseudo_label": "images_btcv/img0001.nii.gz",
+            "label": "label_btcv_multiorgan/label0001.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0001/img0001_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0034.nii",
+            "pseudo_label": "images_btcv/img0034.nii.gz",
+            "label": "label_btcv_multiorgan/label0034.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0034/img0034_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0039.nii",
+            "pseudo_label": "images_btcv/img0039.nii.gz",
+            "label": "label_btcv_multiorgan/label0039.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0039/img0039_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0031.nii",
+            "pseudo_label": "images_btcv/img0031.nii.gz",
+            "label": "label_btcv_multiorgan/label0031.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 0
+        },
+        {
+            "image": "images_btcv/img0066.nii",
+            "pseudo_label": "images_btcv/img0066.nii.gz",
+            "label": "label_btcv_multiorgan/label0066.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0066/img0066_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0022.nii",
+            "pseudo_label": "images_btcv/img0022.nii.gz",
+            "label": "label_btcv_multiorgan/label0022.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0022/img0022_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0068.nii",
+            "pseudo_label": "images_btcv/img0068.nii.gz",
+            "label": "label_btcv_multiorgan/label0068.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0068/img0068_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0024.nii",
+            "pseudo_label": "images_btcv/img0024.nii.gz",
+            "label": "label_btcv_multiorgan/label0024.nii",
+            "fold": 2,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0024/img0024_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0030.nii",
+            "pseudo_label": "images_btcv/img0030.nii.gz",
+            "label": "label_btcv_multiorgan/label0030.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0030/img0030_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0029.nii",
+            "pseudo_label": "images_btcv/img0029.nii.gz",
+            "label": "label_btcv_multiorgan/label0029.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0029/img0029_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0009.nii",
+            "pseudo_label": "images_btcv/img0009.nii.gz",
+            "label": "label_btcv_multiorgan/label0009.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0009/img0009_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0023.nii",
+            "pseudo_label": "images_btcv/img0023.nii.gz",
+            "label": "label_btcv_multiorgan/label0023.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0023/img0023_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0036.nii",
+            "pseudo_label": "images_btcv/img0036.nii.gz",
+            "label": "label_btcv_multiorgan/label0036.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0036/img0036_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0040.nii",
+            "pseudo_label": "images_btcv/img0040.nii.gz",
+            "label": "label_btcv_multiorgan/label0040.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0040/img0040_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0069.nii",
+            "pseudo_label": "images_btcv/img0069.nii.gz",
+            "label": "label_btcv_multiorgan/label0069.nii",
+            "fold": 3,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0069/img0069_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0035.nii",
+            "pseudo_label": "images_btcv/img0035.nii.gz",
+            "label": "label_btcv_multiorgan/label0035.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0035/img0035_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0061.nii",
+            "pseudo_label": "images_btcv/img0061.nii.gz",
+            "label": "label_btcv_multiorgan/label0061.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0061/img0061_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0005.nii",
+            "pseudo_label": "images_btcv/img0005.nii.gz",
+            "label": "label_btcv_multiorgan/label0005.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0005/img0005_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0026.nii",
+            "pseudo_label": "images_btcv/img0026.nii.gz",
+            "label": "label_btcv_multiorgan/label0026.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0026/img0026_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0025.nii",
+            "pseudo_label": "images_btcv/img0025.nii.gz",
+            "label": "label_btcv_multiorgan/label0025.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0025/img0025_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0010.nii",
+            "pseudo_label": "images_btcv/img0010.nii.gz",
+            "label": "label_btcv_multiorgan/label0010.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 0,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0010/img0010_seg.nii.gz"
+        },
+        {
+            "image": "images_btcv/img0065.nii",
+            "pseudo_label": "images_btcv/img0065.nii.gz",
+            "label": "label_btcv_multiorgan/label0065.nii",
+            "fold": 4,
+            "pseudo_label_reliability": 1,
+            "label_sv": "/workspace_infer/supervoxel_sam/Multi-organ-Abdominal-CT-btcv_100/img0065/img0065_seg.nii.gz"
+        }
+    ],
+    "testing": [
+        {
+            "image": "images_btcv/img0021.nii",
+            "label": "label_btcv_multiorgan/label0021.nii"
+        },
+        {
+            "image": "images_btcv/img0074.nii",
+            "label": "label_btcv_multiorgan/label0074.nii"
+        },
+        {
+            "image": "images_btcv/img0028.nii",
+            "label": "label_btcv_multiorgan/label0028.nii"
+        },
+        {
+            "image": "images_btcv/img0033.nii",
+            "label": "label_btcv_multiorgan/label0033.nii"
+        },
+        {
+            "image": "images_btcv/img0076.nii",
+            "label": "label_btcv_multiorgan/label0076.nii"
+        },
+        {
+            "image": "images_btcv/img0038.nii",
+            "label": "label_btcv_multiorgan/label0038.nii"
+        },
+        {
+            "image": "images_btcv/img0077.nii",
+            "label": "label_btcv_multiorgan/label0077.nii"
+        },
+        {
+            "image": "images_btcv/img0062.nii",
+            "label": "label_btcv_multiorgan/label0062.nii"
+        },
+        {
+            "image": "images_btcv/img0032.nii",
+            "label": "label_btcv_multiorgan/label0032.nii"
+        }
+    ],
+    "training_transform": [
+        {
+            "_target_": "RandCropByLabelClassesd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "label_key": "@pseudo_label_key",
+            "num_classes": 133,
+            "num_samples": "@num_patches_per_image",
+            "spatial_size": "@patch_size",
+            "ratios": "$tuple(float(i >= 0) for i in range(133))",
+            "warn": false,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandZoomd",
+            "keys": [
+                "@image_key",
+                "@label_key",
+                "@pseudo_label_key",
+                "@label_sv_key"
+            ],
+            "min_zoom": 0.8,
+            "max_zoom": 1.2,
+            "mode": [
+                "trilinear",
+                "nearest",
+                "nearest",
+                "nearest"
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandSimulateLowResolutiond",
+            "keys": [
+                "@image_key"
+            ],
+            "zoom_range": [
+                0.3,
+                1
+            ],
+            "prob": 0.2,
+            "allow_missing_keys": true
+        },
+        {
+            "_target_": "RandGaussianSmoothd",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "sigma_x": [
+                0.5,
+                1.0
+            ],
+            "sigma_y": [
+                0.5,
+                1.0
+            ],
+            "sigma_z": [
+                0.5,
+                1.0
+            ]
+        },
+        {
+            "_target_": "RandScaleIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "factors": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandShiftIntensityd",
+            "keys": [
+                "@image_key"
+            ],
+            "offsets": 0.1,
+            "prob": 0.2
+        },
+        {
+            "_target_": "RandGaussianNoised",
+            "keys": [
+                "@image_key"
+            ],
+            "prob": 0.2,
+            "mean": 0.0,
+            "std": 0.2
+        }
+    ],
+    "label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "aorta",
+        "9": "inferior vena cava",
+        "10": "portal vein and splenic vein",
+        "11": "pancreas",
+        "12": "right adrenal gland",
+        "13": "left adrenal gland",
+        "14": "duodenum"
+    },
+    "original_label_dict": {
+        "1": "spleen",
+        "2": "right kidney",
+        "3": "left kidney",
+        "4": "gallbladder",
+        "5": "esophagus",
+        "6": "liver",
+        "7": "stomach",
+        "8": "aorta",
+        "9": "inferior vena cava",
+        "10": "portal vein and splenic vein",
+        "11": "pancreas",
+        "12": "right adrenal gland",
+        "13": "left adrenal gland",
+        "14": "duodenum"
+    }
+}
