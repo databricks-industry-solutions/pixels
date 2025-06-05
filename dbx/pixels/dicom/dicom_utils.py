@@ -2,8 +2,10 @@ import copy
 import os
 
 import numpy as np
+import pydicom
 from pydicom import Dataset
-
+import io
+import base64
 
 def cloud_open(path: str, anon: bool = False):
     try:
@@ -113,3 +115,44 @@ def anonymize_metadata(
         for values in encrypted_values + keep_values:
             dataset.add(values)
         ds.update(dataset)
+
+
+def dicom_to_base64jpg(dicom_binary, min_width: int = 768):
+    """ Function to convert DICOM to JPG
+    """
+    from pydicom.pixel_data_handlers.util import apply_voi_lut
+    from PIL import Image
+
+    # Read the DICOM file
+    ds = pydicom.dcmread(io.BytesIO(dicom_binary))
+    
+    # Apply VOI LUT if present
+    if 'VOILUTSequence' in ds:
+        data = apply_voi_lut(ds.pixel_array, ds)
+    else:
+        data = ds.pixel_array
+    
+    # Convert to uint8 if necessary
+    if data.dtype != 'uint8':
+        data = data.astype('uint8')
+    
+    # Create an image from the pixel data
+    image = Image.fromarray(data)
+    
+    # Resize the image if necessary
+    if image.width < min_width:
+        ratio = min_width / image.width
+        new_size = (min_width, int(image.height * ratio))
+        image = image.resize(new_size, Image.LANCZOS)
+    
+    # Convert image to jpg
+    with io.BytesIO() as output:
+        image.save(output, format="JPEG")
+        jpg_binary = output.getvalue()
+        jpg_base64_str = base64.b64encode(jpg_binary).decode("utf-8")
+    
+    return jpg_base64_str
+
+
+# Register the function as a UDF
+dicom_to_base64_udf = udf(dicom_to_base64jpg, StringType())
