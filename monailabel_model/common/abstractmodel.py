@@ -244,7 +244,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
         export_metrics = None
         export_overlays = None
         dest_dir = self.dest_dir
-        torch_device = None
+        torch_device = "cuda"
 
         if "dest_dir" in input and input["dest_dir"] is not None:
             dest_dir = input["dest_dir"]

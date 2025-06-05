@@ -350,7 +350,8 @@ conf_vars = {
     'DATABRICKS_HOST': os.environ["DATABRICKS_HOST"],
     'DATABRICKS_PIXELS_TABLE': os.environ["DATABRICKS_PIXELS_TABLE"],
     'DATABRICKS_WAREHOUSE_ID': os.environ["DATABRICKS_WAREHOUSE_ID"],
-    'DEST_DIR': os.environ["DEST_DIR"]
+    'DEST_DIR': os.environ["DEST_DIR"],
+    'MONAI_BUNDLES': os.environ['MONAI_BUNDLES']
 }
 
 if not m2m_client:

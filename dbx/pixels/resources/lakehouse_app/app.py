@@ -176,11 +176,10 @@ async def _reverse_proxy_monai_infer_post(request: Request):
         del to_send["sw_batch_size"]
     if "sw_overlap" in to_send:
         del to_send["sw_overlap"]
+    if "highres" in to_send:
+        del to_send["highres"]
 
-    if "vista3d" in to_send["model"]:
-        to_send["pixels_table"] = get_pixels_table(request)
-    else:
-        log("Table override not available in this model", request)
+    to_send["pixels_table"] = get_pixels_table(request)
 
     log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
