@@ -46,7 +46,10 @@ class Catalog:
         return anon
 
     def __init__(
-        self, spark, table: str = "main.pixels_solacc.object_catalog", volume: str = DEFAULT_VOLUME
+        self, 
+        spark, 
+        table: str = "main.pixels_solacc.object_catalog", 
+        volume: str = DEFAULT_VOLUME
     ):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
         Parameters:
@@ -60,7 +63,7 @@ class Catalog:
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
-
+    
         # Check if the volume exist
         spark.sql(f"LIST '{self._volume_path}' limit 1").count()
 
@@ -121,7 +124,7 @@ class Catalog:
 
     def catalog(
         self,
-        path: str,
+        path: str = None,
         pattern: str = "*",
         recurse: bool = True,
         streaming: bool = False,
@@ -134,6 +137,7 @@ class Catalog:
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
+        path_df: DataFrame = None
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -152,6 +156,7 @@ class Catalog:
         - maxUnzippedRecordsPerFile (int, optional): The maximum number of records per file when unzipping. Defaults to 102400.
         - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
         - detectFileType (bool, optional): Whether to detect file types. Defaults to False.
+        - path_df (DataFrame, optional): A DataFrame containing paths to catalog. Defaults to None.
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -160,7 +165,11 @@ class Catalog:
         assert self._spark is not None
         assert self._spark.version is not None
 
-        self._anon = self._is_anon(path)
+        if path:
+            self._anon = self._is_anon(path)
+        else:
+            self._anon = False
+
         self._spark
 
         self._init_tables()
@@ -231,7 +240,10 @@ class Catalog:
                 df = df.repartition(int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition))
 
         else:
-            df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
+            if path_df is None:
+                df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
+            else:
+                df = path_df.withColumn("original_path", f.col("path"))
             if extractZip:
                 logger.info("Started unzip process")
 
