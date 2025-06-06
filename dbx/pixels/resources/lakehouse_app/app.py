@@ -399,10 +399,12 @@ async def main_page(request: Request):
                                 <p class="instructions">Only Volumes are supported</p>
                                 <button name="path" value="/ohif/" class="btn btn-primary btn-large" type="submit">Confirm</button>
                                 <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
+
+                                <div style="justify-content: center;display: flex; white-space: pre"><a href="https://{os.environ['DATABRICKS_HOST']}" target="_blank" rel="noopener noreferrer">Workspace</a> | <a href="https://{os.environ['DATABRICKS_HOST']}/apps/{os.environ['DATABRICKS_APP_NAME']}/logs" target="_blank" rel="noopener noreferrer">Logs</a></div>
+                            </div>
                             </form>
                             </div>
                         </div>
-                    </div>
                     <div class="terms-of-service-footer"><a href="https://databricks.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a></div><div style="margin: 20px auto; text-align: center;">
                     </div>
                 </div>
