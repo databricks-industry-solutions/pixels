@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.36.0 -q
+# MAGIC %pip install --upgrade databricks-sdk==0.56.0 -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -55,7 +55,7 @@ w = WorkspaceClient()
 
 # COMMAND ----------
 
-from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission
+from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission, App, AppDeployment
 
 from pathlib import Path
 import dbx.pixels.resources
@@ -97,11 +97,11 @@ else:
     )
     resources.append(serving_endpoint)
 
-
   print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 
-  app_created = w.apps.create_and_wait(name=app_name, resources=resources)
-  app_deploy = w.apps.deploy_and_wait(app_name=app_name, source_code_path=lha_path)
+  app = App(app_name, default_source_code_path=lha_path, user_api_scopes=["sql","files.files"], resources=resources)
+  app_created = w.apps.create_and_wait(app)
+  app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=lha_path))
 
   print(app_deploy.status.message)
   print(app_created.url)
