@@ -19,6 +19,11 @@
 ![Analyze](https://github.com/databricks-industry-solutions/pixels/blob/main/images/DICOM-analyze-with-SQL.png?raw=true)
 
 ---
+## Build Dashboards over DICOM metadata
+add any features extracted too!
+![Dashboard](images/pixels-dashboard.png)
+
+---
 ## DICOM data ingestion is easy
 
 ```python
@@ -37,7 +42,6 @@ meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
 catalog.save(meta_df)                                       # 06
 ```
 You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
-
 
 ---
 ## Architecture
