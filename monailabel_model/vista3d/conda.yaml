@@ -18,7 +18,7 @@ dependencies:
   - numpymaxflow>=0.0.7
   - passlib>=1.7.4
   - pydantic-settings>=2.2.1
-  - pydicom>=2.4.4
+  - pydicom==2.4.4
   - pydicom-seg>=0.4.1
   - pynetdicom>=2.0.2
   - pynrrd>=1.0.0
