@@ -2,7 +2,7 @@
   "datasets" : [ {
     "name" : "ca4b24b9",
     "displayName" : "cohort-builder",
-    "query" : "-- cohort builder for Pixels Dashboard\nwith base (\n\nselect\n  meta:['00100010'].Value[0].Alphabetic as PatientName,\n  meta:['00100020'].Value[0] PatientID,\n  to_date(meta:['00100030'].Value[0],\"yyyyMMdd\") as PatientBirthDate,\n  cast(left(meta:['00101010'].Value[0],3) as int) as PatientAge,\n  meta:['00100040'].Value[0] PatientSex,\n  to_date(meta:['00080020'].Value[0],\"yyyyMMdd\") as StudyDate,\n  meta:['00080030'].Value[0] StudyTime,\n  meta:['00080050'].Value[0] AccessionNumber,\n  meta:['00080060'].Value[0] Modality,\n  meta:['00080008'].Value[0] ImageType,\n  meta:['00081030'].Value[0] StudyDescription,\n  meta:['0008103E'].Value[0] SeriesDescription,\n  meta:['0020000D'].Value[0] StudyInstanceUID,\n  meta:['0020000E'].Value[0] SeriesInstanceUID,\n  meta:['00200010'].Value[0] StudyID,\n  meta:['00200011'].Value[0] SeriesNumber,\n  meta:['00200013'].Value[0] InstanceNumber,\n  meta:['00180015'].Value[0] BodyPartExamined,\n  meta:['00181030'].Value[0] ProtocolName,\n  meta:['00080070'].Value[0] Manufacturer,\n  meta:['00080080'].Value[0] InstitutionName,\n  meta:['00080081'].Value[0] InstitutionAddress,\n  meta:['0018700A'].Value[0] DetectorManufacturerName,\n  meta:['0018700B'].Value[0] DetectorManufacturersModelName,\n  meta:['00189024'].Value[0] MRTransmitCoilManufacturerName,\n  meta:['00189025'].Value[0] ReceiveCoilManufacturerName,\n  meta:['00120063'].Value[0] DeidentificationMethod,\n  meta:['0008001C'].Value[0] SyntheticData,\n  meta:['00120064'].Value[0] CodingSchemeVersion,\n  meta:['00282110'].Value[0] LossyImageCompression,\n  meta:['00131010'].Value[0] Creator,\n  meta:['pixel_hash'] pixel_hash,\n  meta:['hash'] hash,\n  path,\n  length,\n  modificationTime,\n  meta\nfrom identifier(:table)\n)\nSELECT \n    concat('<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"',:viewer_host,'/ohif/viewer?StudyInstanceUIDs=',StudyInstanceUID,'\">view</a>') as url\n    ,*\nFROM base\nLIMIT :row_limit",
+    "query" : "-- cohort builder for Pixels Dashboard\nwith base (\n\nselect\n  meta:['00100010'].Value[0].Alphabetic as PatientName,\n  meta:['00100020'].Value[0] PatientID,\n  to_date(meta:['00100030'].Value[0],\"yyyyMMdd\") as PatientBirthDate,\n  cast(left(meta:['00101010'].Value[0],3) as int) as PatientAge,\n  meta:['00100040'].Value[0] PatientSex,\n  to_date(meta:['00080020'].Value[0],\"yyyyMMdd\") as StudyDate,\n  meta:['00080030'].Value[0] StudyTime,\n  meta:['00080050'].Value[0] AccessionNumber,\n  meta:['00080060'].Value[0] Modality,\n  meta:['00080008'].Value[0] ImageType,\n  meta:['00081030'].Value[0] StudyDescription,\n  meta:['0008103E'].Value[0] SeriesDescription,\n  meta:['0020000D'].Value[0] StudyInstanceUID,\n  meta:['0020000E'].Value[0] SeriesInstanceUID,\n  meta:['00200010'].Value[0] StudyID,\n  meta:['00200011'].Value[0] SeriesNumber,\n  meta:['00200013'].Value[0] InstanceNumber,\n  meta:['00180015'].Value[0] BodyPartExamined,\n  meta:['00181030'].Value[0] ProtocolName,\n  meta:['00080070'].Value[0] Manufacturer,\n  meta:['00080080'].Value[0] InstitutionName,\n  meta:['00080081'].Value[0] InstitutionAddress,\n  meta:['0018700A'].Value[0] DetectorManufacturerName,\n  meta:['0018700B'].Value[0] DetectorManufacturersModelName,\n  meta:['00189024'].Value[0] MRTransmitCoilManufacturerName,\n  meta:['00189025'].Value[0] ReceiveCoilManufacturerName,\n  meta:['00120063'].Value[0] DeidentificationMethod,\n  meta:['0008001C'].Value[0] SyntheticData,\n  meta:['00120064'].Value[0] CodingSchemeVersion,\n  meta:['00282110'].Value[0] LossyImageCompression,\n  meta:['00131010'].Value[0] Creator,\n  meta:['pixel_hash'] pixel_hash,\n  meta:['hash'] hash,\n  path,\n  length,\n  modificationTime,\n  meta\nfrom identifier(:table)\n)\n-- CASE expr {WHEN opt1 THEN res1} [...] [ELSE def] END\n-- CASE {WHEN cond1 THEN res1} [...] [ELSE def] END\nSELECT \n    hls_radiology.common.generate_viewer_url(\n      modality,\n      :viewer_host,\n      StudyInstanceUID\n    ) as url\n    ,*\nFROM base\nLIMIT :row_limit",
     "parameters" : [ {
       "displayName" : "table",
       "keyword" : "table",
@@ -532,7 +532,7 @@
               "visible" : true,
               "order" : 100003,
               "title" : "PatientBirthDate",
-              "allowSearch" : false,
+              "allowSearch" : true,
               "alignContent" : "right",
               "allowHTML" : false,
               "highlightLinks" : false,
@@ -764,7 +764,7 @@
               "visible" : true,
               "order" : 100014,
               "title" : "SeriesInstanceUID",
-              "allowSearch" : false,
+              "allowSearch" : true,
               "alignContent" : "left",
               "allowHTML" : false,
               "highlightLinks" : false,
@@ -1906,7 +1906,7 @@
               "visible" : true,
               "order" : 100000,
               "title" : "entity_name",
-              "allowSearch" : false,
+              "allowSearch" : true,
               "alignContent" : "left",
               "allowHTML" : false,
               "highlightLinks" : false,
@@ -1929,7 +1929,7 @@
               "visible" : true,
               "order" : 100001,
               "title" : "served_entity_name",
-              "allowSearch" : false,
+              "allowSearch" : true,
               "alignContent" : "left",
               "allowHTML" : false,
               "highlightLinks" : false,
@@ -2023,7 +2023,7 @@
               "visible" : true,
               "order" : 100005,
               "title" : "compute_type",
-              "allowSearch" : false,
+              "allowSearch" : true,
               "alignContent" : "left",
               "allowHTML" : false,
               "highlightLinks" : false,
@@ -2068,7 +2068,7 @@
         "x" : 0,
         "y" : 0,
         "width" : 6,
-        "height" : 5
+        "height" : 9
       }
     } ],
     "pageType" : "PAGE_TYPE_CANVAS"
