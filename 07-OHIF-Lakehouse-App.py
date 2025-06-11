@@ -25,7 +25,7 @@
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
-app_name = "pixels-ohif-viewer"
+app_name = "pixels-ohif-viewer-tcia"
 serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()
@@ -168,3 +168,7 @@ w.grants.update(full_name=volume,
 )
 
 print("PERMISSIONS GRANTED")
+
+# COMMAND ----------
+
+

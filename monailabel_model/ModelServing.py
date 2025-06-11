@@ -121,14 +121,14 @@ input_examples = [
           'result_compress': False,
           'restore_label_idx': False,
           'model': 'segmentation',
-          'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001'
+          'image': '1.2.524.0.1.9096682.2.844.2304332590136804852'
           }
        }
       },
       { "input": {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer with mandatory fields
         "infer": {
           'model': 'segmentation',
-          'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001'
+          'image': '1.2.524.0.1.9096682.2.844.2304332590136804852'
           }
        }
       },
@@ -137,7 +137,7 @@ input_examples = [
        }
       },
       { "series_uid":                                     #trigger the inference on a sigle DICOM series given the series uids, used in Transformer
-          "1.2.156.14702.1.1000.16.1.2020031111365293700020003"
+          "1.2.524.0.1.9096682.2.844.2304332590136804852"
       }
 ]
 
@@ -298,5 +298,5 @@ client.predict(
 
 response = client.predict(
     endpoint=serving_endpoint_name,
-    inputs={"dataframe_split": {"columns": ["series_uid"], "data": [["1.2.156.14702.1.1000.16.1.2020031111365293700020003"]]}},
+    inputs={"dataframe_split": {"columns": ["series_uid"], "data": [["1.2.524.0.1.9096682.2.844.2304332590136804852"]]}},
 )
