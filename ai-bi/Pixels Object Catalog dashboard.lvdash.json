@@ -2,20 +2,8 @@
   "datasets" : [ {
     "name" : "ca4b24b9",
     "displayName" : "cohort-builder",
-    "query" : "-- cohort builder for Pixels Dashboard\nwith base (\n\nselect\n  meta:['00100010'].Value[0].Alphabetic as PatientName,\n  meta:['00100020'].Value[0] PatientID,\n  to_date(meta:['00100030'].Value[0],\"yyyyMMdd\") as PatientBirthDate,\n  cast(left(meta:['00101010'].Value[0],3) as int) as PatientAge,\n  meta:['00100040'].Value[0] PatientSex,\n  to_date(meta:['00080020'].Value[0],\"yyyyMMdd\") as StudyDate,\n  meta:['00080030'].Value[0] StudyTime,\n  meta:['00080050'].Value[0] AccessionNumber,\n  meta:['00080060'].Value[0] Modality,\n  meta:['00080008'].Value[0] ImageType,\n  meta:['00081030'].Value[0] StudyDescription,\n  meta:['0008103E'].Value[0] SeriesDescription,\n  meta:['0020000D'].Value[0] StudyInstanceUID,\n  meta:['0020000E'].Value[0] SeriesInstanceUID,\n  meta:['00200010'].Value[0] StudyID,\n  meta:['00200011'].Value[0] SeriesNumber,\n  meta:['00200013'].Value[0] InstanceNumber,\n  meta:['00180015'].Value[0] BodyPartExamined,\n  meta:['00181030'].Value[0] ProtocolName,\n  meta:['00080070'].Value[0] Manufacturer,\n  meta:['00080080'].Value[0] InstitutionName,\n  meta:['00080081'].Value[0] InstitutionAddress,\n  meta:['0018700A'].Value[0] DetectorManufacturerName,\n  meta:['0018700B'].Value[0] DetectorManufacturersModelName,\n  meta:['00189024'].Value[0] MRTransmitCoilManufacturerName,\n  meta:['00189025'].Value[0] ReceiveCoilManufacturerName,\n  meta:['00120063'].Value[0] DeidentificationMethod,\n  meta:['0008001C'].Value[0] SyntheticData,\n  meta:['00120064'].Value[0] CodingSchemeVersion,\n  meta:['00282110'].Value[0] LossyImageCompression,\n  meta:['00131010'].Value[0] Creator,\n  meta:['pixel_hash'] pixel_hash,\n  meta:['hash'] hash,\n  path,\n  length,\n  modificationTime,\n  meta\nfrom identifier(:table)\n)\nSELECT \n    concat('<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"',:viewer_host,'/ohif/viewer?StudyInstanceUIDs=',StudyInstanceUID,'\">view</a>') as url\n    ,*\nFROM base\nLIMIT :row_limit",
+    "query" : "-- cohort builder for Pixels Dashboard\nSELECT \n    hls_radiology.tcia.generate_viewer_url(:viewer_host,modality,ImageType,StudyInstanceUID) as url\n    ,*\nFROM hls_radiology.tcia.cohort_builder()\nLIMIT :row_limit",
     "parameters" : [ {
-      "displayName" : "table",
-      "keyword" : "table",
-      "dataType" : "STRING",
-      "defaultSelection" : {
-        "values" : {
-          "dataType" : "STRING",
-          "values" : [ {
-            "value" : "hls_radiology.tcia.object_catalog"
-          } ]
-        }
-      }
-    }, {
       "displayName" : "row_limit",
       "keyword" : "row_limit",
       "dataType" : "INTEGER",
@@ -45,7 +33,7 @@
   }, {
     "name" : "9651ec0b",
     "displayName" : "object_catalogs",
-    "query" : "-- object catalogs\nselect concat(table_catalog, '.', table_schema, '.', table_name) as table\nfrom system.information_schema.tables where table_name = 'object_catalog'"
+    "query" : "-- object catalogs\nselect concat(table_catalog, '.', table_schema, '.', table_name) as table\nfrom system.information_schema.tables where table_name = 'cohort_builder_vw'"
   }, {
     "name" : "c2b374ba",
     "displayName" : "pixels-models",
@@ -124,9 +112,6 @@
           "query" : {
             "datasetName" : "ca4b24b9",
             "fields" : [ {
-              "name" : "PatientAge",
-              "expression" : "`PatientAge`"
-            }, {
               "name" : "bin(PatientAge, binWidth=5)",
               "expression" : "BIN_FLOOR(`PatientAge`, 5)"
             }, {
@@ -156,13 +141,6 @@
                 "type" : "quantitative"
               },
               "displayName" : "Count of Unique SeriesInstanceUID"
-            },
-            "color" : {
-              "fieldName" : "PatientAge",
-              "scale" : {
-                "type" : "quantitative"
-              },
-              "displayName" : "PatientAge"
             }
           },
           "frame" : {
@@ -236,8 +214,8 @@
               "name" : "BodyPartExamined",
               "expression" : "`BodyPartExamined`"
             }, {
-              "name" : "countdistinct(SeriesInstanceUID)",
-              "expression" : "COUNT(DISTINCT `SeriesInstanceUID`)"
+              "name" : "countdistinct(StudyInstanceUID)",
+              "expression" : "COUNT(DISTINCT `StudyInstanceUID`)"
             } ],
             "disaggregated" : false
           }
@@ -257,11 +235,11 @@
               "displayName" : "BodyPartExamined"
             },
             "y" : {
-              "fieldName" : "countdistinct(SeriesInstanceUID)",
+              "fieldName" : "countdistinct(StudyInstanceUID)",
               "scale" : {
                 "type" : "quantitative"
               },
-              "displayName" : "Count of Unique SeriesInstanceUID"
+              "displayName" : "# Studies"
             }
           },
           "frame" : {
@@ -372,14 +350,26 @@
               "name" : "PatientSex",
               "expression" : "`PatientSex`"
             }, {
+              "name" : "PatientWeight",
+              "expression" : "`PatientWeight`"
+            }, {
+              "name" : "PatientSize",
+              "expression" : "`PatientSize`"
+            }, {
               "name" : "StudyDate",
               "expression" : "`StudyDate`"
+            }, {
+              "name" : "StudyTime",
+              "expression" : "`StudyTime`"
             }, {
               "name" : "AccessionNumber",
               "expression" : "`AccessionNumber`"
             }, {
               "name" : "Modality",
               "expression" : "`Modality`"
+            }, {
+              "name" : "BodyPartExamined",
+              "expression" : "`BodyPartExamined`"
             }, {
               "name" : "ImageType",
               "expression" : "`ImageType`"
@@ -405,9 +395,6 @@
               "name" : "InstanceNumber",
               "expression" : "`InstanceNumber`"
             }, {
-              "name" : "BodyPartExamined",
-              "expression" : "`BodyPartExamined`"
-            }, {
               "name" : "ProtocolName",
               "expression" : "`ProtocolName`"
             }, {
@@ -420,8 +407,11 @@
               "name" : "InstitutionAddress",
               "expression" : "`InstitutionAddress`"
             }, {
-              "name" : "LossyImageCompression",
-              "expression" : "`LossyImageCompression`"
+              "name" : "DeidentificationMethod",
+              "expression" : "`DeidentificationMethod`"
+            }, {
+              "name" : "SyntheticData",
+              "expression" : "`SyntheticData`"
             }, {
               "name" : "Creator",
               "expression" : "`Creator`"
@@ -459,7 +449,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100000,
+              "order" : 0,
               "title" : "View",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -483,7 +473,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100001,
+              "order" : 1,
               "title" : "PatientName",
               "allowSearch" : true,
               "alignContent" : "left",
@@ -506,7 +496,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100002,
+              "order" : 2,
               "title" : "PatientID",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -530,7 +520,7 @@
               "type" : "date",
               "displayAs" : "datetime",
               "visible" : true,
-              "order" : 100003,
+              "order" : 3,
               "title" : "PatientBirthDate",
               "allowSearch" : false,
               "alignContent" : "right",
@@ -554,7 +544,7 @@
               "type" : "integer",
               "displayAs" : "number",
               "visible" : true,
-              "order" : 100004,
+              "order" : 4,
               "title" : "PatientAge",
               "allowSearch" : false,
               "alignContent" : "right",
@@ -577,7 +567,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100005,
+              "order" : 5,
               "title" : "PatientSex",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -586,6 +576,52 @@
               "useMonospaceFont" : false,
               "preserveWhitespace" : false,
               "displayName" : "PatientSex"
+            }, {
+              "fieldName" : "PatientWeight",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "float",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 6,
+              "title" : "PatientWeight",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientWeight"
+            }, {
+              "fieldName" : "PatientSize",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "float",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 7,
+              "title" : "PatientSize",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "PatientSize"
             }, {
               "fieldName" : "StudyDate",
               "dateTimeFormat" : "YYYY-MM-DD",
@@ -601,7 +637,7 @@
               "type" : "date",
               "displayAs" : "datetime",
               "visible" : true,
-              "order" : 100006,
+              "order" : 8,
               "title" : "StudyDate",
               "allowSearch" : false,
               "alignContent" : "right",
@@ -610,6 +646,29 @@
               "useMonospaceFont" : false,
               "preserveWhitespace" : false,
               "displayName" : "StudyDate"
+            }, {
+              "fieldName" : "StudyTime",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 9,
+              "title" : "StudyTime",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "StudyTime"
             }, {
               "fieldName" : "AccessionNumber",
               "booleanValues" : [ "false", "true" ],
@@ -624,7 +683,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100008,
+              "order" : 10,
               "title" : "AccessionNumber",
               "allowSearch" : true,
               "alignContent" : "left",
@@ -647,7 +706,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100009,
+              "order" : 11,
               "title" : "Modality",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -656,6 +715,29 @@
               "useMonospaceFont" : false,
               "preserveWhitespace" : false,
               "displayName" : "Modality"
+            }, {
+              "fieldName" : "BodyPartExamined",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 12,
+              "title" : "BodyPartExamined",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "BodyPartExamined"
             }, {
               "fieldName" : "ImageType",
               "booleanValues" : [ "false", "true" ],
@@ -670,7 +752,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100010,
+              "order" : 13,
               "title" : "ImageType",
               "allowSearch" : true,
               "alignContent" : "left",
@@ -693,7 +775,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100011,
+              "order" : 14,
               "title" : "StudyDescription",
               "allowSearch" : true,
               "alignContent" : "left",
@@ -716,7 +798,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100012,
+              "order" : 15,
               "title" : "SeriesDescription",
               "allowSearch" : true,
               "alignContent" : "left",
@@ -739,7 +821,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100013,
+              "order" : 16,
               "title" : "StudyInstanceUID",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -762,7 +844,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100014,
+              "order" : 17,
               "title" : "SeriesInstanceUID",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -785,7 +867,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100015,
+              "order" : 18,
               "title" : "StudyID",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -808,7 +890,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100016,
+              "order" : 19,
               "title" : "SeriesNumber",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -831,7 +913,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100017,
+              "order" : 20,
               "title" : "InstanceNumber",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -840,29 +922,6 @@
               "useMonospaceFont" : false,
               "preserveWhitespace" : false,
               "displayName" : "InstanceNumber"
-            }, {
-              "fieldName" : "BodyPartExamined",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "string",
-              "displayAs" : "string",
-              "visible" : true,
-              "order" : 100018,
-              "title" : "BodyPartExamined",
-              "allowSearch" : false,
-              "alignContent" : "left",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "BodyPartExamined"
             }, {
               "fieldName" : "ProtocolName",
               "booleanValues" : [ "false", "true" ],
@@ -877,7 +936,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100019,
+              "order" : 21,
               "title" : "ProtocolName",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -900,7 +959,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100020,
+              "order" : 22,
               "title" : "Manufacturer",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -923,7 +982,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100021,
+              "order" : 23,
               "title" : "InstitutionName",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -946,7 +1005,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100022,
+              "order" : 24,
               "title" : "InstitutionAddress",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -956,7 +1015,7 @@
               "preserveWhitespace" : false,
               "displayName" : "InstitutionAddress"
             }, {
-              "fieldName" : "LossyImageCompression",
+              "fieldName" : "DeidentificationMethod",
               "booleanValues" : [ "false", "true" ],
               "imageUrlTemplate" : "{{ @ }}",
               "imageTitleTemplate" : "{{ @ }}",
@@ -969,15 +1028,38 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100030,
-              "title" : "LossyImageCompression",
+              "order" : 29,
+              "title" : "DeidentificationMethod",
               "allowSearch" : false,
               "alignContent" : "left",
               "allowHTML" : false,
               "highlightLinks" : false,
               "useMonospaceFont" : false,
               "preserveWhitespace" : false,
-              "displayName" : "LossyImageCompression"
+              "displayName" : "DeidentificationMethod"
+            }, {
+              "fieldName" : "SyntheticData",
+              "booleanValues" : [ "false", "true" ],
+              "imageUrlTemplate" : "{{ @ }}",
+              "imageTitleTemplate" : "{{ @ }}",
+              "imageWidth" : "",
+              "imageHeight" : "",
+              "linkUrlTemplate" : "{{ @ }}",
+              "linkTextTemplate" : "{{ @ }}",
+              "linkTitleTemplate" : "{{ @ }}",
+              "linkOpenInNewTab" : true,
+              "type" : "string",
+              "displayAs" : "string",
+              "visible" : true,
+              "order" : 30,
+              "title" : "SyntheticData",
+              "allowSearch" : false,
+              "alignContent" : "left",
+              "allowHTML" : false,
+              "highlightLinks" : false,
+              "useMonospaceFont" : false,
+              "preserveWhitespace" : false,
+              "displayName" : "SyntheticData"
             }, {
               "fieldName" : "Creator",
               "booleanValues" : [ "false", "true" ],
@@ -992,7 +1074,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100031,
+              "order" : 33,
               "title" : "Creator",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -1015,7 +1097,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100032,
+              "order" : 34,
               "title" : "pixel_hash",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -1038,7 +1120,7 @@
               "type" : "string",
               "displayAs" : "string",
               "visible" : true,
-              "order" : 100034,
+              "order" : 36,
               "title" : "path",
               "allowSearch" : false,
               "alignContent" : "left",
@@ -1062,7 +1144,7 @@
               "type" : "integer",
               "displayAs" : "number",
               "visible" : true,
-              "order" : 100035,
+              "order" : 37,
               "title" : "length",
               "allowSearch" : false,
               "alignContent" : "right",
@@ -1083,31 +1165,10 @@
             "linkTextTemplate" : "{{ @ }}",
             "linkTitleTemplate" : "{{ @ }}",
             "linkOpenInNewTab" : true,
-            "name" : "StudyTime",
-            "type" : "string",
-            "displayAs" : "string",
-            "order" : 100007,
-            "title" : "StudyTime",
-            "allowSearch" : false,
-            "alignContent" : "left",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
             "name" : "DetectorManufacturerName",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100023,
+            "order" : 25,
             "title" : "DetectorManufacturerName",
             "allowSearch" : false,
             "alignContent" : "left",
@@ -1128,7 +1189,7 @@
             "name" : "DetectorManufacturersModelName",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100024,
+            "order" : 26,
             "title" : "DetectorManufacturersModelName",
             "allowSearch" : false,
             "alignContent" : "left",
@@ -1149,7 +1210,7 @@
             "name" : "MRTransmitCoilManufacturerName",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100025,
+            "order" : 27,
             "title" : "MRTransmitCoilManufacturerName",
             "allowSearch" : false,
             "alignContent" : "left",
@@ -1170,50 +1231,8 @@
             "name" : "ReceiveCoilManufacturerName",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100026,
+            "order" : 28,
             "title" : "ReceiveCoilManufacturerName",
-            "allowSearch" : false,
-            "alignContent" : "left",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "DeidentificationMethod",
-            "type" : "string",
-            "displayAs" : "string",
-            "order" : 100027,
-            "title" : "DeidentificationMethod",
-            "allowSearch" : false,
-            "alignContent" : "left",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "SyntheticData",
-            "type" : "string",
-            "displayAs" : "string",
-            "order" : 100028,
-            "title" : "SyntheticData",
             "allowSearch" : false,
             "alignContent" : "left",
             "allowHTML" : false,
@@ -1233,8 +1252,29 @@
             "name" : "CodingSchemeVersion",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100029,
+            "order" : 31,
             "title" : "CodingSchemeVersion",
+            "allowSearch" : false,
+            "alignContent" : "left",
+            "allowHTML" : false,
+            "highlightLinks" : false,
+            "useMonospaceFont" : false,
+            "preserveWhitespace" : false
+          }, {
+            "booleanValues" : [ "false", "true" ],
+            "imageUrlTemplate" : "{{ @ }}",
+            "imageTitleTemplate" : "{{ @ }}",
+            "imageWidth" : "",
+            "imageHeight" : "",
+            "linkUrlTemplate" : "{{ @ }}",
+            "linkTextTemplate" : "{{ @ }}",
+            "linkTitleTemplate" : "{{ @ }}",
+            "linkOpenInNewTab" : true,
+            "name" : "LossyImageCompression",
+            "type" : "string",
+            "displayAs" : "string",
+            "order" : 32,
+            "title" : "LossyImageCompression",
             "allowSearch" : false,
             "alignContent" : "left",
             "allowHTML" : false,
@@ -1254,7 +1294,7 @@
             "name" : "hash",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100033,
+            "order" : 35,
             "title" : "hash",
             "allowSearch" : false,
             "alignContent" : "left",
@@ -1276,7 +1316,7 @@
             "name" : "modificationTime",
             "type" : "datetime",
             "displayAs" : "datetime",
-            "order" : 100036,
+            "order" : 38,
             "title" : "modificationTime",
             "allowSearch" : false,
             "alignContent" : "right",
@@ -1297,7 +1337,7 @@
             "name" : "meta",
             "type" : "string",
             "displayAs" : "string",
-            "order" : 100037,
+            "order" : 39,
             "title" : "meta",
             "allowSearch" : false,
             "alignContent" : "left",
@@ -1422,7 +1462,7 @@
       "widget" : {
         "name" : "a4259bfe",
         "queries" : [ {
-          "name" : "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414ed78f19039d23dfe8dd0d6bae_table",
+          "name" : "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0471ed6911046a26928525476a335_table",
           "query" : {
             "datasetName" : "9651ec0b",
             "fields" : [ {
@@ -1434,28 +1474,15 @@
             } ],
             "disaggregated" : false
           }
-        }, {
-          "name" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_table",
-          "query" : {
-            "datasetName" : "ca4b24b9",
-            "parameters" : [ {
-              "name" : "table",
-              "keyword" : "table"
-            } ],
-            "disaggregated" : false
-          }
         } ],
         "spec" : {
           "version" : 2,
           "widgetType" : "filter-single-select",
           "encodings" : {
             "fields" : [ {
-              "parameterName" : "table",
-              "queryName" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_table"
-            }, {
               "fieldName" : "table",
               "displayName" : "table",
-              "queryName" : "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414ed78f19039d23dfe8dd0d6bae_table"
+              "queryName" : "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0471ed6911046a26928525476a335_table"
             } ]
           },
           "frame" : {
@@ -1614,7 +1641,7 @@
       "widget" : {
         "name" : "c3c7c172",
         "queries" : [ {
-          "name" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_viewer_host",
+          "name" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0471ed6911000b770b63ec1a18d66_viewer_host",
           "query" : {
             "datasetName" : "ca4b24b9",
             "parameters" : [ {
@@ -1630,12 +1657,22 @@
           "encodings" : {
             "fields" : [ {
               "parameterName" : "viewer_host",
-              "queryName" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_viewer_host"
+              "queryName" : "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0471ed6911000b770b63ec1a18d66_viewer_host"
             } ]
           },
           "frame" : {
             "showTitle" : true,
             "title" : "OHIF viewer host"
+          },
+          "selection" : {
+            "defaultSelection" : {
+              "values" : {
+                "dataType" : "STRING",
+                "values" : [ {
+                  "value" : "https://pixels-ohif-viewer-tcia-1444828305810485.aws.databricksapps.com"
+                } ]
+              }
+            }
           }
         }
       },
@@ -2068,9 +2105,32 @@
         "x" : 0,
         "y" : 0,
         "width" : 6,
-        "height" : 5
+        "height" : 9
       }
     } ],
     "pageType" : "PAGE_TYPE_CANVAS"
+  }, {
+    "name" : "a7f43831",
+    "displayName" : "Global Filters",
+    "layout" : [ {
+      "widget" : {
+        "name" : "230e22d3",
+        "spec" : {
+          "version" : 2,
+          "widgetType" : "filter-single-select",
+          "encodings" : { },
+          "frame" : {
+            "showTitle" : true
+          }
+        }
+      },
+      "position" : {
+        "x" : 0,
+        "y" : 0,
+        "width" : 1,
+        "height" : 2
+      }
+    } ],
+    "pageType" : "PAGE_TYPE_GLOBAL_FILTERS"
   } ]
 }
