@@ -91,7 +91,7 @@ async def _reverse_proxy_statements(request: Request):
         body = {}
 
     rp_req = client.build_request(
-        request.method, url, headers=cfg.authenticate(), content=json.dumps(body).encode("utf-8")
+        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=json.dumps(body).encode("utf-8")
     )
 
     rp_resp = await client.send(rp_req, stream=True)
@@ -114,7 +114,7 @@ async def _reverse_proxy_files(request: Request):
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
     rp_req = client.build_request(
-        request.method, url, headers=cfg.authenticate(), content=request.stream()
+        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=request.stream()
     )
 
     rp_resp = await client.send(rp_req, stream=True)
@@ -303,9 +303,6 @@ class TokenMiddleware(BaseHTTPMiddleware):
                 .replace(b"{HOST_NAME}", b"/sqlwarehouse")
             )
 
-            user_token = request.headers.get("X-Forwarded-Access-Token")
-            if user_token:
-                new_body  # TODO
             return Response(content=new_body, media_type="text/javascript")
         elif request.url.path.endswith("local"):
             body = open(f"{ohif_path}/index.html", "rb").read()
@@ -402,10 +399,12 @@ async def main_page(request: Request):
                                 <p class="instructions">Only Volumes are supported</p>
                                 <button name="path" value="/ohif/" class="btn btn-primary btn-large" type="submit">Confirm</button>
                                 <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
+
+                                <div style="justify-content: center;display: flex; white-space: pre"><a href="https://{os.environ['DATABRICKS_HOST']}" target="_blank" rel="noopener noreferrer">Workspace</a> | <a href="https://{os.environ['DATABRICKS_HOST']}/apps/{os.environ['DATABRICKS_APP_NAME']}/logs" target="_blank" rel="noopener noreferrer">Logs</a></div>
+                            </div>
                             </form>
                             </div>
                         </div>
-                    </div>
                     <div class="terms-of-service-footer"><a href="https://databricks.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a></div><div style="margin: 20px auto; text-align: center;">
                     </div>
                 </div>
