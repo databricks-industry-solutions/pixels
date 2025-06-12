@@ -172,24 +172,16 @@ def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.ndarray:
     return data
 
 
-def dicom_to_image(
-    dicom_path: str,
+def array_to_image(
+    px_array: np.ndarray,
     max_width: int = 768,
     output_path: str = None,
     return_type: str = "str",
 ):
-    """Function to convert DICOM to image. Save to file or return as binary or base64 string
-    Args:
-        dicom_path (str): Path to input DICOM file
-        max_width (int): Maximum width for the output image. If 0, no resizing is performed.
-        output_path (str): Path where image will be saved. If None, image will not be saved.
-        return_type (str): Type of the output image. Valid values are: binary, str. Default is 'str'.
-    """
+
     from PIL import Image
 
     default_format = "JPEG"
-
-    px_array = dicom_to_array(dicom_path)
 
     # Create an image from the pixel data
     image = Image.fromarray(px_array)
@@ -243,6 +235,23 @@ def dicom_to_image(
             f"Invalid image return_type: {return_type}. Returning None. Valid return_types are: binary, str"
         )
         return None
+
+
+def dicom_to_image(
+    dicom_path: str,
+    max_width: int = 768,
+    output_path: str = None,
+    return_type: str = "str",
+):
+    """Function to convert DICOM to image. Save to file or return as binary or base64 string
+    Args:
+        dicom_path (str): Path to input DICOM file
+        max_width (int): Maximum width for the output image. If 0, no resizing is performed.
+        output_path (str): Path where image will be saved. If None, image will not be saved.
+        return_type (str): Type of the output image. Valid values are: binary, str. Default is 'str'.
+    """
+    px_array = dicom_to_array(dicom_path)
+    return array_to_image(px_array, max_width, output_path, return_type)
 
 
 # Register the function as a UDF
