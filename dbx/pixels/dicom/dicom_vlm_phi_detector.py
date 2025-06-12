@@ -1,10 +1,11 @@
-import pandas as pd
-from pyspark.sql.functions import pandas_udf, col
-from pyspark.ml.pipeline import Transformer
-from typing import List, Tuple, Iterator, Optional
+from typing import Iterator, List, Optional, Tuple
 
-from openai import OpenAI
+import pandas as pd
 from mlflow.utils.databricks_utils import get_databricks_host_creds
+from openai import OpenAI
+from pyspark.ml.pipeline import Transformer
+from pyspark.sql.functions import col, pandas_udf
+
 from dbx.pixels.dicom.dicom_utils import dicom_to_image, remove_dbfs_prefix
 from dbx.pixels.logging import LoggerProvider
 
@@ -62,6 +63,7 @@ Answer concisely as requested without explanations."""
             - Error message (or None if successful)
         """
 
+        # if dicom path, convert to image then base64 string
         if input_type == "dicom":
             # remove 'dbfs:' prefix if present
             path = remove_dbfs_prefix(path)
@@ -70,10 +72,17 @@ Answer concisely as requested without explanations."""
             except Exception as e:
                 logger.error(f"Error converting dicom to image: {str(e)}")
                 return None, 0, 0, 0, str(e)
+        # if image path, convert to base64 string
+        elif input_type == "image":
+            with open(path, "rb") as image_file:
+                image_binary = image_file.read()
+                base64_str = base64.b64encode(image_binary).decode('utf-8')
+            image_base64 = base64_str
+        # if base64 str provided, use as is
         elif input_type == "base64":
             image_base64 = path
         else:
-            error_msg = f"Invalid input_type: {input_type}. Valid values are: dicom, base64 for dicom file path or image base64 string respectively"
+            error_msg = f"Invalid input_type: {input_type}. Valid values are: dicom, image, base64 for dicom file path, image path or image base64 string respectively"
             logger.error(error_msg)
             return None, 0, 0, 0, error_msg
 

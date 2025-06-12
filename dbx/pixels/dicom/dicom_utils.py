@@ -1,10 +1,12 @@
+import base64
 import copy
+import io
 import os
+
 import numpy as np
 import pydicom
 from pydicom import Dataset
-import io
-import base64
+
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
@@ -25,9 +27,7 @@ def cloud_open(path: str, anon: bool = False):
             fsize = os.stat(path).st_size
         return fp, fsize
     except Exception as e:
-        raise Exception(
-            f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}"
-        )
+        raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
 
 def check_pixel_data(ds: Dataset) -> Dataset | None:
@@ -39,9 +39,10 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     """
     try:
         a = ds.pixel_array
-    except:
+        return a
+    except Exception as e:
+        logger.error(f"Exception error: {e}. Path may not be a string")
         return None
-    return a
 
 
 def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
@@ -122,7 +123,6 @@ def anonymize_metadata(
         ds.update(dataset)
 
 
-
 def remove_dbfs_prefix(path: str) -> str:
     """Remove 'dbfs:' prefix from path if present
 
@@ -133,11 +133,12 @@ def remove_dbfs_prefix(path: str) -> str:
         str: _description_
     """
     try:
-        if path.startswith('dbfs:/Volumes'):
-            path = path.replace('dbfs:','')
+        if path.startswith("dbfs:/Volumes"):
+            path = path.replace("dbfs:", "")
     except Exception as e:
         logger.error(f"Exception error: {e}. Path may not be a string")
     return path
+
 
 def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.typing.NDArray:
     """Function to convert DICOM to numpy array of pixel data.
@@ -153,7 +154,6 @@ def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.typing.NDArray:
     ds = pydicom.dcmread(dicom_path)
 
     if not check_pixel_data(ds):
-        pass
         raise Exception(f"DICOM file {dicom_path} has no pixel data")
 
     # Apply VOI LUT if present
