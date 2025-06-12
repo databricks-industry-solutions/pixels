@@ -88,9 +88,9 @@ class Catalog:
         path = Path(dbx.pixels.__file__).parent
         sql_base_path = f"{path}/resources/sql"
 
-        def schema(table:str) -> str:
+        def schema(table: str) -> str:
             """return <catalog.schema> for full table in the form <catalog.schema.table>"""
-            return self._table.split('.')[0] + '.' + self._table.split('.')[1]
+            return self._table.split(".")[0] + "." + self._table.split(".")[1]
 
         try:
             files = os.listdir(sql_base_path)
@@ -98,10 +98,11 @@ class Catalog:
                 file_path = os.path.join(sql_base_path, file_name)
                 with open(file_path, "r") as file:
                     # substitute schema and/or table into script
-                    sql_command = (file.read()
-                                    .replace("{UC_SCHEMA}", schema(self._table))
-                                    .replace("{UC_TABLE}", self._table)
-                                    )
+                    sql_command = (
+                        file.read()
+                        .replace("{UC_SCHEMA}", schema(self._table))
+                        .replace("{UC_TABLE}", self._table)
+                    )
                     self._spark.sql(sql_command)
         except Exception as e:
             print(f"Error: {e}: {sql_command}")
