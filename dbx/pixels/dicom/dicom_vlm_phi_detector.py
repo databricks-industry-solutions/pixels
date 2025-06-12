@@ -1,13 +1,13 @@
+import base64
 from typing import Iterator, List, Optional, Tuple
 
 import pandas as pd
-import base64
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 from openai import OpenAI
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
-from dbx.pixels.dicom.dicom_utils import dicom_to_image, remove_dbfs_prefix
+from dbx.pixels.dicom.dicom_utils import dicom_to_image
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
@@ -47,9 +47,7 @@ If there's no PHI detect, return 'No PHI' and nothing else.
 Answer concisely as requested without explanations."""
 
     def extract(
-        self, path: str, 
-        input_type: str = "dicom",
-        max_width: int = 768
+        self, path: str, input_type: str = "dicom", max_width: int = 768
     ) -> Tuple[Optional[List[str]], int, int, int, Optional[str]]:
         """
         Do VLM inferencing with one input (image in base64 string) to return a list of named entities and metadata (e.g. total tokens)
@@ -79,7 +77,7 @@ Answer concisely as requested without explanations."""
         elif input_type == "image":
             with open(path, "rb") as image_file:
                 image_binary = image_file.read()
-                base64_str = base64.b64encode(image_binary).decode('utf-8')
+                base64_str = base64.b64encode(image_binary).decode("utf-8")
             image_base64 = base64_str
         # if base64 str provided, use as is
         elif input_type == "base64":
@@ -164,14 +162,14 @@ class VLMTransformer(Transformer):
         outputCol: str = "response",
         input_type: str = "dicom",
         max_width: int = 768,
-    ):  
+    ):
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.endpoint = endpoint
         self.system_prompt = system_prompt
         self.temperature = temperature
         self.num_output_tokens = num_output_tokens
-        self.input_type=input_type
+        self.input_type = input_type
         self.max_width = max_width
 
     def _transform(self, df):
@@ -195,9 +193,7 @@ class VLMTransformer(Transformer):
                 for path in batch:
                     try:
                         response = extractor.extract(
-                            path, 
-                            input_type=self.input_type,
-                            max_width=self.max_width
+                            path, input_type=self.input_type, max_width=self.max_width
                         )
                     except Exception as e:
                         response = (None, 0, 0, 0, str(e))
