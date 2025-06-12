@@ -1,6 +1,7 @@
 from typing import Iterator, List, Optional, Tuple
 
 import pandas as pd
+import base64
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 from openai import OpenAI
 from pyspark.ml.pipeline import Transformer
@@ -46,13 +47,17 @@ If there's no PHI detect, return 'No PHI' and nothing else.
 Answer concisely as requested without explanations."""
 
     def extract(
-        self, path: str, input_type: str = "dicom"
+        self, path: str, 
+        input_type: str = "dicom",
+        max_width: int = 768
     ) -> Tuple[Optional[List[str]], int, int, int, Optional[str]]:
         """
         Do VLM inferencing with one input (image in base64 string) to return a list of named entities and metadata (e.g. total tokens)
 
         Args:
             path: dicom file path ending with .dcm
+            input_type: dicom, image or base64 for .dcm file path, image path or image base64 string respectively
+            max_width: max width of image in pixels allowed. Resized to this dimension if max_width>0. Set to 0 to disable resizing
 
         Returns:
             Tuple containing:
@@ -65,10 +70,8 @@ Answer concisely as requested without explanations."""
 
         # if dicom path, convert to image then base64 string
         if input_type == "dicom":
-            # remove 'dbfs:' prefix if present
-            path = remove_dbfs_prefix(path)
             try:
-                image_base64 = dicom_to_image(path, min_width=768, return_type="str")
+                image_base64 = dicom_to_image(path, max_width=768, return_type="str")
             except Exception as e:
                 logger.error(f"Error converting dicom to image: {str(e)}")
                 return None, 0, 0, 0, str(e)
@@ -139,23 +142,37 @@ Answer concisely as requested without explanations."""
 class VLMTransformer(Transformer):
     """
     Transformer class to detect PHI in DICOM image using VLM
+
+    Args:
+        endpoint: model endpoint name for VLM
+        system_prompt: override default system prompt with custom prompt if any
+        temperature: temperature for VLM
+        num_output_tokens: number of output tokens for VLM
+        inputCol: input column name (default to path)
+        outputCol: output column name (default to response)
+        input_type: dicom, image or base64 for .dcm file path, image path or image base64 string respectively
+        max_width: max width of image in pixels allowed. Resized to this dimension if max_width>0. Set to 0 to disable resizing
     """
 
     def __init__(
         self,
         endpoint,
-        system_prompt,
+        system_prompt: str = None,
         temperature: float = 0.0,
         num_output_tokens: int = 200,
         inputCol: str = "path",
         outputCol: str = "response",
-    ):
+        input_type: str = "dicom",
+        max_width: int = 768,
+    ):  
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.endpoint = endpoint
         self.system_prompt = system_prompt
         self.temperature = temperature
         self.num_output_tokens = num_output_tokens
+        self.input_type=input_type
+        self.max_width = max_width
 
     def _transform(self, df):
         """
@@ -177,7 +194,11 @@ class VLMTransformer(Transformer):
                 results = []
                 for path in batch:
                     try:
-                        response = extractor.extract(path)
+                        response = extractor.extract(
+                            path, 
+                            input_type=self.input_type,
+                            max_width=self.max_width
+                        )
                     except Exception as e:
                         response = (None, 0, 0, 0, str(e))
                     results.append(response)

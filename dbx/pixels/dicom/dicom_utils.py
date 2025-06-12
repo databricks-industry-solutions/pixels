@@ -140,7 +140,7 @@ def remove_dbfs_prefix(path: str) -> str:
     return path
 
 
-def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.typing.NDArray:
+def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.ndarray:
     """Function to convert DICOM to numpy array of pixel data.
     Args:
         dicom_path (str): Path to input DICOM file
@@ -150,10 +150,13 @@ def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.typing.NDArray:
     """
     from pydicom.pixel_data_handlers.util import apply_voi_lut
 
+    # remove 'dbfs:' prefix if present
+    dicom_path = remove_dbfs_prefix(dicom_path)
+
     # Read the DICOM file
     ds = pydicom.dcmread(dicom_path)
 
-    if not check_pixel_data(ds):
+    if check_pixel_data(ds) is None:
         raise Exception(f"DICOM file {dicom_path} has no pixel data")
 
     # Apply VOI LUT if present
@@ -171,14 +174,14 @@ def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.typing.NDArray:
 
 def dicom_to_image(
     dicom_path: str,
-    min_width: int = 768,
+    max_width: int = 768,
     output_path: str = None,
     return_type: str = "str",
 ):
     """Function to convert DICOM to image. Save to file or return as binary or base64 string
     Args:
         dicom_path (str): Path to input DICOM file
-        min_width (int): Minimum width for the output image. If 0, no resizing is performed.
+        max_width (int): Maximum width for the output image. If 0, no resizing is performed.
         output_path (str): Path where image will be saved. If None, image will not be saved.
         return_type (str): Type of the output image. Valid values are: binary, str. Default is 'str'.
     """
@@ -191,11 +194,11 @@ def dicom_to_image(
     # Create an image from the pixel data
     image = Image.fromarray(px_array)
 
-    # Resize the image if min_width>0
-    if min_width > 0:
-        if image.width < min_width:
-            ratio = min_width / image.width
-            new_size = (min_width, int(image.height * ratio))
+    # Resize the image if max_width>0
+    if max_width > 0:
+        if image.width > max_width:
+            ratio = max_width / image.width
+            new_size = (max_width, int(image.height * ratio))
             image = image.resize(new_size, Image.LANCZOS)
     else:
         logger.info(
