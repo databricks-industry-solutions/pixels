@@ -140,6 +140,24 @@ def remove_dbfs_prefix(path: str) -> str:
     return path
 
 
+def dicom_to_8bitarray(path: str):
+    """
+    Read .dcm DICOM file (typically monochrome) and convert its image to a 8bit array for subsequent easyOCR processing
+    """
+    try:
+        if path.startswith('dbfs:/Volumes'):
+            path = path.replace('dbfs:','')
+            
+        dcm = pydicom.dcmread(path)
+        im = np.asfarray(dcm.pixel_array, dtype=np.float32)
+        rescaled_image = (np.maximum(im,0)/im.max())*255
+        image = np.uint8(rescaled_image)
+
+    except Exception as e:
+        print(f"Exception error: {e}. Path must be a string ending with .dcm for a dicom file")
+    return image
+
+
 def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.ndarray:
     """Function to convert DICOM to numpy array of pixel data.
     Args:
