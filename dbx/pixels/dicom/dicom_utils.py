@@ -136,7 +136,7 @@ def remove_dbfs_prefix(path: str) -> str:
         if path.startswith("dbfs:/Volumes"):
             path = path.replace("dbfs:", "")
     except Exception as e:
-        logger.error(f"Exception error: {e}. Path may not be a string")
+        logger.error(f"Exception error: {e}. Path {path} may not be a string")
     return path
 
 

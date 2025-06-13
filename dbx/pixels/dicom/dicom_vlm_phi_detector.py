@@ -133,7 +133,7 @@ Answer concisely as requested without explanations."""
             )
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"Possible VLM failure: {str(e)}. Check inputs: endpoint, input_type, system_prompt, temperature, num_output_tokens")
             return None, 0, 0, 0, str(e)
 
 

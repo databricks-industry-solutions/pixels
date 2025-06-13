@@ -1,3 +1,11 @@
+import numpy as np
+import easyocr
+import pydicom
+from typing import Optional, List
+import cv2
+import matplotlib.pyplot as plt
+
+
 def fill_bounding_boxes(image_array: np.ndarray, horizontal_list: List) -> np.ndarray:
     """
     Detects text in an image using EasyOCR and fills the bounding boxes 
@@ -24,7 +32,8 @@ def fill_bounding_boxes(image_array: np.ndarray, horizontal_list: List) -> np.nd
 
 def compare_dicom_images(
     original_array: np.ndarray,
-    bb,
+    redacted_array: Optional[np.ndarray] = None,
+    bb: Optional[List] = None,
     figsize: tuple = (11, 11)
 ) -> None:
     """Display the DICOM pixel arrays of both original and redacted as images.
@@ -34,10 +43,19 @@ def compare_dicom_images(
         instance_redacted (pydicom.dataset.FileDataset): A single DICOM instance (redacted PHI).
         figsize (tuple): Figure size in inches (width, height).
     """
+    if redacted_array is None and bb is None:
+        raise Exception("Either redacted_array (numpy pixel array) or bb (list of bounding boxes coordinates) must be provided.")
+
     _, ax = plt.subplots(1, 2, figsize=figsize)
     ax[0].imshow(original_array)
     ax[0].set_title('Original')
-    redacted_array = fill_bounding_boxes(original_array, bb)
+
+    if bb:
+        try:
+            redacted_array = fill_bounding_boxes(original_array, bb)
+        except Exception as e:
+            raise Exception(f"Exception error:{e}. bb may not be a list of bounding boxes coordinates.")
+        
     ax[1].imshow(redacted_array)
     ax[1].set_title('Redacted')
 
@@ -64,7 +82,7 @@ def ocr_dcm(path: str, min_size: int = 1, text_threshold: float = 0, display=Fal
 
         #display images
         if display:
-            compare_dicom_images(image, horizontal_list[0])
+            compare_dicom_images(image, bb=horizontal_list[0])
         return horizontal_list[0]
     
     except Exception as e:
