@@ -11,3 +11,4 @@ ff3==1.0.2
 databricks-sdk==0.36.0
 mlflow>=2.8.0
 numpy==1.26.4
+easyocr==1.7.2

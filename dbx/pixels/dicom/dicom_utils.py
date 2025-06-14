@@ -154,7 +154,7 @@ def dicom_to_8bitarray(path: str):
         image = np.uint8(rescaled_image)
 
     except Exception as e:
-        print(f"Exception error: {e}. Path must be a string ending with .dcm for a dicom file")
+        raise Exception(f"Exception error: {e}. Path must be a string ending with .dcm for a dicom file")
     return image
 
 

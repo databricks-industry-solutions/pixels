@@ -70,7 +70,6 @@ def ocr_dcm(path: str,
         # Detect text (no need recognizer)
         reader = easyocr.Reader(['en'], recognizer=False)
         bounds = reader.detect(image, min_size=min_size, text_threshold=text_threshold)
-        print(bounds)
         horizontal_list, free_list = bounds
 
         bb = horizontal_list[0]
