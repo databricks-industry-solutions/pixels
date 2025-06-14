@@ -1,8 +1,15 @@
+import base64
 import copy
+import io
 import os
 
 import numpy as np
+import pydicom
 from pydicom import Dataset
+
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider()
 
 
 def cloud_open(path: str, anon: bool = False):
@@ -32,9 +39,10 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     """
     try:
         a = ds.pixel_array
-    except:
+        return a
+    except Exception as e:
+        logger.error(f"Exception error: {e}. Path may not be a string")
         return None
-    return a
 
 
 def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
@@ -113,3 +121,156 @@ def anonymize_metadata(
         for values in encrypted_values + keep_values:
             dataset.add(values)
         ds.update(dataset)
+
+
+def remove_dbfs_prefix(path: str) -> str:
+    """Remove 'dbfs:' prefix from path if present
+
+    Args:
+        path (str): _description_
+
+    Returns:
+        str: _description_
+    """
+    try:
+        if path.startswith("dbfs:/Volumes"):
+            path = path.replace("dbfs:", "")
+    except Exception as e:
+        logger.error(f"Exception error: {e}. Path {path} may not be a string")
+    return path
+
+
+def dicom_to_8bitarray(path: str):
+    """
+    Read .dcm DICOM file (typically monochrome) and convert its image to a 8bit array for subsequent easyOCR processing
+    """
+    try:
+        if path.startswith('dbfs:/Volumes'):
+            path = path.replace('dbfs:','')
+            
+        dcm = pydicom.dcmread(path)
+        im = np.asfarray(dcm.pixel_array, dtype=np.float32)
+        rescaled_image = (np.maximum(im,0)/im.max())*255
+        image = np.uint8(rescaled_image)
+
+    except Exception as e:
+        raise Exception(f"Exception error: {e}. Path must be a string ending with .dcm for a dicom file")
+    return image
+
+
+def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.ndarray:
+    """Function to convert DICOM to numpy array of pixel data.
+    Args:
+        dicom_path (str): Path to input DICOM file
+        dtype (str): Data type of the output array. Default is 'uint8'.
+    Returns:
+        np.NDArray: Numpy array of pixel data
+    """
+    from pydicom.pixel_data_handlers.util import apply_voi_lut
+
+    # remove 'dbfs:' prefix if present
+    dicom_path = remove_dbfs_prefix(dicom_path)
+
+    # Read the DICOM file
+    ds = pydicom.dcmread(dicom_path)
+
+    if check_pixel_data(ds) is None:
+        raise Exception(f"DICOM file {dicom_path} has no pixel data")
+
+    # Apply VOI LUT if present
+    if "VOILUTSequence" in ds:
+        data = apply_voi_lut(ds.pixel_array, ds)
+    else:
+        data = ds.pixel_array
+
+    # Convert to specified dtype if necessary
+    if data.dtype != dtype:
+        data = data.astype(dtype)
+
+    return data
+
+
+def array_to_image(
+    px_array: np.ndarray,
+    max_width: int = 768,
+    output_path: str = None,
+    return_type: str = "str",
+):
+
+    from PIL import Image
+
+    default_format = "JPEG"
+
+    # Create an image from the pixel data
+    image = Image.fromarray(px_array)
+
+    # Resize the image if max_width>0
+    if max_width > 0:
+        if image.width > max_width:
+            ratio = max_width / image.width
+            new_size = (max_width, int(image.height * ratio))
+            image = image.resize(new_size, Image.LANCZOS)
+    else:
+        logger.info(
+            "Set min_width > 0 to resize the image otherwise no resizing will be performed."
+        )
+
+    # Save image
+    if output_path:
+        extension = output_path.split(".")[-1].lower()
+        if extension in ["jpg", "jpeg"]:
+            format = "JPEG"
+        elif extension == "png":
+            format = "PNG"
+        elif extension == "bmp":
+            format = "BMP"
+        elif extension == "gif":
+            format = "GIF"
+        elif extension == "tiff":
+            format = "TIFF"
+        else:
+            format = default_format
+            logger.warn(
+                f"Invalid output format: {extension}. Defaulting to .jpg. Valid formats are: jpg, jpeg, png, bmp, gif, tiff"
+            )
+        image.save(output_path, format=format)
+
+    if return_type == "binary":  # Convert image to jpg
+        with io.BytesIO() as output:
+            image.save(output, format=default_format)
+            jpg_binary = output.getvalue()
+        return jpg_binary
+
+    elif return_type == "str":
+        with io.BytesIO() as output:
+            image.save(output, format=default_format)
+            jpg_binary = output.getvalue()
+            base64_str = base64.b64encode(jpg_binary).decode("utf-8")
+        return base64_str
+
+    else:
+        logger.warn(
+            f"Invalid image return_type: {return_type}. Returning None. Valid return_types are: binary, str"
+        )
+        return None
+
+
+def dicom_to_image(
+    dicom_path: str,
+    max_width: int = 768,
+    output_path: str = None,
+    return_type: str = "str",
+):
+    """Function to convert DICOM to image. Save to file or return as binary or base64 string
+    Args:
+        dicom_path (str): Path to input DICOM file
+        max_width (int): Maximum width for the output image. If 0, no resizing is performed.
+        output_path (str): Path where image will be saved. If None, image will not be saved.
+        return_type (str): Type of the output image. Valid values are: binary, str. Default is 'str'.
+    """
+    px_array = dicom_to_array(dicom_path)
+    return array_to_image(px_array, max_width, output_path, return_type)
+
+
+# Register the function as a UDF
+# dicom_to_base64_udf = udf(dicom_to_image, StringType())
