@@ -3,7 +3,6 @@ from typing import Iterator, List, Optional, Tuple
 
 import pandas as pd
 from mlflow.utils.databricks_utils import get_databricks_host_creds
-from openai import OpenAI
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
@@ -29,12 +28,18 @@ class VLMPhiExtractor:
         self.endpoint = endpoint
         self.temperature = temperature
         self.num_output_tokens = num_output_tokens
-        self.client = OpenAI(
-            api_key=creds.token,
-            base_url=f"{creds.host}/serving-endpoints",
-            timeout=300,
-            max_retries=3,
-        )
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=creds.token,
+                base_url=f"{creds.host}/serving-endpoints",
+                timeout=300,
+                max_retries=3
+            )
+        except Exception as e:
+            logger.error(f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}")
+            raise e
+
 
         if system_prompt:
             self.system_prompt = system_prompt
@@ -66,28 +71,28 @@ Answer concisely as requested without explanations."""
             - Error message (or None if successful)
         """
 
-        # if dicom path, convert to image then base64 string
-        if input_type == "dicom":
-            try:
-                image_base64 = dicom_to_image(path, max_width=768, return_type="str")
-            except Exception as e:
-                logger.error(f"Error converting dicom to image: {str(e)}")
-                return None, 0, 0, 0, str(e)
-        # if image path, convert to base64 string
-        elif input_type == "image":
-            with open(path, "rb") as image_file:
-                image_binary = image_file.read()
-                base64_str = base64.b64encode(image_binary).decode("utf-8")
-            image_base64 = base64_str
-        # if base64 str provided, use as is
-        elif input_type == "base64":
-            image_base64 = path
-        else:
-            error_msg = f"Invalid input_type: {input_type}. Valid values are: dicom, image, base64 for dicom file path, image path or image base64 string respectively"
-            logger.error(error_msg)
-            return None, 0, 0, 0, error_msg
-
         try:
+            # if dicom path, convert to image then base64 string
+            if input_type == "dicom":
+                try:
+                    image_base64 = dicom_to_image(path, max_width=768, return_type="str")
+                except Exception as e:
+                    logger.error(f"Error converting dicom to image: {str(e)}")
+                    return None, 0, 0, 0, str(e)
+            # if image path, convert to base64 string
+            elif input_type == "image":
+                with open(path, "rb") as image_file:
+                    image_binary = image_file.read()
+                    base64_str = base64.b64encode(image_binary).decode("utf-8")
+                image_base64 = base64_str
+            # if base64 str provided, use as is
+            elif input_type == "base64":
+                image_base64 = path
+            else:
+                error_msg = f"Invalid input_type: {input_type}. Valid values are: dicom, image, base64 for dicom file path, image path or image base64 string respectively"
+                logger.error(error_msg)
+                return None, 0, 0, 0, error_msg
+
             response = self.client.chat.completions.create(
                 model=self.endpoint,
                 messages=[
@@ -133,8 +138,9 @@ Answer concisely as requested without explanations."""
             )
 
         except Exception as e:
-            logger.error(f"Possible VLM failure: {str(e)}. Check inputs: endpoint, input_type, system_prompt, temperature, num_output_tokens")
-            return None, 0, 0, 0, str(e)
+            msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {endpoint}, {input_type}, {system_prompt}, {temperature}, {num_output_tokens}"
+            logger.error(msg)
+            return None, 0, 0, 0, msg
 
 
 class VLMTransformer(Transformer):

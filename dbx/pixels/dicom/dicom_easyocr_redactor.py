@@ -54,6 +54,7 @@ def compare_dicom_arrays(
         if isinstance(redacted_array, np.ndarray):
             ax[1].imshow(redacted_array)
             ax[1].set_title('Redacted')
+        plt.show()
 
     except Exception as e:
         raise Exception(f"Exception error:{e}. original_array must be a pixel numpy array. Likewise for redacted_array, if provided.")
@@ -62,13 +63,14 @@ def compare_dicom_arrays(
 def ocr_dcm(path: str, 
             min_size: int = 1, 
             text_threshold: float = 0, 
-            display=False
+            display=False,
+            gpu=False
 ) -> List:
     try:
         image = dicom_to_8bitarray(path)
 
         # Detect text (no need recognizer)
-        reader = easyocr.Reader(['en'], recognizer=False)
+        reader = easyocr.Reader(['en'], recognizer=False, gpu=gpu)
         bounds = reader.detect(image, min_size=min_size, text_threshold=text_threshold)
         horizontal_list, free_list = bounds
 
