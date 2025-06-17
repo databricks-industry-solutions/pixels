@@ -4,18 +4,20 @@ from typing import Iterator, Tuple
 import pandas as pd
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql import functions as F
+import traceback
+
+from dbx.pixels.logging import LoggerProvider
 
 
-class Vista3DGPUTransformer(Transformer):
+class MonaiLabelBundlesGPUTransformer(Transformer):
     """
-    A transformer that processes 3D medical images using VISTA3D model with GPU acceleration.
-
-    Details of the Vista3D model can be found at: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/monaitoolkit/models/monai_vista3d
+    A transformer that processes 3D medical images using MonaiLabel bundle models with GPU acceleration.
 
     The transformer can be configured with the following parameters:
     - inputCol: The name of the input column containing the DICOM metadata. Default is "meta".
     - table: The name of the table to use for the MONAILabel serving endpoint. Default is "main.pixels_solacc.object_catalog".
-    - destDir: The destination directory for the segmentations. Default is "/Volumes/main/pixels_solacc/pixels_volume/vista3d/".
+    - destDir: The destination directory for the segmentations. Default is "/Volumes/main/pixels_solacc/pixels_volume/bundles/".
+    - modelName: The name of the MONAILabel model to use. Default is "wholeBody_ct_segmentation".
     - sqlWarehouseId: The SQL warehouse ID to use for the MONAILabel serving endpoint. Default is None.
     - labelPrompt: The label prompt to use for the MONAILabel serving endpoint. Default is None.
     - points: The points to use for the MONAILabel serving endpoint. Default is None.
@@ -40,7 +42,8 @@ class Vista3DGPUTransformer(Transformer):
         self,
         inputCol="meta",
         table="main.pixels_solacc.object_catalog",
-        destDir="/Volumes/main/pixels_solacc/pixels_volume/vista3d/",
+        destDir="/Volumes/main/pixels_solacc/pixels_volume/bundles/",
+        modelName="wholeBody_ct_segmentation",
         sqlWarehouseId=None,
         labelPrompt=None,
         points=None,
@@ -58,6 +61,7 @@ class Vista3DGPUTransformer(Transformer):
 
         self.table = table
         self.destDir = destDir
+        self.modelName = modelName
         self.sqlWarehouseId = sqlWarehouseId
         self.labelPrompt = labelPrompt
         self.points = points
@@ -71,6 +75,8 @@ class Vista3DGPUTransformer(Transformer):
         self.nWorkers = nWorkers
         self.parallelization = int(self.gpuCount * nWorkers // tasksPerGpu)
 
+        self.logger = LoggerProvider(name=__name__)
+
     def _transform(self, df):
         @F.pandas_udf("result string, error string")
         def autosegm_monai_udf(
@@ -82,6 +88,7 @@ class Vista3DGPUTransformer(Transformer):
             os.environ["DATABRICKS_WAREHOUSE_ID"] = self.sqlWarehouseId
             os.environ["DATABRICKS_PIXELS_TABLE"] = self.table
             os.environ["DATABRICKS_TOKEN"] = self.secret
+            os.environ["MONAI_BUNDLES"] = self.modelName
 
             params = {
                 "label_prompt": self.labelPrompt,
@@ -91,9 +98,9 @@ class Vista3DGPUTransformer(Transformer):
                 "export_overlays": self.exportOverlays,
             }
 
-            from monailabel_model.vista3d.code.dbvista3dmodel import DBVISTA3DModel
+            from monailabel_model.bundles.code.bundlesmodel import DBBundlesModel
 
-            model = DBVISTA3DModel(volumes_compatible=True)
+            model = DBBundlesModel(volumes_compatible=True)
             model.load_context()
 
             def process_series(series_uid, pid):
@@ -101,12 +108,16 @@ class Vista3DGPUTransformer(Transformer):
                 if self.nWorkers == 1:
                     params["torch_device"] = f"cuda:{pid % self.gpuCount}"
 
+                self.logger.debug({"series_uid": series_uid, "params": params})
+
                 try:
                     result = model.predict(
                         None, pd.DataFrame([{"series_uid": series_uid, "params": params}])
                     )
                     error = ""
                 except Exception as e:
+                    self.logger.error(e)
+                    self.logger.error(traceback.format_exc()) # Print stacktrace
                     result = ""
                     error = str(e)
                 return result, error

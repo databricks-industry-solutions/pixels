@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # MONAILabel Server Initialization
+# MAGIC # MONAILabel Server Initialization - DBR 16.4 LTS ML - CUDA 12
 # MAGIC
 # MAGIC This notebook is designed to **initialize the Databricks customized version of the MONAILabel server**. It wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**. The process involves:
 # MAGIC
@@ -19,7 +19,7 @@
 # MAGIC %pip install -r bundles/requirements.txt
 # MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
 # MAGIC %pip install monai==1.4.0 pytorch-ignite --no-deps
-# MAGIC %pip install databricks-sdk==0.36 --upgrade
+# MAGIC %pip install databricks-sdk==0.56 --upgrade
 
 # COMMAND ----------
 
@@ -142,14 +142,14 @@ input_examples = [
       },
       { 'input': {                                        #trigger the inference on a single DICOM series given the series uid, used in OHIF Viewer with mandatory fields
         'infer': {
-          'model': 'vista3d',
+          'model': model_name,
           'image': '1.2.156.14702.1.1000.16.1.2020031111365289000020001',
           'label_prompt': [1,26]
           }
        }
       },
       { 'input': {                                        #Return the file from the inference, used in OHIF Viewer
-        'get_file': '/tmp/vista/bundles/vista3d/models/prediction/1.2.156.14702.1.1000.16.1.2020031111365289000020001/1.2.156.14702.1.1000.16.1.2020031111365289000020001_seg.nii.gz',
+        'get_file': '/tmp/bundles/models/prediction/1.2.156.14702.1.1000.16.1.2020031111365289000020001/1.2.156.14702.1.1000.16.1.2020031111365289000020001_seg.nii.gz',
         'result_dtype': 'uint8'
        }
       },
@@ -160,7 +160,7 @@ input_examples = [
           'export_overlays': False,
           'points': [[100,100,100],[200,200,200]],
           'point_labels': [0,1],
-          'dest_dir': '/Volumes/main/pixels_solacc/pixels_volume/monai_serving/vista3d',
+          'dest_dir': f'/Volumes/main/pixels_solacc/pixels_volume/monai_serving/{model_name}/',
           'pixels_table': "main.pixels_solacc.object_catalog",
           'torch_device': 0
         }
@@ -194,6 +194,7 @@ download_dcmqi_tools("./artifacts")
 
 try:
   import torchvision
+  import torch
   import pandas as pd
   import json
 
@@ -201,7 +202,7 @@ try:
   series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"
 
   input = { "series_uid": series_uid, "params": {
-    "export_metrics": False,
+    "export_metrics": True,
     "export_overlays": False,
     "dest_dir": f"/Volumes/{volume_path}/monai_serving/{model_name}",
     "pixels_table" : table
@@ -210,11 +211,13 @@ try:
 
   df = pd.DataFrame([input])
 
-  # This step will download the VISTA3D Model bundle scripts and model weights to the local disk
+  # This step will download the Model bundle scripts and model weights to the local disk
   # This step will automatically download in the ./bin folder the itkimage2segimage binary required for the conversion of nifti files to DICOM SEG files
 
   model.load_context(context=None)
   result = model.predict(None, df)
+  
+  torch.cuda.empty_cache()
 except ImportError as e:
   print(e,", skipping model test")
 
@@ -383,7 +386,7 @@ print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Test the connection and execute inference using Serving Endpoint with Vista3D model
+# MAGIC ## Test the connection and execute inference using Serving Endpoint with model
 # MAGIC
 # MAGIC NOTE: Serving Endpoint creation will take ~ 30 minutes to complete
 
@@ -408,26 +411,26 @@ wait_for_endpoint_ready(serving_endpoint_name, client)
 
 # COMMAND ----------
 
-from dbx.pixels.modelserving.vista3d.servingendpoint import Vista3DMONAITransformer
+from dbx.pixels.modelserving.bundles.servingendpoint import MonaiLabelBundlesTransformer
 
 df = spark.table(table)
 
-df_monai = Vista3DMONAITransformer(table=table, destDir=os.environ["DEST_DIR"], endpoint_name=serving_endpoint_name, exportMetrics=True).transform(df)
+df_monai = MonaiLabelBundlesTransformer(table=table, destDir=os.environ["DEST_DIR"], endpointName=serving_endpoint_name, exportMetrics=True).transform(df)
 
-display(df_monai.filter('series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
+#display(df_monai.filter('series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
 
 # Test performance using noop
-#df_monai.write.format("noop").mode("overwrite").save()
+df_monai.repartition(4).write.format("noop").mode("overwrite").save()
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Initialize a Vista3DGPUTransformer to process the pixels' catalog table using GPU resources.
+# MAGIC ### Initialize a GPUTransformer to process the pixels' catalog table using GPU resources.
 
 # COMMAND ----------
 
 import torch
-from dbx.pixels.modelserving.vista3d.gpu import Vista3DGPUTransformer
+from dbx.pixels.modelserving.bundles.gpu import MonaiLabelBundlesGPUTransformer
 
 gpuCount = int(spark.conf.get("spark.executor.resource.gpu.amount","0") or torch.cuda.device_count())
 nWorkers = (int(spark.conf.get("spark.databricks.clusterUsageTags.clusterWorkers")) or 1)
@@ -435,9 +438,10 @@ tasksPerGpu = int(spark.conf.get("spark.task.resource.gpu.amount","1"))
 
 df = spark.table(table)
 
-df_monai = Vista3DGPUTransformer(inputCol="meta", 
+df_monai = MonaiLabelBundlesGPUTransformer(inputCol="meta", 
                                  table=table, 
                                  destDir=os.environ["DEST_DIR"], 
+                                 modelName=model_name,
                                  sqlWarehouseId=os.environ["DATABRICKS_WAREHOUSE_ID"], 
                                  labelPrompt=None, exportMetrics=True, exportOverlays=False, 
                                  secret=os.environ["DATABRICKS_TOKEN"], 
@@ -453,7 +457,7 @@ display(df_monai)
 
 # MAGIC %sql
 # MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
-# MAGIC -- Sample query to illustrate how to use the ai_query function to query vista3d model in serving endpoint 
+# MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
 # MAGIC with ct as (
 # MAGIC   select distinct(meta:['0020000E'].Value[0]) as series_uid
 # MAGIC   from ${table}
@@ -466,7 +470,7 @@ display(df_monai)
 # MAGIC       'series_uid', series_uid,
 # MAGIC       'params', named_struct(
 # MAGIC                     'export_metrics', True,
-# MAGIC                     'export_overlays', True
+# MAGIC                     'export_overlays', False
 # MAGIC                 )
 # MAGIC   ),
 # MAGIC   returnType => 'STRING'
