@@ -2,12 +2,17 @@ import base64
 import copy
 import io
 import os
-
+import pandas as pd
 import numpy as np
 import pydicom
 from pydicom import Dataset
-
+from typing import Tuple
 from dbx.pixels.logging import LoggerProvider
+import pyspark.sql
+from pyspark.sql.functions import col, expr
+from pyspark.ml import Transformer
+from pyspark.ml.param.shared import HasInputCol, HasOutputCol
+
 
 logger = LoggerProvider()
 
@@ -40,8 +45,8 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     try:
         a = ds.pixel_array
         return a
-    except Exception as e:
-        logger.error(f"Exception error: {e}. Path may not be a string")
+    except AttributeError as e:
+        logger.error(f"AttributeError: {e}. pixel_array does not exist in ds")
         return None
 
 
@@ -140,54 +145,65 @@ def remove_dbfs_prefix(path: str) -> str:
     return path
 
 
-def dicom_to_8bitarray(path: str):
+def dicom_to_8bitarray(path: str) -> np.ndarray:
     """
     Read .dcm DICOM file (typically monochrome) and convert its image to a 8bit array for subsequent easyOCR processing
     """
     try:
-        if path.startswith('dbfs:/Volumes'):
-            path = path.replace('dbfs:','')
-            
+        path = remove_dbfs_prefix(path)
         dcm = pydicom.dcmread(path)
-        im = np.asfarray(dcm.pixel_array, dtype=np.float32)
-        rescaled_image = (np.maximum(im,0)/im.max())*255
-        image = np.uint8(rescaled_image)
-
+        pixel_array = check_pixel_data(dcm)
+        if isinstance(pixel_array, np.ndarray):
+            im = np.asfarray(pixel_array, dtype=np.float32)
+            rescaled_image = (np.maximum(im,0)/im.max())*255
+            image = np.uint8(rescaled_image)
+            return image
+        elif pixel_array is None:
+            logger.error("No pixel_array in dcm")
+            return None
+        else:
+            logger.error("pixel_array is not a np.ndarray but of type {type(pixel_array)}")
+            return None
     except Exception as e:
-        raise Exception(f"Exception error: {e}. Path must be a string ending with .dcm for a dicom file")
-    return image
+        logger.exception("Pixel array must be a numpy array that can be converted from np.float32 to uint8")
+        return None
 
 
-def dicom_to_array(dicom_path: str, dtype: str = "uint8") -> np.ndarray:
+def dicom_to_array(path: str, dtype: str = "uint8") -> np.ndarray:
     """Function to convert DICOM to numpy array of pixel data.
     Args:
-        dicom_path (str): Path to input DICOM file
+        path (str): Path to input DICOM file
         dtype (str): Data type of the output array. Default is 'uint8'.
     Returns:
         np.NDArray: Numpy array of pixel data
     """
-    from pydicom.pixel_data_handlers.util import apply_voi_lut
+#    from pydicom.pixel_data_handlers.util import apply_voi_lut
+    from pydicom.pixels import apply_voi_lut
 
-    # remove 'dbfs:' prefix if present
-    dicom_path = remove_dbfs_prefix(dicom_path)
+    try:
+        path = remove_dbfs_prefix(path)
+        ds = pydicom.dcmread(path)
+        pixel_array = check_pixel_data(ds)
 
-    # Read the DICOM file
-    ds = pydicom.dcmread(dicom_path)
+        if isinstance(pixel_array, np.ndarray) and "VOILUTSequence" in ds:
+            data = apply_voi_lut(pixel_array, ds)
+        elif isinstance(pixel_array, np.ndarray) and "VOILUTSequence" not in ds:
+            data = pixel_array
+        elif pixel_array is None:
+            logger.error(f"No pixel_array in {path}")
+            return None
+        else:
+            logger.error(f"pixel_array in {path} is not a numpy array")
+            return None
 
-    if check_pixel_data(ds) is None:
-        raise Exception(f"DICOM file {dicom_path} has no pixel data")
-
-    # Apply VOI LUT if present
-    if "VOILUTSequence" in ds:
-        data = apply_voi_lut(ds.pixel_array, ds)
-    else:
-        data = ds.pixel_array
-
-    # Convert to specified dtype if necessary
-    if data.dtype != dtype:
-        data = data.astype(dtype)
-
-    return data
+        # Convert to specified dtype if necessary
+        if data.dtype != dtype:
+            data = data.astype(dtype)
+        return data
+    
+    except Exception as e:
+        logger.exception(f"{e}. Path must be a string ending with .dcm for a dicom file and contains a pixel numpy array. Check for valid dtype {dtype}")
+        return None
 
 
 def array_to_image(
@@ -196,81 +212,127 @@ def array_to_image(
     output_path: str = None,
     return_type: str = "str",
 ):
-
     from PIL import Image
 
     default_format = "JPEG"
+    
+    try:
+        # Create an image from the pixel data
+        image = Image.fromarray(px_array)
 
-    # Create an image from the pixel data
-    image = Image.fromarray(px_array)
-
-    # Resize the image if max_width>0
-    if max_width > 0:
-        if image.width > max_width:
-            ratio = max_width / image.width
-            new_size = (max_width, int(image.height * ratio))
-            image = image.resize(new_size, Image.LANCZOS)
-    else:
-        logger.info(
-            "Set min_width > 0 to resize the image otherwise no resizing will be performed."
-        )
-
-    # Save image
-    if output_path:
-        extension = output_path.split(".")[-1].lower()
-        if extension in ["jpg", "jpeg"]:
-            format = "JPEG"
-        elif extension == "png":
-            format = "PNG"
-        elif extension == "bmp":
-            format = "BMP"
-        elif extension == "gif":
-            format = "GIF"
-        elif extension == "tiff":
-            format = "TIFF"
+        # Resize the image if max_width>0
+        if max_width > 0:
+            if image.width > max_width:
+                ratio = max_width / image.width
+                new_size = (max_width, int(image.height * ratio))
+                image = image.resize(new_size, Image.LANCZOS)
         else:
-            format = default_format
-            logger.warn(
-                f"Invalid output format: {extension}. Defaulting to .jpg. Valid formats are: jpg, jpeg, png, bmp, gif, tiff"
+            logger.info(
+                "Set min_width > 0 to resize the image otherwise no resizing will be performed."
             )
-        image.save(output_path, format=format)
 
-    if return_type == "binary":  # Convert image to jpg
-        with io.BytesIO() as output:
-            image.save(output, format=default_format)
-            jpg_binary = output.getvalue()
-        return jpg_binary
+        # Save image if output_path is not None
+        if output_path:
+            extension = output_path.split(".")[-1].lower()
+            if extension in ["jpg", "jpeg"]:
+                format = "JPEG"
+            elif extension == "png":
+                format = "PNG"
+            elif extension == "bmp":
+                format = "BMP"
+            elif extension == "gif":
+                format = "GIF"
+            elif extension == "tiff":
+                format = "TIFF"
+            else:
+                format = default_format
+                logger.warn(
+                    f"Invalid output format: {extension}. Defaulting to .jpg. Valid formats are: jpg, jpeg, png, bmp, gif, tiff"
+                )
+            image.save(output_path, format=format)
 
-    elif return_type == "str":
-        with io.BytesIO() as output:
-            image.save(output, format=default_format)
-            jpg_binary = output.getvalue()
-            base64_str = base64.b64encode(jpg_binary).decode("utf-8")
-        return base64_str
-
-    else:
-        logger.warn(
-            f"Invalid image return_type: {return_type}. Returning None. Valid return_types are: binary, str"
-        )
+        # Convert to requested return_type
+        if return_type == "binary":  # Convert image to jpg
+            with io.BytesIO() as output:
+                image.save(output, format=default_format)
+                jpg_binary = output.getvalue()
+            return jpg_binary
+        elif return_type == "str":
+            with io.BytesIO() as output:
+                image.save(output, format=default_format)
+                jpg_binary = output.getvalue()
+                base64_str = base64.b64encode(jpg_binary).decode("utf-8")
+            return base64_str
+        else:
+            logger.warn(
+                f"Invalid image return_type: {return_type}. Returning None. Valid return_types are: binary, str"
+            )
+            return None
+        
+    except Exception as e:
+        logger.exception(f"{e}. Input must be numpy pixel array of a DICOM file")
         return None
 
 
+
 def dicom_to_image(
-    dicom_path: str,
+    path: str,
     max_width: int = 768,
     output_path: str = None,
     return_type: str = "str",
 ):
     """Function to convert DICOM to image. Save to file or return as binary or base64 string
     Args:
-        dicom_path (str): Path to input DICOM file
+        path (str): Path to input DICOM file
         max_width (int): Maximum width for the output image. If 0, no resizing is performed.
         output_path (str): Path where image will be saved. If None, image will not be saved.
         return_type (str): Type of the output image. Valid values are: binary, str. Default is 'str'.
     """
-    px_array = dicom_to_array(dicom_path)
-    return array_to_image(px_array, max_width, output_path, return_type)
+    try:
+        px_array = dicom_to_array(path)
+        image = array_to_image(px_array, max_width, output_path, return_type)
+        return image
+    except Exception as e:
+        logger.exception(f"{e}. path {path} must be a DICOM file path containing a pixel numpy array")
+        return None
 
 
-# Register the function as a UDF
-# dicom_to_base64_udf = udf(dicom_to_image, StringType())
+def replace_pixel_array(path: str, new_array: np.ndarray, output_path: str) -> pydicom.dataset.FileDataset: 
+    try:
+        # remove 'dbfs:' prefix if present
+        path = remove_dbfs_prefix(path)
+        ds = pydicom.dcmread(path)
+
+        new_array = new_array.astype(ds.pixel_array.dtype)
+        ds.PixelData = new_array.tobytes()
+        ds.Rows, ds.Columns = new_array.shape[:2]
+        ds.save_as(output_path)
+        return ds
+    except Exception as e:
+        raise Exception(f"Exception error: {str(e)}. Check input path {path} exists and new_array is a 2D numpy array of pixels of 8-bit integers")
+
+
+def get_classifer_metrics(df: pyspark.sql.DataFrame, 
+                          col_truth: str = "has_phi",
+                          col_pred: str = "phi_detected"
+) -> dict:
+    from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, confusion_matrix
+
+    # sklearn expects a pandas, not spark df
+    p_df = df.toPandas()
+    precision = precision_score(p_df[col_truth], p_df[col_pred])
+    recall = recall_score(p_df[col_truth], p_df[col_pred])
+    f1 = f1_score(p_df[col_truth], p_df[col_pred])
+    accuracy = accuracy_score(p_df[col_truth], p_df[col_pred])
+
+    tn, fp, fn, tp = confusion_matrix(p_df[col_truth], p_df[col_pred]).ravel()
+    specificity = tn/(tn + fp) if (tn + fp) != 0 else float('nan')
+    npv = tn/(tn + fn) if (tn + fn) != 0 else float('nan')
+    
+    return {"precision": precision,
+            "specificity": specificity,
+            "npv": npv,
+            "recall": recall, 
+            "f1": f1, 
+            "accuracy": accuracy}
+    

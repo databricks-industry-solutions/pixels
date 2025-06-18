@@ -1,7 +1,7 @@
 import base64
 from typing import Iterator, List, Optional, Tuple
-
 import pandas as pd
+from dataclasses import dataclass, replace
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import col, pandas_udf
@@ -10,6 +10,14 @@ from dbx.pixels.dicom.dicom_utils import dicom_to_image
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
+
+@dataclass
+class VlmResult:
+    content: Optional[List[str]]
+    completion_tokens: int
+    prompt_tokens: int
+    total_tokens: int
+    error: Optional[str]
 
 
 class VLMPhiExtractor:
@@ -70,15 +78,16 @@ Answer concisely as requested without explanations."""
             - Total number of tokens
             - Error message (or None if successful)
         """
+        null_result = VlmResult(None, 0, 0, 0, None)
 
         try:
             # if dicom path, convert to image then base64 string
             if input_type == "dicom":
-                try:
-                    image_base64 = dicom_to_image(path, max_width=768, return_type="str")
-                except Exception as e:
-                    logger.error(f"Error converting dicom to image: {str(e)}")
-                    return None, 0, 0, 0, str(e)
+                image_base64 = dicom_to_image(path, max_width=768, return_type="str")
+                if not image_base64:
+                    error_msg = f"dicom_to_image returned None. Check that path is a valid .dcm file containing a pixel numpy array"
+                    logger.error(error_msg)
+                    return replace(null_result, error=error_msg)
             # if image path, convert to base64 string
             elif input_type == "image":
                 with open(path, "rb") as image_file:
@@ -91,7 +100,7 @@ Answer concisely as requested without explanations."""
             else:
                 error_msg = f"Invalid input_type: {input_type}. Valid values are: dicom, image, base64 for dicom file path, image path or image base64 string respectively"
                 logger.error(error_msg)
-                return None, 0, 0, 0, error_msg
+                return replace(null_result, error=error_msg)
 
             response = self.client.chat.completions.create(
                 model=self.endpoint,
@@ -121,16 +130,16 @@ Answer concisely as requested without explanations."""
             content = response.choices[0].message.content
             # multiple PHI
             if "|" in content:
-                ans = content.split("|")
+                phi_list = content.split("|")
             # No PHI
             elif content.strip().lower() == "no phi":
-                ans = []
+                phi_list = []
             # single PHI
             else:
-                ans = list(content)
+                phi_list = list(content)
 
-            return (
-                ans,
+            return VlmResult(
+                phi_list,
                 response.usage.completion_tokens,
                 response.usage.prompt_tokens,
                 response.usage.total_tokens,
@@ -138,12 +147,12 @@ Answer concisely as requested without explanations."""
             )
 
         except Exception as e:
-            msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {endpoint}, {input_type}, {system_prompt}, {temperature}, {num_output_tokens}"
-            logger.error(msg)
-            return None, 0, 0, 0, msg
+            error_msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {endpoint}, {input_type}, {system_prompt}, {temperature}, {num_output_tokens}"
+            logger.error(error_msg)
+            return replace(null_result, error=error_msg)
 
 
-class VLMTransformer(Transformer):
+class VLMPhiDetector(Transformer):
     """
     Transformer class to detect PHI in DICOM image using VLM
 
@@ -197,12 +206,9 @@ class VLMTransformer(Transformer):
                 # Process each image in the batch
                 results = []
                 for path in batch:
-                    try:
-                        response = extractor.extract(
-                            path, input_type=self.input_type, max_width=self.max_width
-                        )
-                    except Exception as e:
-                        response = (None, 0, 0, 0, str(e))
+                    response = extractor.extract(
+                        path, input_type=self.input_type, max_width=self.max_width
+                    )
                     results.append(response)
                 yield pd.DataFrame(results)
 
