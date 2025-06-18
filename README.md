@@ -227,8 +227,10 @@ DICOM file Ingestion works with Shared, Dedicated and Serverless Compute types.
 - Nicole Jingting Lu @ Databricks
 - Krishanu Nandy @ Databricks
 - May Merkle-Tan @ Databricks
-- Ben Russoniello @ Prominence Advisors
 - Cal Reynolds @ Databricks
+- Guanyu Chen @ Databricks
+- Yen Low @ Databricks
+- Ben Russoniello @ Prominence Advisors
 
 
 ## About `dbx.pixels`
