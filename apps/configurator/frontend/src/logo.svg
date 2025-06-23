@@ -1,0 +1,61 @@
+
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="192" height="192" rx="16" fill="#141c2c"/> <!-- Very dark background for X-ray plate -->
+
+        <!-- Inner X-ray screen area with a subtle blue/green tint and gradient -->
+        <rect x="12" y="12" width="168" height="168" rx="8" fill="#1f3d4f"/> <!-- Dark blue-grey screen base -->
+        <g opacity="0.8">
+            <defs>
+                <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                    <stop offset="0%" stop-color="#3b7a8a" stop-opacity="0.8"/>
+                    <stop offset="100%" stop-color="#1f3d4f" stop-opacity="1"/>
+                </radialGradient>
+            </defs>
+            <rect x="12" y="12" width="168" height="168" rx="8" fill="url(#grad1)"/>
+        </g>
+
+        <!-- Stylized Chest Structure: Spine, Ribs, Lungs -->
+        <!-- Spine (central column of rectangles) -->
+        <rect x="91" y="40" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="55" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="70" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="85" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="100" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="115" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="130" width="10" height="10" fill="#D0E7F0"/>
+        <rect x="91" y="145" width="10" height="10" fill="#D0E7F0"/>
+
+
+        <!-- Ribs (curved paths or thin rectangles) -->
+        <!-- Left Ribs -->
+        <path d="M96 45 Q50 55, 40 85" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 60 Q50 70, 40 100" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 75 Q50 85, 40 115" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 90 Q50 100, 40 130" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 105 Q50 115, 40 145" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+
+        <!-- Right Ribs -->
+        <path d="M96 45 Q142 55, 152 85" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 60 Q142 70, 152 100" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 75 Q142 85, 152 115" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 90 Q142 100, 152 130" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+        <path d="M96 105 Q142 115, 152 145" stroke="#C9E6F2" stroke-width="4" fill="none"/>
+
+
+        <!-- Lung outlines (more transparent, darker than bones) -->
+        <path d="M48 60 C38 75, 48 115, 60 135 L60 150 L50 155 Q40 160, 48 165 C60 170, 80 160, 90 150 L90 60 Z"
+              fill="#2f5a6b" opacity="0.7"/>
+        <path d="M144 60 C154 75, 144 115, 132 135 L132 150 L142 155 Q152 160, 144 165 C132 170, 112 160, 102 150 L102 60 Z"
+              fill="#2f5a6b" opacity="0.7"/>
+
+        <!-- Subtle "pixel" overlay or noise for X-ray texture -->
+        <rect x="15" y="15" width="5" height="5" fill="#FFFFFF" opacity="0.05"/>
+        <rect x="170" y="150" width="5" height="5" fill="#FFFFFF" opacity="0.05"/>
+        <rect x="25" y="160" width="5" height="5" fill="#FFFFFF" opacity="0.05"/>
+        <rect x="160" y="25" width="5" height="5" fill="#FFFFFF" opacity="0.05"/>
+
+        <!-- Faint crosshairs or measurement lines (optional, keep very subtle) -->
+        <rect x="95" y="20" width="2" height="152" fill="#FFFFFF" opacity="0.08"/>
+        <rect x="20" y="95" width="152" height="2" fill="#FFFFFF" opacity="0.08"/>
+
+</svg>
