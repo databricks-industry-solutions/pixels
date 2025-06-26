@@ -1,5 +1,6 @@
 import hashlib
 from io import BytesIO
+from warnings import deprecated
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,8 +16,6 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
-
-from warnings import deprecated
 
 from dbx.pixels.dicom.dicom_utils import cloud_open
 
