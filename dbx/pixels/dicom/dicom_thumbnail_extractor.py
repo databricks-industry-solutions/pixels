@@ -16,7 +16,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from warnings import deprecated
+from typing_extensions import deprecated
 
 from dbx.pixels.dicom.dicom_utils import cloud_open
 
