@@ -43,15 +43,13 @@ class DicomPhiPipeline(Pipeline):
         self.num_output_tokens = num_output_tokens
         self.max_width = max_width
 
-
-    def create_pipeline(self):
-        """
-        Create a pipeline with the detector, filter transformer (optional), and redactor.
-        If redact_even_if_undetected is False (default), then add the filter transformer.
-        If redact_even_if_undetected is True, then remove the filter transformer.
-        The latter may risk overredacting even non-PHI text.
-        """
-
+    # def create_pipeline(self):
+    #     """
+    #     Create a pipeline with the detector, filter transformer (optional), and redactor.
+    #     If redact_even_if_undetected is False (default), then add the filter transformer.
+    #     If redact_even_if_undetected is True, then remove the filter transformer.
+    #     The latter may risk overredacting even non-PHI text.
+    #     """
         self.detector = VLMPhiDetector(
             endpoint=self.endpoint,
             inputCol=self.inputCol,
