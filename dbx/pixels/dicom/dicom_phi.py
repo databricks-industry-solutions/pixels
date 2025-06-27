@@ -33,6 +33,7 @@ class DicomPhiPipeline(Pipeline):
         num_output_tokens: int = 200,
         max_width: int = 768,
     ):
+        super().__init__()
         self.redact_even_if_undetected = redact_even_if_undetected
 
         self.detector = VLMPhiDetector(
