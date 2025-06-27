@@ -36,33 +36,33 @@ class DicomPhiPipeline(Pipeline):
         self.redact_even_if_undetected = redact_even_if_undetected
 
         self.detector = VLMPhiDetector(
-            endpoint=self.endpoint,
-            inputCol=self.inputCol,
-            input_type=self.input_type,
-            system_prompt=self.system_prompt,
-            temperature=self.temperature,
-            num_output_tokens=self.num_output_tokens,
-            outputCol=self.outputCol,
-            max_width=self.max_width,
+            endpoint=endpoint,
+            inputCol=inputCol,
+            input_type=input_type,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            num_output_tokens=num_output_tokens,
+            outputCol=outputCol,
+            max_width=max_width,
         )
 
         if self.redact_even_if_undetected:
             # Add a postdetector filter to nullify the rows without PHI detected by vlm_detector
             # Update the redactor to use the filtered column as input instead of the original path
             self.filterTransformer = FilterTransformer(
-                inputCol=self.inputCol, outputCol="filtered"
+                inputCol=inputCol, outputCol="filtered"
             )
             self.redactor = OcrRedactor(
                 inputCol="filtered",
-                outputCol=self.outputCol,
-                output_dir=self.output_dir,
+                outputCol=outputCol,
+                output_dir=output_dir,
             )
         else:
             self.filterTransformer = None
             self.redactor = OcrRedactor(
-                inputCol=self.inputCol,
-                outputCol=self.outputCol,
-                output_dir=self.output_dir,
+                inputCol=inputCol,
+                outputCol=outputCol,
+                output_dir=output_dir,
             )
 
     def create_pipeline(self):
