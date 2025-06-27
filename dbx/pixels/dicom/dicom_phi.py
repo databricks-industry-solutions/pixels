@@ -33,7 +33,6 @@ class DicomPhiPipeline(Pipeline):
         num_output_tokens: int = 200,
         max_width: int = 768,
     ):
-        super().__init__()
         self.output_dir = output_dir
         self.redact_even_if_undetected = redact_even_if_undetected
         self.inputCol = inputCol
@@ -75,7 +74,7 @@ class DicomPhiPipeline(Pipeline):
                 outputCol=self.outputCol,
                 output_dir=self.output_dir,
             )
-            self.stages = [self.detector, self.filterTransformer, self.redactor]
+            stages = [self.detector, self.filterTransformer, self.redactor]
         
         else:
             self.filterTransformer = None
@@ -84,6 +83,6 @@ class DicomPhiPipeline(Pipeline):
                 outputCol=self.outputCol,
                 output_dir=self.output_dir,
             )
-            self.stages = [self.detector, self.redactor]
+            stages = [self.detector, self.redactor]
 
-        return self.Pipeline(stages=self.stages)
+        super().__init__(stages=stages)
