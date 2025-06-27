@@ -58,6 +58,7 @@ class DicomPhiPipeline(Pipeline):
                 outputCol=outputCol,
                 output_dir=output_dir,
             )
+            self.stages = [self.detector, self.filterTransformer, self.redactor]
         else:
             self.filterTransformer = None
             self.redactor = OcrRedactor(
@@ -65,6 +66,7 @@ class DicomPhiPipeline(Pipeline):
                 outputCol=outputCol,
                 output_dir=output_dir,
             )
+            self.stages = [self.detector, self.redactor]
 
     def create_pipeline(self):
         """
@@ -73,10 +75,4 @@ class DicomPhiPipeline(Pipeline):
         If redact_even_if_undetected is True, then remove the filter transformer.
         The latter may risk overredacting even non-PHI text.
         """
-        if self.redact_even_if_undetected:
-            pipeline = Pipeline(
-                stages=[self.detector, self.filterTransformer, self.redactor]
-            )
-        else:
-            pipeline = Pipeline(stages=[self.detector, self.redactor])
-        return pipeline
+        return self.Pipeline(stages=self.stages)
