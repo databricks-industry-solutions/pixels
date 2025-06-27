@@ -3,7 +3,7 @@ from typing import Iterator, List, Optional, Tuple
 import pandas as pd
 from dataclasses import dataclass, replace
 from mlflow.utils.databricks_utils import get_databricks_host_creds
-from pyspark.ml.pipeline import Transformer
+from pyspark.ml.base import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
 from dbx.pixels.dicom.dicom_utils import dicom_to_image
@@ -181,6 +181,7 @@ class VLMPhiDetector(Transformer):
         input_type: str = "dicom",
         max_width: int = 768,
     ):
+        super().__init__()
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.endpoint = endpoint

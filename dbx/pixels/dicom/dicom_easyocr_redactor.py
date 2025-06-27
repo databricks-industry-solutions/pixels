@@ -169,6 +169,7 @@ class OcrRedactor(Transformer):
                  text_threshold: float = 0,
                  save_format: str = "dicom"
     ):
+        super().__init__()
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.output_dir = output_dir
@@ -203,6 +204,7 @@ class FilterTransformer(Transformer):
     def __init__(self, inputCol: str = "path", 
                  outputCol: str = "filtered", 
                  filter: str = "CASE WHEN size(response.content) > 1 THEN {self.inputCol} ELSE NULL END"):
+        super().__init__()
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.filter = filter
