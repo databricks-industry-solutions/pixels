@@ -32,7 +32,9 @@ def cloud_open(path: str, anon: bool = False):
             fsize = os.stat(path).st_size
         return fp, fsize
     except Exception as e:
-        raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
+        raise Exception(
+            f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}"
+        )
 
 
 def check_pixel_data(ds: Dataset) -> Dataset | None:
@@ -155,17 +157,21 @@ def dicom_to_8bitarray(path: str) -> np.ndarray:
         pixel_array = check_pixel_data(dcm)
         if isinstance(pixel_array, np.ndarray):
             im = np.asfarray(pixel_array, dtype=np.float32)
-            rescaled_image = (np.maximum(im,0)/im.max())*255
+            rescaled_image = (np.maximum(im, 0) / im.max()) * 255
             image = np.uint8(rescaled_image)
             return image
         elif pixel_array is None:
             logger.error("No pixel_array in dcm")
             return None
         else:
-            logger.error("pixel_array is not a np.ndarray but of type {type(pixel_array)}")
+            logger.error(
+                "pixel_array is not a np.ndarray but of type {type(pixel_array)}"
+            )
             return None
     except Exception as e:
-        logger.exception("Pixel array must be a numpy array that can be converted from np.float32 to uint8")
+        logger.exception(
+            "Pixel array must be a numpy array that can be converted from np.float32 to uint8"
+        )
         return None
 
 
@@ -177,7 +183,7 @@ def dicom_to_array(path: str, dtype: str = "uint8") -> np.ndarray:
     Returns:
         np.NDArray: Numpy array of pixel data
     """
-#    from pydicom.pixel_data_handlers.util import apply_voi_lut
+    #    from pydicom.pixel_data_handlers.util import apply_voi_lut
     from pydicom.pixels import apply_voi_lut
 
     try:
@@ -200,9 +206,11 @@ def dicom_to_array(path: str, dtype: str = "uint8") -> np.ndarray:
         if data.dtype != dtype:
             data = data.astype(dtype)
         return data
-    
+
     except Exception as e:
-        logger.exception(f"{e}. Path must be a string ending with .dcm for a dicom file and contains a pixel numpy array. Check for valid dtype {dtype}")
+        logger.exception(
+            f"{e}. Path must be a string ending with .dcm for a dicom file and contains a pixel numpy array. Check for valid dtype {dtype}"
+        )
         return None
 
 
@@ -215,7 +223,7 @@ def array_to_image(
     from PIL import Image
 
     default_format = "JPEG"
-    
+
     try:
         # Create an image from the pixel data
         image = Image.fromarray(px_array)
@@ -268,11 +276,10 @@ def array_to_image(
                 f"Invalid image return_type: {return_type}. Returning None. Valid return_types are: binary, str"
             )
             return None
-        
+
     except Exception as e:
         logger.exception(f"{e}. Input must be numpy pixel array of a DICOM file")
         return None
-
 
 
 def dicom_to_image(
@@ -293,11 +300,15 @@ def dicom_to_image(
         image = array_to_image(px_array, max_width, output_path, return_type)
         return image
     except Exception as e:
-        logger.exception(f"{e}. path {path} must be a DICOM file path containing a pixel numpy array")
+        logger.exception(
+            f"{e}. path {path} must be a DICOM file path containing a pixel numpy array"
+        )
         return None
 
 
-def replace_pixel_array(path: str, new_array: np.ndarray, output_path: str) -> pydicom.dataset.FileDataset: 
+def replace_pixel_array(
+    path: str, new_array: np.ndarray, output_path: str
+) -> pydicom.dataset.FileDataset:
     try:
         # remove 'dbfs:' prefix if present
         path = remove_dbfs_prefix(path)
@@ -309,14 +320,23 @@ def replace_pixel_array(path: str, new_array: np.ndarray, output_path: str) -> p
         ds.save_as(output_path)
         return ds
     except Exception as e:
-        raise Exception(f"Exception error: {str(e)}. Check input path {path} exists and new_array is a 2D numpy array of pixels of 8-bit integers")
+        raise Exception(
+            f"Exception error: {str(e)}. Check input path {path} exists and new_array is a 2D numpy array of pixels of 8-bit integers"
+        )
 
 
-def get_classifer_metrics(df: pyspark.sql.DataFrame, 
-                          col_truth: str = "has_phi",
-                          col_pred: str = "phi_detected"
+def get_classifer_metrics(
+    df: pyspark.sql.DataFrame,
+    col_truth: str = "has_phi",
+    col_pred: str = "phi_detected",
 ) -> dict:
-    from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, confusion_matrix
+    from sklearn.metrics import (
+        precision_score,
+        recall_score,
+        f1_score,
+        accuracy_score,
+        confusion_matrix,
+    )
 
     # sklearn expects a pandas, not spark df
     p_df = df.toPandas()
@@ -326,13 +346,14 @@ def get_classifer_metrics(df: pyspark.sql.DataFrame,
     accuracy = accuracy_score(p_df[col_truth], p_df[col_pred])
 
     tn, fp, fn, tp = confusion_matrix(p_df[col_truth], p_df[col_pred]).ravel()
-    specificity = tn/(tn + fp) if (tn + fp) != 0 else float('nan')
-    npv = tn/(tn + fn) if (tn + fn) != 0 else float('nan')
-    
-    return {"precision": precision,
-            "specificity": specificity,
-            "npv": npv,
-            "recall": recall, 
-            "f1": f1, 
-            "accuracy": accuracy}
-    
+    specificity = tn / (tn + fp) if (tn + fp) != 0 else float("nan")
+    npv = tn / (tn + fn) if (tn + fn) != 0 else float("nan")
+
+    return {
+        "precision": precision,
+        "specificity": specificity,
+        "npv": npv,
+        "recall": recall,
+        "f1": f1,
+        "accuracy": accuracy,
+    }

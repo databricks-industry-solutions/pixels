@@ -11,6 +11,7 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
 
+
 @dataclass
 class VlmResult:
     content: Optional[List[str]]
@@ -38,16 +39,18 @@ class VLMPhiExtractor:
         self.num_output_tokens = num_output_tokens
         try:
             from openai import OpenAI
+
             self.client = OpenAI(
                 api_key=creds.token,
                 base_url=f"{creds.host}/serving-endpoints",
                 timeout=300,
-                max_retries=3
+                max_retries=3,
             )
         except Exception as e:
-            logger.error(f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}")
+            logger.error(
+                f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}"
+            )
             raise e
-
 
         if system_prompt:
             self.system_prompt = system_prompt
@@ -157,7 +160,7 @@ class VLMPhiDetector(Transformer):
     Transformer class to detect PHI in DICOM image using VLM
 
     Args:
-        endpoint: model endpoint name for VLM
+        endpoint: name of the Databricks serving endpoint for the VLM model for detecting PHI.
         system_prompt: override default system prompt with custom prompt if any
         temperature: temperature for VLM
         num_output_tokens: number of output tokens for VLM
