@@ -1,10 +1,10 @@
 import os
+import traceback
 from typing import Iterator, Tuple
 
 import pandas as pd
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql import functions as F
-import traceback
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -117,7 +117,7 @@ class MonaiLabelBundlesGPUTransformer(Transformer):
                     error = ""
                 except Exception as e:
                     self.logger.error(e)
-                    self.logger.error(traceback.format_exc()) # Print stacktrace
+                    self.logger.error(traceback.format_exc())  # Print stacktrace
                     result = ""
                     error = str(e)
                 return result, error
