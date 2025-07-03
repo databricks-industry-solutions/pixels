@@ -23,7 +23,7 @@ jobs:
                 "max_workers": 1
               },
               "spark_version": "16.4.x-scala2.13",
-              "node_type_id": "rd-fleet.xlarge",
+              "node_type_id": "i3.xlarge",
               "aws_attributes": {
                 "zone_id": "auto",
                 "availability": "ON_DEMAND"
