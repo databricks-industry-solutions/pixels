@@ -42,17 +42,8 @@ init_catalog_schema_volume()
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade typing_extensions pydantic_core
-# MAGIC %restart_python
-
-# COMMAND ----------
-
 from dbx.pixels import Catalog
 from dbx.pixels.dicom import DicomMetaExtractor, DicomThumbnailExtractor # The Dicom transformers
-
-# COMMAND ----------
-
-# MAGIC %pip install mlflow==2.22.1
 
 # COMMAND ----------
 
