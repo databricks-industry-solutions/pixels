@@ -91,7 +91,7 @@ catalog.save(thumbnail_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql select * from ${table}
+# MAGIC %sql select path, modificationTime, length, original_path, extension, file_type, path_tags, is_anon, meta from ${table}
 
 # COMMAND ----------
 
