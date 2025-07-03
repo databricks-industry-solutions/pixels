@@ -2,17 +2,13 @@ import base64
 import copy
 import io
 import os
-import pandas as pd
+
 import numpy as np
 import pydicom
-from pydicom import Dataset
-from typing import Tuple
-from dbx.pixels.logging import LoggerProvider
 import pyspark.sql
-from pyspark.sql.functions import col, expr
-from pyspark.ml import Transformer
-from pyspark.ml.param.shared import HasInputCol, HasOutputCol
+from pydicom import Dataset
 
+from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
 
@@ -32,9 +28,7 @@ def cloud_open(path: str, anon: bool = False):
             fsize = os.stat(path).st_size
         return fp, fsize
     except Exception as e:
-        raise Exception(
-            f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}"
-        )
+        raise Exception(f"path: {path} is_anon: {anon} exception: {e} exception.args: {e.args}")
 
 
 def check_pixel_data(ds: Dataset) -> Dataset | None:
@@ -164,11 +158,9 @@ def dicom_to_8bitarray(path: str) -> np.ndarray:
             logger.error("No pixel_array in dcm")
             return None
         else:
-            logger.error(
-                "pixel_array is not a np.ndarray but of type {type(pixel_array)}"
-            )
+            logger.error("pixel_array is not a np.ndarray but of type {type(pixel_array)}")
             return None
-    except Exception as e:
+    except Exception:
         logger.exception(
             "Pixel array must be a numpy array that can be converted from np.float32 to uint8"
         )
@@ -331,11 +323,11 @@ def get_classifer_metrics(
     col_pred: str = "phi_detected",
 ) -> dict:
     from sklearn.metrics import (
-        precision_score,
-        recall_score,
-        f1_score,
         accuracy_score,
         confusion_matrix,
+        f1_score,
+        precision_score,
+        recall_score,
     )
 
     # sklearn expects a pandas, not spark df

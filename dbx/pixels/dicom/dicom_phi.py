@@ -1,6 +1,7 @@
-from dbx.pixels.dicom.dicom_vlm_phi_detector import VLMPhiDetector
-from dbx.pixels.dicom.dicom_easyocr_redactor import OcrRedactor, FilterTransformer
 from pyspark.ml import Pipeline
+
+from dbx.pixels.dicom.dicom_easyocr_redactor import FilterTransformer, OcrRedactor
+from dbx.pixels.dicom.dicom_vlm_phi_detector import VLMPhiDetector
 
 
 class DicomPhiPipeline(Pipeline):
@@ -53,16 +54,14 @@ class DicomPhiPipeline(Pipeline):
         if not self.redact_even_if_undetected:
             # Add a postdetector filter to nullify the rows without PHI detected by vlm_detector
             # Update the redactor to use the filtered column as input instead of the original path
-            self.filterTransformer = FilterTransformer(
-                inputCol=self.inputCol, outputCol="filtered"
-            )
+            self.filterTransformer = FilterTransformer(inputCol=self.inputCol, outputCol="filtered")
             self.redactor = OcrRedactor(
                 inputCol="filtered",
                 outputCol=self.outputCol,
                 output_dir=self.output_dir,
             )
             stages = [self.detector, self.filterTransformer, self.redactor]
-        
+
         else:
             self.filterTransformer = None
             self.redactor = OcrRedactor(

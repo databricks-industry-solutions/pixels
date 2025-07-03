@@ -1,7 +1,8 @@
 import base64
-from typing import Iterator, List, Optional, Tuple
-import pandas as pd
 from dataclasses import dataclass, replace
+from typing import Iterator, List, Optional, Tuple
+
+import pandas as pd
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 from pyspark.ml.base import Transformer
 from pyspark.sql.functions import col, pandas_udf
@@ -47,9 +48,7 @@ class VLMPhiExtractor:
                 max_retries=3,
             )
         except Exception as e:
-            logger.error(
-                f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}"
-            )
+            logger.error(f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}")
             raise e
 
         if system_prompt:
