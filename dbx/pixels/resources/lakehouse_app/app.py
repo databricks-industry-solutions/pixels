@@ -91,7 +91,10 @@ async def _reverse_proxy_statements(request: Request):
         body = {}
 
     rp_req = client.build_request(
-        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=json.dumps(body).encode("utf-8")
+        request.method,
+        url,
+        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        content=json.dumps(body).encode("utf-8"),
     )
 
     rp_resp = await client.send(rp_req, stream=True)
@@ -114,7 +117,10 @@ async def _reverse_proxy_files(request: Request):
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
     rp_req = client.build_request(
-        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=request.stream()
+        request.method,
+        url,
+        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        content=request.stream(),
     )
 
     rp_resp = await client.send(rp_req, stream=True)
@@ -179,7 +185,6 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         if q_params["image"] not in cache_segmentations:
             file_res = await run_in_threadpool(
                 lambda: get_deploy_client("databricks").predict(
@@ -293,7 +298,6 @@ async def _reverse_proxy_monai_train_post(request: Request):
 class TokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.url.path.endswith("app-config-custom.js"):
-
             pixels_table = get_pixels_table(request)
 
             body = open(f"{ohif_path}/{file}.js", "rb").read()

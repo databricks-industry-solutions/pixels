@@ -1,6 +1,5 @@
 import hashlib
 from io import BytesIO
-from warnings import deprecated
 
 import matplotlib
 import matplotlib.pyplot as plt
