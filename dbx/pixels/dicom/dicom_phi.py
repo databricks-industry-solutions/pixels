@@ -27,6 +27,7 @@ class DicomPhiPipeline(Pipeline):
         redact_even_if_undetected: bool = False,
         inputCol: str = "path",
         outputCol: str = "path_redacted",
+        detectCol: str = "response",
         input_type: str = "dicom",
         system_prompt: str = None,
         temperature: float = 0.0,
@@ -37,31 +38,19 @@ class DicomPhiPipeline(Pipeline):
         self.redact_even_if_undetected = redact_even_if_undetected
         self.inputCol = inputCol
         self.outputCol = outputCol
-        self.input_type = input_type
-        self.system_prompt = system_prompt
-        self.temperature = temperature
-        self.num_output_tokens = num_output_tokens
-        self.max_width = max_width
 
-    # def create_pipeline(self):
-    #     """
-    #     Create a pipeline with the detector, filter transformer (optional), and redactor.
-    #     If redact_even_if_undetected is False (default), then add the filter transformer.
-    #     If redact_even_if_undetected is True, then remove the filter transformer.
-    #     The latter may risk overredacting even non-PHI text.
-    #     """
         self.detector = VLMPhiDetector(
-            endpoint=self.endpoint,
+            endpoint=endpoint,
             inputCol=self.inputCol,
-            input_type=self.input_type,
-            system_prompt=self.system_prompt,
-            temperature=self.temperature,
-            num_output_tokens=self.num_output_tokens,
-            outputCol=self.outputCol,
-            max_width=self.max_width,
+            input_type=input_type,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            num_output_tokens=num_output_tokens,
+            outputCol=detectCol,
+            max_width=max_width,
         )
 
-        if self.redact_even_if_undetected:
+        if not self.redact_even_if_undetected:
             # Add a postdetector filter to nullify the rows without PHI detected by vlm_detector
             # Update the redactor to use the filtered column as input instead of the original path
             self.filterTransformer = FilterTransformer(
