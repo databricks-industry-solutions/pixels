@@ -85,7 +85,7 @@ This architecture is designed to handle healthcare imaging data securely while e
 ---
 ## Getting started
 
-To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to Serverless Compute or any cluster running a DBR 14.3 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
+To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to Serverless Compute or any cluster running a DBR 16.4 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
 
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
