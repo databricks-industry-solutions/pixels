@@ -35,8 +35,8 @@ jobs:
             }
           notebook-params-json: >
             {
-              "table": "main.pixels_solacc_github_tests.object_catalog",
-              "volume": "main.pixels_solacc_github_tests.pixels_volume"
+              "table": "main.pixels_solacc_github_testsv20250706.object_catalog",
+              "volume": "main.pixels_solacc_github_testsv20250706.pixels_volume"
             }
           access-control-list-json: >
             [
