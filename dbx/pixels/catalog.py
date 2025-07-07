@@ -105,7 +105,7 @@ class Catalog:
                     )
                     self._spark.sql(sql_command)
         except Exception as e:
-            print(f"Error: {e}: {sql_command}")
+            logger.error(f"Error: {e}: {sql_command}")
             raise e
 
     def __repr__(self):

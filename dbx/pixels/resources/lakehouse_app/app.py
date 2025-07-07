@@ -91,7 +91,10 @@ async def _reverse_proxy_statements(request: Request):
         body = {}
 
     rp_req = client.build_request(
-        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=json.dumps(body).encode("utf-8")
+        request.method,
+        url,
+        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        content=json.dumps(body).encode("utf-8"),
     )
 
     rp_resp = await client.send(rp_req, stream=True)
@@ -114,7 +117,10 @@ async def _reverse_proxy_files(request: Request):
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
     rp_req = client.build_request(
-        request.method, url, headers={'Authorization': 'Bearer ' + request.headers.get("X-Forwarded-Access-Token")}, content=request.stream()
+        request.method,
+        url,
+        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        content=request.stream(),
     )
 
     rp_resp = await client.send(rp_req, stream=True)
