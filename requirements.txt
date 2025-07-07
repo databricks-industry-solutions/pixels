@@ -13,3 +13,4 @@ mlflow>=2.8.0
 numpy==1.26.4
 easyocr==1.7.2
 openai==1.35.3
+typing_extensions>=4.7.1
