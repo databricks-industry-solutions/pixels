@@ -24,7 +24,7 @@ class PresidioTransformer(Transformer):
         )
 
     def _transform(self, df):
-        from presidio_image_redactor import DicomImagePiiVerifyEngine
+        from presidio_image_redactor import DicomImagePiiVerifyEngine  # type: ignore
 
         @pandas_udf(
             "array<struct<label string, is_PII boolean, conf float, analyzer_entity_type string, analyzer_score float, analyzer_is_PII boolean, left int, top int, width int, height int>>"
