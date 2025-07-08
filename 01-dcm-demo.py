@@ -85,7 +85,7 @@ catalog.save(meta_df, mode=write_mode)
 
 # COMMAND ----------
 
-# MAGIC %sql select * from IDENTIFIER(:table)
+# MAGIC %sql select path, modificationTime, length, original_path, extension, file_type, path_tags, is_anon, meta from IDENTIFIER(:table)
 
 # COMMAND ----------
 
@@ -132,3 +132,8 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC FROM IDENTIFIER(:table)
 # MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
 # MAGIC order by patient_name
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Next: <a href="$./02-dcm-browser">DICOM Image Browser</a>
