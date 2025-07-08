@@ -18,7 +18,7 @@ CREATE OR REPLACE FUNCTION {UC_SCHEMA}.cohort_builder( )
     ,SeriesInstanceUID STRING COMMENT 'Series Instance UID'
     ,StudyID STRING COMMENT 'Study ID'
     ,SeriesNumber STRING COMMENT 'Series Number'
-    ,InstanceNumber STRING COMMENT 'Instance Number'
+    ,InstanceNumber INT COMMENT 'Instance Number'
     ,BodyPartExamined STRING COMMENT 'Body Part Examined'
     ,ProtocolName STRING COMMENT 'Protocol Name'
     ,Manufacturer STRING COMMENT 'Manufacturer'
@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION {UC_SCHEMA}.cohort_builder( )
     meta:['0020000E'].Value[0] SeriesInstanceUID,
     meta:['00200010'].Value[0] StudyID,
     meta:['00200011'].Value[0] SeriesNumber,
-    meta:['00200013'].Value[0] InstanceNumber,
+    try_cast(meta:['00200013'].Value[0] as INT) InstanceNumber,
     meta:['00180015'].Value[0] BodyPartExamined,
     meta:['00181030'].Value[0] ProtocolName,
     meta:['00080070'].Value[0] Manufacturer,
