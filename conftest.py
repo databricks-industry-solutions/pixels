@@ -58,16 +58,10 @@ def setup_teardown_database(spark: SparkSession):
     
     yield
 
-    print("DROPPING TABLES, VOLUME AND SCHEMA")
-
-    # Drop all related tables
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}")
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_unzip")
-    spark.sql(f"DROP TABLE IF EXISTS {TABLE}_autoseg_result")
+    print("DROPPING SCHEMA AND EVERYTHING IN IT")
     
-    # Drop volume and database
-    spark.sql(f"DROP VOLUME IF EXISTS {VOLUME_UC}")
-    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA}")
+    # Drop database
+    spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA} CASCADE")
 
 @pytest.fixture(autouse=True)
 def cleanup_after_test(spark: SparkSession):
