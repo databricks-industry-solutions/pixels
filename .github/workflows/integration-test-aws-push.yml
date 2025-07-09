@@ -22,9 +22,10 @@ jobs:
          new-cluster-json: >
           {
             "num_workers": 1,
-            "spark_version": "14.3.x-scala2.12",
+            "spark_version": "16.4.x-scala2.13",
             "node_type_id": "i3.xlarge",
             "aws_attributes": {
+              "zone_id": "auto",
               "availability": "ON_DEMAND"
             },
             "custom_tags": {
@@ -34,8 +35,8 @@ jobs:
           }
          notebook-params-json: >
            {
-            "table": "main.pixels_solacc_github_tests.object_catalog",
-            "volume": "main.pixels_solacc_github_tests.pixels_volume"
+            "table": "main.pixels_solacc_github_tests20260706.object_catalog",
+            "volume": "main.pixels_solacc_github_tests20260706.pixels_volume"
            }
          access-control-list-json: >
            [

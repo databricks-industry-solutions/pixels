@@ -185,7 +185,6 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
     # Query the Databricks serving endpoint
     try:
-
         if q_params["image"] not in cache_segmentations:
             file_res = await run_in_threadpool(
                 lambda: get_deploy_client("databricks").predict(
@@ -299,7 +298,6 @@ async def _reverse_proxy_monai_train_post(request: Request):
 class TokenMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.url.path.endswith("app-config-custom.js"):
-
             pixels_table = get_pixels_table(request)
 
             body = open(f"{ohif_path}/{file}.js", "rb").read()
