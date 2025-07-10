@@ -154,6 +154,8 @@ def _reverse_proxy_monai(request: Request):
             endpoint=serving_endpoint,
             inputs={"inputs": to_send},
         )
+        if '"background",' in resp.predictions:
+            resp.predictions = resp.predictions.replace('"background",', "")
 
         return Response(content=resp.predictions, media_type="application/json")
     except Exception as e:
@@ -174,10 +176,16 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     to_send["image"] = q_params["image"]
     del to_send["result_compress"]  # TODO fix boolean type in model
 
-    if "vista3d" in to_send["model"]:
-        to_send["pixels_table"] = get_pixels_table(request)
-    else:
-        log("Table override not available in this model", request)
+    if "model_filename" in to_send:
+        del to_send["model_filename"]
+    if "sw_batch_size" in to_send:
+        del to_send["sw_batch_size"]
+    if "sw_overlap" in to_send:
+        del to_send["sw_overlap"]
+    if "highres" in to_send:
+        del to_send["highres"]
+
+    to_send["pixels_table"] = get_pixels_table(request)
 
     log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
