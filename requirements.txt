@@ -8,7 +8,7 @@ s3fs==2022.10.0
 python-magic==0.4.27
 dicognito==0.17.0
 ff3==1.0.2
-databricks-sdk==0.36.0
+databricks-sdk==0.46.0
 mlflow>=2.8.0
 numpy==1.26.4
 easyocr==1.7.2
