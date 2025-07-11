@@ -78,6 +78,7 @@ class Catalog:
         }
 
     def _init_tables(self):
+        """Run DDL"""
         import os
         import os.path
         from pathlib import Path
@@ -87,12 +88,25 @@ class Catalog:
         path = Path(dbx.pixels.__file__).parent
         sql_base_path = f"{path}/resources/sql"
 
-        files = os.listdir(sql_base_path)
-        for file_name in files:
-            file_path = os.path.join(sql_base_path, file_name)
-            with open(file_path, "r") as file:
-                sql_command = file.read().replace("{UC_TABLE}", self._table)
-                self._spark.sql(sql_command)
+        def schema(table: str) -> str:
+            """return <catalog.schema> for full table in the form <catalog.schema.table>"""
+            return self._table.split(".")[0] + "." + self._table.split(".")[1]
+
+        try:
+            files = os.listdir(sql_base_path)
+            for file_name in files:
+                file_path = os.path.join(sql_base_path, file_name)
+                with open(file_path, "r") as file:
+                    # substitute schema and/or table into script
+                    sql_command = (
+                        file.read()
+                        .replace("{UC_SCHEMA}", schema(self._table))
+                        .replace("{UC_TABLE}", self._table)
+                    )
+                    self._spark.sql(sql_command)
+        except Exception as e:
+            logger.error(f"Error: {e}: {sql_command}")
+            raise e
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
