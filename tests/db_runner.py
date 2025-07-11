@@ -76,11 +76,15 @@ notebook_task = NotebookTask(
 )
 
 # Define the task
-task = Task(task_key="notebook_task", notebook_task=notebook_task, new_cluster=cluster_spec)
+task = Task(task_key="notebook_task", notebook_task=notebook_task, new_cluster=cluster_spec, timeout_seconds=900)
 
 # Submit the task
 run_response = workspace.jobs.submit_and_wait(
-    run_name="pixels_gitaction_test", tasks=[task], git_source=git_source, access_control_list=acl
+    name="pixels_gitaction_test",
+    run_name="pixels_gitaction_test", 
+    tasks=[task], 
+    git_source=git_source, 
+    access_control_list=acl
 )
 
 if run_response.state.result_state != RunResultState.SUCCESS:
