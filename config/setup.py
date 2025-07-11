@@ -6,16 +6,6 @@
 
 # COMMAND ----------
 
-from pyspark.sql.functions import udf, lit
-from pyspark.sql.types import StringType
-import sys
-
-@udf(StringType())
-def add_repo_to_sys_path(repo_path):
-    return sys.path
-
-# COMMAND ----------
-
 import os
 import dbx
 

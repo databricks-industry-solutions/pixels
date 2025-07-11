@@ -52,6 +52,18 @@ class DBMONAILabelApp(MONAILabelApp):
         configs = {k: v for k, v in sorted(configs.items())}
         print(configs)
 
+        # Load models from bundle config files, local or released in Model-Zoo, e.g., --conf bundles <spleen_ct_segmentation>
+        self.bundles = get_bundle_models(app_dir, conf, conf_key="bundles") if conf.get("bundles") else None
+
+        # Use Heuristic Planner to determine target spacing and spatial size based on dataset+gpu
+        spatial_size = json.loads(conf.get("spatial_size", "[48, 48, 32]"))
+        target_spacing = json.loads(conf.get("target_spacing", "[1.0, 1.0, 1.0]"))
+        self.heuristic_planner = strtobool(conf.get("heuristic_planner", "false"))
+        self.planner = HeuristicPlanner(spatial_size=spatial_size, target_spacing=target_spacing)
+
+        # Can be configured with --conf scribbles false or true
+        self.scribbles = conf.get("scribbles", "false") == "true"
+
         # Load models from app model implementation, e.g., --conf models <segmentation_spleen>
         models = conf.get("models")
         if not models:
@@ -62,28 +74,21 @@ class DBMONAILabelApp(MONAILabelApp):
             print(f"    all, {', '.join(configs.keys())}")
             print("---------------------------------------------------------------------------------------")
             print("")
-            exit(-1)
-
-        models = models.split(",")
-        models = [m.strip() for m in models]
-        # Can be configured with --conf scribbles false or true
-        self.scribbles = conf.get("scribbles", "true") == "true"
-        invalid = [m for m in models if m != "all" and not configs.get(m)]
-        if invalid:
-            print("")
-            print("---------------------------------------------------------------------------------------")
-            print(f"Invalid Model(s) are provided: {invalid}")
-            print("Following are the available models.  You can pass comma (,) seperated names to pass multiple")
-            print(f"    all, {', '.join(configs.keys())}")
-            print("---------------------------------------------------------------------------------------")
-            print("")
-            exit(-1)
-
-        # Use Heuristic Planner to determine target spacing and spatial size based on dataset+gpu
-        spatial_size = json.loads(conf.get("spatial_size", "[48, 48, 32]"))
-        target_spacing = json.loads(conf.get("target_spacing", "[1.0, 1.0, 1.0]"))
-        self.heuristic_planner = strtobool(conf.get("heuristic_planner", "false"))
-        self.planner = HeuristicPlanner(spatial_size=spatial_size, target_spacing=target_spacing)
+            models = []
+            #exit(-1)
+        else:
+            models = models.split(",")
+            models = [m.strip() for m in models]
+            invalid = [m for m in models if m != "all" and not configs.get(m)]
+            if invalid:
+                print("")
+                print("---------------------------------------------------------------------------------------")
+                print(f"Invalid Model(s) are provided: {invalid}")
+                print("Following are the available models.  You can pass comma (,) seperated names to pass multiple")
+                print(f"    all, {', '.join(configs.keys())}")
+                print("---------------------------------------------------------------------------------------")
+                print("")
+                exit(-1)
 
         # app models
         self.models: Dict[str, TaskConfig] = {}
@@ -97,9 +102,6 @@ class DBMONAILabelApp(MONAILabelApp):
                     self.models[k].init(k, self.model_dir, conf, self.planner)
         logger.info(f"+++ Using Models: {list(self.models.keys())}")
 
-        # Load models from bundle config files, local or released in Model-Zoo, e.g., --conf bundles <spleen_ct_segmentation>
-        self.bundles = get_bundle_models(app_dir, conf, conf_key="bundles") if conf.get("bundles") else None
-        
         super().__init__(
             app_dir=app_dir,
             studies=studies,

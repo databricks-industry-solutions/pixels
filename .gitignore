@@ -142,5 +142,7 @@ dbx/pixels/resources/lakehouse_app/app.yaml
 itkimage2segimage
 
 .idea/
-
 test_dbconnect.py
+
+.databricks
+monailabel_model/model/

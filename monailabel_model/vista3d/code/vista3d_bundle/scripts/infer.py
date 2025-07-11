@@ -89,7 +89,7 @@ class InferClass:
         logging.config.dictConfig(CONFIG)
         self.infer_transforms = parser.get_parsed_content("transforms_infer")
 
-        torch_device = f'cuda:{parser.get("torch_device")}' if parser.get("torch_device") else "cuda"
+        torch_device = f'{parser.get("torch_device")}' if parser.get("torch_device") else "cuda"
         print(f"Using device {torch_device}")
 
         self.device = torch.device(torch_device)
