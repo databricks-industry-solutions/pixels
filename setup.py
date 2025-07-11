@@ -74,7 +74,6 @@ setup(
     extras_require={
         "dev": [
             "databricks-connect==16.4.1",
-            "databricks-sdk==0.36.0",
             "autoflake",
             "black",
             "isort",
