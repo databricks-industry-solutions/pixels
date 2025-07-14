@@ -85,7 +85,6 @@ task = Task(
 
 # Submit the task
 run_response = workspace.jobs.submit_and_wait(
-    name="pixels_gitaction_test",
     run_name="pixels_gitaction_test",
     tasks=[task],
     git_source=git_source,
