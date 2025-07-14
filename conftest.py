@@ -36,7 +36,7 @@ def spark() -> SparkSession:
     the cluster in the remote Databricks workspace. Unit tests do not
     have access to this SparkSession by default.
     """
-    sparkSession = DatabricksSession.builder.getOrCreate()
+    sparkSession = DatabricksSession.builder.serverless(True).getOrCreate()
 
     if os.path.exists("./wheels/databricks_pixels.zip"):
         sparkSession.addArtifact("./wheels/databricks_pixels.zip", pyfile=True)
