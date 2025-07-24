@@ -7,7 +7,7 @@ from mlflow.utils.databricks_utils import get_databricks_host_creds
 from pyspark.ml.base import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
-from dbx.pixels.dicom.dicom_utils import dicom_to_image
+from dbx.pixels.dicom.dicom_utils import dicom_to_image, remove_dbfs_prefix
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
@@ -92,6 +92,7 @@ Answer concisely as requested without explanations."""
                     return replace(null_result, error=error_msg)
             # if image path, convert to base64 string
             elif input_type == "image":
+                path = remove_dbfs_prefix(path)
                 with open(path, "rb") as image_file:
                     image_binary = image_file.read()
                     base64_str = base64.b64encode(image_binary).decode("utf-8")
