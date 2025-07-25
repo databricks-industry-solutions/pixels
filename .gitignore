@@ -142,7 +142,7 @@ dbx/pixels/resources/lakehouse_app/app.yaml
 itkimage2segimage
 
 .idea/
-test_dbconnect.py
 
-.databricks
+test_dbconnect.py
 monailabel_model/model/
+03b-optimization
