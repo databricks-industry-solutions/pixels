@@ -15,10 +15,12 @@ from pyspark.sql.types import (
     StructField,
     StructType,
 )
+from typing_extensions import deprecated
 
 from dbx.pixels.dicom.dicom_utils import cloud_open
 
 
+@deprecated("Use OHIF viewer instead")
 class DicomThumbnailExtractor(Transformer):
     """Transformer class to extract Thumbnail image from Dicom file.
 

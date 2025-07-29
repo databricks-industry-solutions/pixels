@@ -133,8 +133,16 @@ dmypy.json
 .pyre/
 .DS_Store
 
-.databricks
+.databricks/
+!.databricks/commit_outputs
+databricks.yml
+
 dbx/pixels/resources/ohif/app-config-custom.js
 dbx/pixels/resources/lakehouse_app/app.yaml
 itkimage2segimage
+
+.idea/
+test_dbconnect.py
+
 .databricks
+monailabel_model/model/

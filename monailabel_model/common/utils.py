@@ -14,6 +14,25 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+DYE_COLORS = [
+        "red",
+        "blue",
+        "yellow",
+        "magenta",
+        "green",
+        "indigo",
+        "darkorange",
+        "cyan",
+        "pink",
+        "brown",
+        "orange",
+        "lime",
+        "orange",
+        "gold",
+        "yellowgreen",
+        "darkgreen",
+    ]
+
 @mlflow.trace(span_type=SpanType.TOOL)
 def to_nrrd(file_path, pixel_type="uint16"):
     """
@@ -69,8 +88,6 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
     import skimage
     from cucim.skimage.color import label2rgb
 
-    from vista3d_bundle.configs.utils import Dye
-
     os.makedirs(output_dir, exist_ok=True)
 
     composed = Compose([LoadImageD(keys=keys, ensure_channel_first=True),
@@ -109,7 +126,7 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
             logger.warn(f"No label name found for label: {label_num}, skipping")
             continue
 
-        color_name = Dye.COLORS[label_num % len(Dye.COLORS)]
+        color_name = DYE_COLORS[label_num % len(DYE_COLORS)]
 
         output[label_name] = {}
 
