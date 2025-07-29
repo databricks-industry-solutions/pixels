@@ -1,8 +1,10 @@
 import base64
 import json
+import io
 import os
 import os.path
 import re
+import requests
 from pathlib import Path
 
 import httpx
@@ -25,6 +27,10 @@ from starlette.responses import (
 
 import dbx.pixels.resources
 from dbx.pixels.logging import LoggerProvider
+
+from utils.partial_frames import pixel_frames_from_dcm_metadata_file, get_file_part
+from utils.pages import config_page
+from utils import lakebase
 
 logger = LoggerProvider("OHIF")
 
@@ -66,7 +72,11 @@ def get_seg_dest_dir(request: Request):
 
 
 def log(message, request, log_type="info"):
-    email = request.headers.get("X-Forwarded-Email")
+    if request:
+        email = request.headers.get("X-Forwarded-Email")
+    else:
+        email = ""
+
     if log_type == "error":
         logger.error(f"{email} | {message}")
     elif log_type == "debug":
@@ -105,6 +115,38 @@ async def _reverse_proxy_statements(request: Request):
         background=BackgroundTask(rp_resp.aclose),
     )
 
+
+def _reverse_proxy_files_wsi(request: Request):
+    client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
+    # Replace proxy url with right endpoint
+    url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/","/files/"))
+
+    if "frames" in request.query_params: #WSI Multi Frame images
+            param_frames = int(request.query_params.get("frames"))
+
+            lb_conn = lakebase.get_connection()
+            results = lakebase.execute_and_fetch_query(lb_conn, f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
+
+            if len(results) == 1:
+                pixel_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3]}
+            elif len(results) > 1:
+                raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
+            else:
+                #get latest available index
+                results = lakebase.execute_and_fetch_query(lb_conn, f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
+
+                max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
+                max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
+
+                pixels_metadata = pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
+
+                for index, frame in enumerate(pixels_metadata['frames']):
+                    lakebase.execute_query(lb_conn, f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}') ON CONFLICT DO NOTHING")
+                
+                pixel_metadata = pixels_metadata['frames'][-1]
+           
+            frame_content = get_file_part(request, url, pixel_metadata)
+            return Response(content=frame_content, media_type="application/octet-stream")
 
 async def _reverse_proxy_files(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -370,6 +412,7 @@ app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
 )
 app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
+app.add_route("/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_wsi, ["GET"])
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
 app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
@@ -377,54 +420,14 @@ app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsamp
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
+app.mount("/dicom-microscopy-viewer/", DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True), name="dicom-microscopy-viewer")
 
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
     pixels_table = get_pixels_table(request)
     seg_dest_dir = get_seg_dest_dir(request)
-    return f"""
-    <html>
-        <head>
-            <title>Pixels Solution Accelerator</title>
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/vendor-jquery.5c80d7f6.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/70577.563792a4.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/59976.a356be26.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/62569.22f26a3b.chunk.css" crossorigin="anonymous">
-            <script>document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/monai/; Path=/ohif; Expires=Session;"</script>
-        </head>
-        <body class="light-mode dark-mode-supported">
-        <uses-legacy-bootstrap>
-            <div id="login-page">
-                <div>
-                    <div id="login-container" class="container">
-                    <img src="https://{os.environ['DATABRICKS_HOST']}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
-                        <div class="login-form" style="min-width:600px">
-                            <h3 class="sub-header">Pixels Solution Accelerator</h3>
-                            <div class="tab-child">
-                            <p class="instructions">This form allows you to customize some configurations of the ohif viewer.</p>
-                            <form action="/set_cookie" id="config" method="post">
-                                <p class="instructions">Select your preferred pixels catalog table.</p>
-                                <input type="text" id="pixels_table" name="pixels_table" value="{pixels_table}" style="width:100%" required>
-                                <p class="instructions">Choose the destination directory for the ohif segmentation and measurements results.</p>
-                                <input type="text" id="seg_dest_dir" name="seg_dest_dir" value="{seg_dest_dir}" style="width:100%" required>
-                                <p class="instructions">Only Volumes are supported</p>
-                                <button name="path" value="/ohif/" class="btn btn-primary btn-large" type="submit">Confirm</button>
-                                <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
-
-                                <div style="justify-content: center;display: flex; white-space: pre"><a href="https://{os.environ['DATABRICKS_HOST']}" target="_blank" rel="noopener noreferrer">Workspace</a> | <a href="https://{os.environ['DATABRICKS_HOST']}/apps/{os.environ['DATABRICKS_APP_NAME']}/logs" target="_blank" rel="noopener noreferrer">Logs</a></div>
-                            </div>
-                            </form>
-                            </div>
-                        </div>
-                    <div class="terms-of-service-footer"><a href="https://databricks.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a></div><div style="margin: 20px auto; text-align: center;">
-                    </div>
-                </div>
-            </div>
-        </uses-legacy-bootstrap>
-        </body>
-    </html>
-    """
+    return config_page(pixels_table, seg_dest_dir)
 
 
 @app.post("/set_cookie")

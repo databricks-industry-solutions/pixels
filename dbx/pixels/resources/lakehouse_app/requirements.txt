@@ -1,3 +1,4 @@
 databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
 pyspark==4.0.0.dev2
 requests-toolbelt
+psycopg[binary,pool]
