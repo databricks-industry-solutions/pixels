@@ -48,9 +48,7 @@ class VLMPhiExtractor:
                 max_retries=3,
             )
         except Exception as e:
-            logger.error(
-                f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}"
-            )
+            logger.error(f"Error initializing OpenAI client: {creds.host} / {endpoint}: {str(e)}")
             raise e
 
         if system_prompt:
