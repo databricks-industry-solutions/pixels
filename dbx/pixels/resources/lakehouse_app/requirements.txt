@@ -1,4 +1,4 @@
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@feature/upgrade_ohif_3.10.2
 pyspark==4.0.0.dev2
 requests-toolbelt
 psycopg[binary,pool]
