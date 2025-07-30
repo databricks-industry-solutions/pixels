@@ -13,13 +13,6 @@ window.config = {
   useSharedArrayBuffer: 'FALSE',
   dataSources: [
     {
-      namespace: '@ohif/extension-default.dataSourcesModule.dicomlocal',
-      sourceName: 'dicomlocal',
-      configuration: {
-        friendlyName: 'dicom local',
-      },
-    },
-    {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
       sourceName: 'databricksPixelsDicom',
       configuration: {
@@ -29,6 +22,14 @@ window.config = {
         //serverHostname: "{ROUTER_BASENAME}/sqlwarehouse",
         serverHostname: "{HOST_NAME}",
         pixelsTable: "{PIXELS_TABLE}",
+        staticWado: true
+      },
+    },
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomlocal',
+      sourceName: 'dicomlocal',
+      configuration: {
+        friendlyName: 'dicom local',
       },
     },
   ],
