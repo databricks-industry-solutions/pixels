@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.56.0 -q
+# MAGIC %pip install --upgrade databricks-sdk==0.60.0 psycopg[binary,pool] -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -59,6 +59,7 @@ from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, Ap
 
 from pathlib import Path
 import dbx.pixels.resources
+import os
 
 # Check if the lakehouse app has already been created
 if app_name in [app.name for app in w.apps.list()]:
@@ -109,6 +110,28 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC # Create Lakebase DB for multiframe WSI images
+
+# COMMAND ----------
+
+app_instance = w.apps.get(app_name)
+last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
+service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
+
+from dbx.pixels.lakebase import LakebaseUtils
+lb_utils = LakebaseUtils(app_sp_id=service_principal_id)
+
+path = os.path.dirname(dbx.pixels.__file__)
+sql_base_path = f"{path}/resources/sql"
+
+file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
+with open(file_path, "r") as file:
+    lb_utils.execute_query(file.read())
+
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # Granting Permissions
 # MAGIC
 # MAGIC The next cell is responsible for granting the necessary permissions to the service principal for accessing the catalog, schema, table, and volume.
@@ -125,7 +148,7 @@ service_principal_id = last_deployment.deployment_artifacts.source_code_path.spl
 
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],
-  securable_type=catalog.SecurableType.CATALOG,
+  securable_type="catalog",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_CATALOG],
@@ -136,7 +159,7 @@ w.grants.update(full_name=table.split(".")[0],
 
 #Grant USE SCHEMA permissions on SCHEMA
 w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
-  securable_type=catalog.SecurableType.SCHEMA,
+  securable_type="schema",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_SCHEMA],
@@ -147,7 +170,7 @@ w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
 
 #Grant ALL PRIVILEGES permissions on TABLE
 w.grants.update(full_name=table,
-  securable_type=catalog.SecurableType.TABLE,
+  securable_type="table",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],
@@ -158,7 +181,7 @@ w.grants.update(full_name=table,
 
 #Grant ALL PRIVILEGES permissions on VOLUME
 w.grants.update(full_name=volume,
-  securable_type=catalog.SecurableType.VOLUME,
+  securable_type="volume",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],

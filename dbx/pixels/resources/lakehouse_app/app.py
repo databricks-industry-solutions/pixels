@@ -30,7 +30,7 @@ from dbx.pixels.logging import LoggerProvider
 
 from utils.partial_frames import pixel_frames_from_dcm_metadata_file, get_file_part
 from utils.pages import config_page
-from utils import lakebase
+from dbx.pixels.lakebase import LakebaseUtils
 
 logger = LoggerProvider("OHIF")
 
@@ -51,9 +51,11 @@ dataset = ["SmartCacheDataset", "CacheDataset", "PersistentDataset", "Dataset"]
 dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
+lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE"])
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
+
 
 
 def get_pixels_table(request: Request):
@@ -124,8 +126,7 @@ def _reverse_proxy_files_wsi(request: Request):
     if "frames" in request.query_params: #WSI Multi Frame images
             param_frames = int(request.query_params.get("frames"))
 
-            lb_conn = lakebase.get_connection()
-            results = lakebase.execute_and_fetch_query(lb_conn, f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
+            lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
 
             if len(results) == 1:
                 pixel_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3]}
@@ -133,7 +134,7 @@ def _reverse_proxy_files_wsi(request: Request):
                 raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
             else:
                 #get latest available index
-                results = lakebase.execute_and_fetch_query(lb_conn, f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
+                results = lb_utils.execute_and_fetch_query(f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
 
                 max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
                 max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
@@ -141,7 +142,7 @@ def _reverse_proxy_files_wsi(request: Request):
                 pixels_metadata = pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
 
                 for index, frame in enumerate(pixels_metadata['frames']):
-                    lakebase.execute_query(lb_conn, f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}') ON CONFLICT DO NOTHING")
+                    lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}') ON CONFLICT DO NOTHING")
                 
                 pixel_metadata = pixels_metadata['frames'][-1]
            
