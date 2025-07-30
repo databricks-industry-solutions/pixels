@@ -110,7 +110,7 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Create Lakebase DB for multiframe WSI images
+# MAGIC # Create Lakebase DB
 
 # COMMAND ----------
 

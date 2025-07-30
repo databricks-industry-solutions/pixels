@@ -1,6 +1,8 @@
 import os
+import time
+
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.database import DatabaseInstance, DatabaseInstanceRole, DatabaseInstanceRoleIdentityType
+from databricks.sdk.service.database import DatabaseInstance, DatabaseInstanceRole, DatabaseInstanceRoleIdentityType, DatabaseInstanceState
 
 class LakebaseUtils():
     def __init__(self, instance_name="pixels-lakebase", capacity = "CU_2", user = None, app_sp_id = None):
@@ -13,10 +15,11 @@ class LakebaseUtils():
         else:
             self.user = user
 
+        self.instance = self.get_or_create_db_instance()
+
         if app_sp_id is not None:
             self.get_or_create_sp_role(app_sp_id)
 
-        self.instance = self.get_or_create_db_instance()
         self.connection = self.get_connection()
         
     def get_or_create_db_instance(self):
@@ -31,9 +34,15 @@ class LakebaseUtils():
             instance = self.workspace_client.database.create_database_instance(
                 DatabaseInstance(
                     name=self.instance_name,
-                    capacity=capacity
+                    capacity=self.capacity
                 )
             )
+
+            while instance.state == DatabaseInstanceState.STARTING:
+                instance = self.workspace_client.database.get_database_instance(instance_name=self.instance_name)
+                print(f"Waiting for instance to be ready: {instance.state}")
+                time.sleep(30)
+
             print(f"Created Lakebase instance: {instance.name}")
         print(f"Connection endpoint: {instance.read_write_dns}")
 
@@ -45,7 +54,8 @@ class LakebaseUtils():
             identity_type=DatabaseInstanceRoleIdentityType.SERVICE_PRINCIPAL
         )
 
-        db_role = self.workspace_client.database.get_database_instance_role(self.instance_name, sp_client_id)
+        db_roles = list(self.workspace_client.database.list_database_instance_roles(self.instance_name) or [])
+        db_role = any(dbrole.name == sp_client_id for dbrole in db_roles)
 
         if db_role:
             print(f"Role for service principal {sp_client_id} already exists in instance {self.instance_name}")
@@ -53,6 +63,8 @@ class LakebaseUtils():
             # Create the database instance role for the service principal
             db_role = self.workspace_client.database.create_database_instance_role(instance_name=self.instance_name, database_instance_role=role)
             print(f"Created role for service principal {sp_client_id} in instance {self.instance_name}")
+
+        return db_role
 
     def get_connection(self):
         import uuid
