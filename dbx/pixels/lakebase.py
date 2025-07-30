@@ -37,13 +37,14 @@ class LakebaseUtils():
                     capacity=self.capacity
                 )
             )
-
-            while instance.state == DatabaseInstanceState.STARTING:
-                instance = self.workspace_client.database.get_database_instance(instance_name=self.instance_name)
-                print(f"Waiting for instance to be ready: {instance.state}")
-                time.sleep(30)
-
             print(f"Created Lakebase instance: {instance.name}")
+
+        while instance.state == DatabaseInstanceState.STARTING:
+            instance = self.workspace_client.database.get_database_instance(name=self.instance_name)
+            print(f"Waiting for instance to be ready: {instance.state}")
+            time.sleep(30)
+
+            
         print(f"Connection endpoint: {instance.read_write_dns}")
 
         return instance
