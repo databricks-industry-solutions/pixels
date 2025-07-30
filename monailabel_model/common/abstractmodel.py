@@ -62,6 +62,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
 
+        if self.labels is not None:
+            self.conf['labels'] = self.labels
+
         if "MONAI_BUNDLES" in os.environ:
             self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
             self.model_name = os.environ["MONAI_BUNDLES"]
