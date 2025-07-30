@@ -126,7 +126,7 @@ def _reverse_proxy_files_wsi(request: Request):
     if "frames" in request.query_params: #WSI Multi Frame images
             param_frames = int(request.query_params.get("frames"))
 
-            lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
+            results = lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
 
             if len(results) == 1:
                 pixel_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3]}

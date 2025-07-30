@@ -56,9 +56,10 @@ class LakebaseUtils():
         )
 
         db_roles = list(self.workspace_client.database.list_database_instance_roles(self.instance_name) or [])
-        db_role = any(dbrole.name == sp_client_id for dbrole in db_roles)
+        db_roles_found = [dbrole for dbrole in db_roles if dbrole.name == sp_client_id]
 
-        if db_role:
+        if len(db_roles_found) > 0:
+            db_role = db_roles_found[0]
             print(f"Role for service principal {sp_client_id} already exists in instance {self.instance_name}")
         else:
             # Create the database instance role for the service principal

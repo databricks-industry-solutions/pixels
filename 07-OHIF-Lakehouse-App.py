@@ -145,7 +145,9 @@ last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment
 service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
 
 #Grant permissions to the App's SP
-lb_utils.get_or_create_sp_role(service_principal_id)
+role = lb_utils.get_or_create_sp_role(service_principal_id)
+lb_utils.execute_query(f'GRANT SELECT, INSERT ON dicom_frames TO "{role.name}"')
+
 
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],
