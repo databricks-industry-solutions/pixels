@@ -253,20 +253,14 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
         file_content = await run_in_threadpool(
             lambda: get_deploy_client("databricks").predict(
-                endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path}}}
+                endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path, "result_dtype": "uint8"}}}
             )
         )
 
-        res_fields = dict()
-        res_fields["params"] = (None, json.dumps(params), "application/json")
-        res_fields["image"] = (
-            file_path,
-            base64.b64decode(json.loads(file_content.predictions)["file_content"]),
-            "application/octet-stream",
+        return Response(
+            content=base64.b64decode(json.loads(file_content.predictions)["file_content"]), 
+            media_type="application/octet-stream"
         )
-
-        return_message = MultipartEncoder(fields=res_fields)
-        return Response(content=return_message.to_string(), media_type=return_message.content_type)
     except Exception as e:
         log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
