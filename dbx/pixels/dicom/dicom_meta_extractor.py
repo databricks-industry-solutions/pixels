@@ -65,7 +65,8 @@ class DicomMetaExtractor(Transformer):
                 fp, fsize = cloud_open(path, anon)
                 with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
                     meta_js = extract_metadata(dataset, deep)
-                    meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
+                    if deep:
+                        meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
                     return json.dumps(meta_js)
             except Exception as err:

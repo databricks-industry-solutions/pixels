@@ -1,6 +1,7 @@
 import hashlib
 import os
 import zipfile
+import fsspec
 from io import BytesIO
 
 import pandas as pd
@@ -69,44 +70,42 @@ def unzip(path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
     logger.info(f"- UNZIP - Start unzip {path}")
     to_return = []
-    bytex = BytesIO(_file_reader_helper(path))
 
-    # Check if file is zip
-    is_zip = zipfile.is_zipfile(bytex)
-    if not is_zip:
-        return [path]
+    with fsspec.open(path.replace("dbfs:",""), "rb") as fp:
 
-    zip_archive = zipfile.ZipFile(bytex, "r")
-    zip_name = os.path.splitext(os.path.basename(path))[0]
+        # Check if file is zip
+        is_zip = zipfile.is_zipfile(fp)
+        if not is_zip:
+            return [path]
 
-    num_files_in_zip = len(zip_archive.namelist())
-    processed = 0
+        zip_archive = zipfile.ZipFile(fp, "r")
+        zip_name = os.path.splitext(os.path.basename(path))[0]
 
-    for file_name in zip_archive.namelist():
-        if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
-            logger.debug(f"- UNZIP - Unzipping file {file_name} in {path}")
+        num_files_in_zip = len(zip_archive.namelist())
+        processed = 0
 
-            file_object = zip_archive.open(file_name, "r")
-            file_like_object = file_object.read()
+        for file_name in zip_archive.namelist():
+            if not os.path.basename(file_name).startswith(".") and not file_name.endswith("/"):
+                logger.debug(f"- UNZIP - Unzipping file {file_name} in {path}")
 
-            file_path = os.path.join(unzipped_base_path, zip_name, file_name)
+                file_path = os.path.join(unzipped_base_path, zip_name, file_name)
 
-            file_dir = os.path.dirname(file_path)
-            if not os.path.exists(file_dir):
-                os.makedirs(file_dir)
+                file_dir = os.path.dirname(file_path)
+                if not os.path.exists(file_dir):
+                    os.makedirs(file_dir)
 
-            with open(file_path, "wb") as f:
-                f.write(file_like_object)
+                zip_cmd = ["unzip", "-j", "-o", path.replace("dbfs:",""), file_name, "-d", file_dir]
+                result = subprocess.run(zip_cmd, capture_output=True, text=True)
+                if result.returncode != 0:
+                    raise Exception(result.stderr)
 
-            file_object.close()
+                to_return.append("dbfs:" + file_path)
 
-            to_return.append("dbfs:" + file_path)
-
-        processed += 1
-        if processed % 100 == 0:
-            logger.info(
-                f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}"
-            )
+            processed += 1
+            if processed % 100 == 0:
+                logger.info(
+                    f"- UNZIP - {round(processed/num_files_in_zip*100,2)}% | {processed} / {num_files_in_zip} from {path}"
+                )
 
     logger.info(f"- UNZIP - Completed unzip {path}")
     return to_return
