@@ -886,7 +886,7 @@ function modeFactory({
       // that is not supported by the mode
       const modalitiesArray = modalities.split('\\');
       return {
-        valid: modalitiesArray.length === 1 ? !['CT'].includes(modalitiesArray[0]) : true,
+        valid: modalitiesArray.length === 1 ? ['CT'].includes(modalitiesArray[0]) : true,
         description: 'The mode does not support studies that ONLY include the following modalities: CT'
       };
     },
