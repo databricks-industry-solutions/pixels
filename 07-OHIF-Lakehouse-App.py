@@ -26,6 +26,7 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-ohif-viewer"
+lakebase_instance_name = "pixels-lb-1"
 serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()
@@ -55,6 +56,24 @@ w = WorkspaceClient()
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC # Create Lakebase DB and DICOM_FRAMES table
+
+# COMMAND ----------
+
+import dbx
+from dbx.pixels.lakebase import LakebaseUtils
+lb_utils = LakebaseUtils(instance_name=lakebase_instance_name)
+
+path = os.path.dirname(dbx.pixels.__file__)
+sql_base_path = f"{path}/resources/sql"
+
+file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
+with open(file_path, "r") as file:
+    lb_utils.execute_query(file.read())
+
+# COMMAND ----------
+
 from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission, App, AppDeployment
 
 from pathlib import Path
@@ -75,6 +94,7 @@ else:
               config_custom.write(
                   config_input.read()
                   .replace("{PIXELS_TABLE}", table)
+                  .replace("{LAKEBASE_INSTANCE_NAME}", lakebase_instance_name)
               )
 
   resources = []
@@ -110,28 +130,6 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Create Lakebase DB
-
-# COMMAND ----------
-
-app_instance = w.apps.get(app_name)
-last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
-service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
-
-from dbx.pixels.lakebase import LakebaseUtils
-lb_utils = LakebaseUtils(app_sp_id=service_principal_id)
-
-path = os.path.dirname(dbx.pixels.__file__)
-sql_base_path = f"{path}/resources/sql"
-
-file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
-with open(file_path, "r") as file:
-    lb_utils.execute_query(file.read())
-
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC # Granting Permissions
 # MAGIC
 # MAGIC The next cell is responsible for granting the necessary permissions to the service principal for accessing the catalog, schema, table, and volume.
@@ -145,6 +143,9 @@ from databricks.sdk.service import catalog
 app_instance = w.apps.get(app_name)
 last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
 service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
+
+#Grant permissions to the App's SP
+lb_utils.get_or_create_sp_role(service_principal_id)
 
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],

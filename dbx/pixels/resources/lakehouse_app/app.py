@@ -51,7 +51,7 @@ dataset = ["SmartCacheDataset", "CacheDataset", "PersistentDataset", "Dataset"]
 dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
-lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE"])
+lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
