@@ -118,7 +118,7 @@ Answer concisely as requested without explanations."""
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/png;base64,{image_base64}",
+                                    "url": f"data:image/jpeg;base64,{image_base64}",
                                     "detail": "low",
                                 },
                             }
@@ -150,7 +150,7 @@ Answer concisely as requested without explanations."""
             )
 
         except Exception as e:
-            error_msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {endpoint}, {input_type}, {system_prompt}, {temperature}, {num_output_tokens}"
+            error_msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {self.endpoint}, {input_type}, {self.system_prompt}, {self.temperature}, {self.num_output_tokens}"
             logger.error(error_msg)
             return replace(null_result, error=error_msg)
 
