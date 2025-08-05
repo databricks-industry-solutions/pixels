@@ -17,18 +17,16 @@ from databricks.sdk.service.jobs import (
 
 WATCH_DOGS_EMAILS = os.environ.get("WATCH_DOGS_EMAILS", "").split(",")
 
-config = configparser.ConfigParser()
-config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
-config = config["DEMO"]
+# Try to get credentials from DB_PROFILES first
+if "DB_PROFILES" in os.environ:
+    config = configparser.ConfigParser()
+    config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
+    config = config["DEMO"]
+    os.environ["DATABRICKS_HOST"] = config["host"]
+    os.environ["DATABRICKS_TOKEN"] = config["token"]
 
-os.environ["DATABRICKS_HOST"] = config["host"]
-os.environ["DATABRICKS_TOKEN"] = config["token"]
-
-branch = os.getenv("GITHUB_HEAD_REF", "main")
-# Create workspace client using host and token
-workspace = WorkspaceClient(
-    host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"]
-)
+# Create workspace client using host and token from environment
+workspace = WorkspaceClient()
 
 user = workspace.current_user.me().user_name
 nodes = [
