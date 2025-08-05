@@ -7,7 +7,7 @@ from mlflow.utils.databricks_utils import get_databricks_host_creds
 from pyspark.ml.base import Transformer
 from pyspark.sql.functions import col, pandas_udf
 
-from dbx.pixels.dicom.dicom_utils import dicom_to_image
+from dbx.pixels.dicom.dicom_utils import dicom_to_image, remove_dbfs_prefix
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
@@ -92,6 +92,7 @@ Answer concisely as requested without explanations."""
                     return replace(null_result, error=error_msg)
             # if image path, convert to base64 string
             elif input_type == "image":
+                path = remove_dbfs_prefix(path)
                 with open(path, "rb") as image_file:
                     image_binary = image_file.read()
                     base64_str = base64.b64encode(image_binary).decode("utf-8")
@@ -117,7 +118,7 @@ Answer concisely as requested without explanations."""
                             {
                                 "type": "image_url",
                                 "image_url": {
-                                    "url": f"data:image/png;base64,{image_base64}",
+                                    "url": f"data:image/jpeg;base64,{image_base64}",
                                     "detail": "low",
                                 },
                             }
@@ -149,7 +150,7 @@ Answer concisely as requested without explanations."""
             )
 
         except Exception as e:
-            error_msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {endpoint}, {input_type}, {system_prompt}, {temperature}, {num_output_tokens}"
+            error_msg = f"Possible VLM failure: {str(e)}. Check inputs: {path}, {self.endpoint}, {input_type}, {self.system_prompt}, {self.temperature}, {self.num_output_tokens}"
             logger.error(error_msg)
             return replace(null_result, error=error_msg)
 
