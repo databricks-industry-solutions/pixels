@@ -16,45 +16,65 @@ from databricks.sdk.service.jobs import (
     Task,
 )
 
+def debug_token(token):
+    """Safely debug a token without exposing it"""
+    if not token:
+        return "NOT SET"
+    return f"Set (length: {len(token)}, starts with: {token[:4]}...)"
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 WATCH_DOGS_EMAILS = os.environ.get("WATCH_DOGS_EMAILS", "").split(",")
 
-# Log initial environment state
-logger.info("Checking environment variables...")
-logger.info(f"DATABRICKS_HOST set: {'DATABRICKS_HOST' in os.environ}")
-logger.info(f"DATABRICKS_TOKEN set: {'DATABRICKS_TOKEN' in os.environ}")
-logger.info(f"DB_PROFILES set: {'DB_PROFILES' in os.environ}")
+# Detailed environment debugging
+logger.info("=== Environment Variable Details ===")
+logger.info(f"DATABRICKS_HOST value: {os.environ.get('DATABRICKS_HOST', 'NOT SET')}")
+logger.info(f"DATABRICKS_TOKEN: {debug_token(os.environ.get('DATABRICKS_TOKEN'))}")
+logger.info(f"DB_PROFILES exists: {'DB_PROFILES' in os.environ}")
+if 'DB_PROFILES' in os.environ:
+    logger.info(f"DB_PROFILES length: {len(os.environ['DB_PROFILES'])}")
 
+# Prioritize environment variables over DB_PROFILES
 host = os.environ.get("DATABRICKS_HOST")
 token = os.environ.get("DATABRICKS_TOKEN")
 
-# Try to get credentials from DB_PROFILES first
-if "DB_PROFILES" in os.environ:
-    logger.info("Found DB_PROFILES, attempting to parse...")
+if host and token:
+    logger.info("Using credentials from environment variables")
+    logger.info(f"Environment Host: {host}")
+    logger.info(f"Environment Token: {debug_token(token)}")
+elif "DB_PROFILES" in os.environ:
+    logger.info("Using credentials from DB_PROFILES")
     try:
         config = configparser.ConfigParser()
         config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
         config = config["DEMO"]
         host = config["host"]
         token = config["token"]
-        logger.info("Successfully parsed DB_PROFILES and set credentials")
+        logger.info("Successfully parsed DB_PROFILES")
+        logger.info(f"DB_PROFILES Host: {host}")
+        logger.info(f"DB_PROFILES Token: {debug_token(token)}")
     except Exception as e:
         logger.error(f"Error parsing DB_PROFILES: {str(e)}")
         raise
-
-if not host or not token:
+else:
     raise ValueError("No credentials found in either environment variables or DB_PROFILES")
 
-# Verify credentials
-logger.info(f"Using Databricks host: {host}")
-logger.info(f"Token length: {len(token) if token else 0}")
+# Clean up host URL - remove trailing slash if present
+host = host.rstrip('/')
+logger.info("\n=== Final Credential State ===")
+logger.info(f"Final Host: {host}")
+logger.info(f"Final Token: {debug_token(token)}")
 
 # Get branch name from environment
 branch = os.getenv("GITHUB_HEAD_REF") or os.getenv("GITHUB_REF_NAME", "main")
 logger.info(f"Using git branch: {branch}")
+
+# Test token format
+if not token or len(token) < 30:  # PATs are typically longer than this
+    logger.error("Token appears to be invalid (too short or empty)")
+    raise ValueError("Invalid token format")
 
 # Create workspace client using explicit credentials
 try:
