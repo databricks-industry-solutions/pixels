@@ -28,6 +28,9 @@ logger.info(f"DATABRICKS_HOST set: {'DATABRICKS_HOST' in os.environ}")
 logger.info(f"DATABRICKS_TOKEN set: {'DATABRICKS_TOKEN' in os.environ}")
 logger.info(f"DB_PROFILES set: {'DB_PROFILES' in os.environ}")
 
+host = os.environ.get("DATABRICKS_HOST")
+token = os.environ.get("DATABRICKS_TOKEN")
+
 # Try to get credentials from DB_PROFILES first
 if "DB_PROFILES" in os.environ:
     logger.info("Found DB_PROFILES, attempting to parse...")
@@ -35,25 +38,27 @@ if "DB_PROFILES" in os.environ:
         config = configparser.ConfigParser()
         config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
         config = config["DEMO"]
-        os.environ["DATABRICKS_HOST"] = config["host"]
-        os.environ["DATABRICKS_TOKEN"] = config["token"]
-        logger.info("Successfully parsed DB_PROFILES and set environment variables")
+        host = config["host"]
+        token = config["token"]
+        logger.info("Successfully parsed DB_PROFILES and set credentials")
     except Exception as e:
         logger.error(f"Error parsing DB_PROFILES: {str(e)}")
         raise
 
-# Verify environment after potential DB_PROFILES parsing
-logger.info("Final environment state:")
-logger.info(f"DATABRICKS_HOST: {os.environ.get('DATABRICKS_HOST', 'not set')}")
-logger.info(f"DATABRICKS_TOKEN length: {len(os.environ.get('DATABRICKS_TOKEN', ''))}")
+if not host or not token:
+    raise ValueError("No credentials found in either environment variables or DB_PROFILES")
+
+# Verify credentials
+logger.info(f"Using Databricks host: {host}")
+logger.info(f"Token length: {len(token) if token else 0}")
 
 # Get branch name from environment
 branch = os.getenv("GITHUB_HEAD_REF") or os.getenv("GITHUB_REF_NAME", "main")
 logger.info(f"Using git branch: {branch}")
 
-# Create workspace client using host and token from environment
+# Create workspace client using explicit credentials
 try:
-    workspace = WorkspaceClient()
+    workspace = WorkspaceClient(host=host, token=token)
     logger.info("Successfully created WorkspaceClient")
 except Exception as e:
     logger.error(f"Failed to create WorkspaceClient: {str(e)}")
