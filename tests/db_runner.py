@@ -1,11 +1,7 @@
 import configparser
 import io
-import os
 import logging
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import os
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
@@ -19,6 +15,10 @@ from databricks.sdk.service.jobs import (
     Source,
     Task,
 )
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 WATCH_DOGS_EMAILS = os.environ.get("WATCH_DOGS_EMAILS", "").split(",")
 
