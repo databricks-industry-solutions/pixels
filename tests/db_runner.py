@@ -1,6 +1,11 @@
 import configparser
 import io
 import os
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
@@ -17,18 +22,51 @@ from databricks.sdk.service.jobs import (
 
 WATCH_DOGS_EMAILS = os.environ.get("WATCH_DOGS_EMAILS", "").split(",")
 
+# Log initial environment state
+logger.info("Checking environment variables...")
+logger.info(f"DATABRICKS_HOST set: {'DATABRICKS_HOST' in os.environ}")
+logger.info(f"DATABRICKS_TOKEN set: {'DATABRICKS_TOKEN' in os.environ}")
+logger.info(f"DB_PROFILES set: {'DB_PROFILES' in os.environ}")
+
 # Try to get credentials from DB_PROFILES first
 if "DB_PROFILES" in os.environ:
-    config = configparser.ConfigParser()
-    config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
-    config = config["DEMO"]
-    os.environ["DATABRICKS_HOST"] = config["host"]
-    os.environ["DATABRICKS_TOKEN"] = config["token"]
+    logger.info("Found DB_PROFILES, attempting to parse...")
+    try:
+        config = configparser.ConfigParser()
+        config.read_file(io.StringIO(os.environ["DB_PROFILES"]))
+        config = config["DEMO"]
+        os.environ["DATABRICKS_HOST"] = config["host"]
+        os.environ["DATABRICKS_TOKEN"] = config["token"]
+        logger.info("Successfully parsed DB_PROFILES and set environment variables")
+    except Exception as e:
+        logger.error(f"Error parsing DB_PROFILES: {str(e)}")
+        raise
+
+# Verify environment after potential DB_PROFILES parsing
+logger.info("Final environment state:")
+logger.info(f"DATABRICKS_HOST: {os.environ.get('DATABRICKS_HOST', 'not set')}")
+logger.info(f"DATABRICKS_TOKEN length: {len(os.environ.get('DATABRICKS_TOKEN', ''))}")
+
+# Get branch name from environment
+branch = os.getenv("GITHUB_HEAD_REF") or os.getenv("GITHUB_REF_NAME", "main")
+logger.info(f"Using git branch: {branch}")
 
 # Create workspace client using host and token from environment
-workspace = WorkspaceClient()
+try:
+    workspace = WorkspaceClient()
+    logger.info("Successfully created WorkspaceClient")
+except Exception as e:
+    logger.error(f"Failed to create WorkspaceClient: {str(e)}")
+    raise
 
-user = workspace.current_user.me().user_name
+try:
+    user = workspace.current_user.me().user_name
+    logger.info(f"Successfully authenticated as user: {user}")
+except Exception as e:
+    logger.error("Failed to get current user")
+    logger.error(f"Error: {str(e)}")
+    raise
+
 nodes = [
     node
     for node in workspace.clusters.list_node_types().node_types
