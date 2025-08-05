@@ -16,11 +16,13 @@ from databricks.sdk.service.jobs import (
     Task,
 )
 
+
 def debug_token(token):
     """Safely debug a token without exposing it"""
     if not token:
         return "NOT SET"
     return f"Set (length: {len(token)}, starts with: {token[:4]}...)"
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +35,7 @@ logger.info("=== Environment Variable Details ===")
 logger.info(f"DATABRICKS_HOST value: {os.environ.get('DATABRICKS_HOST', 'NOT SET')}")
 logger.info(f"DATABRICKS_TOKEN: {debug_token(os.environ.get('DATABRICKS_TOKEN'))}")
 logger.info(f"DB_PROFILES exists: {'DB_PROFILES' in os.environ}")
-if 'DB_PROFILES' in os.environ:
+if "DB_PROFILES" in os.environ:
     logger.info(f"DB_PROFILES length: {len(os.environ['DB_PROFILES'])}")
 
 # Prioritize environment variables over DB_PROFILES
@@ -62,7 +64,7 @@ else:
     raise ValueError("No credentials found in either environment variables or DB_PROFILES")
 
 # Clean up host URL - remove trailing slash if present
-host = host.rstrip('/')
+host = host.rstrip("/")
 logger.info("\n=== Final Credential State ===")
 logger.info(f"Final Host: {host}")
 logger.info(f"Final Token: {debug_token(token)}")
@@ -141,7 +143,10 @@ task = Task(task_key="notebook_task", notebook_task=notebook_task, new_cluster=c
 
 # Submit the task
 run_response = workspace.jobs.submit_and_wait(
-    run_name="pixels_gitaction_test", tasks=[task], git_source=git_source, access_control_list=acl
+    run_name="pixels_gitaction_test",
+    tasks=[task],
+    git_source=git_source,
+    access_control_list=acl,
 )
 
 if run_response.state.result_state != RunResultState.SUCCESS:
