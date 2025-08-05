@@ -2,6 +2,7 @@ import configparser
 import io
 import logging
 import os
+import time
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
@@ -94,14 +95,22 @@ except Exception as e:
     logger.error(f"Error: {str(e)}")
     raise
 
+logger.info("=== Setting up test job ===")
+logger.info("Fetching available node types...")
 nodes = [
     node
     for node in workspace.clusters.list_node_types().node_types
     if not node.is_deprecated and node.num_cores == 4.0 and node.is_io_cache_enabled
 ]
+if not nodes:
+    raise ValueError("No suitable node types found")
+logger.info(f"Selected node type: {nodes[0].node_type_id}")
+
+logger.info("Setting up access control...")
 acl = [JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER)]
 
 for watcher in WATCH_DOGS_EMAILS:
+    logger.info(f"Checking watcher: {watcher}")
     # Check if the watcher is a valid user
     ww_list = list(
         workspace.users.list(
@@ -109,6 +118,7 @@ for watcher in WATCH_DOGS_EMAILS:
         )
     )
     if len(ww_list) >= 1 and watcher != user:
+        logger.info(f"Adding watcher {watcher} to ACL")
         acl.append(
             JobAccessControlRequest(
                 user_name=watcher,
@@ -117,11 +127,13 @@ for watcher in WATCH_DOGS_EMAILS:
         )
 
 repo_url = "https://github.com/databricks-industry-solutions/pixels.git"
+logger.info(f"Using repository: {repo_url} branch: {branch}")
 
 # Define the git source
 git_source = GitSource(git_url=repo_url, git_provider=GitProvider.GIT_HUB, git_branch=branch)
 
 # Define the job cluster
+logger.info("Configuring cluster...")
 cluster_spec = ClusterSpec(
     num_workers=0,
     spark_version="14.3.x-scala2.12",
@@ -132,6 +144,7 @@ cluster_spec = ClusterSpec(
 )
 
 # Define the notebook task
+logger.info("Setting up notebook task...")
 notebook_task = NotebookTask(
     notebook_path="pytest_databricks",
     base_parameters={},
@@ -142,6 +155,7 @@ notebook_task = NotebookTask(
 task = Task(task_key="notebook_task", notebook_task=notebook_task, new_cluster=cluster_spec)
 
 # Submit the task
+logger.info("=== Submitting job ===")
 run_response = workspace.jobs.submit_and_wait(
     run_name="pixels_gitaction_test",
     tasks=[task],
@@ -149,5 +163,16 @@ run_response = workspace.jobs.submit_and_wait(
     access_control_list=acl,
 )
 
+# Get the run URL
+run_id = run_response.run_id
+workspace_url = host.rstrip("/")
+job_url = f"{workspace_url}#job/{run_response.job_id}/run/{run_id}"
+logger.info(f"Job run URL: {job_url}")
+
 if run_response.state.result_state != RunResultState.SUCCESS:
+    logger.error(f"Job failed with state {run_response.state.result_state}")
+    if run_response.state.state_message:
+        logger.error(f"Error message: {run_response.state.state_message}")
     raise Exception(f"Job failed with state {run_response.state.result_state}")
+
+logger.info("=== Job completed successfully ===")
