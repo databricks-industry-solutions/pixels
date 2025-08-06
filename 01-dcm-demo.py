@@ -56,6 +56,10 @@ catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
 
+spark.range(100000).count()
+
+# COMMAND ----------
+
 # MAGIC %md ## Extract Metadata from the DICOM images
 # MAGIC Using the Catalog dataframe, we can now open each DICOM file and extract the metadata from the DICOM file header. This operation runs in parallel, speeding up processing. The resulting `dcm_df` does not in-line the entire DICOM file. DICOM files tend to be larger so we process DICOM files only by reference.
 # MAGIC
