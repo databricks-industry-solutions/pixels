@@ -14,7 +14,7 @@
 # MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
 # MAGIC
-# MAGIC The `dbx.pixels` solution accelerator turns DICOM images into SQL data
+# MAGIC The `dbx.pixels` solution accelerator turns DICOM image metadata into SQL data
 # MAGIC
 # MAGIC ## Requirements
 # MAGIC This notebook will requires a Unity Catalog enabled compute, A dedicated cluster, a Shared Cluster or Notebook Serverless Compute (CPU) will work. Please leverage the latest LTS Runtime
@@ -56,12 +56,12 @@ catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
 
-# MAGIC %md ## Extract Metadata from the Dicom images
-# MAGIC Using the Catalog dataframe, we can now open each Dicom file and extract the metadata from the Dicom file header. This operation runs in parallel, speeding up processing. The resulting `dcm_df` does not in-line the entire Dicom file. Dicom files tend to be larger so we process Dicom files only by reference.
+# MAGIC %md ## Extract Metadata from the DICOM images
+# MAGIC Using the Catalog dataframe, we can now open each DICOM file and extract the metadata from the DICOM file header. This operation runs in parallel, speeding up processing. The resulting `dcm_df` does not in-line the entire DICOM file. DICOM files tend to be larger so we process DICOM files only by reference.
 # MAGIC
-# MAGIC Under the covers we use PyDicom and gdcm to parse the Dicom files
+# MAGIC Under the covers we use `pydicom` and `gdcm` to parse the DICOM files
 # MAGIC
-# MAGIC The Dicom metadata is extracted into a JSON string formatted column named `meta`
+# MAGIC The DICOM metadata is extracted into a JSON string formatted column named `meta`
 
 # COMMAND ----------
 
@@ -113,7 +113,8 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC %sql
 # MAGIC SELECT
 # MAGIC     --rowid,
-# MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name, 
+# MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name,
+# MAGIC     meta:['0020000D'].Value[0] StudyInstanceUID,
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
 # MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
@@ -132,8 +133,3 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC FROM IDENTIFIER(:table)
 # MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
 # MAGIC order by patient_name
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Next: <a href="$./02-dcm-browser">DICOM Image Browser</a>

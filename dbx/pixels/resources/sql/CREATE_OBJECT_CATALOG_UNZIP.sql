@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS {UC_TABLE}_unzip (
+CREATE TABLE IF NOT EXISTS object_catalog_unzip (
   path STRING NOT NULL COMMENT 'Path of the extracted file from the zip in original_path',
   modificationTime TIMESTAMP NOT NULL COMMENT 'Creation timestamp of the zip file',
   length BIGINT NOT NULL COMMENT 'Size of the zip file',

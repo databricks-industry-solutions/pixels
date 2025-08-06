@@ -12,8 +12,8 @@ import dbx
 repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
 print("Installing Pixels Solution Accelerator dependencies from ", repo_main_folder)
 
-%pip install --quiet -r {repo_main_folder}/requirements.txt
-%pip install --quiet --upgrade databricks-sdk==0.36.0
+%pip install -r {repo_main_folder}/requirements.txt
+#%pip install --quiet --upgrade databricks-sdk>=0.60.0
 
 dbutils.library.restartPython()
 
@@ -49,13 +49,13 @@ def init_catalog_schema_volume():
     catalog = f"""{table.split(".")[0]}"""
     schema = f"""{table.split(".")[0]}.{table.split(".")[1]}"""
 
-    if (spark.sql(f"show catalogs like '{catalog}'").count() == 0):
+    if (spark.sql(f"show catalogs like '{catalog}'").isEmpty()):
         spark.sql(f"create catalog if not exists {catalog}")
     
-    if (spark.sql(f"show databases in {catalog} like '{schema}'").count() == 0):
+    if (spark.sql(f"show databases in {catalog} like '{schema}'").isEmpty()):
         spark.sql(f"create database if not exists {schema}")
 
-    if (spark.sql(f"show volumes in {schema} like '{volume}'").count() == 0):
+    if (spark.sql(f"show volumes in {schema} like '{volume}'").isEmpty()):
         spark.sql(f"create volume if not exists {volume}")
 
 # COMMAND ----------

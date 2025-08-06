@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS {UC_TABLE}_autoseg_result (
+CREATE TABLE IF NOT EXISTS object_catalog_autoseg_result (
   series_uid STRING NOT NULL COMMENT 'Unique identifier of the DICOM series used',
   result STRING COMMENT 'File location of the generated DICOM segmentation file',
   error STRING COMMENT 'Error message if the segmentation process fails')

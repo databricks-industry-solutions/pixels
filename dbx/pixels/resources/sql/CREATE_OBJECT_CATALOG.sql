@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS {UC_TABLE} (
+CREATE TABLE IF NOT EXISTS object_catalog (
   path STRING NOT NULL COMMENT 'File path',
   modificationTime TIMESTAMP NOT NULL COMMENT 'Last modification time',
   length BIGINT NOT NULL COMMENT 'File length in bytes',

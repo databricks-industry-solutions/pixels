@@ -3,10 +3,11 @@
 # MAGIC ### Deploying OHIF Viewer in a Serverless Lakehouse App
 # MAGIC
 # MAGIC This notebook guides you through the process of deploying the OHIF Viewer as a serverless lakehouse application.
+# MAGIC - You can run this notebook from Serverless or any type of cluster
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.56.0 -q
+# MAGIC %pip install --upgrade databricks-sdk==0.55.0 -q #version 0.56.0 introduces error into Catalog Securable type.
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -23,10 +24,14 @@
 # COMMAND ----------
 
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
+
+dbutils.widgets.text("app_name","pixels-ohif-viewer","4.0 App Name")
+dbutils.widgets.text("serving_endpoint_name","pixels-monai-uc","5.0 model serving endpoint(monai)")
+
 init_env()
 
-app_name = "pixels-ohif-viewer"
-serving_endpoint_name = "pixels-monai-uc"
+app_name = dbutils.widgets.get("app_name")
+serving_endpoint_name = dbutils.widgets.get("serving_endpoint_name")
 
 w = WorkspaceClient()
 
@@ -99,12 +104,19 @@ else:
 
   print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
 
-  app = App(app_name, default_source_code_path=lha_path, user_api_scopes=["sql","files.files"], resources=resources)
+  app = App(app_name, default_source_code_path=lha_path, user_api_scopes=["sql","files.files"], resources=resources, description=f"""Pixels OHIF viewer for viewing medical images in DICOM format. 
+            Configured for serving_endpoint_name={serving_endpoint_name}, sqlWarehouseID={sql_warehouse_id}
+            See https://github.com/databricks-industry-solutions/pixels for more information""")
   app_created = w.apps.create_and_wait(app)
   app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=lha_path))
 
   print(app_deploy.status.message)
   print(app_created.url)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC To uninstall the app, go to the compute->app console and remove the app (based on app_name)
 
 # COMMAND ----------
 
@@ -117,14 +129,21 @@ else:
 
 # COMMAND ----------
 
+app_instance = w.apps.get(app_name)
+app_instance.service_principal_name, app_instance.service_principal_client_id
+
+# COMMAND ----------
+
+## Set App permissions even when App is not running (and deployed)
+##
 from databricks.sdk.service import catalog
 
 app_instance = w.apps.get(app_name)
-last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
-service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
+service_principal_id = app_instance.service_principal_client_id
 
 #Grant USE CATALOG permissions on CATALOG
-w.grants.update(full_name=table.split(".")[0],
+w.grants.update(
+  full_name=table.split('.')[0],
   securable_type=catalog.SecurableType.CATALOG,
   changes=[
     catalog.PermissionsChange(
@@ -167,4 +186,14 @@ w.grants.update(full_name=volume,
   ]
 )
 
-print("PERMISSIONS GRANTED")
+print(f"PERMISSIONS GRANTED to {app_instance.service_principal_name}")
+
+# COMMAND ----------
+
+## Start the app if not actively deployed
+deployment = w.apps.get(app_name).active_deployment
+if deployment is None:
+    res = w.apps.start(app_name)
+    print(f"App {app_name} should be starting {w.apps.get(app_name).active_deployment.status}")
+else:
+    print(f"App {app_name} is {deployment.status}")
