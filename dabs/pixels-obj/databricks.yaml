@@ -1,0 +1,155 @@
+
+bundle:
+  name: pixels_obj
+
+variables:
+  # Project name - replace with your solution accelerator name
+  project_name:
+    description: "Pixels One Big Job"
+    default: "pixels_obj"
+    
+  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
+  warehouse_id:
+    lookup:
+      # Replace this with the name of your SQL warehouse.
+      warehouse: "Serverless Starter Warehouse"
+      
+  # Environment variable used for deployment paths
+  environment:
+    description: "Deployment environment (dev, staging, prod)"
+    default: "dev"
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+resources:
+  jobs:
+    Pixels_full_lakeflow:
+      name: Pixels-full-lakeflow
+      description: >-
+        Install and run pixels solution accelerator.
+
+        Run all capabilities on input path. If services are already installed,
+        just terminate task.
+      email_notifications:
+        on_failure:
+          - douglas.moore@databricks.com
+      tasks:
+        - task_key: env-setup
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/00-env-setup
+            source: WORKSPACE
+          environment_key: Pixels
+        - task_key: Ingest-Index
+          depends_on:
+            - task_key: env-setup
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/01-dcm-demo
+            source: WORKSPACE
+          job_cluster_key: pixels-ml-cluster
+          libraries:
+            - pypi:
+                package: databricks-sdk==0.60.0
+        - task_key: Model-Install-Vista3d
+          depends_on:
+            - task_key: Ingest-Index
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/monailabel_model/VISTA3D-Install
+            base_parameters:
+              serving_endpoint_name: pixels-monai-uc
+            source: WORKSPACE
+          job_cluster_key: pixels-ml-runtime-gpu
+        - task_key: deidentify-image
+          depends_on:
+            - task_key: Ingest-Index
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/03b-Image-DeIdentification
+            source: WORKSPACE
+          job_cluster_key: pixels-ml-cluster
+        - task_key: deidentify-metadata
+          depends_on:
+            - task_key: deidentify-image
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/03b-Image-DeIdentification
+            source: WORKSPACE
+          job_cluster_key: pixels-ml-cluster
+        - task_key: install-ohif-monai
+          depends_on:
+            - task_key: Ingest-Index
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/07-OHIF-Lakehouse-App
+            source: WORKSPACE
+          min_retry_interval_millis: 900000
+          disable_auto_optimization: true
+          environment_key: Pixels
+      job_clusters:
+        - job_cluster_key: pixels-ml-cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 16.4.x-scala2.12
+            aws_attributes:
+              availability: SPOT_WITH_FALLBACK
+            node_type_id: md-fleet.2xlarge
+            custom_tags:
+              solacc: pixels
+            spark_env_vars:
+              PYSPARK_PYTHON: /databricks/python3/bin/python3
+            data_security_mode: DATA_SECURITY_MODE_DEDICATED
+            runtime_engine: STANDARD
+            kind: CLASSIC_PREVIEW
+            use_ml_runtime: true
+            is_single_node: false
+            num_workers: 1
+        - job_cluster_key: pixels-ml-runtime-gpu
+          new_cluster:
+            cluster_name: ""
+            spark_version: 16.4.x-scala2.12
+            node_type_id: g4dn.2xlarge
+            custom_tags:
+              solacc: pixels
+            spark_env_vars:
+              PYSPARK_PYTHON: /databricks/python3/bin/python3
+            data_security_mode: DATA_SECURITY_MODE_DEDICATED
+            runtime_engine: STANDARD
+            kind: CLASSIC_PREVIEW
+            use_ml_runtime: true
+            is_single_node: true
+      tags:
+        solacc: pixels
+      queue:
+        enabled: true
+      parameters:
+        - name: app_name
+          default: pixels-dev-ohif-viewer
+        - name: catalog
+          default: main
+        - name: mode
+          default: append
+        - name: model_uc_name
+          default: main.pixelsdev.vista3d
+        - name: output_dir
+          default: /Volumes/main/pixelsdev/redacted
+        - name: path
+          default: s3://hls-eng-data-public/dicom/landing_zone/*.zip
+        - name: redacted_volume
+          default: main.pixelsdev.redacted
+        - name: schema
+          default: pixelsdev
+        - name: sqlWarehouseID
+          default: 4b9b953939869799
+        - name: table
+          default: main.pixelsdev.object_catalog
+        - name: volume
+          default: main.pixelsdev.pixels_volume
+        - name: serving_endpoint_name
+          default: pixels-monai-uc
+      environments:
+        - environment_key: Pixels
+          spec:
+            client: "3"
+            dependencies:
+              - databricks-sdk==0.60.0
+      budget_policy_id: d8e5830d-97cb-40b9-bd65-063434295162
+      performance_target: PERFORMANCE_OPTIMIZED
