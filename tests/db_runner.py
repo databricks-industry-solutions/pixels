@@ -106,8 +106,19 @@ if not nodes:
 logger.info(f"Selected node type: {nodes[0].node_type_id}")
 
 logger.info("Setting up access control...")
-acl = [JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER)]
+# Add owner permission for the current user
+acl = [
+    # Current user as owner
+    JobAccessControlRequest(user_name=user, permission_level=JobPermissionLevel.IS_OWNER),
+    # All users can view
+    JobAccessControlRequest(group_name="users", permission_level=JobPermissionLevel.CAN_VIEW),
+]
 
+logger.info("Access control configured for:")
+logger.info(f"- Owner: {user}")
+logger.info("- All users (via 'users' group) can view")
+
+# Add additional watchers if specified
 for watcher in WATCH_DOGS_EMAILS:
     logger.info(f"Checking watcher: {watcher}")
     # Check if the watcher is a valid user
@@ -121,7 +132,7 @@ for watcher in WATCH_DOGS_EMAILS:
         acl.append(
             JobAccessControlRequest(
                 user_name=watcher,
-                permission_level=JobPermissionLevel.CAN_VIEW,
+                permission_level=JobPermissionLevel.CAN_MANAGE_RUN,  # Give watchers more permissions
             )
         )
 
