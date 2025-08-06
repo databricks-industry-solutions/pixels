@@ -37,14 +37,26 @@ resources:
         on_failure:
           - douglas.moore@databricks.com
       tasks:
+        - task_key: Start
+          notebook_task:
+            notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/00-README
+            source: WORKSPACE
         - task_key: env-setup
+          depends_on:
+            - task_key: Start
           notebook_task:
             notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/00-env-setup
             source: WORKSPACE
-          environment_key: Pixels
+          timeout_seconds: 300
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 120
         - task_key: Ingest-Index
           depends_on:
             - task_key: env-setup
+            - task_key: Start
           notebook_task:
             notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/01-dcm-demo
             source: WORKSPACE
@@ -52,15 +64,25 @@ resources:
           libraries:
             - pypi:
                 package: databricks-sdk==0.60.0
+          timeout_seconds: 1800
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 300
         - task_key: Model-Install-Vista3d
           depends_on:
             - task_key: Ingest-Index
           notebook_task:
             notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/monailabel_model/VISTA3D-Install
-            base_parameters:
-              serving_endpoint_name: pixels-monai-uc
             source: WORKSPACE
           job_cluster_key: pixels-ml-runtime-gpu
+          timeout_seconds: 1200
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 600
         - task_key: deidentify-image
           depends_on:
             - task_key: Ingest-Index
@@ -68,6 +90,12 @@ resources:
             notebook_path: /Workspace/Users/douglas.moore@databricks.com/pixels/03b-Image-DeIdentification
             source: WORKSPACE
           job_cluster_key: pixels-ml-cluster
+          timeout_seconds: 1200
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 600
         - task_key: deidentify-metadata
           depends_on:
             - task_key: deidentify-image
@@ -83,7 +111,12 @@ resources:
             source: WORKSPACE
           min_retry_interval_millis: 900000
           disable_auto_optimization: true
-          environment_key: Pixels
+          timeout_seconds: 1200
+          health:
+            rules:
+              - metric: RUN_DURATION_SECONDS
+                op: GREATER_THAN
+                value: 600
       job_clusters:
         - job_cluster_key: pixels-ml-cluster
           new_cluster:
@@ -101,7 +134,7 @@ resources:
             kind: CLASSIC_PREVIEW
             use_ml_runtime: true
             is_single_node: false
-            num_workers: 1
+            num_workers: 2
         - job_cluster_key: pixels-ml-runtime-gpu
           new_cluster:
             cluster_name: ""
@@ -137,19 +170,17 @@ resources:
           default: main.pixelsdev.redacted
         - name: schema
           default: pixelsdev
+        - name: serving_endpoint_name
+          default: pixels-monai-uc
         - name: sqlWarehouseID
           default: 4b9b953939869799
         - name: table
           default: main.pixelsdev.object_catalog
         - name: volume
           default: main.pixelsdev.pixels_volume
-        - name: serving_endpoint_name
-          default: pixels-monai-uc
-      environments:
-        - environment_key: Pixels
-          spec:
-            client: "3"
-            dependencies:
-              - databricks-sdk==0.60.0
-      budget_policy_id: d8e5830d-97cb-40b9-bd65-063434295162
+        - name: num_partitions
+          default: "8"
+        - name: num_images
+          default: "12"
       performance_target: PERFORMANCE_OPTIMIZED
+
