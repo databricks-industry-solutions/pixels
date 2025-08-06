@@ -2,7 +2,6 @@ import configparser
 import io
 import logging
 import os
-import time
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.compute import ClusterSpec, DataSecurityMode, RuntimeEngine
