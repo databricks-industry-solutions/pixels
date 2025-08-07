@@ -22,19 +22,22 @@ def init_widgets(show_volume=False):
     dbutils.widgets.text("sqlWarehouseID", sql_warehouse_id, label="2.0 SQL Warehouse")
     print(f"SQL Warehouse is mandatory, taking the first available: '{sql_warehouse.name}'")
 
+  dbutils.widgets.text("assets", "/Volumes/main/pixels_solacc/pixels_assets", label="4.0 Volume to store modeling assets and downloads")
+  assets = dbutils.widgets.get("assets")
+
   if show_volume:
     dbutils.widgets.text("volume", "main.pixels_solacc.pixels_volume", label="3.0 Catalog Schema Volume where pixel volumes are stored into")
     volume = dbutils.widgets.get("volume")
-    return sql_warehouse_id, table, volume 
-  
-  return sql_warehouse_id, table
+    return sql_warehouse_id, table, volume, assets
+
+  return sql_warehouse_id, table, assets
 
 # COMMAND ----------
 
 def init_model_serving_widgets():
-  dbutils.widgets.text("model_uc_name", "main.pixels_solacc.monai_pixels_model", label="3.0 Model name stored in UC")
+  dbutils.widgets.text("model_uc_name", "main.pixels_solacc.monai_pixels_model", label="5.0 Model name stored in UC")
   model_uc_name = dbutils.widgets.get("model_uc_name")
-  dbutils.widgets.text("serving_endpoint_name", "pixels-monai-uc", label="4.0 Serving Endpoint name")
+  dbutils.widgets.text("serving_endpoint_name", "pixels-monai-uc", label="6.0 Serving Endpoint name")
   serving_endpoint_name = dbutils.widgets.get("serving_endpoint_name")
 
   return model_uc_name, serving_endpoint_name
@@ -58,6 +61,7 @@ def init_env():
   os.environ["DATABRICKS_WAREHOUSE_ID"] = sql_warehouse_id
   os.environ["DATABRICKS_HOST"] = ctx.apiUrl
   os.environ["DATABRICKS_PIXELS_TABLE"] = table
+  os.environ["DATABRICKS_PIXELS_ASSETS"] = dbutils.widgets.get("assets")
 
 # COMMAND ----------
 

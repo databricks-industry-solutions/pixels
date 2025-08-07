@@ -11,11 +11,14 @@
 # MAGIC # Integration with OHIF Viewer:
 # MAGIC
 # MAGIC MONAILabel can be integrated with the OHIF Viewer to provide a seamless annotation experience. The OHIF Viewer is a web-based medical image viewer that allows users to view, annotate, and analyze medical images. By integrating MONAILabel with the OHIF Viewer, users can leverage the advanced annotation capabilities of MONAILabel directly within the viewer interface. This integration enables efficient and accurate annotation of medical images, enhancing the overall workflow for medical image analysis and research.
+# MAGIC
+# MAGIC ## Requirements
+# MAGIC - Dedicated (Personal Compute) GPU cluster with DBR 16.4 LTS ML runtime.
 
 # COMMAND ----------
 
 # DBTITLE 1,Install MONAILabel_Pixels and databricks-sdk
-# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels databricks-sdk --upgrade -q
+# MAGIC %pip install pydicom==2.4.4 git+https://github.com/erinaldidb/MONAILabel_Pixels databricks-sdk --upgrade -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -24,26 +27,47 @@
 
 # COMMAND ----------
 
+import os
+
 init_widgets()
+init_env()
+
+#os.environ['DATABRICKS_HOST'] = "https://e2-demo-field-eng.cloud.databricks.com"
 
 # COMMAND ----------
 
 # DBTITLE 1,MONAILabel Server Address Generation in Databricks
-init_env()
-displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h2>{get_proxy_url()}")
+import os
+#print(f"{os.environ['DATABRICKS_HOST']}")
+displayHTML(f"""<h1>Use the following link as MONAILabel server address</h1><br><h2>{get_proxy_url()}""")
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ###Download the radiology app in the cluster
 # MAGIC
-# MAGIC The following command will download the radiology app from the MONAILabel github and saves it in the cluster
+# MAGIC The following command will download the radiology app from the MONAILabel github and saves it in into the volume
 
 # COMMAND ----------
 
-# DBTITLE 1,Downloading Radiology Apps with MonaiLabel
-# MAGIC %sh
-# MAGIC monailabel apps --download --name radiology --output /local_disk0/monai/apps/
+import os
+import subprocess
+
+monailabel_apps_path = dbutils.widgets.get("assets") + "/monailabel/apps"
+if not os.path.exists(monailabel_apps_path+"/radiology"):
+    dbutils.fs.mkdirs(monailabel_apps_path)
+
+    # download and cache
+    print("Download monai radiology app")
+    print(f"monailabel apps --download --name radiology --output /local_disk0/temp-monai-apps/")
+    subprocess.run(
+        f"monailabel apps --download --name radiology --output /local_disk0/temp-monai-apps/".split(' ')
+    )
+
+    print("\nCache monai radiology app")
+    subprocess.run(["cp", "-r", "/local_disk0/temp-monai-apps/radiology", monailabel_apps_path])
+    dbutils.fs.ls(monailabel_apps_path)
+    print("Done")
 
 # COMMAND ----------
 
@@ -54,9 +78,13 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 
 # COMMAND ----------
 
-# DBTITLE 1,Monailabel Radiology Segmentation
-# MAGIC %sh
-# MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --table $DATABRICKS_PIXELS_TABLE
+# run the app
+if not os.path.exists("/local_disk0/temp-monai-apps/radiology"):
+    subprocess.run(["cp", "-r",  monailabel_apps_path, "/local_disk0/temp-monai-apps/radiology"])
+
+command = f"monailabel start_server --app /local_disk0/temp-monai-apps/radiology --studies {os.environ['DATABRICKS_HOST']} --conf models segmentation --table {os.environ['DATABRICKS_PIXELS_TABLE']}"
+print(command)
+subprocess.run(command.split(' '))
 
 # COMMAND ----------
 
