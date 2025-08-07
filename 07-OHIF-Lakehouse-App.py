@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.56.0 -q
+# MAGIC %pip install --upgrade databricks-sdk==0.60.0 -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -125,7 +125,7 @@ service_principal_id = last_deployment.deployment_artifacts.source_code_path.spl
 
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],
-  securable_type=catalog.SecurableType.CATALOG,
+  securable_type="CATALOG",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_CATALOG],
@@ -136,7 +136,7 @@ w.grants.update(full_name=table.split(".")[0],
 
 #Grant USE SCHEMA permissions on SCHEMA
 w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
-  securable_type=catalog.SecurableType.SCHEMA,
+  securable_type="SCHEMA",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_SCHEMA],
@@ -147,7 +147,7 @@ w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
 
 #Grant ALL PRIVILEGES permissions on TABLE
 w.grants.update(full_name=table,
-  securable_type=catalog.SecurableType.TABLE,
+  securable_type="TABLE",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],
@@ -158,7 +158,7 @@ w.grants.update(full_name=table,
 
 #Grant ALL PRIVILEGES permissions on VOLUME
 w.grants.update(full_name=volume,
-  securable_type=catalog.SecurableType.VOLUME,
+  securable_type="VOLUME",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],
