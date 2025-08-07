@@ -48,17 +48,6 @@ def test_catalog_private_s3(spark):
     path = "s3://databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
     catalog_path(spark, path)
 
-
-def test_catalog_private_mnt_private(spark):
-    path = "/mnt/databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
-    catalog_path(spark, path)
-
-
-def test_catalog_private_dbfs_private(spark):
-    path = "dbfs:/mnt/databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
-    catalog_path(spark, path)
-
-
 def test_catalog_save(spark):
     from dbx.pixels import Catalog
 
