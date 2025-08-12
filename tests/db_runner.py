@@ -146,7 +146,7 @@ git_source = GitSource(git_url=repo_url, git_provider=GitProvider.GIT_HUB, git_b
 logger.info("Configuring cluster...")
 cluster_spec = ClusterSpec(
     num_workers=0,
-    spark_version="14.3.x-scala2.12",
+    spark_version="16.4.x-scala2.13",
     node_type_id=nodes[0].node_type_id,
     spark_conf={"spark.master": "local[*, 4]"},
     data_security_mode=DataSecurityMode.SINGLE_USER,
@@ -162,7 +162,12 @@ notebook_task = NotebookTask(
 )
 
 # Define the task
-task = Task(task_key="notebook_task", notebook_task=notebook_task, new_cluster=cluster_spec)
+task = Task(
+    task_key="notebook_task",
+    notebook_task=notebook_task,
+    new_cluster=cluster_spec,
+    timeout_seconds=900,
+)
 
 # Submit the task
 logger.info("=== Submitting job ===")
