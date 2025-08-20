@@ -144,5 +144,4 @@ itkimage2segimage
 .idea/
 test_dbconnect.py
 
-.databricks
 monailabel_model/model/
