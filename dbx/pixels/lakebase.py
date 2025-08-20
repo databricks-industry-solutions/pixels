@@ -84,7 +84,7 @@ class LakebaseUtils():
             @classmethod
             def connect(cls, conninfo='', **kwargs):
                 # Append the new password to kwargs
-                cred = self.workspace_client.database.generate_database_credential(request_id=str(uuid.uuid4()), instance_names=[host])
+                cred = self.workspace_client.database.generate_database_credential(request_id=str(uuid.uuid4()), instance_names=[self.instance_name])
                 kwargs['password'] = cred.token
 
                 # Call the superclass's connect method with updated kwargs
@@ -95,7 +95,7 @@ class LakebaseUtils():
         database = "databricks_postgres"
 
         pool = ConnectionPool(
-            conninfo=f"dbname={database} user={self.user} host={host}",
+            conninfo=f"dbname={database} user={self.user} host={host} sslmode=require",
             connection_class=CustomConnection,
             min_size=1,
             max_size=10,
