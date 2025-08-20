@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.60.0 psycopg[binary,pool] -q
+# MAGIC %pip install --upgrade databricks-sdk==0.60.0 psycopg[binary,pool] fsspec -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -25,7 +25,7 @@
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
-app_name = "pixels-ohif-viewer"
+app_name = "pixels-ohif-viewer-3-10"
 lakebase_instance_name = "pixels-lb-1"
 serving_endpoint_name = "pixels-monai-uc"
 

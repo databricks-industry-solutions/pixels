@@ -50,6 +50,12 @@ from dbx.pixels.dicom import DicomMetaExtractor # The Dicom transformers
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC truncate table ema_rina.pixels_solacc_3_10.object_catalog;
+# MAGIC truncate table ema_rina.pixels_solacc_3_10.object_catalog_unzip;
+
+# COMMAND ----------
+
 # DBTITLE 1,Catalog files in <path>
 catalog = Catalog(spark, table=table, volume=volume)
 catalog_df = catalog.catalog(path=path, extractZip=True)
@@ -65,7 +71,7 @@ catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
 
-meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
+meta_df = DicomMetaExtractor(catalog, deep=False).transform(catalog_df)
 
 # COMMAND ----------
 

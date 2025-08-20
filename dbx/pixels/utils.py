@@ -66,12 +66,14 @@ def identify_type_udf(path: str):
     return magic.from_buffer(_file_reader_helper(path))
 
 
-def unzip(path, unzipped_base_path):
+def unzip(raw_path, unzipped_base_path):
     """Unzips a file and returns a list of files that were unzipped."""
-    logger.info(f"- UNZIP - Start unzip {path}")
+    logger.info(f"- UNZIP - Start unzip {raw_path}")
     to_return = []
 
-    with fsspec.open(path.replace("dbfs:",""), "rb") as fp:
+    path = raw_path.replace("dbfs:", "")
+
+    with fsspec.open("simplecache::"+path, mode="rb", s3={'anon': True}) as fp:
 
         # Check if file is zip
         is_zip = zipfile.is_zipfile(fp)
@@ -94,10 +96,17 @@ def unzip(path, unzipped_base_path):
                 if not os.path.exists(file_dir):
                     os.makedirs(file_dir)
 
-                zip_cmd = ["unzip", "-j", "-o", path.replace("dbfs:",""), file_name, "-d", file_dir]
-                result = subprocess.run(zip_cmd, capture_output=True, text=True)
-                if result.returncode != 0:
-                    raise Exception(result.stderr)
+                if path.startswith("/Volumes/"):
+                    zip_cmd = ["unzip", "-j", "-o", path, file_name, "-d", file_dir]
+                    result = subprocess.run(zip_cmd, capture_output=True, text=True)
+                    
+                    if result.returncode != 0:
+                        raise Exception(result.stderr)
+
+                else:
+                   with zip_archive.open(file_name, "r") as file_object:
+                    with open(file_path, "wb") as f:
+                        f.write(file_object.read())
 
                 to_return.append("dbfs:" + file_path)
 
