@@ -5,7 +5,10 @@ import os
 import os.path
 import re
 import requests
+import asyncio
 from pathlib import Path
+
+import time
 
 import httpx
 import uvicorn
@@ -52,11 +55,11 @@ dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
 lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
+#lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
+
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
-
-
 
 def get_pixels_table(request: Request):
     if request.cookies.get("pixels_table"):
@@ -118,36 +121,57 @@ async def _reverse_proxy_statements(request: Request):
     )
 
 
-def _reverse_proxy_files_wsi(request: Request):
+async def _reverse_proxy_files_multiframe(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/","/files/"))
 
-    if "frames" in request.query_params: #WSI Multi Frame images
-            param_frames = int(request.query_params.get("frames"))
+        if "frames" in request.query_params: #WSI Multi Frame images
+        param_frames = int(request.query_params.get("frames"))
+    elif "frame" in str(url): #Multi Frame images
+        param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
+        url = str(url).split("&frame=")[0]
+    else:
+        return await _reverse_proxy_files(request)
 
-            results = lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}' and frame = '{param_frames}'")
+    results = await run_in_threadpool(
+                lambda: lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'and frame = '{param_frames}'")
+    )
 
-            if len(results) == 1:
-                pixel_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3]}
-            elif len(results) > 1:
-                raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
-            else:
-                #get latest available index
-                results = lb_utils.execute_and_fetch_query(f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
+    frame_metadata = {}
 
-                max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
-                max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
+    if len(results) == 1:
+        frame_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3], 'pixel_data_pos': results[0][4]}
+    elif len(results) > 1:
+        raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
+    else:
+        #get latest available index
+        results = await run_in_threadpool(
+                lambda: lb_utils.execute_and_fetch_query(f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
+        )
 
-                pixels_metadata = pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
+        max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
+        max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
 
-                for index, frame in enumerate(pixels_metadata['frames']):
-                    lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}') ON CONFLICT DO NOTHING")
-                
-                pixel_metadata = pixels_metadata['frames'][-1]
-           
-            frame_content = get_file_part(request, url, pixel_metadata)
-            return Response(content=frame_content, media_type="application/octet-stream")
+        pixels_metadata = await run_in_threadpool(
+                lambda: pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
+        )
+
+        print("RETRIEVE FRAME INDEXES TOOK TIME: ", time.time() - start_time)
+
+        for index, frame in enumerate(pixels_metadata['frames']):
+            lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING")
+        
+        frame_metadata = pixels_metadata['frames'][-1]
+        frame_metadata['pixel_data_pos'] = pixels_metadata['pixel_data_pos']
+    
+    
+        frame_content = await run_in_threadpool(
+            lambda: get_file_part(request, url, frame_metadata)
+        )
+
+    return Response(content=frame_content, media_type="application/octet-stream")
+
 
 async def _reverse_proxy_files(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
@@ -406,8 +430,8 @@ async def local_redirect_monai(request: Request):
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
 )
-app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
-app.add_route("/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_wsi, ["GET"])
+app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files_multiframe, ["GET", "PUT"])
+app.add_route("/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_multiframe, ["GET"])
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
 app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
