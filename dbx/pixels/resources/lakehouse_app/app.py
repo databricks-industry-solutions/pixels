@@ -126,7 +126,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
     # Replace proxy url with right endpoint
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/","/files/"))
 
-        if "frames" in request.query_params: #WSI Multi Frame images
+    if "frames" in request.query_params: #WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
     elif "frame" in str(url): #Multi Frame images
         param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
@@ -157,14 +157,11 @@ async def _reverse_proxy_files_multiframe(request: Request):
                 lambda: pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
         )
 
-        print("RETRIEVE FRAME INDEXES TOOK TIME: ", time.time() - start_time)
-
         for index, frame in enumerate(pixels_metadata['frames']):
             lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING")
         
         frame_metadata = pixels_metadata['frames'][-1]
         frame_metadata['pixel_data_pos'] = pixels_metadata['pixel_data_pos']
-    
     
         frame_content = await run_in_threadpool(
             lambda: get_file_part(request, url, frame_metadata)
