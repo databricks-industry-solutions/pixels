@@ -163,9 +163,9 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = pixels_metadata['frames'][-1]
         frame_metadata['pixel_data_pos'] = pixels_metadata['pixel_data_pos']
     
-        frame_content = await run_in_threadpool(
-            lambda: get_file_part(request, url, frame_metadata)
-        )
+    frame_content = await run_in_threadpool(
+        lambda: get_file_part(request, url, frame_metadata)
+    )
 
     return Response(content=frame_content, media_type="application/octet-stream")
 
