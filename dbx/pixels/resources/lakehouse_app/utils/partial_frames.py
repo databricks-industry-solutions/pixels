@@ -29,14 +29,15 @@ def pixel_frames_from_dcm_metadata_file(request, f_path, frame_limit, last_index
 
     with fsspec.open(f"https://{os.environ['DATABRICKS_HOST']}/{f_path}", "rb", client_kwargs=client_kwargs) as f:
         ds = pydicom.dcmread(f, stop_before_pixels=True)
+        is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
 
         f.seek(0)
+        pixel_data_pos = f.read(1000000).find(pixel_data_delimiter)
 
         if last_indexed_frame != 0 and last_indexed_start_pos != 0:
             start_pos = last_indexed_start_pos - 100
             frame_index = last_indexed_frame
         else:
-            pixel_data_pos = f.read(1000000).find(pixel_data_delimiter)
             start_pos = pixel_data_pos
             frame_index = 0
         
@@ -44,31 +45,45 @@ def pixel_frames_from_dcm_metadata_file(request, f_path, frame_limit, last_index
         end_pos = 0
 
         f.seek(0)
-        while frame_index <= int(ds.get('NumberOfFrames', 1)) and frame_index <= frame_limit:
-            f.seek(start_pos)
-            file_content = f.read(item_length+10)
+        if is_compressed:
+            while frame_index <= int(ds.get('NumberOfFrames', 1)) and frame_index <= frame_limit:
+                f.seek(start_pos)
+                
+                file_content = f.read(item_length+10)
+                delimiter = file_content.find(frame_delimeter)
 
-            delimiter = file_content.find(frame_delimeter)
+                if(delimiter == -1):
+                    break
 
-            if(delimiter == -1):
-                break
+                item_length = struct.unpack("<I", file_content[delimiter+4:delimiter+8])[0] 
 
-            item_length = struct.unpack("<I", file_content[delimiter+4:delimiter+8])[0]
+                start_pos = start_pos + delimiter + 8 
+                end_pos = start_pos + item_length
 
-            start_pos = start_pos + delimiter + 8
-            end_pos = start_pos + item_length
+                frames.append({
+                    "frame_number": frame_index,
+                    "frame_size": item_length,
+                    "start_pos": start_pos,
+                    "end_pos": end_pos,
+                })
 
+                frame_index += 1
+            frames.remove(frames[0])
+        else:
+            delimiter = 0
+            item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
+            offset = (frame_limit -1) * item_length
             frames.append({
-                "frame_number": frame_index,
+                "frame_number": frame_limit,
                 "frame_size": item_length,
-                "start_pos": start_pos,
-                "end_pos": end_pos,
+                "start_pos": pixel_data_pos + offset,
+                "end_pos": pixel_data_pos + offset + item_length -1,
+                "dicom_ds": ds
             })
 
-            frame_index += 1
-        frames.remove(frames[0])
         return {
                 "frames": frames, 
                 "rows": ds.get('Rows', 1), 
-                "columns": ds.get('Columns', 1) 
+                "columns": ds.get('Columns', 1),
+                "pixel_data_pos": pixel_data_pos
         }
