@@ -66,7 +66,7 @@ from dbx.pixels.lakebase import LakebaseUtils
 lb_utils = LakebaseUtils(instance_name=lakebase_instance_name)
 
 path = os.path.dirname(dbx.pixels.__file__)
-sql_base_path = f"{path}/resources/sql"
+sql_base_path = f"{path}/resources/sql/lakebase"
 
 file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
 with open(file_path, "r") as file:
@@ -146,7 +146,7 @@ service_principal_id = last_deployment.deployment_artifacts.source_code_path.spl
 
 #Grant permissions to the App's SP
 role = lb_utils.get_or_create_sp_role(service_principal_id)
-lb_utils.execute_query(f'GRANT SELECT, INSERT ON dicom_frames TO "{role.name}"')
+lb_utils.execute_query(f'GRANT SELECT, INSERT, TRUNCATE ON dicom_frames TO "{role.name}"')
 
 
 #Grant USE CATALOG permissions on CATALOG
