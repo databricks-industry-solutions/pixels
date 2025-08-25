@@ -2361,7 +2361,8 @@ function determinePixelDataInfo(metadata, imageId) {
     sharedCacheKey: sharedCacheKey,
     TypedArrayConstructor: TypedArrayConstructor,
     bytesPerPixel: bytesPerPixel,
-    pixelsPerFrame: pixelsPerFrame
+    pixelsPerFrame: pixelsPerFrame,
+    imageQualityStatus: 8
   };
   return pixelDataInfo;
 }
