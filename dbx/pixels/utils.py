@@ -104,9 +104,9 @@ def unzip(raw_path, unzipped_base_path):
                         raise Exception(result.stderr)
 
                 else:
-                   with zip_archive.open(file_name, "r") as file_object:
-                    with open(file_path, "wb") as f:
-                        f.write(file_object.read())
+                    with fsspec.open(f"zip://{file_name}::{path}", mode="rb", s3={'anon': True}) as unz_file:
+                        with open(file_path, "wb") as f:
+                            f.write(unz_file.read())
 
                 to_return.append("dbfs:" + file_path)
 
