@@ -55,7 +55,7 @@ dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
 lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
-#lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
+lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
 
 app = FastAPI(title="Pixels")
 
@@ -160,7 +160,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
         for index, frame in enumerate(pixels_metadata['frames']):
             lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING")
         
-        frame_metadata = pixels_metadata['frames'][-1]
+        frame_metadata = pixels_metadata['frames'][param_frames-1-max_frame_idx]
         frame_metadata['pixel_data_pos'] = pixels_metadata['pixel_data_pos']
     
     frame_content = await run_in_threadpool(
