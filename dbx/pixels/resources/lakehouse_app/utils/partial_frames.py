@@ -31,6 +31,8 @@ def pixel_frames_from_dcm_metadata_file(request, f_path, frame_limit, last_index
         ds = pydicom.dcmread(f, stop_before_pixels=True)
         is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
 
+        number_of_frames = ds.get('NumberOfFrames', 1)
+
         f.seek(0)
         pixel_data_pos = f.read(1000000).find(pixel_data_delimiter)
 
@@ -70,16 +72,17 @@ def pixel_frames_from_dcm_metadata_file(request, f_path, frame_limit, last_index
                 frame_index += 1
             frames.remove(frames[0])
         else:
-            delimiter = 0
             item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
-            offset = (frame_limit -1) * item_length
-            frames.append({
-                "frame_number": frame_limit,
-                "frame_size": item_length,
-                "start_pos": pixel_data_pos + offset,
-                "end_pos": pixel_data_pos + offset + item_length -1,
-                "dicom_ds": ds
-            })
+            for frm_idx in range(number_of_frames):
+                start_pos = pixel_data_pos + (frm_idx * item_length)
+                offset = frm_idx * item_length
+
+                frames.append({
+                    "frame_number": frm_idx,
+                    "frame_size": item_length,
+                    "start_pos": pixel_data_pos + offset,
+                    "end_pos": pixel_data_pos + offset + item_length -1
+                })
 
         return {
                 "frames": frames, 
