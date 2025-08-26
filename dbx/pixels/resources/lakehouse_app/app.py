@@ -30,7 +30,7 @@ logger = LoggerProvider("OHIF")
 
 cfg = Config()
 
-warehouse_id = os.getenv("DATABRICKS_WAREHOUSE_ID",None)
+warehouse_id = os.getenv("DATABRICKS_WAREHOUSE_ID", None)
 assert warehouse_id is not None, "[DATABRICKS_WAREHOUSE_ID] is not set, check app.yaml"
 
 if "MONAI_SERVING_ENDPOINT" in os.environ:
