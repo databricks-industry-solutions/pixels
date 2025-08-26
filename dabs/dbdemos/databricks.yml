@@ -1,0 +1,101 @@
+bundle:
+  name: pixels-demo
+
+variables:
+  # Project name - replace with your solution accelerator name
+  project_name:
+    description: "DICOM Medical Imaging dbdemo"
+    default: "pixels"
+
+  catalog:
+    description: "Catalog containing the Pixels object_catalog table"
+    default: "main"
+
+  schema:
+    description: "Schema containing the Pixels object_catalog table"
+    default: "pixels_solacc"
+
+  table:
+    default: "main.pixels_solacc.object_catalog"
+ 
+  volume:
+    default: "main.pixels_solacc.pixels_volume"
+
+  serving_endpoint_name:
+    default: pixels-monai-uc
+
+  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
+  warehouse_id:
+    lookup:
+      # Replace this with the name of your SQL warehouse.
+      warehouse: "Serverless Starter Warehouse"
+      
+  # Environment variable used for deployment paths
+  environment:
+    description: "Deployment environment (dev, staging, prod)"
+    default: "dev"
+
+sync:
+  paths:
+    - ../..
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+resources:
+  schemas:
+    pixels_schema:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: 'This schema created by Pixels dbdemos'
+      grants:
+        - privileges:
+          - SELECT
+          principal: "account users"
+
+
+  dashboards:
+      pixels_dashboard:
+          display_name: 'Pixels Medical Imaging Cohorts'
+          file_path: "../../ai-bi/Pixels Object Catalog dashboard.lvdash.json"
+          warehouse_id: ${var.warehouse_id}
+          permissions: 
+            - level: CAN_RUN
+              group_name: "account users"
+
+  jobs:
+    pixels_demo_ingest:
+      name: Pixels Ingest
+      description: Pixels Medical Imaging DICOM Ingestion Job
+      timeout_seconds: 7200
+      tasks:
+        - task_key: 01-dcm-demo
+          notebook_task:
+            notebook_path: ../../01-dcm-demo.py
+            source: WORKSPACE
+      tags:
+        accelerator: pixels
+        group: HLS
+        usage: solacc_testing
+      parameters:
+        - name: table
+          default: ${var.table}
+        - name: volume
+          default: ${var.volume}
+
+  apps:
+    pixels_ohif_viewer:
+      name: pixels-viewer-v2-${bundle.target}
+      source_code_path: ../../dbx/pixels/resources/lakehouse_app
+      description: 'Databricks Pixels OHIF viewer for Medical Imaging'
+      resources:
+        - name: "sql_warehouse"
+          description: "A SQL warehouse for app to be able to work with"
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: "CAN_USE"
+      user_api_scopes: ["sql", "files.files"] # This give the user access to the SQL warehouse
+      
+      

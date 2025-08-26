@@ -1,6 +1,6 @@
 env:
-  - name: "DATABRICKS_WAREHOUSE_ID"
-    valueFrom: "sql_warehouse"
+  - name: "SQL_WAREHOUSE_ID"
+    valueFrom: "sqlwarehouse"
   - name: "MONAI_SERVING_ENDPOINT"
     valueFrom: "serving_endpoint"
   - name: "DATABRICKS_PIXELS_TABLE"
