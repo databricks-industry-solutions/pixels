@@ -16,6 +16,10 @@
 
 # COMMAND ----------
 
+dbutils.widgets.removeAll()
+
+# COMMAND ----------
+
 # MAGIC %pip install -r bundles/requirements.txt
 # MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
 # MAGIC %pip install monai==1.4.0 pytorch-ignite --no-deps
@@ -27,19 +31,13 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-# MAGIC %run ../config/proxy_prep
+# MAGIC %run ./MONAILabel-ModelServing-init
 
 # COMMAND ----------
 
-sql_warehouse_id, table, volume = init_widgets(show_volume=True)
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+config = init_monai_widgets_environment()
 
-dbutils.widgets.text("use_service_principal", "False", label="5.0 Use Service Principal")
-use_service_principal = dbutils.widgets.get("use_service_principal").lower() == "true"
-
-volume_path = volume.replace(".","/")
-
-model_name = "wholeBody_ct_segmentation"
+dbutils.fs.mkdirs(config.dest_dir)
 
 # COMMAND ----------
 
@@ -49,12 +47,6 @@ model_name = "wholeBody_ct_segmentation"
 # MAGIC At this step, it is important to provide the right table that contains at least one CT Axial image and the SQLWarehouseID to execute the SQL commands.
 # MAGIC
 # MAGIC DEST_DIR will be the parameter used by the monailabel server to save the DICOM-SEG generated file 
-
-# COMMAND ----------
-
-init_env()
-
-os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/{model_name}/"
 
 # COMMAND ----------
 
@@ -198,13 +190,10 @@ try:
   import pandas as pd
   import json
 
-  # Pick one of the series_uid available in the pixels' catalog table
-  series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"
-
   input = { "series_uid": series_uid, "params": {
     "export_metrics": True,
     "export_overlays": False,
-    "dest_dir": f"/Volumes/{volume_path}/monai_serving/{model_name}",
+    "dest_dir": dest_dir,
     "pixels_table" : table
     }
   }
@@ -216,7 +205,7 @@ try:
 
   model.load_context(context=None)
   result = model.predict(None, df)
-  
+
   torch.cuda.empty_cache()
 except ImportError as e:
   print(e,", skipping model test")
@@ -337,50 +326,61 @@ if delete_all_sercrets:
 
 # COMMAND ----------
 
+import time
 from mlflow.deployments import get_deploy_client
 
 client = get_deploy_client("databricks")
 
-model_version = latest_model.version
+endpoint_not_exists = [ _['name'] for _ in client.list_endpoints() if _['name'] == serving_endpoint_name] == []
+endpoint_not_exists
 
-secret_template = "secrets/{scope}/{key}"
+# COMMAND ----------
 
-token = "{{" + secret_template.format(scope=scope_name, key=token_key) + "}}"
-client_app_id = "{{" + secret_template.format(scope=scope_name, key=sp_app_id_key) + "}}"
-client_secret = "{{" + secret_template.format(scope=scope_name, key=sp_secret_key) + "}}"
+if endpoint_not_exists:
+    from mlflow.deployments import get_deploy_client
 
-conf_vars = {
-    'DATABRICKS_HOST': os.environ["DATABRICKS_HOST"],
-    'DATABRICKS_PIXELS_TABLE': os.environ["DATABRICKS_PIXELS_TABLE"],
-    'DATABRICKS_WAREHOUSE_ID': os.environ["DATABRICKS_WAREHOUSE_ID"],
-    'DEST_DIR': os.environ["DEST_DIR"],
-    'MONAI_BUNDLES': os.environ['MONAI_BUNDLES']
-}
+    client = get_deploy_client("databricks")
 
-if not m2m_client:
-    conf_vars['DATABRICKS_TOKEN'] = token
-else:
-    conf_vars['DATABRICKS_SCOPE'] = scope_name
-    conf_vars['CLIENT_APP_ID'] = client_app_id
-    conf_vars['CLIENT_SECRET'] = client_secret
+    model_version = latest_model.version
 
-endpoint = client.create_endpoint(
-    name=serving_endpoint_name,
-    config={
-        "served_entities": [
-            {
-                'entity_name': model_uc_name,
-                "entity_version": model_version,
-                "workload_size": "Small",
-                "workload_type": "GPU_MEDIUM",
-                "scale_to_zero_enabled": True,
-                'environment_vars': conf_vars,
-            }
-        ]
+    secret_template = "secrets/{scope}/{key}"
+
+    token = "{{" + secret_template.format(scope=scope_name, key=token_key) + "}}"
+    client_app_id = "{{" + secret_template.format(scope=scope_name, key=sp_app_id_key) + "}}"
+    client_secret = "{{" + secret_template.format(scope=scope_name, key=sp_secret_key) + "}}"
+
+    conf_vars = {
+        'DATABRICKS_HOST': os.environ["DATABRICKS_HOST"],
+        'DATABRICKS_PIXELS_TABLE': os.environ["DATABRICKS_PIXELS_TABLE"],
+        'DATABRICKS_WAREHOUSE_ID': os.environ["DATABRICKS_WAREHOUSE_ID"],
+        'DEST_DIR': os.environ["DEST_DIR"],
+        'MONAI_BUNDLES': os.environ['MONAI_BUNDLES']
     }
-)
 
-print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
+    if not m2m_client:
+        conf_vars['DATABRICKS_TOKEN'] = token
+    else:
+        conf_vars['DATABRICKS_SCOPE'] = scope_name
+        conf_vars['CLIENT_APP_ID'] = client_app_id
+        conf_vars['CLIENT_SECRET'] = client_secret
+
+    endpoint = client.create_endpoint(
+        name=serving_endpoint_name,
+        config={
+            "served_entities": [
+                {
+                    'entity_name': model_uc_name,
+                    "entity_version": model_version,
+                    "workload_size": "Small",
+                    "workload_type": "GPU_MEDIUM",
+                    "scale_to_zero_enabled": True,
+                    'environment_vars': conf_vars,
+                }
+            ]
+        }
+    )
+
+    print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
 
 
 # COMMAND ----------
@@ -401,6 +401,7 @@ def wait_for_endpoint_ready(endpoint_name, client, timeout=2100, interval=10):
     start_time = time.time()
     while time.time() - start_time < timeout:
         endpoint_status = client.get_endpoint(endpoint_name)
+        print(f" {time.strftime("%H:%M:%S")}: {endpoint_status['state']}")
         if endpoint_status['state']['ready'] == "READY":
             print(f"Endpoint {endpoint_name} is ready.")
             return
@@ -408,6 +409,12 @@ def wait_for_endpoint_ready(endpoint_name, client, timeout=2100, interval=10):
     raise TimeoutError(f"Endpoint {endpoint_name} did not become ready within {timeout} seconds.")
 
 wait_for_endpoint_ready(serving_endpoint_name, client)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Transform the entire table
+# MAGIC - display a specific example
 
 # COMMAND ----------
 
@@ -460,12 +467,12 @@ display(df_monai)
 # MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
 # MAGIC with ct as (
 # MAGIC   select distinct(meta:['0020000E'].Value[0]) as series_uid
-# MAGIC   from ${table}
+# MAGIC   from IDENTIFIER(:table)
 # MAGIC   where meta:['00080008'] like '%AXIAL%'
 # MAGIC )
 # MAGIC
 # MAGIC select series_uid, parse_json(ai_query(
-# MAGIC   endpoint => '${serving_endpoint_name}',
+# MAGIC   endpoint => :serving_endpoint_name,
 # MAGIC   request => named_struct(
 # MAGIC       'series_uid', series_uid,
 # MAGIC       'params', named_struct(

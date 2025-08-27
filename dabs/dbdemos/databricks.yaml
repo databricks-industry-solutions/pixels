@@ -1,0 +1,32 @@
+
+bundle:
+  name: pixels-demo
+
+variables:
+  # Project name - replace with your solution accelerator name
+  project_name:
+    description: "DICOM Medical Imaging dbdemo"
+    default: "pixels"
+    
+  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
+  warehouse_id:
+    lookup:
+      # Replace this with the name of your SQL warehouse.
+      warehouse: "Serverless Starter Warehouse"
+      
+  # Environment variable used for deployment paths
+  environment:
+    description: "Deployment environment (dev, staging, prod)"
+    default: "dev"
+
+targets:
+  dev:
+    default: true
+    mode: development
+
+resources:
+  dashboards:
+      pixels_dashboard:
+      display_name: 'Pixels Medical Imaging Cohorts'
+      file_path: ../../ai-bi/Pixels Object Catalog dashboard.lvdash.json
+      warehouse_id: ${var.warehouse_id}
