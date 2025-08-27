@@ -5,7 +5,7 @@ import os
 import os.path
 import re
 import requests
-import asyncio
+import zstd
 from pathlib import Path
 
 import time
@@ -166,8 +166,8 @@ async def _reverse_proxy_files_multiframe(request: Request):
     frame_content = await run_in_threadpool(
         lambda: get_file_part(request, url, frame_metadata)
     )
-
-    return Response(content=frame_content, media_type="application/octet-stream")
+    
+    return Response(content=zstd.compress(frame_content), media_type="application/octet-stream", headers={"Content-Encoding": "zstd"})
 
 
 async def _reverse_proxy_files(request: Request):
@@ -435,6 +435,8 @@ app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POS
 app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsample_post, ["POST"])
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
+app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
+
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
 app.mount("/dicom-microscopy-viewer/", DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True), name="dicom-microscopy-viewer")
 
@@ -462,6 +464,53 @@ async def set_cookie(request: Request):
     response.set_cookie(key="is_local", value=("local" in path))
     return response
 
+
+@app.get("/test_vlm/{path:path}", response_class=HTMLResponse)
+async def test_vlm(request: Request):
+    from utils.vlm_analyzer_utils import extract_middle_frame, convert_to_base64, call_serving_endpoint, SYSTEM_PROMPT
+    import pydicom
+    import io
+
+    dicom_file_path = request.query_params.get("file")
+
+    print(dicom_file_path)
+
+    if not dicom_file_path:
+        dicom_file_path = "/Volumes/er_pixels_4131401940616003/pixels_solacc/pixels_volume/unzipped/ct_scans/covid_scans/56364779.dcm"
+    
+    dicom_file = await run_in_threadpool(
+        lambda: get_file_part(request, "/api/2.0/fs/files" + dicom_file_path)
+    )
+
+    dicom_data = pydicom.dcmread(io.BytesIO(dicom_file))
+    middle_frame = extract_middle_frame(dicom_data)
+    base64_image = convert_to_base64(middle_frame, format='JPEG', quality=85)
+    analysis_result = call_serving_endpoint(base64_image)
+
+    html_content = f"""
+        <html>
+        <head>
+            <title>DICOM Analysis Result</title>
+        </head>
+        <body>
+            <h1>DICOM Analysis Result</h1>
+            <p>File Path: {dicom_file_path}</p>
+            <h2>DICOM Image</h2>
+            <img src="data:image/jpeg;base64,{base64_image}" alt="DICOM Image"/>
+            <h2>Patient Information</h2>
+            <ul>
+                <li>Patient ID: {getattr(dicom_data, 'PatientID', 'N/A')}</li>
+                <li>Study Date: {getattr(dicom_data, 'StudyDate', 'N/A')}</li>
+                <li>Modality: {getattr(dicom_data, 'Modality', 'N/A')}</li>
+                <li>Image Shape: {middle_frame.shape}</li>
+            </ul>
+            <h2>Analysis Result</h2>
+            <p>{analysis_result.choices[0]['message']['content']}</p>
+        </body>
+        </html>
+        """
+    
+    return html_content
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", log_config=None)
