@@ -32,6 +32,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.model_name = "GENERIC"
         self.label_dict = None
+        self.labels = None
 
         self.volumes_compatible = volumes_compatible
 
