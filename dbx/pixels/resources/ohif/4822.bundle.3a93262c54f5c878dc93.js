@@ -2647,6 +2647,7 @@ function createDatabricksPixelsDicom(dcmConfig, servicesManager) {
                 naturalizedInstancesMetadata.url = "multiframe:" + databricksClient.defaults.baseURL + "fs/files/" + instance.relative_path;
               } else {
                 naturalizedInstancesMetadata.url = "dicomweb:" + databricksClient.defaults.baseURL + "fs/files/" + instance.relative_path;
+                naturalizedInstancesMetadata.NumberOfFrames = 1
               }
               const {
                 url: imageId,
