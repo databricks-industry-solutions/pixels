@@ -1,9 +1,9 @@
 import hashlib
 import os
 import zipfile
-import fsspec
 from io import BytesIO
 
+import fsspec
 import pandas as pd
 from PIL import Image
 from pyspark.ml.image import ImageSchema
@@ -73,7 +73,7 @@ def unzip(raw_path, unzipped_base_path):
 
     path = raw_path.replace("dbfs:", "")
 
-    with fsspec.open("simplecache::"+path, mode="rb", s3={'anon': True}) as fp:
+    with fsspec.open("simplecache::" + path, mode="rb", s3={"anon": True}) as fp:
 
         # Check if file is zip
         is_zip = zipfile.is_zipfile(fp)
@@ -99,12 +99,14 @@ def unzip(raw_path, unzipped_base_path):
                 if path.startswith("/Volumes/"):
                     zip_cmd = ["unzip", "-j", "-o", path, file_name, "-d", file_dir]
                     result = subprocess.run(zip_cmd, capture_output=True, text=True)
-                    
+
                     if result.returncode != 0:
                         raise Exception(result.stderr)
 
                 else:
-                    with fsspec.open(f"zip://{file_name}::{path}", mode="rb", s3={'anon': True}) as unz_file:
+                    with fsspec.open(
+                        f"zip://{file_name}::{path}", mode="rb", s3={"anon": True}
+                    ) as unz_file:
                         with open(file_path, "wb") as f:
                             f.write(unz_file.read())
 

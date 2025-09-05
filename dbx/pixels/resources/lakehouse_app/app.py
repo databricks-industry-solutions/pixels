@@ -1,21 +1,16 @@
 import base64
 import json
-import io
 import os
 import os.path
 import re
-import requests
-import zstd
 from pathlib import Path
-
-import time
 
 import httpx
 import uvicorn
+import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
-from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -27,13 +22,12 @@ from starlette.responses import (
     RedirectResponse,
     StreamingResponse,
 )
+from utils.pages import config_page
+from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
 
 import dbx.pixels.resources
-from dbx.pixels.logging import LoggerProvider
-
-from utils.partial_frames import pixel_frames_from_dcm_metadata_file, get_file_part
-from utils.pages import config_page
 from dbx.pixels.lakebase import LakebaseUtils
+from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("OHIF")
 
@@ -55,11 +49,14 @@ dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
 lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
-lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
+
+if "STARTUP_CLEANUP" in os.environ and os.environ["STARTUP_CLEANUP"] == "True":
+    lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
 
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
+
 
 def get_pixels_table(request: Request):
     if request.cookies.get("pixels_table"):
@@ -124,50 +121,66 @@ async def _reverse_proxy_statements(request: Request):
 async def _reverse_proxy_files_multiframe(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
-    url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/","/files/"))
+    url = httpx.URL(
+        path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
+    )
 
-    if "frames" in request.query_params: #WSI Multi Frame images
+    if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
-    elif "frame" in str(url): #Multi Frame images
+    elif "frame" in str(url):  # Multi Frame images
         param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
         url = str(url).split("&frame=")[0]
     else:
         return await _reverse_proxy_files(request)
 
     results = await run_in_threadpool(
-                lambda: lb_utils.execute_and_fetch_query(f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'and frame = '{param_frames}'")
+        lambda: lb_utils.execute_and_fetch_query(
+            f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'and frame = '{param_frames}'"
+        )
     )
 
     frame_metadata = {}
 
     if len(results) == 1:
-        frame_metadata = {'start_pos': results[0][2], 'end_pos': results[0][3], 'pixel_data_pos': results[0][4]}
+        frame_metadata = {
+            "start_pos": results[0][2],
+            "end_pos": results[0][3],
+            "pixel_data_pos": results[0][4],
+        }
     elif len(results) > 1:
         raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
     else:
-        #get latest available index
+        # get latest available index
         results = await run_in_threadpool(
-                lambda: lb_utils.execute_and_fetch_query(f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'")
+            lambda: lb_utils.execute_and_fetch_query(
+                f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'"
+            )
         )
 
         max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
         max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
 
         pixels_metadata = await run_in_threadpool(
-                lambda: pixel_frames_from_dcm_metadata_file(request, url, param_frames, max_frame_idx, max_start_pos)
+            lambda: pixel_frames_from_dcm_metadata_file(
+                request, url, param_frames, max_frame_idx, max_start_pos
+            )
         )
 
-        for index, frame in enumerate(pixels_metadata['frames']):
-            lb_utils.execute_query(f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING")
-        
-        frame_metadata = pixels_metadata['frames'][param_frames-1-max_frame_idx]
-        frame_metadata['pixel_data_pos'] = pixels_metadata['pixel_data_pos']
-    
-    frame_content = await run_in_threadpool(
-        lambda: get_file_part(request, url, frame_metadata)
+        for index, frame in enumerate(pixels_metadata["frames"]):
+            lb_utils.execute_query(
+                f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING"
+            )
+
+        frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
+        frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
+
+    frame_content = await run_in_threadpool(lambda: get_file_part(request, url, frame_metadata))
+
+    return Response(
+        content=zstd.compress(frame_content),
+        media_type="application/octet-stream",
+        headers={"Content-Encoding": "zstd"},
     )
-    
-    return Response(content=zstd.compress(frame_content), media_type="application/octet-stream", headers={"Content-Encoding": "zstd"})
 
 
 async def _reverse_proxy_files(request: Request):
@@ -275,13 +288,14 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
         file_content = await run_in_threadpool(
             lambda: get_deploy_client("databricks").predict(
-                endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path, "result_dtype": "uint8"}}}
+                endpoint=serving_endpoint,
+                inputs={"inputs": {"input": {"get_file": file_path, "result_dtype": "uint8"}}},
             )
         )
 
         return Response(
-            content=base64.b64decode(json.loads(file_content.predictions)["file_content"]), 
-            media_type="application/octet-stream"
+            content=base64.b64decode(json.loads(file_content.predictions)["file_content"]),
+            media_type="application/octet-stream",
         )
     except Exception as e:
         log(e, request, "error")
@@ -427,8 +441,12 @@ async def local_redirect_monai(request: Request):
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
 )
-app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files_multiframe, ["GET", "PUT"])
-app.add_route("/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_multiframe, ["GET"])
+app.add_route(
+    "/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files_multiframe, ["GET", "PUT"]
+)
+app.add_route(
+    "/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_multiframe, ["GET"]
+)
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
 app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
@@ -438,7 +456,11 @@ app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POS
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
-app.mount("/dicom-microscopy-viewer/", DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True), name="dicom-microscopy-viewer")
+app.mount(
+    "/dicom-microscopy-viewer/",
+    DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True),
+    name="dicom-microscopy-viewer",
+)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -467,24 +489,27 @@ async def set_cookie(request: Request):
 
 @app.get("/test_vlm/{path:path}", response_class=HTMLResponse)
 async def test_vlm(request: Request):
-    from utils.vlm_analyzer_utils import extract_middle_frame, convert_to_base64, call_serving_endpoint, SYSTEM_PROMPT
-    import pydicom
     import io
+
+    import pydicom
+    from utils.vlm_analyzer_utils import (
+        call_serving_endpoint,
+        convert_to_base64,
+        extract_middle_frame,
+    )
 
     dicom_file_path = request.query_params.get("file")
 
-    print(dicom_file_path)
-
     if not dicom_file_path:
-        dicom_file_path = "/Volumes/er_pixels_4131401940616003/pixels_solacc/pixels_volume/unzipped/ct_scans/covid_scans/56364779.dcm"
-    
+        raise HTTPException(status_code=400, detail="DICOM file path is required")
+
     dicom_file = await run_in_threadpool(
         lambda: get_file_part(request, "/api/2.0/fs/files" + dicom_file_path)
     )
 
     dicom_data = pydicom.dcmread(io.BytesIO(dicom_file))
     middle_frame = extract_middle_frame(dicom_data)
-    base64_image = convert_to_base64(middle_frame, format='JPEG', quality=85)
+    base64_image = convert_to_base64(middle_frame, format="JPEG", quality=85)
     analysis_result = call_serving_endpoint(base64_image)
 
     html_content = f"""
@@ -509,8 +534,9 @@ async def test_vlm(request: Request):
         </body>
         </html>
         """
-    
+
     return html_content
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", log_config=None)

@@ -1,5 +1,6 @@
 import os
 
+
 def config_page(pixels_table, seg_dest_dir):
     return f"""
     <html>

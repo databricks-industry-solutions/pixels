@@ -87,7 +87,11 @@ class Catalog:
         path = Path(dbx.pixels.__file__).parent
         sql_base_path = f"{path}/resources/sql"
 
-        files = [f for f in os.listdir(sql_base_path) if not os.path.isdir(os.path.join(sql_base_path, f))]
+        files = [
+            f
+            for f in os.listdir(sql_base_path)
+            if not os.path.isdir(os.path.join(sql_base_path, f))
+        ]
         for file_name in files:
             file_path = os.path.join(sql_base_path, file_name)
             logger.info(f"Executing SQL file: {file_name}")
