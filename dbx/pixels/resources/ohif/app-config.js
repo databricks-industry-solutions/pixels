@@ -10,7 +10,9 @@ window.config = {
   showLoadingIndicator: true,
   strictZSpacingForVolumeViewport: true,
   defaultDataSourceName: 'databricksPixelsDicom',
-  useSharedArrayBuffer: 'FALSE',
+  useSharedArrayBuffer: 'AUTO',
+  useNorm16Texture: true,
+  preferSizeOverAccuracy: true,
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
