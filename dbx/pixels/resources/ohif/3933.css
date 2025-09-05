@@ -1,0 +1,487 @@
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/*@import url("w3.css");*/
+
+.monaiLabelPanel {
+  background-color: #000;
+  height: 100%;
+  width: 100%;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  color: var(--text-primary-color);
+  padding: 2px;
+/* Accordion styles */
+}
+.monaiLabelPanel .subtitle {
+  font-size: 9px;
+  text-decoration: underline;
+  font-weight: 500;
+  color: aqua;
+  margin: 1px;
+  text-align: center;
+}
+.monaiLabelPanel .tabs {
+  border-radius: 4px;
+  overflow: auto;
+  -webkit-box-shadow: 0 4px 4px -2px rgba(0,0,0,0.5);
+          box-shadow: 0 4px 4px -2px rgba(0,0,0,0.5);
+  margin: 1rem 0;
+}
+.monaiLabelPanel .tab {
+  width: 100%;
+  /*color: #fff;*/
+  overflow: hidden;
+}
+.monaiLabelPanel .tab-switch {
+  position: absolute;
+  opacity: 0;
+  z-index: -1;
+}
+.monaiLabelPanel .tab-label {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding: 0.4em;
+  background: #16202b;
+  border-right: 1px dotted #3c5d80;
+  color: #fff;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+/* Icon */
+}
+.monaiLabelPanel .tab-label:hover {
+  background: #3e5975;
+}
+.monaiLabelPanel .tab-label::after {
+  content: "❯";
+  width: 1em;
+  height: 1em;
+  text-align: center;
+  -webkit-transition: all 0.35s;
+  transition: all 0.35s;
+}
+.monaiLabelPanel .tab-content {
+  max-height: 0;
+  padding: 0 1em;
+  background: #000;
+  -webkit-transition: all 0.35s;
+  transition: all 0.35s;
+  width: 90%;
+  font-size: small;
+  color: #fff;
+}
+.monaiLabelPanel .tab-close {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: end;
+      -ms-flex-pack: end;
+          justify-content: flex-end;
+  padding: 1em;
+  font-size: 0.75em;
+  background: #2c3e50;
+  cursor: pointer;
+}
+.monaiLabelPanel .tab-close:hover {
+  background: #1a252f;
+}
+.monaiLabelPanel input:checked + .tab-label {
+  background: #00a4d9;
+}
+.monaiLabelPanel input:checked + .tab-label::after {
+  -webkit-transform: rotate(90deg);
+          transform: rotate(90deg);
+}
+.monaiLabelPanel input:checked ~ .tab-content {
+  max-height: 100vh;
+  padding: 1em;
+}
+.monaiLabelPanel .separator {
+  border: 0.01em solid #44626f;
+  width: 100%;
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+.monaiLabelPanel .actionInput {
+  width: 100%;
+  padding: 1px;
+  border: 1px solid #000;
+  color: #000;
+}
+.monaiLabelPanel .actionButton {
+  border: 1px solid #000;
+  border-radius: 15px;
+  background-color: #00a4d9;
+  color: #000;
+  line-height: 25px;
+  padding: 10px 20px;
+  outline: none;
+  cursor: pointer;
+}
+.monaiLabelPanel .actionButton:hover,
+.monaiLabelPanel .actionButton:active {
+  background-color: #00a4d9;
+}
+.monaiLabelPanel .actionButton:disabled {
+  background-color: var(--ui-sky-blue);
+}
+.monaiLabelPanel .actionButton svg {
+  margin-right: 4px;
+  position: relative;
+  top: 2px;
+  bottom: 2px;
+}
+.scrollbar {
+  overflow-y: scroll;
+}
+#style-3::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+  background-color: #000;
+}
+#style-3::-webkit-scrollbar {
+  width: 6px;
+  background-color: #000;
+}
+#style-3::-webkit-scrollbar-thumb {
+  background-color: #f5f5f5;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.modelSelector .table {
+  border-collapse: collapse;
+  border: 0 solid;
+  width: 100%;
+}
+.modelSelector .table tr td {
+  border: 0 solid;
+}
+.modelSelector .selectBox {
+  width: 100%;
+  color: #000;
+  font-size: smaller;
+  height: 18px;
+}
+.modelSelector .actionButton {
+  border: 2px solid #000;
+  border-radius: 15px;
+  background-color: #00a4d9;
+  color: var(--ui-gray-dark);
+  line-height: 20px;
+  padding: 0 15px;
+  outline: none;
+  cursor: pointer;
+}
+.modelSelector .actionButton:hover,
+.modelSelector .actionButton:active {
+  background-color: #00a4d9;
+}
+.modelSelector .actionButton:disabled {
+  background-color: #00a4d9;
+}
+.modelSelector .actionButton svg {
+  margin-right: 4px;
+  position: relative;
+  top: 2px;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.optionsTable {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 99%;
+  font-size: smaller;
+}
+.optionsTable th {
+  border: 1px solid #070303;
+  text-align: left;
+  background-color: #789;
+}
+.optionsTable td {
+  border: 1px solid #070202;
+  text-align: left;
+}
+.optionsInput {
+  width: 100%;
+}
+.bodyTableContainer {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.segColor {
+  height: 15px;
+  width: 15px;
+  background-color: #bbb;
+  border-radius: 50%;
+  display: inline-block;
+}
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background: #add8e6 !important;
+}
+.actionInput {
+  padding: '8px 16px';
+  borderRadius: '4px';
+  border: '2px';
+  cursor: 'pointer';
+}
+hr {
+  margin-top: 6px;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.tmpActionButton {
+  border: 2px solid #000;
+  border-radius: 15px;
+  background-color: #00a4d9;
+  color: var(--ui-gray-dark);
+  line-height: 25px;
+  padding: 0 15px;
+  outline: none;
+  cursor: pointer;
+}
+.tmpActionButton:hover,
+.tmpActionButton:active {
+  background-color: #00a4d9;
+}
+.tmpActionButton:disabled {
+  background-color: #00a4d9;
+}
+.tmpActionButton svg {
+  margin-right: 4px;
+  position: relative;
+  top: 2px;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.nextSampleForm {
+}
+.nextSampleForm .actionButton {
+  border: 1px solid var(--ui-border-color-active);
+  border-radius: 15px;
+  background-color: var(--active-color);
+  color: var(--ui-gray-dark);
+  line-height: 25px;
+  padding: 0 15px;
+  outline: none;
+  cursor: pointer;
+}
+.nextSampleForm .actionButton:hover,
+.nextSampleForm .actionButton:active {
+  background-color: var(--ui-sky-blue);
+}
+.nextSampleForm .actionButton:disabled {
+  background-color: var(--ui-sky-blue);
+}
+.nextSampleForm .actionButton svg {
+  margin-right: 4px;
+  position: relative;
+  top: 2px;
+}
+.nextSampleForm .optionsTable {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: smaller;
+  background-color: azure;
+  color: black;
+}
+.nextSampleForm .optionsTable th {
+  border: 1px solid #ddd;
+  text-align: left;
+  background-color: #789;
+}
+.nextSampleForm .optionsTable td {
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.settingsTable {
+  border-collapse: collapse;
+  border: 0 solid;
+  width: 100%;
+  font-size: small;
+  color: #fff;
+}
+.settingsTable tr td {
+  border: 0 solid;
+}
+.settings_active,
+.settings_header {
+  background-color: #000;
+  color: #fff;
+  cursor: pointer;
+  padding: 5px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+}
+.settings_active {
+  background-color: #403f3d;
+}
+.settings_header:hover {
+  background-color: #2b2a28;
+}
+.settings_header:after {
+  content: '\002B';
+  color: #fff;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+.settings_active:after {
+  content: '\2212';
+  color: #fff;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+.settings_content {
+  cursor: pointer;
+  color: #fff;
+  background-color: #2b2a28;
+  padding: 10px;
+  font-size: smaller;
+}
+
+/*
+Copyright (c) MONAI Consortium
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.optionsForm {
+  background-color: white;
+}
+.optionsSection {
+  background-color: lightyellow;
+  width: 100%;
+  border-collapse: collapse;
+}
+.optionsSection .selectBox {
+  background-color: white;
+  border: 1px solid grey;
+  font-size: medium;
+  height: -webkit-fit-content;
+  height: -moz-fit-content;
+  height: fit-content;
+}
+.optionsConfig {
+  width: 800px;
+  height: 300px;
+  overflow: auto;
+}
+.optionsConfigTable {
+  background-color: azure;
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: smaller;
+}
+.optionsConfigTable th {
+  border: 1px solid #070303;
+  text-align: left;
+  background-color: #789;
+}
+.optionsConfigTable td {
+  border: 1px solid #070202;
+  text-align: left;
+}
+.optionsInput {
+  width: 100%;
+  color: #000;
+}
+.selectBox {
+  width: 100%;
+  color: #000;
+  font-size: smaller;
+  height: 18px;
+}
+

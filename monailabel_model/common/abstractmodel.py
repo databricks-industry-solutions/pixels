@@ -32,6 +32,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.model_name = "GENERIC"
         self.label_dict = None
+        self.labels = None
 
         self.volumes_compatible = volumes_compatible
 
@@ -61,6 +62,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
             "output": "dicom_seg",
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
+
+        if self.labels is not None:
+            self.conf['labels'] = self.labels
 
         if "MONAI_BUNDLES" in os.environ:
             self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
