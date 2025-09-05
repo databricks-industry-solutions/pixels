@@ -19,18 +19,6 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-def setup_ml():
-    import os
-    import dbx
-    
-    repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
-
-    print("Installing Pixels Solution Accelerator ML dependencies from ", repo_main_folder)
-    %pip install --quiet -r {repo_main_folder}/requirements-ml.txt
-    dbutils.library.restartPython()
-
-# COMMAND ----------
-
 # MAGIC %reload_ext autoreload
 # MAGIC %autoreload 2
 
