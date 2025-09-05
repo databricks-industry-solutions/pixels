@@ -94,7 +94,7 @@ class Catalog:
         ]
         for file_name in files:
             file_path = os.path.join(sql_base_path, file_name)
-            logger.info(f"Executing SQL file: {file_name}")
+            logger.debug(f"Executing SQL file: {file_name}")
             with open(file_path, "r") as file:
                 sql_command = file.read().replace("{UC_TABLE}", self._table)
                 self._spark.sql(sql_command)
