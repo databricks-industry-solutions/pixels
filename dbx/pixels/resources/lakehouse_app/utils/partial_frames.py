@@ -24,8 +24,8 @@ def get_file_part(request, file_path, frame=None):
 def pixel_frames_from_dcm_metadata_file(
     request, f_path, frame_limit, last_indexed_frame, last_indexed_start_pos
 ):
-    pixel_data_delimiter = b"\xE0\x7F\x10\x00"
-    frame_delimeter = b"\xFE\xFF\x00\xE0"
+    pixel_data_delimiter = b"\xe0\x7f\x10\x00"
+    frame_delimeter = b"\xfe\xff\x00\xe0"
     frames = []
 
     client_kwargs = {
