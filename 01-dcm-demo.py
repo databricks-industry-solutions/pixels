@@ -10,7 +10,7 @@
 # MAGIC - Spark SQL on top of Delta Lake powers fast metadata analytics
 # MAGIC - Python based Transformers / pandas udfs form building blocks for:
 # MAGIC   - Metadata extraction
-# MAGIC   - Uses proven `gdcm`, `python-gdcm` & `pydicom` python packages & C++ libraries
+# MAGIC   - Uses proven `pydicom` and `pylibjpeg` python packages & C++ libraries
 # MAGIC   - Simple composing and extension into De-Identification and Deep Learing
 # MAGIC <!-- -->
 # MAGIC
@@ -26,16 +26,12 @@
 
 # COMMAND ----------
 
-# DBTITLE 1,Display widgets
-path,table,volume,write_mode = init_widgets()
+# MAGIC %pip install --quiet numpy==1.26.4 pydicom==3.0.1 pylibjpeg pylibjpeg-libjpeg pylibjpeg-openjpeg s3fs==2023.10.0
 
 # COMMAND ----------
 
-# DBTITLE 1,Inizialize configured catalog and schema if not exists
-# Create the catalog, schema and volume if they don't exist
-# Check the widgets before running this command! 
-
-init_catalog_schema_volume()
+# DBTITLE 1,Display widgets
+path,table,volume,write_mode = init_widgets()
 
 # COMMAND ----------
 
@@ -112,13 +108,18 @@ catalog.save(meta_df, mode=write_mode)
 # DBTITLE 1,Patient / Radiology Data Analysis
 # MAGIC %sql
 # MAGIC SELECT
-# MAGIC     --rowid,
+# MAGIC     meta:['0020000D'].Value[0] as study_uid,
+# MAGIC     meta:['0020000E'].Value[0] as series_instance_uid,
+# MAGIC --    meta:['00080018'].Value[0] as sop_instance_uid,
+# MAGIC     meta:['00100020'].Value[0] as patient_id,
 # MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name, 
 # MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
 # MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
 # MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
 # MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
 # MAGIC FROM IDENTIFIER(:table)
+# MAGIC GROUP BY ALL
+# MAGIC ORDER BY 1,2,3
 
 # COMMAND ----------
 
@@ -132,8 +133,3 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC FROM IDENTIFIER(:table)
 # MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
 # MAGIC order by patient_name
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Next: <a href="$./02-dcm-browser">DICOM Image Browser</a>
