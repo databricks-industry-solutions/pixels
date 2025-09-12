@@ -1,2 +1,3 @@
 databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
 requests-toolbelt
+pyspark==4.0.1

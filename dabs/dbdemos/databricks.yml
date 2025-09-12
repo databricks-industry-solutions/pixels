@@ -27,8 +27,8 @@ variables:
   serving_endpoint_name:
     default: pixels-monai-uc
 
-  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
-  warehouse_id:
+  # The "sql_warehouse" variable is used to reference the warehouse used by the dashboard.
+  sql_warehouse:
     lookup:
       # Replace this with the name of your SQL warehouse.
       warehouse: "Serverless Starter Warehouse"
@@ -62,7 +62,7 @@ targets:
     presets:
       source_linked_deployment: false
     workspace:
-      root_path: /Workspace/Users/douglas.moore@databricks.com/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
 
 resources:
   schemas:
@@ -90,10 +90,24 @@ resources:
       pixels_dashboard:
           display_name: 'Pixels Medical Imaging Cohorts'
           file_path: "../../ai-bi/Pixels Object Catalog dashboard.lvdash.json"
-          warehouse_id: ${var.warehouse_id}
+          warehouse_id: ${var.sql_warehouse}
           permissions: 
             - level: CAN_RUN
               group_name: "account users"
+  
+  apps:
+    pixels_ohif_viewer:
+      name: pixels-viewer-v2-${bundle.target}
+      description: 'Databricks Pixels OHIF viewer for Medical Imaging'
+      source_code_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files/dbx/pixels/resources/lakehouse_app
+      resources:
+        - name: "sql_warehouse"
+          description: "A SQL warehouse for app to be able to work with"
+          sql_warehouse:
+            id: ${var.sql_warehouse}
+            permission: "CAN_USE"
+      user_api_scopes: ["sql", "files.files"] # This give the user access to the SQL warehouse
+      
 
   jobs:
     pixels_demo_ingest:
@@ -115,17 +129,4 @@ resources:
         - name: volume
           default: ${var.catalog}.${var.schema}.${var.volume}
 
-  apps:
-    pixels_ohif_viewer:
-      name: pixels-viewer-v2-${bundle.target}
-      description: 'Databricks Pixels OHIF viewer for Medical Imaging'
-      source_code_path: ../../dbx/pixels/resources/lakehouse_app
-      resources:
-        - name: "sql_warehouse"
-          description: "A SQL warehouse for app to be able to work with"
-          sql_warehouse:
-            id: ${var.warehouse_id}
-            permission: "CAN_USE"
-      user_api_scopes: ["sql", "files.files"] # This give the user access to the SQL warehouse
-      
       
