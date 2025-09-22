@@ -4,6 +4,7 @@ import zipfile
 from io import BytesIO
 
 import fsspec
+import subprocess
 import pandas as pd
 from PIL import Image
 from pyspark.ml.image import ImageSchema
