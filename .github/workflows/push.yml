@@ -31,6 +31,18 @@ jobs:
     - name: Install dependencies
       run: |
         pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
+    - name: Debug environment
+      env:
+        DATABRICKS_HOST: https://e2-demo-west.cloud.databricks.com
+        DATABRICKS_TOKEN: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
+      run: |
+        echo "Checking Databricks host..."
+        echo "DATABRICKS_HOST is set: $([[ ! -z "$DATABRICKS_HOST" ]] && echo "yes" || echo "no")"
+        echo "DATABRICKS_TOKEN is set: $([[ ! -z "$DATABRICKS_TOKEN" ]] && echo "yes" || echo "no")"
+        echo "Token length: ${#DATABRICKS_TOKEN}"
     - name: Execute tests on DB clusters
+      env:
+        DATABRICKS_HOST: https://e2-demo-west.cloud.databricks.com
+        DATABRICKS_TOKEN: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
       run: |
           python tests/db_runner.py
