@@ -123,6 +123,7 @@ def ocr_dcm(
                 image, min_size=min_size, text_threshold=text_threshold
             )
             bb = horizontal_list[0]
+            error_msg = None
         except Exception as e:
             error_msg = f"{e}. easyocr.Reader.detect exception"
             logger.exception(error_msg)
@@ -157,6 +158,8 @@ def ocr_dcm(
                             f"Invalid save_format: {save_format}. Options are dicom (default), jpg. No file was saved."
                         )
                         logger.error(error_msg)
+                else:
+                    error_msg = None
 
                 # display images
                 if display:
