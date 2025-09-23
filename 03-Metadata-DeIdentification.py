@@ -65,25 +65,30 @@ pixels_fp_tweak = None
 
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
   w.secrets.create_scope(scope=scope_name)
-
-w.secrets.put_secret(scope=scope_name, key="pixels_fp_key", string_value=pixels_fp_key)
-w.secrets.put_secret(scope=scope_name, key="pixels_fp_tweak", string_value=pixels_fp_tweak)
+if pixels_fp_key:
+  w.secrets.put_secret(scope=scope_name, key="pixels_fp_key", string_value=pixels_fp_key)
+if pixels_fp_tweak:
+  w.secrets.put_secret(scope=scope_name, key="pixels_fp_tweak", string_value=pixels_fp_tweak)
 
 fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
 fp_tweak = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_tweak")
 
+
 # COMMAND ----------
 
-from dbx.pixels import Catalog
+
+catalog_df = spark.table(tableName=table).limit(20)
+
+display(catalog_df)
+
+# COMMAND ----------
+
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
-catalog = Catalog(spark, table=table+"_anonym", volume=volume)
-catalog_df = catalog.catalog(path=path, extractZip=False)
-
-metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak).transform(catalog_df)
+xformer = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak)
+metadata_df = xformer.transform(catalog_df)
 
 display(metadata_df)
-
 #catalog.save(metadata_df)
 
 # COMMAND ----------
