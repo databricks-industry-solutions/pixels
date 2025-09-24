@@ -65,7 +65,7 @@ catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
 
-meta_df = DicomMetaExtractor(catalog, deep=False).transform(catalog_df)
+meta_df = DicomMetaExtractor(catalog).transform(catalog_df)
 
 # COMMAND ----------
 
