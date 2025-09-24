@@ -133,32 +133,18 @@ async def _reverse_proxy_files_multiframe(request: Request):
     else:
         return await _reverse_proxy_files(request)
 
-    results = await run_in_threadpool(
-        lambda: lb_utils.execute_and_fetch_query(
-            f"SELECT * FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'and frame = '{param_frames}'"
-        )
-    )
+    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(url, param_frames))
 
     frame_metadata = {}
 
-    if len(results) == 1:
-        frame_metadata = {
-            "start_pos": results[0][2],
-            "end_pos": results[0][3],
-            "pixel_data_pos": results[0][4],
-        }
-    elif len(results) > 1:
-        raise Exception(f"Multiple entries found for {url} and frame {param_frames}")
+    if results is not None:
+        frame_metadata = results
     else:
         # get latest available index
-        results = await run_in_threadpool(
-            lambda: lb_utils.execute_and_fetch_query(
-                f"SELECT max(frame), max(start_pos) FROM {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} where filename = '{url}'"
-            )
-        )
+        results = await run_in_threadpool(lambda: lb_utils.retrieve_max_frame_range(url))
 
-        max_frame_idx = int(results[0][0]) if results[0][0] is not None else 0
-        max_start_pos = int(results[0][1]) if results[0][1] is not None else 0
+        max_frame_idx = results["max_frame_idx"]
+        max_start_pos = results["max_start_pos"]
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(
@@ -166,10 +152,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
             )
         )
 
-        for index, frame in enumerate(pixels_metadata["frames"]):
-            lb_utils.execute_query(
-                f"INSERT INTO {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES ('{url}', '{index+max_frame_idx+1}', '{frame['start_pos']}', '{frame['end_pos']}','{pixels_metadata['pixel_data_pos']}') ON CONFLICT DO NOTHING"
-            )
+        lb_utils.insert_frame_ranges(url, pixels_metadata["frames"])
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]

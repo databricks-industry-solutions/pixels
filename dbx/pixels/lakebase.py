@@ -12,6 +12,8 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("LakebaseUtils")
 
+DICOM_FRAMES_TABLE = "dicom_frames"
+
 
 class LakebaseUtils:
     def __init__(self, instance_name="pixels-lakebase", capacity="CU_2", user=None, app_sp_id=None):
@@ -117,12 +119,68 @@ class LakebaseUtils:
 
         return pool.connection
 
-    def execute_and_fetch_query(self, query):
+    def execute_and_fetch_query(self, query: str, params: tuple = None) -> list[tuple]:
         with self.connection() as conn:
             with conn.cursor() as cursor:
-                return cursor.execute(query).fetchall()
+                return cursor.execute(query, params).fetchall()
 
-    def execute_query(self, query):
+    def execute_query(self, query: str, params: tuple = None):
         with self.connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute(query)
+                cursor.execute(query, params)
+
+    def retrieve_frame_range(
+        self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
+    ) -> dict | None:
+        results = self.execute_and_fetch_query(
+            f"SELECT start_pos, end_pos, pixel_data_pos FROM {table} where filename = %s and frame = %s",
+            (filename, frame),
+        )
+        if len(results) == 1:
+            return {
+                "start_pos": results[0][0],
+                "end_pos": results[0][1],
+                "pixel_data_pos": results[0][2],
+            }
+        elif len(results) > 1:
+            raise Exception(f"Multiple entries found for {filename} and frame {frame}")
+        else:
+            return None
+
+    def retrieve_max_frame_range(
+        self, filename: str, table: str = DICOM_FRAMES_TABLE
+    ) -> dict | None:
+        results = self.execute_and_fetch_query(
+            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s", (filename,)
+        )
+        if len(results) == 1:
+            return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
+        else:
+            return None
+
+    def insert_frame_range(
+        self,
+        filename: str,
+        frame: int,
+        start_pos: int,
+        end_pos: int,
+        pixel_data_pos: int,
+        table: str = DICOM_FRAMES_TABLE,
+    ):
+        self.execute_query(
+            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s)",
+            (filename, frame, start_pos, end_pos, pixel_data_pos),
+        )
+
+    def insert_frame_ranges(
+        self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
+    ):
+        for frame_range in frame_ranges:
+            self.insert_frame_range(
+                filename,
+                frame_range["frame"],
+                frame_range["start_pos"],
+                frame_range["end_pos"],
+                frame_range["pixel_data_pos"],
+                table,
+            )
