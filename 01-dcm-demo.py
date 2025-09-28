@@ -26,10 +26,6 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet numpy==1.26.4 pydicom==3.0.1 pylibjpeg pylibjpeg-libjpeg pylibjpeg-openjpeg s3fs==2023.10.0
-
-# COMMAND ----------
-
 # DBTITLE 1,Display widgets
 path,table,volume,write_mode = init_widgets()
 
