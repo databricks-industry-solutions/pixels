@@ -4,4 +4,4 @@ env:
   - name: "MONAI_SERVING_ENDPOINT"
     valueFrom: "serving_endpoint"
   - name: "DATABRICKS_PIXELS_TABLE"
-    value: "main.pixels_solacc.object_catalog"
+    value: "{PIXELS_TABLE}"
