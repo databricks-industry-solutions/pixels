@@ -27,9 +27,6 @@ import dbx.pixels.resources
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("OHIF")
-logger.debug(os.environ)
-
-print(os.environ)
 
 cfg = Config()
 
