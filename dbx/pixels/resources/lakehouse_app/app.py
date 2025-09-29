@@ -50,9 +50,6 @@ tracking = ["mlflow", ""]
 
 lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
 
-if "STARTUP_CLEANUP" in os.environ and os.environ["STARTUP_CLEANUP"] == "True":
-    lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
-
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
