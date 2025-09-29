@@ -69,8 +69,8 @@ else:
   path = Path(dbx.pixels.__file__).parent
   lha_path = (f"{path}/resources/lakehouse_app")
 
-  with open(f"{lha_path}/app-config.yaml", "r") as config_input:
-          with open(f"{lha_path}/app.yaml", "w") as config_custom:
+  with open(f"{lha_path}/app-config.yml", "r") as config_input:
+          with open(f"{lha_path}/app.yml", "w") as config_custom:
               config_custom.write(
                   config_input.read()
                   .replace("{PIXELS_TABLE}", table)
