@@ -15,8 +15,7 @@ print("Installing Pixels Solution Accelerator dependencies from ", repo_main_fol
 %pip install --quiet -r {repo_main_folder}/requirements.txt
 %pip install --quiet --upgrade databricks-sdk==0.60.0
 
-
-#dbutils.library.restartPython()
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
