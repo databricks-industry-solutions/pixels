@@ -21,25 +21,15 @@ Identify the organ involved in the clinical image. For example if this is an MRI
 
 Step 3:
 
-Read the accompanying notes provided by the clinician.
+Read the accompanying notes provided by the clinician and the metadata.
 
 Step 4:
 
-Based on the above step, the image and the clinician's notes, list the top 3-5 potential diagnosis that align with the potential diagnosis. Use confidence scores to rank the likelihood of each disease. Example: "Given the image and the clinical notes the possible diagnoses are: Disease A (Confidence: 40%) Disease B (Confidence: 35%) Disease C (Confidence: 25%)
+Answer the prompt based on the image, the clinician's notes and the metadata. Remove all the steps and uniform the output.
 
-Step 5: Diagnostic reasoning
+If asked to draw boundaries, return the positions of the boundaries in the image so it can be drawn on the image.
 
-Explain the reasoning behind each diagnosis. Highlight why certain diagnosis are more likely based on the information provided
-Example: "Diagnosis A is likely due to [reasoning], while Diagnosis B may also fit the profile due to [reasoning]."
-Step 6: Final Diagnosis and Treatment Recommendation:
-
-Provide the final diagnosis based on the highest confidence score and suggest a treatment plan in line with standard medical practice.
-Return HTML formatted output.
-
-Example output:
-
-"The most likely diagnosis is Diagnosis A. It is recommended to proceed with [treatment plan]"
-
+Return JSON formatted output.
 
 """
 
@@ -153,10 +143,10 @@ def resize_image_for_claude(image_array: np.ndarray, max_size: int = 1568) -> np
 
 
 def call_serving_endpoint(
-    base64_image: str, endpoint_url="databricks-claude-3-7-sonnet", system_prompt=SYSTEM_PROMPT
+    base64_image: str, prompt: str, metadata: dict, model_name: str, max_tokens: int, temperature: float, system_prompt=SYSTEM_PROMPT
 ) -> dict:
     """
-    Call the serving endpoint with the base64 image for analysis.
+    Call the serving endpoint with the base64 image and prompt for analysis.
     """
     from mlflow.deployments import get_deploy_client
 
@@ -164,14 +154,14 @@ def call_serving_endpoint(
         print("Calling serving endpoint...")
 
         result = get_deploy_client("databricks").predict(
-            endpoint=endpoint_url,
+            endpoint=model_name,
             inputs={
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": "Analyze it as a doctor"},
+                            {"type": "text", "text": prompt + "\nThis is the metadata: " + str(metadata)},
                             {
                                 "type": "image_url",
                                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},

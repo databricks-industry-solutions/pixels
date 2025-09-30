@@ -470,56 +470,28 @@ async def set_cookie(request: Request):
     return response
 
 
-@app.get("/test_vlm/{path:path}", response_class=HTMLResponse)
-async def test_vlm(request: Request):
+@app.post("/vlm/analyze", response_class=JSONResponse)
+async def vlm_analyze(request: Request):
     import io
 
     import pydicom
     from utils.vlm_analyzer_utils import (
-        call_serving_endpoint,
-        convert_to_base64,
-        extract_middle_frame,
+        call_serving_endpoint
     )
 
-    dicom_file_path = request.query_params.get("file")
+    body = await request.json()
+    base64_image = body.get("image")
+    prompt = body.get("prompt")
+    metadata = body.get("metadata")
+    max_tokens = body.get("max_tokens")
+    temperature = body.get("temperature")
+    model = body.get("model")
 
-    if not dicom_file_path:
-        raise HTTPException(status_code=400, detail="DICOM file path is required")
+    file_path = body.get("metadata").get("imageId")
 
-    dicom_file = await run_in_threadpool(
-        lambda: get_file_part(request, "/api/2.0/fs/files" + dicom_file_path)
-    )
+    analysis_result = call_serving_endpoint(base64_image, prompt, metadata, model, max_tokens, temperature)
 
-    dicom_data = pydicom.dcmread(io.BytesIO(dicom_file))
-    middle_frame = extract_middle_frame(dicom_data)
-    base64_image = convert_to_base64(middle_frame, format="JPEG", quality=85)
-    analysis_result = call_serving_endpoint(base64_image)
-
-    html_content = f"""
-        <html>
-        <head>
-            <title>DICOM Analysis Result</title>
-        </head>
-        <body>
-            <h1>DICOM Analysis Result</h1>
-            <p>File Path: {dicom_file_path}</p>
-            <h2>DICOM Image</h2>
-            <img src="data:image/jpeg;base64,{base64_image}" alt="DICOM Image"/>
-            <h2>Patient Information</h2>
-            <ul>
-                <li>Patient ID: {getattr(dicom_data, 'PatientID', 'N/A')}</li>
-                <li>Study Date: {getattr(dicom_data, 'StudyDate', 'N/A')}</li>
-                <li>Modality: {getattr(dicom_data, 'Modality', 'N/A')}</li>
-                <li>Image Shape: {middle_frame.shape}</li>
-            </ul>
-            <h2>Analysis Result</h2>
-            <p>{analysis_result.choices[0]['message']['content']}</p>
-        </body>
-        </html>
-        """
-
-    return html_content
-
+    return analysis_result['choices'][0]['message']['content']
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", log_config=None)
