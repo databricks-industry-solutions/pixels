@@ -168,7 +168,7 @@ class LakebaseUtils:
         table: str = DICOM_FRAMES_TABLE,
     ):
         self.execute_query(
-            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s)",
+            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             (filename, frame, start_pos, end_pos, pixel_data_pos),
         )
 
