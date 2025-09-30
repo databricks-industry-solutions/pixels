@@ -178,7 +178,7 @@ class LakebaseUtils:
         for frame_range in frame_ranges:
             self.insert_frame_range(
                 filename,
-                frame_range["frame"],
+                frame_range["frame_number"],
                 frame_range["start_pos"],
                 frame_range["end_pos"],
                 frame_range["pixel_data_pos"],
