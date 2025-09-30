@@ -124,16 +124,17 @@ async def _reverse_proxy_files_multiframe(request: Request):
     url = httpx.URL(
         path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
     )
+    str_url = str(url)
 
     if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
-    elif "frame" in str(url):  # Multi Frame images
-        param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
-        url = str(url).split("&frame=")[0]
+    elif "frame" in str_url:  # Multi Frame images
+        param_frames = int(re.search(r"&frame=(\d+)", str_url).group(1))
+        str_url = str_url.split("&frame=")[0]
     else:
         return await _reverse_proxy_files(request)
 
-    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(url, param_frames))
+    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(str_url, param_frames))
 
     frame_metadata = {}
 
@@ -141,23 +142,23 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = results
     else:
         # get latest available index
-        results = await run_in_threadpool(lambda: lb_utils.retrieve_max_frame_range(url))
+        results = await run_in_threadpool(lambda: lb_utils.retrieve_max_frame_range(str_url))
 
         max_frame_idx = results["max_frame_idx"]
         max_start_pos = results["max_start_pos"]
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(
-                request, url, param_frames, max_frame_idx, max_start_pos
+                request, str_url, param_frames, max_frame_idx, max_start_pos
             )
         )
 
-        lb_utils.insert_frame_ranges(url, pixels_metadata["frames"])
+        lb_utils.insert_frame_ranges(str_url, pixels_metadata["frames"])
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
 
-    frame_content = await run_in_threadpool(lambda: get_file_part(request, url, frame_metadata))
+    frame_content = await run_in_threadpool(lambda: get_file_part(request, str_url, frame_metadata))
 
     return Response(
         content=zstd.compress(frame_content),
