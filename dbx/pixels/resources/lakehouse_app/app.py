@@ -130,7 +130,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
     else:
         return await _reverse_proxy_files(request)
 
-    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(url, param_frames))
+    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(str(url), param_frames))
 
     frame_metadata = {}
 
