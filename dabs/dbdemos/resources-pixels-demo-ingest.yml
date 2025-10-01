@@ -1,0 +1,22 @@
+resources:
+  jobs:
+    pixels_demo_ingest:
+      name: Pixels Ingest
+      description: Pixels Medical Imaging DICOM Ingestion Job
+      timeout_seconds: 7200
+      tasks:
+        - task_key: 01-dcm-demo
+          notebook_task:
+            notebook_path: ../../01-dcm-demo.py
+            source: WORKSPACE
+      tags:
+        accelerator: pixels
+        group: HLS
+        usage: solacc_testing
+      parameters:
+        - name: table
+          default: ${var.table}
+        - name: volume
+          default: ${var.catalog}.${var.schema}.${var.volume}
+
+      
