@@ -16,7 +16,7 @@ DICOM_FRAMES_TABLE = "dicom_frames"
 
 
 class LakebaseUtils:
-    def __init__(self, instance_name="pixels-lakebase", capacity="CU_2", user=None, app_sp_id=None):
+    def __init__(self, instance_name="pixels-lakebase", capacity="CU_2", user=None, app_sp_id=None, create_instance=False):
         self.instance_name = instance_name
         self.capacity = capacity
         self.workspace_client = WorkspaceClient()
@@ -26,26 +26,31 @@ class LakebaseUtils:
         else:
             self.user = user
 
-        self.instance = self.get_or_create_db_instance()
+        self.instance = self.get_or_create_db_instance(create_instance)
 
         if app_sp_id is not None:
             self.get_or_create_sp_role(app_sp_id)
 
         self.connection = self.get_connection()
 
-    def get_or_create_db_instance(self):
+    def get_or_create_db_instance(self, create_instance):
         instances = list(self.workspace_client.database.list_database_instances() or [])
         db_exists = any(inst.name == self.instance_name for inst in instances)
+
+        instance = None
 
         if db_exists:
             logger.info(f"Lakebase instance '{self.instance_name}' already exists.")
             instance = next(inst for inst in instances if inst.name == self.instance_name)
         else:
-            logger.info(f"Creating Lakebase instance '{self.instance_name}'")
-            instance = self.workspace_client.database.create_database_instance(
-                DatabaseInstance(name=self.instance_name, capacity=self.capacity)
-            )
-            logger.info(f"Created Lakebase instance: {instance.name}")
+            if create_instance:
+                logger.info(f"Creating Lakebase instance '{self.instance_name}'")
+                instance = self.workspace_client.database.create_database_instance(
+                    DatabaseInstance(name=self.instance_name, capacity=self.capacity)
+                )
+                logger.info(f"Created Lakebase instance: {instance.name}")
+            else:
+                raise Exception(f"Lakebase instance '{self.instance_name}' does not exist")
 
         while instance.state == DatabaseInstanceState.STARTING:
             instance = self.workspace_client.database.get_database_instance(name=self.instance_name)
@@ -168,7 +173,7 @@ class LakebaseUtils:
         table: str = DICOM_FRAMES_TABLE,
     ):
         self.execute_query(
-            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s)",
+            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             (filename, frame, start_pos, end_pos, pixel_data_pos),
         )
 
