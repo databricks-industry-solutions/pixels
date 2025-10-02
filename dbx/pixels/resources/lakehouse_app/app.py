@@ -230,17 +230,59 @@ def _reverse_proxy_monai(request: Request):
 
 
 async def _reverse_proxy_monai_infer_post(request: Request):
+    """
+    Reverse proxy endpoint for MONAI inference POST requests with intelligent caching.
+    
+    This function handles medical image segmentation inference requests by acting as a proxy
+    between the OHIF viewer frontend and Databricks-hosted MONAI models. It implements
+    a two-stage process: inference execution and file retrieval, with caching to optimize
+    performance for repeated requests on the same image.
+    
+    Args:
+        request (Request): FastAPI request object containing:
+            - Form data with 'params' (JSON string with inference parameters)
+            - Query parameters including 'image' (image identifier)
+            - URL path containing the model name
+    
+    Returns:
+        Response: 
+            - Success: Binary segmentation data as application/octet-stream (uint8 format)
+            - Error: JSON error message with 500 status code
+    
+    Process Flow:
+        1. Extract and clean inference parameters from request
+        2. Check cache for existing segmentation results
+        3. If not cached: Execute inference on Databricks serving endpoint
+        4. Retrieve segmentation file content from serving endpoint
+        5. Return binary segmentation data to client
+    
+    Caching Strategy:
+        - Uses global cache_segmentations dict keyed by image identifier
+        - Stores file_path and params for each processed image
+        - Avoids redundant inference calls for the same image
+        - Cleans up cache entries on errors
+    
+    Error Handling:
+        - Logs all errors for debugging
+        - Removes corrupted cache entries on failure
+        - Returns structured error responses
+    """
     from mlflow.deployments import get_deploy_client
 
+    # Parse request components
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
     q_params = request.query_params
     form_data = await request.form()
 
+    # Extract and prepare inference parameters
     to_send = json.loads(form_data.get("params"))
-    to_send["model"] = str(url).split("/")[2]
-    to_send["image"] = q_params["image"]
+    to_send["model"] = str(url).split("/")[2]  # Extract model name from URL path
+    to_send["image"] = q_params["image"]       # Add image identifier from query params
+    
+    # Remove parameters not supported by the backend model
     del to_send["result_compress"]  # TODO fix boolean type in model
-
+    
+    # Clean up optional parameters that may cause issues with the model
     if "model_filename" in to_send:
         del to_send["model_filename"]
     if "sw_batch_size" in to_send:
@@ -250,30 +292,38 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     if "highres" in to_send:
         del to_send["highres"]
 
+    # Add pixels table information for data access
     to_send["pixels_table"] = get_pixels_table(request)
 
+    # Log the inference request for debugging
     log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
     resp = ""
 
-    # Query the Databricks serving endpoint
+    # Execute inference with caching and error handling
     try:
+        # Check if segmentation already exists in cache
         if q_params["image"] not in cache_segmentations:
+            # Cache miss: Execute new inference request
             file_res = await run_in_threadpool(
                 lambda: get_deploy_client("databricks").predict(
                     endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
                 )
             )
 
+            # Parse inference response to get file location and parameters
             res_json = json.loads(file_res.predictions)
-
             file_path = res_json["file"]
             params = res_json["params"]
+            
+            # Cache the results for future requests
             cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
         else:
+            # Cache hit: Retrieve existing file path and parameters
             file_path = cache_segmentations[q_params["image"]]["file_path"]
             params = cache_segmentations[q_params["image"]]["params"]
 
+        # Retrieve the actual segmentation file content
         file_content = await run_in_threadpool(
             lambda: get_deploy_client("databricks").predict(
                 endpoint=serving_endpoint,
@@ -281,14 +331,17 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             )
         )
 
+        # Decode and return the binary segmentation data
         return Response(
             content=base64.b64decode(json.loads(file_content.predictions)["file_content"]),
             media_type="application/octet-stream",
         )
     except Exception as e:
+        # Log error and clean up corrupted cache entry
         log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
 
+        # Remove potentially corrupted cache entry
         if q_params["image"] in cache_segmentations:
             del cache_segmentations[q_params["image"]]
 
