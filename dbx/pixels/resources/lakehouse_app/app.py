@@ -26,6 +26,7 @@ from utils.pages import config_page
 from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
 
 import dbx.pixels.resources
+import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 
@@ -103,7 +104,10 @@ async def _reverse_proxy_statements(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
+        },
         content=json.dumps(body).encode("utf-8"),
     )
 
@@ -177,7 +181,10 @@ async def _reverse_proxy_files(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
+        },
         content=request.stream(),
     )
 

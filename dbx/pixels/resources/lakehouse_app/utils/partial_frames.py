@@ -4,6 +4,7 @@ import struct
 import fsspec
 import pydicom
 import requests
+import dbx.pixels.version as dbx_pixels_version
 
 
 def get_file_part(request, file_path, frame=None):
@@ -11,6 +12,7 @@ def get_file_part(request, file_path, frame=None):
 
     headers = {
         "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+        'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
     }
     if frame is not None:
         headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
@@ -29,7 +31,8 @@ def pixel_frames_from_dcm_metadata_file(
     frames = []
 
     client_kwargs = {
-        "headers": {"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")}
+        "headers": {"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
     }
 
     with fsspec.open(
