@@ -32,8 +32,7 @@ jobs:
             },
             "custom_tags": {
               "ResourceClass": "SingleNode"
-            },
-            "policy_id": "E0631F5C0D0006EA"
+            }
           }
          notebook-params-json: >
            {
