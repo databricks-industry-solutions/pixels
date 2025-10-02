@@ -43,5 +43,9 @@ jobs:
               {
                 "group_name": "account users",
                 "permission_level": "CAN_MANAGE"
-              }
+              },
+              {
+               "user_id": "douglas.moore@databricks.com",
+               "permission_level": "CAN_EDIT"
+             }
             ]
