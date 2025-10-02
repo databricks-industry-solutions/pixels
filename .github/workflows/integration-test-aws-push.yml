@@ -41,7 +41,7 @@ jobs:
           access-control-list-json: >
             [
               {
-                "group_name": "users",
+                "group_name": "account users",
                 "permission_level": "CAN_MANAGE"
               }
             ]
