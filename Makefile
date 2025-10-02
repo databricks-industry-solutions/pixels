@@ -22,9 +22,9 @@ test:
 	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
-	.venv/bin/pre-commit run --all-files
+	pre-commit run --all-files
 
 check: style test
 
 test-cov:
-	.venv/bin/test-cov-report && open htmlcov/index.html
+	test-cov-report && open htmlcov/index.html
