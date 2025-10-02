@@ -1,7 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ## Create Binary PHI Flag
-# MAGIC The goal of this notebook is to assess the `.dcm` files associated with PHI by reverse engineering the outcome of PHI masking from the original files in order to create a binary flag of `requires_phi_masking` for the original data. With this flag, we can then assess performance metrics on various PHI detection solutions.
+# MAGIC ## Create PHI Golden Data for PHI-Detection Evaluation
+# MAGIC
+# MAGIC Customers are requesting a dataset from which we can evaluate performance of various DICOM-related PHI-detection and masking tasks. This notebook is meant to create this golden data. To do this, we will:
+# MAGIC
+# MAGIC 1. Gather original DICOM metadata from `object_catalog`
+# MAGIC 2. Gather corresponding masked metadata gathered from the `midi_b_val` dataset
+# MAGIC 3. Diff the original and masked metadata to identify all tags assumed to be PHI
+# MAGIC 4. Reverse engineer half of the data to be just the allowable data (that not presumed to be PHI)
+# MAGIC 5. Sample this data into the `phi_detection_golden` table
 
 # COMMAND ----------
 
@@ -16,10 +23,13 @@ import json
 import pydicom
 import pandas as pd
 
+dbutils.widgets.text("golden_data_table", "hls_radiology.tcia.phi_detection_golden")
 dbutils.widgets.text("original_dicom_data", "hls_radiology.tcia.object_catalog")
-dbutils.widgets.text("masked_dicom_data", "hls_radiology.tcia.midi_b_val_subset")
+dbutils.widgets.text("masked_dicom_data", "hls_radiology.tcia.midi_b_val")
 dbutils.widgets.text("dicom_tag_mapping_table", "hls_radiology.ddsm.dicom_tags")
 dbutils.widgets.text("table_to_write", "hls_radiology.tcia.masked_dicom_diffing_results")
+
+# COMMAND ----------
 
 dicom_data = spark.read.table(dbutils.widgets.get("original_dicom_data"))
 masked_data = spark.read.table(dbutils.widgets.get("masked_dicom_data")).drop("pixel_hash")
@@ -29,15 +39,19 @@ tag_mapping = dict(tag_df.select("Tag", "Keyword").rdd.map(tuple).collect())
 
 # COMMAND ----------
 
-def dicom_to_json(path: str) -> str:
+def dicom_to_json(path: str, remove_key: str = None) -> str:
     local_path = path.replace("dbfs:", "")
     dcm = pydicom.dcmread(local_path)
-    return json.dumps(dcm.to_json_dict())
+    data = dcm.to_json_dict()
+    if remove_key and remove_key in data:
+        del data[remove_key]
+    
+    return json.dumps(data)
 
 def make_get_diff_tag_udf(spark, dicom_tag_mapping: dict):
     diff_schema = StructType([
-        StructField("result", ArrayType(StringType())),
-        StructField("errors", ArrayType(MapType(StringType(), StringType())))
+        StructField("result", ArrayType(MapType(StringType(), StringType())), True),
+        StructField("errors", ArrayType(MapType(StringType(), StringType())), True)
     ])
 
     tag_mapping_bc = spark.sparkContext.broadcast(dicom_tag_mapping)
@@ -45,6 +59,10 @@ def make_get_diff_tag_udf(spark, dicom_tag_mapping: dict):
 
     @pandas_udf(diff_schema)
     def find_diff_tags_udf(meta_col: pd.Series, masked_col: pd.Series) -> pd.DataFrame:
+        """
+        Returns a list of {tag_key: mapping} dicts for tags that differ,
+        plus a list of {tag_key: error_message} dicts for errors.
+        """
         tag_mapping = tag_mapping_bc.value
         results, errors_list = [], []
 
@@ -60,12 +78,13 @@ def make_get_diff_tag_udf(spark, dicom_tag_mapping: dict):
                         try:
                             masked_value = masked_json[k].get("Value")
                             if masked_value != v.get("Value"):
-                                row_results.append(tag_mapping.get(k, k))
+                                row_results.append({k: tag_mapping.get(k, k)})
                         except Exception as e:
                             row_errors.append({k: str(e)})
+                    else:
+                        row_results.append({k: tag_mapping.get(k, k)})
 
             except Exception as e:
-                # Entire row parse failed
                 row_results = []
                 row_errors.append({"__row__": str(e)})
 
@@ -76,10 +95,38 @@ def make_get_diff_tag_udf(spark, dicom_tag_mapping: dict):
 
     return find_diff_tags_udf
 
+@pandas_udf(StringType())
+def remove_tags_from_json(json_str_series, tags_to_remove_series):
+    """
+    Removes the specified tags from the json string.
+    """
+    results = []
+    for json_str, tags_to_remove in zip(json_str_series, tags_to_remove_series):
+        try:
+            json_dict = json.loads(json_str or "{}")
+            if tags_to_remove is None:
+                tags_to_remove = []
+            elif not isinstance(tags_to_remove, list):
+                tags_to_remove = list(tags_to_remove)
+
+            tags = [next(iter(item.keys())) for item in tags_to_remove]
+
+            for tag in tags:
+                json_dict.pop(tag, None)
+
+            results.append(json.dumps(json_dict))
+
+        except Exception as e:
+            results.append(json.dumps({"__error__": str(e), "__original__": json_str}))
+
+    return pd.Series(results)
+
 # COMMAND ----------
 
-dicom_to_json_udf = udf(dicom_to_json, StringType())
 find_diff_tags_udf = make_get_diff_tag_udf(spark, tag_mapping)
+
+# Removing the 7FE00010 key from the masked json, representing the binary file
+dicom_to_json_udf = udf(lambda path: dicom_to_json(path, "7FE00010"), StringType())
 
 diffed_dicom_data = (
   joined_df
@@ -87,6 +134,7 @@ diffed_dicom_data = (
     .withColumn("diff_tags", find_diff_tags_udf("meta", "masked_json"))
     .withColumn("diffing_tag_list", F.col("diff_tags.result"))
     .withColumn("diffing_errors", F.col("diff_tags.errors"))
+    .withColumn("negative_values", remove_tags_from_json("meta", "diffing_tag_list"))
     .drop("diff_tags")
 )
 
@@ -100,4 +148,31 @@ table_name = dbutils.widgets.get("table_to_write")
       .format("delta")
       .mode("overwrite")
       .saveAsTable(table_name)
+)
+
+# COMMAND ----------
+
+golden_data = (
+    diffed_dicom_data.withColumn("label", (F.rand() > 0.5).cast("int"))  # randomly 0 or 1
+      .withColumn(
+          "metadata",
+          F.when(F.col("label") == 1, F.col("meta"))
+           .otherwise(F.col("negative_values"))
+      )
+      .select(
+        "metadata", 
+        "label", 
+        F.col("meta").alias('original_metadata'), 
+        F.col("negative_values").alias('non_phi_metadata'), 
+        F.col("path").alias("original_dicom_path"),
+        F.col("path_masked").alias("masked_dicom_path")
+      )
+)
+
+(
+    golden_data
+      .write
+      .format("delta")
+      .mode("overwrite")
+      .saveAsTable(dbutils.widgets.get("golden_data_table"))
 )
