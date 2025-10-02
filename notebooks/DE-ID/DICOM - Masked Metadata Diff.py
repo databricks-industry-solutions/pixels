@@ -167,6 +167,10 @@ golden_data = (
         F.col("path").alias("original_dicom_path"),
         F.col("path_masked").alias("masked_dicom_path")
       )
+      .sample(
+        fraction=0.15,
+        seed=88
+      )
 )
 
 (
