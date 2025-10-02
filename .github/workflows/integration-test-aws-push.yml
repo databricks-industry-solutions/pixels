@@ -22,6 +22,7 @@ jobs:
          new-cluster-json: >
           {
             "num_workers": 0,
+            "data_security_mode": "SINGLE_USER",
             "spark_version": "16.4.x-scala2.13",
             "node_type_id": "i3.xlarge",
             "aws_attributes": {
