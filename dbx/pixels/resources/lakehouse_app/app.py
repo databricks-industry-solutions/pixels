@@ -106,7 +106,7 @@ async def _reverse_proxy_statements(request: Request):
         url,
         headers={
             "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
-            'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
         },
         content=json.dumps(body).encode("utf-8"),
     )
@@ -183,7 +183,7 @@ async def _reverse_proxy_files(request: Request):
         url,
         headers={
             "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
-            'User-Agent': f'DatabricksPixels/{dbx_pixels_version}'
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
         },
         content=request.stream(),
     )
@@ -232,36 +232,36 @@ def _reverse_proxy_monai(request: Request):
 async def _reverse_proxy_monai_infer_post(request: Request):
     """
     Reverse proxy endpoint for MONAI inference POST requests with intelligent caching.
-    
+
     This function handles medical image segmentation inference requests by acting as a proxy
     between the OHIF viewer frontend and Databricks-hosted MONAI models. It implements
     a two-stage process: inference execution and file retrieval, with caching to optimize
     performance for repeated requests on the same image.
-    
+
     Args:
         request (Request): FastAPI request object containing:
             - Form data with 'params' (JSON string with inference parameters)
             - Query parameters including 'image' (image identifier)
             - URL path containing the model name
-    
+
     Returns:
-        Response: 
+        Response:
             - Success: Binary segmentation data as application/octet-stream (uint8 format)
             - Error: JSON error message with 500 status code
-    
+
     Process Flow:
         1. Extract and clean inference parameters from request
         2. Check cache for existing segmentation results
         3. If not cached: Execute inference on Databricks serving endpoint
         4. Retrieve segmentation file content from serving endpoint
         5. Return binary segmentation data to client
-    
+
     Caching Strategy:
         - Uses global cache_segmentations dict keyed by image identifier
         - Stores file_path and params for each processed image
         - Avoids redundant inference calls for the same image
         - Cleans up cache entries on errors
-    
+
     Error Handling:
         - Logs all errors for debugging
         - Removes corrupted cache entries on failure
@@ -277,11 +277,11 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     # Extract and prepare inference parameters
     to_send = json.loads(form_data.get("params"))
     to_send["model"] = str(url).split("/")[2]  # Extract model name from URL path
-    to_send["image"] = q_params["image"]       # Add image identifier from query params
-    
+    to_send["image"] = q_params["image"]  # Add image identifier from query params
+
     # Remove parameters not supported by the backend model
     del to_send["result_compress"]  # TODO fix boolean type in model
-    
+
     # Clean up optional parameters that may cause issues with the model
     if "model_filename" in to_send:
         del to_send["model_filename"]
@@ -315,7 +315,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             res_json = json.loads(file_res.predictions)
             file_path = res_json["file"]
             params = res_json["params"]
-            
+
             # Cache the results for future requests
             cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
         else:

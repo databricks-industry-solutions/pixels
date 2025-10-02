@@ -16,7 +16,14 @@ DICOM_FRAMES_TABLE = "dicom_frames"
 
 
 class LakebaseUtils:
-    def __init__(self, instance_name="pixels-lakebase", capacity="CU_2", user=None, app_sp_id=None, create_instance=False):
+    def __init__(
+        self,
+        instance_name="pixels-lakebase",
+        capacity="CU_2",
+        user=None,
+        app_sp_id=None,
+        create_instance=False,
+    ):
         self.instance_name = instance_name
         self.capacity = capacity
         self.workspace_client = WorkspaceClient()
