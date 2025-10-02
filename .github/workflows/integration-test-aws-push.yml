@@ -31,7 +31,7 @@ jobs:
                 "zone_id": "auto",
                 "availability": "ON_DEMAND"
               },
-              "policy_id": "E05E27B13F0000D6"
+              "policy_id": "E05E27B13F0003A0"
             }
           notebook-params-json: >
             {
