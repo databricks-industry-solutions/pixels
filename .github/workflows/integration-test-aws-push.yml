@@ -31,10 +31,7 @@ jobs:
                 "zone_id": "auto",
                 "availability": "ON_DEMAND"
               },
-              "custom_tags": {
-                "ResourceClass": "JobCluster"
-              },
-              "policy_id": "E05E27B13F0003A0"
+              "policy_id": "E05E27B13F0000D6"
             }
           notebook-params-json: >
             {
