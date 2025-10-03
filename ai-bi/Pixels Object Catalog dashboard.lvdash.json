@@ -107,6 +107,38 @@
         "GROUP BY ALL\n",
         "order by change_time desc"
       ]
+    },
+    {
+      "name": "b589b5b1",
+      "displayName": "object_catalog",
+      "queryLines": [
+        "-- files analysis\n",
+        "SELECT\n",
+        "  meta:['0020000D'].Value[0] StudyInstanceUID,\n",
+        "  meta:['0020000E'].Value[0] SeriesInstanceUID,\n",
+        "  meta:['00200011'].Value[0] SeriesNumber,\n",
+        "  meta:['00200013'].Value[0] InstanceNumber,\n",
+        "  meta:['00080018'].Value[0] SOPInstanceUID,\n",
+        "  * \n",
+        "FROM identifier(:table)"
+      ],
+      "parameters": [
+        {
+          "displayName": "table",
+          "keyword": "table",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "main.pixels_solacc.object_catalog"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "pages": [
@@ -1844,15 +1876,15 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ca4b24b9",
+                  "datasetName": "b589b5b1",
                   "fields": [
                     {
-                      "name": "bin(avg_length, binWidth=5000000)",
-                      "expression": "BIN_FLOOR(`avg_length`, 5000000)"
+                      "name": "bin(length, binWidth=5000000)",
+                      "expression": "BIN_FLOOR(`length`, 5000000)"
                     },
                     {
-                      "name": "count(*)",
-                      "expression": "COUNT(`*`)"
+                      "name": "sum(length)",
+                      "expression": "SUM(`length`)"
                     }
                   ],
                   "disaggregated": false
@@ -1864,17 +1896,16 @@
               "widgetType": "histogram",
               "encodings": {
                 "x": {
-                  "fieldName": "bin(avg_length, binWidth=5000000)",
+                  "fieldName": "bin(length, binWidth=5000000)",
                   "scale": {
                     "type": "quantitative"
                   }
                 },
                 "y": {
-                  "fieldName": "count(*)",
+                  "fieldName": "sum(length)",
                   "scale": {
                     "type": "quantitative"
-                  },
-                  "displayName": "Count of Records"
+                  }
                 }
               },
               "frame": {
@@ -1885,7 +1916,7 @@
           },
           "position": {
             "x": 0,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 6
           }
@@ -1897,11 +1928,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ca4b24b9",
+                  "datasetName": "b589b5b1",
                   "fields": [
                     {
-                      "name": "modificationTime",
-                      "expression": "`modificationTime`"
+                      "name": "weekly(modificationTime)",
+                      "expression": "DATE_TRUNC(\"WEEK\", `modificationTime`)"
                     },
                     {
                       "name": "count(*)",
@@ -1917,11 +1948,10 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "modificationTime",
+                  "fieldName": "weekly(modificationTime)",
                   "scale": {
                     "type": "temporal"
-                  },
-                  "displayName": "modificationTime"
+                  }
                 },
                 "y": {
                   "fieldName": "count(*)",
@@ -1939,7 +1969,7 @@
           },
           "position": {
             "x": 3,
-            "y": 2,
+            "y": 4,
             "width": 3,
             "height": 6
           }
@@ -1958,7 +1988,7 @@
             "x": 0,
             "y": 0,
             "width": 3,
-            "height": 2
+            "height": 4
           }
         },
         {
@@ -1968,26 +1998,11 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "ca4b24b9",
+                  "datasetName": "b589b5b1",
                   "fields": [
                     {
-                      "name": "sum(num_files)",
-                      "expression": "SUM(`num_files`)"
-                    }
-                  ],
-                  "parameterValues": [
-                    {
-                      "keyword": "row_limit",
-                      "selection": {
-                        "values": {
-                          "dataType": "INTEGER",
-                          "values": [
-                            {
-                              "value": "1000000"
-                            }
-                          ]
-                        }
-                      }
+                      "name": "countdistinct(path)",
+                      "expression": "COUNT(DISTINCT `path`)"
                     }
                   ],
                   "disaggregated": false
@@ -1999,7 +2014,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(num_files)"
+                  "fieldName": "countdistinct(path)"
                 }
               },
               "frame": {
@@ -2010,7 +2025,202 @@
           },
           "position": {
             "x": 3,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "0ed6e95e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "fields": [
+                    {
+                      "name": "max(length)",
+                      "expression": "MAX(`length`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "max(length)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "max Length (bytes)"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "944b8a79",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "fields": [
+                    {
+                      "name": "countdistinct(SOPInstanceUID)",
+                      "expression": "COUNT(DISTINCT `SOPInstanceUID`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(SOPInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# SOPInstances"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
             "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "d3225b86",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "fields": [
+                    {
+                      "name": "countdistinct(StudyInstanceUID)",
+                      "expression": "COUNT(DISTINCT `StudyInstanceUID`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(StudyInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Studies"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "aa56e3e3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "fields": [
+                    {
+                      "name": "countdistinct(SeriesInstanceUID)",
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(SeriesInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Series"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "18e24606",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "fields": [
+                    {
+                      "name": "countdistinct(original_path)",
+                      "expression": "COUNT(DISTINCT `original_path`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(original_path)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Original Files (zips)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
             "width": 1,
             "height": 2
           }
