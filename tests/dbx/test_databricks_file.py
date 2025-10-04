@@ -364,51 +364,43 @@ class TestDatabricksFileValidation:
 
     def test_validate_raises_for_invalid_catalog(self):
         """Test validate raises for invalid catalog name."""
-        db_file = DatabricksFile(
-            catalog="main catalog",  # Space is invalid
-            schema="pixels_solacc",
-            volume="pixels_volume",
-            file_path="dicom/image.dcm",
-        )
-
         with pytest.raises(ValueError, match="Invalid catalog name"):
-            db_file.validate()
+            DatabricksFile(
+                catalog="main catalog",  # Space is invalid
+                schema="pixels_solacc",
+                volume="pixels_volume",
+                file_path="dicom/image.dcm",
+            )
 
     def test_validate_raises_for_invalid_schema(self):
         """Test validate raises for invalid schema name."""
-        db_file = DatabricksFile(
-            catalog="main",
-            schema="pixels@solacc",  # @ is invalid
-            volume="pixels_volume",
-            file_path="dicom/image.dcm",
-        )
-
         with pytest.raises(ValueError, match="Invalid schema name"):
-            db_file.validate()
+            DatabricksFile(
+                catalog="main",
+                schema="pixels@solacc",  # @ is invalid
+                volume="pixels_volume",
+                file_path="dicom/image.dcm",
+            )
 
     def test_validate_raises_for_invalid_volume(self):
         """Test validate raises for invalid volume name."""
-        db_file = DatabricksFile(
-            catalog="main",
-            schema="pixels_solacc",
-            volume="pixels volume",  # Space is invalid
-            file_path="dicom/image.dcm",
-        )
-
         with pytest.raises(ValueError, match="Invalid volume name"):
-            db_file.validate()
+            DatabricksFile(
+                catalog="main",
+                schema="pixels_solacc",
+                volume="pixels volume",  # Space is invalid
+                file_path="dicom/image.dcm",
+            )
 
     def test_validate_raises_for_parent_directory_reference(self):
         """Test validate raises for parent directory references."""
-        db_file = DatabricksFile(
-            catalog="main",
-            schema="pixels_solacc",
-            volume="pixels_volume",
-            file_path="../../../etc/passwd",
-        )
-
         with pytest.raises(ValueError, match="cannot contain '..'"):
-            db_file.validate()
+            DatabricksFile(
+                catalog="main",
+                schema="pixels_solacc",
+                volume="pixels_volume",
+                file_path="../../../etc/passwd",
+            )
 
     def test_validate_api_url(self, monkeypatch):
         """Test validate_api_url for valid URL."""
