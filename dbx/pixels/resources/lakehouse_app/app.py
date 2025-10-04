@@ -7,10 +7,10 @@ from pathlib import Path
 
 import httpx
 import uvicorn
+import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
-from requests_toolbelt import MultipartEncoder
 from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -22,8 +22,13 @@ from starlette.responses import (
     RedirectResponse,
     StreamingResponse,
 )
+from utils.pages import config_page
+from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
 
 import dbx.pixels.resources
+import dbx.pixels.version as dbx_pixels_version
+from dbx.pixels.databricks_file import DatabricksFile
+from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("OHIF")
@@ -46,6 +51,8 @@ dataset = ["SmartCacheDataset", "CacheDataset", "PersistentDataset", "Dataset"]
 dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
+lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
+
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
@@ -67,7 +74,11 @@ def get_seg_dest_dir(request: Request):
 
 
 def log(message, request, log_type="info"):
-    email = request.headers.get("X-Forwarded-Email")
+    if request:
+        email = request.headers.get("X-Forwarded-Email")
+    else:
+        email = ""
+
     if log_type == "error":
         logger.error(f"{email} | {message}")
     elif log_type == "debug":
@@ -94,7 +105,10 @@ async def _reverse_proxy_statements(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
         content=json.dumps(body).encode("utf-8"),
     )
 
@@ -104,6 +118,68 @@ async def _reverse_proxy_statements(request: Request):
         status_code=rp_resp.status_code,
         headers=rp_resp.headers,
         background=BackgroundTask(rp_resp.aclose),
+    )
+
+
+async def _reverse_proxy_files_multiframe(request: Request):
+    client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
+    # Replace proxy url with right endpoint
+    url = httpx.URL(
+        path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
+    )
+
+    # Parse and validate the path using DatabricksFile
+    # Validation happens automatically during construction
+    try:
+        # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
+        # Remove the API prefix to get just the Volumes path
+        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
+    except ValueError as e:
+        log(f"Invalid file path: {e}", request, "error")
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
+
+    if "frames" in request.query_params:  # WSI Multi Frame images
+        param_frames = int(request.query_params.get("frames"))
+    elif "frame" in str(url):  # Multi Frame images
+        param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
+        url = str(url).split("&frame=")[0]
+    else:
+        return await _reverse_proxy_files(request)
+
+    results = await run_in_threadpool(
+        lambda: lb_utils.retrieve_frame_range(db_file.full_path, param_frames)
+    )
+
+    frame_metadata = {}
+
+    if results is not None:
+        frame_metadata = results
+    else:
+        # get latest available index
+        results = await run_in_threadpool(
+            lambda: lb_utils.retrieve_max_frame_range(db_file.full_path)
+        )
+
+        max_frame_idx = 0 if results["max_frame_idx"] is None else results["max_frame_idx"]
+        max_start_pos = 0 if results["max_start_pos"] is None else results["max_start_pos"]
+
+        pixels_metadata = await run_in_threadpool(
+            lambda: pixel_frames_from_dcm_metadata_file(
+                request, db_file, param_frames, max_frame_idx, max_start_pos
+            )
+        )
+
+        lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
+
+        frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
+        frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
+
+    frame_content = await run_in_threadpool(lambda: get_file_part(request, db_file, frame_metadata))
+
+    return Response(
+        content=zstd.compress(frame_content),
+        media_type="application/octet-stream",
+        headers={"Content-Encoding": "zstd"},
     )
 
 
@@ -120,7 +196,10 @@ async def _reverse_proxy_files(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
         content=request.stream(),
     )
 
@@ -166,17 +245,59 @@ def _reverse_proxy_monai(request: Request):
 
 
 async def _reverse_proxy_monai_infer_post(request: Request):
+    """
+    Reverse proxy endpoint for MONAI inference POST requests with intelligent caching.
+
+    This function handles medical image segmentation inference requests by acting as a proxy
+    between the OHIF viewer frontend and Databricks-hosted MONAI models. It implements
+    a two-stage process: inference execution and file retrieval, with caching to optimize
+    performance for repeated requests on the same image.
+
+    Args:
+        request (Request): FastAPI request object containing:
+            - Form data with 'params' (JSON string with inference parameters)
+            - Query parameters including 'image' (image identifier)
+            - URL path containing the model name
+
+    Returns:
+        Response:
+            - Success: Binary segmentation data as application/octet-stream (uint8 format)
+            - Error: JSON error message with 500 status code
+
+    Process Flow:
+        1. Extract and clean inference parameters from request
+        2. Check cache for existing segmentation results
+        3. If not cached: Execute inference on Databricks serving endpoint
+        4. Retrieve segmentation file content from serving endpoint
+        5. Return binary segmentation data to client
+
+    Caching Strategy:
+        - Uses global cache_segmentations dict keyed by image identifier
+        - Stores file_path and params for each processed image
+        - Avoids redundant inference calls for the same image
+        - Cleans up cache entries on errors
+
+    Error Handling:
+        - Logs all errors for debugging
+        - Removes corrupted cache entries on failure
+        - Returns structured error responses
+    """
     from mlflow.deployments import get_deploy_client
 
+    # Parse request components
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
     q_params = request.query_params
     form_data = await request.form()
 
+    # Extract and prepare inference parameters
     to_send = json.loads(form_data.get("params"))
-    to_send["model"] = str(url).split("/")[2]
-    to_send["image"] = q_params["image"]
+    to_send["model"] = str(url).split("/")[2]  # Extract model name from URL path
+    to_send["image"] = q_params["image"]  # Add image identifier from query params
+
+    # Remove parameters not supported by the backend model
     del to_send["result_compress"]  # TODO fix boolean type in model
 
+    # Clean up optional parameters that may cause issues with the model
     if "model_filename" in to_send:
         del to_send["model_filename"]
     if "sw_batch_size" in to_send:
@@ -186,50 +307,56 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     if "highres" in to_send:
         del to_send["highres"]
 
+    # Add pixels table information for data access
     to_send["pixels_table"] = get_pixels_table(request)
 
+    # Log the inference request for debugging
     log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
     resp = ""
 
-    # Query the Databricks serving endpoint
+    # Execute inference with caching and error handling
     try:
+        # Check if segmentation already exists in cache
         if q_params["image"] not in cache_segmentations:
+            # Cache miss: Execute new inference request
             file_res = await run_in_threadpool(
                 lambda: get_deploy_client("databricks").predict(
                     endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
                 )
             )
 
+            # Parse inference response to get file location and parameters
             res_json = json.loads(file_res.predictions)
-
             file_path = res_json["file"]
             params = res_json["params"]
+
+            # Cache the results for future requests
             cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
         else:
+            # Cache hit: Retrieve existing file path and parameters
             file_path = cache_segmentations[q_params["image"]]["file_path"]
             params = cache_segmentations[q_params["image"]]["params"]
 
+        # Retrieve the actual segmentation file content
         file_content = await run_in_threadpool(
             lambda: get_deploy_client("databricks").predict(
-                endpoint=serving_endpoint, inputs={"inputs": {"input": {"get_file": file_path}}}
+                endpoint=serving_endpoint,
+                inputs={"inputs": {"input": {"get_file": file_path, "result_dtype": "uint8"}}},
             )
         )
 
-        res_fields = dict()
-        res_fields["params"] = (None, json.dumps(params), "application/json")
-        res_fields["image"] = (
-            file_path,
-            base64.b64decode(json.loads(file_content.predictions)["file_content"]),
-            "application/octet-stream",
+        # Decode and return the binary segmentation data
+        return Response(
+            content=base64.b64decode(json.loads(file_content.predictions)["file_content"]),
+            media_type="application/octet-stream",
         )
-
-        return_message = MultipartEncoder(fields=res_fields)
-        return Response(content=return_message.to_string(), media_type=return_message.content_type)
     except Exception as e:
+        # Log error and clean up corrupted cache entry
         log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
 
+        # Remove potentially corrupted cache entry
         if q_params["image"] in cache_segmentations:
             del cache_segmentations[q_params["image"]]
 
@@ -370,62 +497,33 @@ async def local_redirect_monai(request: Request):
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"]
 )
-app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
+app.add_route(
+    "/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files_multiframe, ["GET", "PUT"]
+)
+app.add_route(
+    "/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_multiframe, ["GET"]
+)
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
 app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
 app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsample_post, ["POST"])
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
+app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
+
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
+app.mount(
+    "/dicom-microscopy-viewer/",
+    DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True),
+    name="dicom-microscopy-viewer",
+)
 
 
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request):
     pixels_table = get_pixels_table(request)
     seg_dest_dir = get_seg_dest_dir(request)
-    return f"""
-    <html>
-        <head>
-            <title>Pixels Solution Accelerator</title>
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/vendor-jquery.5c80d7f6.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/70577.563792a4.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/59976.a356be26.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/62569.22f26a3b.chunk.css" crossorigin="anonymous">
-            <script>document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/monai/; Path=/ohif; Expires=Session;"</script>
-        </head>
-        <body class="light-mode dark-mode-supported">
-        <uses-legacy-bootstrap>
-            <div id="login-page">
-                <div>
-                    <div id="login-container" class="container">
-                    <img src="https://{os.environ['DATABRICKS_HOST']}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
-                        <div class="login-form" style="min-width:600px">
-                            <h3 class="sub-header">Pixels Solution Accelerator</h3>
-                            <div class="tab-child">
-                            <p class="instructions">This form allows you to customize some configurations of the ohif viewer.</p>
-                            <form action="/set_cookie" id="config" method="post">
-                                <p class="instructions">Select your preferred pixels catalog table.</p>
-                                <input type="text" id="pixels_table" name="pixels_table" value="{pixels_table}" style="width:100%" required>
-                                <p class="instructions">Choose the destination directory for the ohif segmentation and measurements results.</p>
-                                <input type="text" id="seg_dest_dir" name="seg_dest_dir" value="{seg_dest_dir}" style="width:100%" required>
-                                <p class="instructions">Only Volumes are supported</p>
-                                <button name="path" value="/ohif/" class="btn btn-primary btn-large" type="submit">Confirm</button>
-                                <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
-
-                                <div style="justify-content: center;display: flex; white-space: pre"><a href="https://{os.environ['DATABRICKS_HOST']}" target="_blank" rel="noopener noreferrer">Workspace</a> | <a href="https://{os.environ['DATABRICKS_HOST']}/apps/{os.environ['DATABRICKS_APP_NAME']}/logs" target="_blank" rel="noopener noreferrer">Logs</a></div>
-                            </div>
-                            </form>
-                            </div>
-                        </div>
-                    <div class="terms-of-service-footer"><a href="https://databricks.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> | <a href="https://databricks.com/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a></div><div style="margin: 20px auto; text-align: center;">
-                    </div>
-                </div>
-            </div>
-        </uses-legacy-bootstrap>
-        </body>
-    </html>
-    """
+    return config_page(pixels_table, seg_dest_dir)
 
 
 @app.post("/set_cookie")

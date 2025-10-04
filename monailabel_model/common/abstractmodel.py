@@ -32,6 +32,7 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.model_name = "GENERIC"
         self.label_dict = None
+        self.labels = None
 
         self.volumes_compatible = volumes_compatible
 
@@ -62,6 +63,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
             "table": os.environ["DATABRICKS_PIXELS_TABLE"]
         }
 
+        if self.labels is not None:
+            self.conf['labels'] = self.labels
+
         if "MONAI_BUNDLES" in os.environ:
             self.conf['bundles'] = os.environ["MONAI_BUNDLES"]
             self.model_name = os.environ["MONAI_BUNDLES"]
@@ -72,19 +76,19 @@ class DBModel(mlflow.pyfunc.PythonModel):
 
         self.dest_dir = os.environ["DEST_DIR"]
 
-        self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
-
         self.token_expiration: Optional[datetime.datetime] = None
-        
-        if self.label_dict is None:
-            labels = self.app.info()["models"][self.model_name]['labels']
-            self.label_dict = {v: k for k, v in labels.items()}
+
+        self.app = DBMONAILabelApp(self.app_dir, self.studies, self.conf)
 
         if "DATABRICKS_SCOPE" in os.environ and "CLIENT_APP_ID" in os.environ and "CLIENT_SECRET" in os.environ:
             self.logger.warning(f"Service principal credentials found. Will use service principal to authenticate.")
             self.refresh_token()
         else:
             self.logger.warning(f"No service principal credentials found. Will fallback to PAT.")
+
+        if self.label_dict is None:
+            labels = self.app.info()["models"][self.model_name]['labels']
+            self.label_dict = {v: k for k, v in labels.items()}
 
     def refresh_token(self):
         token = create_token_from_service_principal(os.environ["DATABRICKS_HOST"], os.environ["DATABRICKS_SCOPE"], os.environ["CLIENT_APP_ID"], os.environ["CLIENT_SECRET"])
