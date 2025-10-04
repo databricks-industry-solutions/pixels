@@ -27,6 +27,7 @@ from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_f
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
+from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 
@@ -127,6 +128,17 @@ async def _reverse_proxy_files_multiframe(request: Request):
         path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
     )
 
+    # Parse and validate the path using DatabricksFile
+    # Validation happens automatically during construction
+    try:
+        # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
+        # Remove the API prefix to get just the Volumes path
+        volume_path = url.path.replace("/api/2.0/fs/files/", "").replace("/files/", "")
+        db_file = DatabricksFile.from_full_path(volume_path)
+    except ValueError as e:
+        log(f"Invalid file path: {e}", request, "error")
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
+
     if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
     elif "frame" in str(url):  # Multi Frame images
@@ -150,7 +162,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(
-                request, url, param_frames, max_frame_idx, max_start_pos
+                request, db_file, param_frames, max_frame_idx, max_start_pos
             )
         )
 
@@ -159,7 +171,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
 
-    frame_content = await run_in_threadpool(lambda: get_file_part(request, url, frame_metadata))
+    frame_content = await run_in_threadpool(lambda: get_file_part(request, db_file, frame_metadata))
 
     return Response(
         content=zstd.compress(frame_content),
