@@ -133,8 +133,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
     try:
         # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
         # Remove the API prefix to get just the Volumes path
-        volume_path = url.path.replace("/api/2.0/fs/files/", "").replace("/files/", "")
-        db_file = DatabricksFile.from_full_path(volume_path)
+        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
     except ValueError as e:
         log(f"Invalid file path: {e}", request, "error")
         raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
