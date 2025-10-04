@@ -156,8 +156,8 @@ async def _reverse_proxy_files_multiframe(request: Request):
         # get latest available index
         results = await run_in_threadpool(lambda: lb_utils.retrieve_max_frame_range(db_file.full_path))
 
-        max_frame_idx = results["max_frame_idx"]
-        max_start_pos = results["max_start_pos"]
+        max_frame_idx = 0 if results["max_frame_idx"] is None else results["max_frame_idx"]
+        max_start_pos = 0 if results["max_start_pos"] is None else results["max_start_pos"]
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(

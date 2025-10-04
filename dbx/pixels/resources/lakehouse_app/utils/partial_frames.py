@@ -124,6 +124,7 @@ def pixel_frames_from_dcm_metadata_file(
                         "frame_size": item_length,
                         "start_pos": start_pos,
                         "end_pos": end_pos,
+                        "pixel_data_pos": pixel_data_pos
                     }
                 )
 
@@ -141,6 +142,7 @@ def pixel_frames_from_dcm_metadata_file(
                         "frame_size": item_length,
                         "start_pos": pixel_data_pos + offset,
                         "end_pos": pixel_data_pos + offset + item_length - 1,
+                        "pixel_data_pos": pixel_data_pos
                     }
                 )
 
