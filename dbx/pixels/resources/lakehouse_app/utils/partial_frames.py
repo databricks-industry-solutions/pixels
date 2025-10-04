@@ -77,8 +77,10 @@ def pixel_frames_from_dcm_metadata_file(
     frames = []
 
     client_kwargs = {
-        "headers": {"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
-        "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        "headers": {
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}"
+        },
     }
 
     with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
