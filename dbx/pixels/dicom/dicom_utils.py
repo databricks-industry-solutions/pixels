@@ -62,7 +62,7 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
         if "7FE00010" in js:
             del js["7FE00010"]
         a = check_pixel_data(ds)
-    
+
     if deep and a is not None:
         a.flags.writeable = False
         js["has_pixel"] = True
