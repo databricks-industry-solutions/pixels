@@ -311,7 +311,7 @@ class DatabricksM2MAuth:
         # Grant USE CATALOG permissions on CATALOG
         self.workspace_client.grants.update(
             full_name=table.split(".")[0],
-            securable_type=catalog.SecurableType.CATALOG,
+            securable_type="catalog",
             changes=[
                 catalog.PermissionsChange(
                     add=[catalog.Privilege.USE_CATALOG], principal=self.client_app_id
@@ -322,7 +322,7 @@ class DatabricksM2MAuth:
         # Grant USE SCHEMA permissions on SCHEMA
         self.workspace_client.grants.update(
             full_name=table.split(".")[0] + "." + table.split(".")[1],
-            securable_type=catalog.SecurableType.SCHEMA,
+            securable_type="schema",
             changes=[
                 catalog.PermissionsChange(
                     add=[catalog.Privilege.USE_SCHEMA], principal=self.client_app_id
@@ -333,7 +333,7 @@ class DatabricksM2MAuth:
         # Grant All permissions on TABLE
         self.workspace_client.grants.update(
             full_name=table,
-            securable_type=catalog.SecurableType.TABLE,
+            securable_type="table",
             changes=[
                 catalog.PermissionsChange(
                     add=[catalog.Privilege.ALL_PRIVILEGES], principal=self.client_app_id
@@ -344,7 +344,7 @@ class DatabricksM2MAuth:
         # Grant All permissions on VOLUME
         self.workspace_client.grants.update(
             full_name=volume,
-            securable_type=catalog.SecurableType.VOLUME,
+            securable_type="volume",
             changes=[
                 catalog.PermissionsChange(
                     add=[catalog.Privilege.ALL_PRIVILEGES], principal=self.client_app_id

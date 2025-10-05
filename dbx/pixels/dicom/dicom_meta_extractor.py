@@ -14,7 +14,7 @@ class DicomMetaExtractor(Transformer):
 
     # Day extractor inherit of property of Transformer
     def __init__(
-        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=True
+        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=False
     ):
         self.inputCol = inputCol  # the name of your columns
         self.outputCol = outputCol  # the name of your output column
