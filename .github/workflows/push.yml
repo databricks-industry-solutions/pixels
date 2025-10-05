@@ -27,7 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         make dev
     - name: Run linting (linter, code style)
-      run: make style
+      run: |
+        source .venv/bin/activate
+        make style
     - name: Install dependencies
       run: |
         pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release

@@ -1,40 +1,89 @@
-import os
 import struct
 
 import fsspec
 import pydicom
 import requests
 
+import dbx.pixels.version as dbx_pixels_version
+from dbx.pixels.databricks_file import DatabricksFile
 
-def get_file_part(request, file_path, frame=None):
-    file_url = f"https://{os.environ['DATABRICKS_HOST']}/{file_path}"
+"""
+Utility functions for handling partial frame extraction from DICOM files in Databricks Volumes.
+
+This module provides helper functions to:
+- Retrieve specific byte ranges (frames) from files stored in Databricks Volumes using REST API calls.
+- Parse DICOM metadata and extract pixel frame information efficiently, supporting both compressed and uncompressed formats.
+- Support partial reading and indexing of large DICOM files for scalable image processing.
+- Validate file paths using DatabricksFile for security and correctness.
+
+Functions:
+    - get_file_part: Retrieve a specific byte range from a file in Databricks Volumes.
+    - pixel_frames_from_dcm_metadata_file: Extract pixel frame metadata from a DICOM file, supporting partial reads.
+
+Typical usage example:
+    content = get_file_part(request, db_file, frame=frame_info)
+    frames = pixel_frames_from_dcm_metadata_file(request, db_file, frame_limit, last_indexed_frame, last_indexed_start_pos)
+"""
+
+
+def get_file_part(request, db_file: DatabricksFile, frame=None):
+    """
+    Retrieve a specific byte range (optionally a frame) from a file in Databricks Volumes.
+
+    Args:
+        request: The HTTP request object containing headers (used for authentication).
+        db_file (DatabricksFile): The DatabricksFile instance representing the file.
+        frame (dict, optional): Dictionary with 'start_pos' and 'end_pos' keys specifying the byte range to retrieve.
+
+    Returns:
+        bytes: The content of the requested file part (or frame).
+
+    Raises:
+        Exception: If the file part cannot be retrieved (non-200/206 response).
+    """
+    file_url = db_file.to_api_url()
 
     headers = {
         "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+        "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
     }
     if frame is not None:
         headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
 
     response = requests.get(file_url, headers=headers)
     if response.status_code != 206 and response.status_code != 200:
-        raise Exception(f"Failed to retrieve frame {frame} from {file_path}")
+        raise Exception(f"Failed to retrieve frame {frame} from {db_file.file_path}")
     return response.content
 
 
 def pixel_frames_from_dcm_metadata_file(
-    request, f_path, frame_limit, last_indexed_frame, last_indexed_start_pos
+    request, db_file: DatabricksFile, frame_limit, last_indexed_frame, last_indexed_start_pos
 ):
+    """
+    Extract pixel frame metadata from a DICOM file, supporting partial reads.
+
+    Args:
+        request: The HTTP request object containing headers (used for authentication).
+        db_file (DatabricksFile): The DatabricksFile instance representing the DICOM file.
+        frame_limit (int): The maximum index number of the frame to extract.
+        last_indexed_frame (int): The last indexed frame index.
+        last_indexed_start_pos (int): The last indexed start position.
+
+    Returns:
+        dict: Dictionary containing frame metadata and image dimensions.
+    """
     pixel_data_delimiter = b"\xe0\x7f\x10\x00"
     frame_delimeter = b"\xfe\xff\x00\xe0"
     frames = []
 
     client_kwargs = {
-        "headers": {"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")}
+        "headers": {
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
     }
 
-    with fsspec.open(
-        f"https://{os.environ['DATABRICKS_HOST']}/{f_path}", "rb", client_kwargs=client_kwargs
-    ) as f:
+    with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
         ds = pydicom.dcmread(f, stop_before_pixels=True)
         is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
 
@@ -75,7 +124,7 @@ def pixel_frames_from_dcm_metadata_file(
                         "frame_size": item_length,
                         "start_pos": start_pos,
                         "end_pos": end_pos,
-                        "pixel_data_pos": pixel_data_pos
+                        "pixel_data_pos": pixel_data_pos,
                     }
                 )
 
@@ -93,7 +142,7 @@ def pixel_frames_from_dcm_metadata_file(
                         "frame_size": item_length,
                         "start_pos": pixel_data_pos + offset,
                         "end_pos": pixel_data_pos + offset + item_length - 1,
-                        "pixel_data_pos": pixel_data_pos
+                        "pixel_data_pos": pixel_data_pos,
                     }
                 )
 

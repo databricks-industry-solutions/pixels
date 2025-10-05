@@ -26,6 +26,8 @@ from utils.pages import config_page
 from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
 
 import dbx.pixels.resources
+import dbx.pixels.version as dbx_pixels_version
+from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 
@@ -33,7 +35,8 @@ logger = LoggerProvider("OHIF")
 
 cfg = Config()
 
-warehouse_id = os.environ["DATABRICKS_WAREHOUSE_ID"]
+warehouse_id = os.getenv("DATABRICKS_WAREHOUSE_ID", None)
+assert warehouse_id is not None, "[DATABRICKS_WAREHOUSE_ID] is not set, check app.yml"
 
 if "MONAI_SERVING_ENDPOINT" in os.environ:
     serving_endpoint = os.environ["MONAI_SERVING_ENDPOINT"]
@@ -49,9 +52,6 @@ dataloader = ["ThreadDataLoader", "DataLoader"]
 tracking = ["mlflow", ""]
 
 lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
-
-if "STARTUP_CLEANUP" in os.environ and os.environ["STARTUP_CLEANUP"] == "True":
-    lb_utils.execute_query(f"TRUNCATE TABLE {os.getenv('LAKEBASE_DICOM_FRAMES_TABLE')}")
 
 app = FastAPI(title="Pixels")
 
@@ -105,7 +105,10 @@ async def _reverse_proxy_statements(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
         content=json.dumps(body).encode("utf-8"),
     )
 
@@ -124,7 +127,26 @@ async def _reverse_proxy_files_multiframe(request: Request):
     url = httpx.URL(
         path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
     )
-    str_url = str(url)
+
+    # Parse and validate the path using DatabricksFile
+    # Validation happens automatically during construction
+    try:
+        # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
+        # Remove the API prefix to get just the Volumes path
+        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
+    except ValueError as e:
+        log(f"Invalid file path: {e}", request, "error")
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
+
+    # Parse and validate the path using DatabricksFile
+    # Validation happens automatically during construction
+    try:
+        # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
+        # Remove the API prefix to get just the Volumes path
+        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
+    except ValueError as e:
+        log(f"Invalid file path: {e}", request, "error")
+        raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
 
     if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
@@ -134,7 +156,9 @@ async def _reverse_proxy_files_multiframe(request: Request):
     else:
         return await _reverse_proxy_files(request)
 
-    results = await run_in_threadpool(lambda: lb_utils.retrieve_frame_range(str_url, param_frames))
+    results = await run_in_threadpool(
+        lambda: lb_utils.retrieve_frame_range(db_file.full_path, param_frames)
+    )
 
     frame_metadata = {}
 
@@ -142,23 +166,25 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = results
     else:
         # get latest available index
-        results = await run_in_threadpool(lambda: lb_utils.retrieve_max_frame_range(str_url))
+        results = await run_in_threadpool(
+            lambda: lb_utils.retrieve_max_frame_range(db_file.full_path)
+        )
 
         max_frame_idx = 0 if results["max_frame_idx"] is None else results["max_frame_idx"]
         max_start_pos = 0 if results["max_start_pos"] is None else results["max_start_pos"]
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(
-                request, str_url, param_frames, max_frame_idx, max_start_pos
+                request, db_file, param_frames, max_frame_idx, max_start_pos
             )
         )
 
-        lb_utils.insert_frame_ranges(str_url, pixels_metadata["frames"])
+        lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
 
-    frame_content = await run_in_threadpool(lambda: get_file_part(request, str_url, frame_metadata))
+    frame_content = await run_in_threadpool(lambda: get_file_part(request, db_file, frame_metadata))
 
     return Response(
         content=zstd.compress(frame_content),
@@ -180,7 +206,10 @@ async def _reverse_proxy_files(request: Request):
     rp_req = client.build_request(
         request.method,
         url,
-        headers={"Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token")},
+        headers={
+            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
         content=request.stream(),
     )
 
@@ -226,17 +255,59 @@ def _reverse_proxy_monai(request: Request):
 
 
 async def _reverse_proxy_monai_infer_post(request: Request):
+    """
+    Reverse proxy endpoint for MONAI inference POST requests with intelligent caching.
+
+    This function handles medical image segmentation inference requests by acting as a proxy
+    between the OHIF viewer frontend and Databricks-hosted MONAI models. It implements
+    a two-stage process: inference execution and file retrieval, with caching to optimize
+    performance for repeated requests on the same image.
+
+    Args:
+        request (Request): FastAPI request object containing:
+            - Form data with 'params' (JSON string with inference parameters)
+            - Query parameters including 'image' (image identifier)
+            - URL path containing the model name
+
+    Returns:
+        Response:
+            - Success: Binary segmentation data as application/octet-stream (uint8 format)
+            - Error: JSON error message with 500 status code
+
+    Process Flow:
+        1. Extract and clean inference parameters from request
+        2. Check cache for existing segmentation results
+        3. If not cached: Execute inference on Databricks serving endpoint
+        4. Retrieve segmentation file content from serving endpoint
+        5. Return binary segmentation data to client
+
+    Caching Strategy:
+        - Uses global cache_segmentations dict keyed by image identifier
+        - Stores file_path and params for each processed image
+        - Avoids redundant inference calls for the same image
+        - Cleans up cache entries on errors
+
+    Error Handling:
+        - Logs all errors for debugging
+        - Removes corrupted cache entries on failure
+        - Returns structured error responses
+    """
     from mlflow.deployments import get_deploy_client
 
+    # Parse request components
     url = httpx.URL(path=request.url.path.replace("/monai/", "/"))
     q_params = request.query_params
     form_data = await request.form()
 
+    # Extract and prepare inference parameters
     to_send = json.loads(form_data.get("params"))
-    to_send["model"] = str(url).split("/")[2]
-    to_send["image"] = q_params["image"]
+    to_send["model"] = str(url).split("/")[2]  # Extract model name from URL path
+    to_send["image"] = q_params["image"]  # Add image identifier from query params
+
+    # Remove parameters not supported by the backend model
     del to_send["result_compress"]  # TODO fix boolean type in model
 
+    # Clean up optional parameters that may cause issues with the model
     if "model_filename" in to_send:
         del to_send["model_filename"]
     if "sw_batch_size" in to_send:
@@ -246,30 +317,38 @@ async def _reverse_proxy_monai_infer_post(request: Request):
     if "highres" in to_send:
         del to_send["highres"]
 
+    # Add pixels table information for data access
     to_send["pixels_table"] = get_pixels_table(request)
 
+    # Log the inference request for debugging
     log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
     resp = ""
 
-    # Query the Databricks serving endpoint
+    # Execute inference with caching and error handling
     try:
+        # Check if segmentation already exists in cache
         if q_params["image"] not in cache_segmentations:
+            # Cache miss: Execute new inference request
             file_res = await run_in_threadpool(
                 lambda: get_deploy_client("databricks").predict(
                     endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
                 )
             )
 
+            # Parse inference response to get file location and parameters
             res_json = json.loads(file_res.predictions)
-
             file_path = res_json["file"]
             params = res_json["params"]
+
+            # Cache the results for future requests
             cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
         else:
+            # Cache hit: Retrieve existing file path and parameters
             file_path = cache_segmentations[q_params["image"]]["file_path"]
             params = cache_segmentations[q_params["image"]]["params"]
 
+        # Retrieve the actual segmentation file content
         file_content = await run_in_threadpool(
             lambda: get_deploy_client("databricks").predict(
                 endpoint=serving_endpoint,
@@ -277,14 +356,17 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             )
         )
 
+        # Decode and return the binary segmentation data
         return Response(
             content=base64.b64decode(json.loads(file_content.predictions)["file_content"]),
             media_type="application/octet-stream",
         )
     except Exception as e:
+        # Log error and clean up corrupted cache entry
         log(e, request, "error")
         resp = {"message": f"Error querying model: {e}"}
 
+        # Remove potentially corrupted cache entry
         if q_params["image"] in cache_segmentations:
             del cache_segmentations[q_params["image"]]
 
