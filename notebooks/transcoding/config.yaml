@@ -1,0 +1,6 @@
+# for compression tests
+input_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0.dcm
+output_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0_{compression}.dcm
+table: hls_radiology.alpha.object_catalog
+volume: hls_radiology.alpha.pixels_volume
+write_mode: append
