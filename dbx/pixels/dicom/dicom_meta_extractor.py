@@ -14,7 +14,7 @@ class DicomMetaExtractor(Transformer):
 
     # Day extractor inherit of property of Transformer
     def __init__(
-        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=True
+        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=False
     ):
         self.inputCol = inputCol  # the name of your columns
         self.outputCol = outputCol  # the name of your output column
@@ -65,7 +65,8 @@ class DicomMetaExtractor(Transformer):
                 fp, fsize = cloud_open(path, anon)
                 with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
                     meta_js = extract_metadata(dataset, deep)
-                    meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
+                    if deep:
+                        meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
                     return json.dumps(meta_js)
             except Exception as err:
