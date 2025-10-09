@@ -9,21 +9,33 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text(name='golden_data',
-                     defaultValue='hls_radiology.tcia.phi_detection_golden',
-                     label = '0. Golden Dataset')
+dbutils.widgets.text(
+  name='golden_data',
+  defaultValue='hls_radiology.tcia.phi_detection_golden',
+  label = '0. Golden Dataset'
+)
 golden_data = dbutils.widgets.get('golden_data')
 
-dbutils.widgets.dropdown(name='endpoint',
-                     defaultValue='databricks-gpt-oss-120b',
-                     choices = sorted([ 'databricks-gpt-oss-20b',
-                                        'databricks-gpt-oss-120b',
-                                        'databricks-gemma-3-12b',
-                                        'databricks-llama-4-maverick',
-                                        'databricks-meta-llama-3-3-70b-instruct',
-                                        'databricks-meta-llama-3-1-8b-instruct']),
-                     label = '1. Endpoint')
+dbutils.widgets.dropdown(
+  name='endpoint',
+  defaultValue='databricks-gpt-oss-120b',
+  choices = sorted([ 'databricks-gpt-oss-20b',
+                    'databricks-gpt-oss-120b',
+                    'databricks-gemma-3-12b',
+                    'databricks-llama-4-maverick',
+                    'databricks-meta-llama-3-3-70b-instruct',
+                    'databricks-meta-llama-3-1-8b-instruct']),
+  label = '1. Endpoint'
+)
 endpoint = dbutils.widgets.get('endpoint')
+
+dbutils.widgets.text(
+  name='max_queries',
+  defaultValue="100",
+  label='2. Maximum queries allowed (ie, row limit for ai_query())'
+)
+
+max_queries = int(dbutils.widgets.get('max_queries'))
 
 # COMMAND ----------
 
@@ -83,7 +95,7 @@ query = f"""
       SELECT *,
             REPLACE('{prompt}', '{{metadata}}', CAST(metadata AS STRING)) AS prompt
       FROM {golden_data}
-      LIMIT 100
+      LIMIT {max_queries}
   )
   SELECT *,
         ai_query(
