@@ -1,7 +1,0 @@
-env:
-  - name: "DATABRICKS_WAREHOUSE_ID"
-    valueFrom: "sql_warehouse"
-  - name: "MONAI_SERVING_ENDPOINT"
-    valueFrom: "serving_endpoint"
-  - name: "DATABRICKS_PIXELS_TABLE"
-    value: "main.pixels_solacc.object_catalog"

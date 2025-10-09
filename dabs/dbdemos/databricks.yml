@@ -1,0 +1,54 @@
+bundle:
+  name: pixels-demo
+
+# These are any additional configuration files to include.
+include:
+  - targets.yml
+  - resources-*.yml
+
+workspace:
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/my-envs/${bundle.target}
+
+variables:
+  # Project name - replace with your solution accelerator name
+  project_name:
+    description: "DICOM Medical Imaging dbdemo"
+    default: "pixels"
+
+  catalog:
+    description: "Catalog containing the Pixels object_catalog table"
+    default: "main"
+
+  schema:
+    description: "Schema containing the Pixels object_catalog table"
+    default: "pixels_solacc"
+
+  table:
+    default: "main.pixels_solacc.object_catalog"
+ 
+  volume:
+    default: "pixels_volume"
+
+  serving_endpoint_name:
+    default: pixels-monai-uc
+
+  # The "sql_warehouse" variable is used to reference the warehouse used by the dashboard.
+  sql_warehouse:
+    lookup:
+      # Replace this with the name of your SQL warehouse.
+      warehouse: "Serverless Starter Warehouse"
+      
+  # Environment variable used for deployment paths
+  environment:
+    description: "Deployment environment (dev, staging, prod)"
+    default: "dev"
+
+
+# These are any additional files or paths to include or exclude.
+sync:
+  paths:
+    - ../..
+  exclude:
+    - ../../images/*.gif
+    - ../../monailabel_model/vista3d/code/vista3d_bundle/vista3d/**/*
+    - ../../monailabel_model/vista3d/code/vista3d_bundle/assets/**/*

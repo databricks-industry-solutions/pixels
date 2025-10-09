@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade databricks-sdk==0.56.0 -q
+# MAGIC %pip install --upgrade databricks-sdk==0.60.0 psycopg[binary,pool] fsspec -q
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -25,7 +25,8 @@
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
-app_name = "pixels-ohif-viewer"
+app_name = "pixels-ohif-viewer-3-10"
+lakebase_instance_name = "pixels-lb-1"
 serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()
@@ -55,10 +56,29 @@ w = WorkspaceClient()
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC # Create Lakebase DB and DICOM_FRAMES table
+
+# COMMAND ----------
+
+import dbx
+from dbx.pixels.lakebase import LakebaseUtils
+lb_utils = LakebaseUtils(instance_name=lakebase_instance_name)
+
+path = os.path.dirname(dbx.pixels.__file__)
+sql_base_path = f"{path}/resources/sql/lakebase"
+
+file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
+with open(file_path, "r") as file:
+    lb_utils.execute_query(file.read())
+
+# COMMAND ----------
+
 from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission, App, AppDeployment
 
 from pathlib import Path
 import dbx.pixels.resources
+import os
 
 # Check if the lakehouse app has already been created
 if app_name in [app.name for app in w.apps.list()]:
@@ -69,11 +89,12 @@ else:
   path = Path(dbx.pixels.__file__).parent
   lha_path = (f"{path}/resources/lakehouse_app")
 
-  with open(f"{lha_path}/app-config.yaml", "r") as config_input:
-          with open(f"{lha_path}/app.yaml", "w") as config_custom:
+  with open(f"{lha_path}/app-config.yml", "r") as config_input:
+          with open(f"{lha_path}/app.yml", "w") as config_custom:
               config_custom.write(
                   config_input.read()
                   .replace("{PIXELS_TABLE}", table)
+                  .replace("{LAKEBASE_INSTANCE_NAME}", lakebase_instance_name)
               )
 
   resources = []
@@ -123,9 +144,14 @@ app_instance = w.apps.get(app_name)
 last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
 service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
 
+#Grant permissions to the App's SP
+role = lb_utils.get_or_create_sp_role(service_principal_id)
+lb_utils.execute_query(f'GRANT SELECT, INSERT, TRUNCATE ON dicom_frames TO "{role.name}"')
+
+
 #Grant USE CATALOG permissions on CATALOG
 w.grants.update(full_name=table.split(".")[0],
-  securable_type=catalog.SecurableType.CATALOG,
+  securable_type="catalog",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_CATALOG],
@@ -136,7 +162,7 @@ w.grants.update(full_name=table.split(".")[0],
 
 #Grant USE SCHEMA permissions on SCHEMA
 w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
-  securable_type=catalog.SecurableType.SCHEMA,
+  securable_type="schema",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.USE_SCHEMA],
@@ -147,7 +173,7 @@ w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
 
 #Grant ALL PRIVILEGES permissions on TABLE
 w.grants.update(full_name=table,
-  securable_type=catalog.SecurableType.TABLE,
+  securable_type="table",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],
@@ -158,7 +184,7 @@ w.grants.update(full_name=table,
 
 #Grant ALL PRIVILEGES permissions on VOLUME
 w.grants.update(full_name=volume,
-  securable_type=catalog.SecurableType.VOLUME,
+  securable_type="volume",
   changes=[
     catalog.PermissionsChange(
       add=[catalog.Privilege.ALL_PRIVILEGES],

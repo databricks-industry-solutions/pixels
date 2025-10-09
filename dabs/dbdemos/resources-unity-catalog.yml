@@ -1,0 +1,21 @@
+resources:
+  schemas:
+    pixels_schema:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: 'This schema created by Pixels dbdemos'
+      grants:
+        - privileges:
+          - SELECT
+          principal: "account users"
+  
+  volumes:
+    pixels_volume:
+      name: ${var.volume}
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      comment: "Store segmentation files"
+      grants:
+        - privileges:
+          - READ_VOLUME
+          principal: "account users"
