@@ -29,13 +29,34 @@ DEFAULT_FP_KEY = "00112233445566778899aabbccddeeff"
 DEFAULT_FP_TWEAK = "a1b2c3d4e5f60708"
 
 
+def requires_spark(request):
+    """
+    Check if the current test requires Spark.
+    Tests can be marked with @pytest.mark.spark to indicate they need Spark.
+    """
+    return request.node.get_closest_marker("spark") is not None
+
+
+def requires_databricks_setup(request):
+    """
+    Check if the current test requires Databricks database/volume setup.
+    Tests can be marked with @pytest.mark.databricks_setup to indicate they need DB setup.
+    """
+    return request.node.get_closest_marker("databricks_setup") is not None
+
+
 @pytest.fixture(scope="session")
-def spark() -> SparkSession:
+def spark(request) -> SparkSession:
     """
     Create a SparkSession (the entry point to Spark functionality) on
     the cluster in the remote Databricks workspace. Unit tests do not
     have access to this SparkSession by default.
+    
+    Only creates a session if the test is marked with @pytest.mark.spark.
     """
+    if not requires_spark(request):
+        pytest.skip("Spark not required for this test")
+    
     sparkSession = DatabricksSession.builder.getOrCreate()
 
     if os.path.exists("./wheels/databricks_pixels.zip"):
@@ -43,13 +64,17 @@ def spark() -> SparkSession:
     return sparkSession
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_teardown_database(spark: SparkSession):
+@pytest.fixture(scope="session")
+def setup_teardown_database(request, spark: SparkSession):
     """
     Session-scoped fixture that creates the database and volume at the start of the test session
     and drops them after all tests are completed.
+    
+    Only runs for tests marked with @pytest.mark.databricks_setup.
     """
-
+    if not requires_databricks_setup(request):
+        pytest.skip("Databricks setup not required for this test")
+    
     print("CREATING VOLUME AND SCHEMA")
 
     # Setup: Create database and volume
@@ -63,11 +88,16 @@ def setup_teardown_database(spark: SparkSession):
     # Drop database
     spark.sql(f"DROP DATABASE IF EXISTS {CATALOG}.{SCHEMA} CASCADE")
 
-@pytest.fixture(autouse=True)
-def cleanup_after_test(spark: SparkSession):
+
+@pytest.fixture
+def cleanup_after_test(request, spark: SparkSession):
     """
     Function-scoped fixture that cleans up tables and folders before each test.
+    
+    Only runs for tests marked with @pytest.mark.databricks_setup.
     """
+    if not requires_databricks_setup(request):
+        pytest.skip("Databricks cleanup not required for this test")
 
     print("CLEANING TABLES AND FOLDERS")
     

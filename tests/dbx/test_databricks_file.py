@@ -152,6 +152,17 @@ class TestDatabricksFileFromUrl:
         assert db_file.volume == "pixels_volume"
         assert db_file.file_path == "dicom/image.dcm"
 
+    def test_from_url_basic_frame(self):
+        """Test parsing a basic API URL."""
+        db_file = DatabricksFile.from_url(
+            "https://myworkspace.databricks.com/api/2.0/fs/files/Volumes/main/pixels_solacc/pixels_volume/dicom/image.dcm&frame=1"
+        )
+
+        assert db_file.catalog == "main"
+        assert db_file.schema == "pixels_solacc"
+        assert db_file.volume == "pixels_volume"
+        assert db_file.file_path == "dicom/image.dcm"
+
     def test_from_url_invalid_format_raises(self):
         """Test that invalid URL format raises ValueError."""
         with pytest.raises(ValueError, match="Invalid Databricks Files API URL format"):
