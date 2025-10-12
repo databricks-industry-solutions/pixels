@@ -1,17 +1,24 @@
+import pytest
 from conftest import CATALOG, DICOM_FILE_PATH, SCHEMA, TABLE, VOLUME_UC
 from dbx.pixels.version import __version__
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_import(spark):
     assert __version__ >= "0.0.6"
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_path_read(spark):
     df = spark.read.format("binaryFile").load(DICOM_FILE_PATH).drop("content")
     count = df.count()
     assert count == 4
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_init(spark):
     from dbx.pixels import Catalog
 
@@ -20,6 +27,8 @@ def test_catalog_init(spark):
     assert catalog.is_anon
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def catalog_path(spark, path):
     from dbx.pixels import Catalog
 
@@ -30,6 +39,8 @@ def catalog_path(spark, path):
     return catalog_df
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_public_s3(spark, caplog):
     import logging
 
@@ -44,21 +55,29 @@ def test_catalog_public_s3(spark, caplog):
     assert row[6] == "dcm"
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_private_s3(spark):
     path = "s3://databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
     catalog_path(spark, path)
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_private_mnt_private(spark):
     path = "/mnt/databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
     catalog_path(spark, path)
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_private_dbfs_private(spark):
     path = "dbfs:/mnt/databricks-datasets-private/HLS/dicom/images/ddsm/benigns/patient0007/"
     catalog_path(spark, path)
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_save(spark):
     from dbx.pixels import Catalog
 
@@ -69,6 +88,8 @@ def test_catalog_save(spark):
     catalog.save(catalog_df)
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_save_uc(spark):
     from dbx.pixels import Catalog
 
@@ -79,6 +100,8 @@ def test_catalog_save_uc(spark):
     catalog.save(df=catalog_df, table=TABLE)
 
 
+@pytest.mark.spark
+@pytest.mark.databricks_setup
 def test_catalog_save_dbfs(spark):
     from dbx.pixels import Catalog
 

@@ -1,4 +1,4 @@
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels/edit/fix/getframes
 requests-toolbelt
 zstd
 psycopg[binary,pool]

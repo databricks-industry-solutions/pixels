@@ -27,6 +27,7 @@ import os
 import re
 from pathlib import Path
 from typing import Optional, Tuple
+from urllib.parse import urlparse
 
 
 class DatabricksFile:
@@ -79,7 +80,7 @@ class DatabricksFile:
         self._schema = schema.strip()
         self._volume = volume.strip()
         # Normalize file path: remove leading/trailing slashes
-        self._file_path = file_path.strip().strip("/")
+        self._file_path = file_path.split('&')[0].strip().strip("/")
 
         # Always validate during construction for safety
         self.validate()
@@ -120,7 +121,7 @@ class DatabricksFile:
         if len(parts) < 5 or parts[0] != "Volumes":
             raise ValueError(
                 f"Invalid volume path format. Expected '/Volumes/catalog/schema/volume/file/path', "
-                f"got '{full_path}'"
+                f"got '{full_path}' {parts}"
             )
 
         catalog = parts[1]
@@ -158,6 +159,7 @@ class DatabricksFile:
             raise ValueError(f"Invalid Databricks Files API URL format: {url}")
 
         volume_path = match.group(1)
+        volume_path = volume_path.split('&')[0]
         return cls.from_full_path(volume_path)
 
     @property

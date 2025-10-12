@@ -23,7 +23,7 @@ from starlette.responses import (
     StreamingResponse,
 )
 from utils.pages import config_page
-from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
+from dbx.pixels.dicom.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
@@ -141,8 +141,13 @@ async def _reverse_proxy_files_multiframe(request: Request):
     if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
     elif "frame" in str(url):  # Multi Frame images
-        param_frames = int(re.search(r"&frame=(\d+)", str(url)).group(1))
-        url = str(url).split("&frame=")[0]
+        # Try both /frame=n and &frame=n patterns
+        frame_match = re.search(r"[/&]frame=(\d+)", str(url))
+        if frame_match:
+            param_frames = int(frame_match.group(1))
+            url = re.sub(r"[/&]frame=\d+", "", str(url))
+        else:
+            return await _reverse_proxy_files(request)
     else:
         return await _reverse_proxy_files(request)
 
