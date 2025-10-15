@@ -9,6 +9,17 @@
 
 # COMMAND ----------
 
+import mlflow
+import json
+import tempfile
+import os
+from pyspark.sql import functions as F
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, BooleanType, IntegerType, FloatType
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+from pyspark import StorageLevel
+
+# COMMAND ----------
+
 dbutils.widgets.text(
   name='golden_data',
   defaultValue='hls_radiology.tcia.phi_detection_golden',
@@ -36,6 +47,15 @@ dbutils.widgets.text(
 )
 
 max_queries = int(dbutils.widgets.get('max_queries'))
+
+dbutils.widgets.text(
+  name='ai_query_prediction_table',
+  defaultValue='hls_radiology.tcia.phi_ai_query_predictions',
+  label='3. AI Query Prediction Table'
+)
+
+ai_query_prediction_table = dbutils.widgets.get('ai_query_prediction_table')
+
 
 # COMMAND ----------
 
@@ -78,12 +98,6 @@ response: {has_phi: True, offending_tags: [PatientName]}
 """
 
 # COMMAND ----------
-
-import pandas as pd
-import json
-from pyspark.sql.functions import pandas_udf
-from pyspark.sql import functions as F
-from pyspark.sql.types import StructType, StructField, StringType, ArrayType, BooleanType, IntegerType, FloatType
 
 result_schema = StructType([
     StructField("has_phi", BooleanType()),
@@ -128,36 +142,79 @@ df = (
 
 # COMMAND ----------
 
-predictions = df.toPandas()
-predictions['label'] = predictions['label'].astype(bool)
+filtered_df = (
+  df
+    .filter(F.col("has_phi_prediction").isNotNull())
+    .withColumn(
+      "has_phi_prediction",
+      F.when(F.col("has_phi_prediction") == "true", F.lit(1)).otherwise(F.lit(0)).cast("double")
+    )
+    .withColumn(
+      "label",
+      F.col("label").cast("double")
+    )
+    .withColumn(
+      "timestamp",
+      F.current_timestamp()
+    )
+)
 
-# Some predictions are None d/t JSON parsing errors
-filtered_predictions = predictions[~predictions['has_phi_prediction'].isna()]
-filtered_predictions['has_phi_prediction'] = filtered_predictions['has_phi_prediction'].astype(bool)
+filtered_df.persist(StorageLevel.MEMORY_AND_DISK)
 
-# COMMAND ----------
-
-from sklearn.metrics import f1_score, recall_score, precision_score, accuracy_score
-import json
-
-print("F1 Score: ", f1_score(filtered_predictions['label'], filtered_predictions['has_phi_prediction']))
-print("Recall Score: ", recall_score(filtered_predictions['label'], filtered_predictions['has_phi_prediction']))
-print("Precision Score: ", precision_score(filtered_predictions['label'], filtered_predictions['has_phi_prediction']))
-print("Accuracy Score: ", accuracy_score(filtered_predictions['label'], filtered_predictions['has_phi_prediction']))
-
-
-
-# COMMAND ----------
-
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-import matplotlib.pyplot as plt
-
-
-cm = confusion_matrix(filtered_predictions['label'], filtered_predictions['has_phi_prediction'])
-disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-disp.plot()
-plt.show()
+(
+  filtered_df
+    .write
+    .mode("append")
+    .format("delta")
+    .saveAsTable(ai_query_prediction_table)
+)
 
 # COMMAND ----------
 
-errors = df[df['label'] != df['has_phi_prediction']]
+mlflow.set_experiment('/Shared/pixels_metadata_phi_detection')
+
+with mlflow.start_run():  
+
+  # === Write out metrics for run ===
+  metrics_to_eval = ["f1", "accuracy", "weightedPrecision", "weightedRecall"]
+  metrics = {}
+  for metric in metrics_to_eval:
+      evaluator = MulticlassClassificationEvaluator(
+          labelCol="label",
+          predictionCol="has_phi_prediction",
+          metricName=metric
+      )
+      value = evaluator.evaluate(filtered_df)
+      mlflow.log_metric(metric, value)
+      metrics[metric] = value
+
+  # === Write out prompt/response samples to artifact dir ===
+  sample_df = filtered_df.limit(100).toPandas()
+
+  for _, row in sample_df.iterrows():
+    dicom_path = str(row["original_dicom_path"]).replace("/", "_")
+    dicom_dir = os.path.join("predictions", dicom_path)
+    response_dict = row['parsed_result']
+    response_dict['offending_tags'] = response_dict['offending_tags'].tolist()
+    mlflow.log_dict(response_dict, os.path.join(dicom_dir, "response.json"))
+    mlflow.log_text(row['prompt'], os.path.join(dicom_dir, "prompt.txt"))
+
+
+  # === Write out relevant metadata ===
+  mlflow.log_params(
+    {
+      "golden_data_path": golden_data,
+      "persisted_predictions_path": ai_query_prediction_table,
+      "max_queries": max_queries,
+      "endpoint": endpoint,
+      "user": dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+
+    }
+  )
+
+  mlflow.log_text(prompt, "prompt.txt")
+
+
+# COMMAND ----------
+
+filtered_df.unpersist()

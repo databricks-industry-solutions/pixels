@@ -195,3 +195,13 @@ golden_data = (
       .mode("overwrite")
       .saveAsTable(dbutils.widgets.get("golden_data_table"))
 )
+
+# COMMAND ----------
+
+display(golden_data.limit(5))
+
+# COMMAND ----------
+
+from pyspark.sql import functions as F
+golden_data.groupBy("label").count().display()
+
