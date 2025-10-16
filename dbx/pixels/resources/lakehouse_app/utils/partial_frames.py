@@ -133,8 +133,7 @@ def pixel_frames_from_dcm_metadata_file(
         else:
             item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
             for frm_idx in range(number_of_frames):
-                start_pos = pixel_data_pos + (frm_idx * item_length)
-                offset = frm_idx * item_length
+                offset = (frm_idx * item_length) + 12
 
                 frames.append(
                     {
