@@ -79,7 +79,7 @@ class DatabricksFile:
         self._schema = schema.strip()
         self._volume = volume.strip()
         # Normalize file path: remove leading/trailing slashes
-        self._file_path = file_path.strip().strip("/")
+        self._file_path = file_path.strip().strip("/").split("&")[0]
 
         # Always validate during construction for safety
         self.validate()
