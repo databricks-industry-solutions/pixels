@@ -180,6 +180,8 @@ def call_vlm_serving_endpoint(
                         ],
                     },
                 ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
             },
         )
         return result
