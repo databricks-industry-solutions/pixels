@@ -18,20 +18,17 @@ This module provides helper functions to:
 
 Functions:
     - get_file_part: Retrieve a specific byte range from a file in Databricks Volumes.
+    - get_file_metadata: Get the metadata of a file in Databricks Volumes.
     - pixel_frames_from_dcm_metadata_file: Extract pixel frame metadata from a DICOM file, supporting partial reads.
-
-Typical usage example:
-    content = get_file_part(request, db_file, frame=frame_info)
-    frames = pixel_frames_from_dcm_metadata_file(request, db_file, frame_limit, last_indexed_frame, last_indexed_start_pos)
 """
 
 
-def get_file_part(request, db_file: DatabricksFile, frame=None):
+def get_file_part(token: str, db_file: DatabricksFile, frame=None):
     """
     Retrieve a specific byte range (optionally a frame) from a file in Databricks Volumes.
 
     Args:
-        request: The HTTP request object containing headers (used for authentication).
+        token: The token to use for authentication.
         db_file (DatabricksFile): The DatabricksFile instance representing the file.
         frame (dict, optional): Dictionary with 'start_pos' and 'end_pos' keys specifying the byte range to retrieve.
 
@@ -44,7 +41,7 @@ def get_file_part(request, db_file: DatabricksFile, frame=None):
     file_url = db_file.to_api_url()
 
     headers = {
-        "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+        "Authorization": "Bearer " + token,
         "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
     }
     if frame is not None:
@@ -56,14 +53,32 @@ def get_file_part(request, db_file: DatabricksFile, frame=None):
     return response.content
 
 
+def get_file_metadata(token: str, db_file: DatabricksFile):
+    """
+    Get the metadata of a file in Databricks Volumes.
+    """
+
+    client_kwargs = {
+        "headers": {
+            "Authorization": "Bearer " + token,
+            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+        },
+    }
+    with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
+        ds = pydicom.dcmread(f, stop_before_pixels=True)
+        to_return = ds.to_json_dict()
+        to_return.update(ds.file_meta.to_json_dict())
+        return to_return
+
+
 def pixel_frames_from_dcm_metadata_file(
-    request, db_file: DatabricksFile, frame_limit, last_indexed_frame, last_indexed_start_pos
+    token: str, db_file: DatabricksFile, frame_limit, last_indexed_frame, last_indexed_start_pos
 ):
     """
     Extract pixel frame metadata from a DICOM file, supporting partial reads.
 
     Args:
-        request: The HTTP request object containing headers (used for authentication).
+        token: The token to use for authentication.
         db_file (DatabricksFile): The DatabricksFile instance representing the DICOM file.
         frame_limit (int): The maximum index number of the frame to extract.
         last_indexed_frame (int): The last indexed frame index.
@@ -78,7 +93,7 @@ def pixel_frames_from_dcm_metadata_file(
 
     client_kwargs = {
         "headers": {
-            "Authorization": "Bearer " + request.headers.get("X-Forwarded-Access-Token"),
+            "Authorization": "Bearer " + token,
             "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
         },
     }
@@ -118,18 +133,20 @@ def pixel_frames_from_dcm_metadata_file(
                 start_pos = start_pos + delimiter + 8
                 end_pos = start_pos + item_length
 
+                frame_index += 1
+
+                if start_pos == end_pos:
+                    continue
+
                 frames.append(
                     {
-                        "frame_number": frame_index,
+                        "frame_number": frame_index - 1,
                         "frame_size": item_length,
                         "start_pos": start_pos,
                         "end_pos": end_pos,
                         "pixel_data_pos": pixel_data_pos,
                     }
                 )
-
-                frame_index += 1
-            frames.remove(frames[0])
         else:
             item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
             for frm_idx in range(number_of_frames):

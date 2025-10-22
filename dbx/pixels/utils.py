@@ -73,8 +73,11 @@ def unzip(raw_path, unzipped_base_path):
     to_return = []
 
     path = raw_path.replace("dbfs:", "")
+    is_volume = path.startswith("/Volumes/")
 
-    with fsspec.open("simplecache::" + path, mode="rb", s3={"anon": True}) as fp:
+    with fsspec.open(
+        path if is_volume else "simplecache::" + path, mode="rb", s3={"anon": True}
+    ) as fp:
 
         # Check if file is zip
         is_zip = zipfile.is_zipfile(fp)
@@ -97,7 +100,7 @@ def unzip(raw_path, unzipped_base_path):
                 if not os.path.exists(file_dir):
                     os.makedirs(file_dir)
 
-                if path.startswith("/Volumes/"):
+                if is_volume:
                     zip_cmd = ["unzip", "-j", "-o", path, file_name, "-d", file_dir]
                     result = subprocess.run(zip_cmd, capture_output=True, text=True)
 
@@ -124,6 +127,67 @@ def unzip(raw_path, unzipped_base_path):
 @pandas_udf(ArrayType(StringType()))
 def unzip_pandas_udf(col1, col2):
     return pd.Series([unzip(path, volume_base_path) for path, volume_base_path in zip(col1, col2)])
+
+
+def call_vlm_serving_endpoint(
+    base64_image: str,
+    prompt: str,
+    metadata: dict,
+    system_prompt: str,
+    model_name: str = "databricks-claude-sonnet-4",
+    max_tokens: int = 500,
+    temperature: float = 0.8,
+) -> dict:
+    """
+    Call the serving endpoint with the base64 image and prompt for image analysis using VLM model.
+
+    Args:
+        base64_image: The base64 encoded image to analyze.
+        prompt: The prompt to analyze the image.
+        metadata: The metadata of the image.
+        system_prompt: The system prompt to use for the VLM model.
+        model_name: The name of the VLM model to use.
+        max_tokens: The maximum number of tokens to generate.
+        temperature: The temperature to use for the VLM model.
+
+    Returns:
+        The result of the VLM model analysis.
+    """
+    from mlflow.deployments import get_deploy_client
+
+    try:
+        result = get_deploy_client("databricks").predict(
+            endpoint=model_name,
+            inputs={
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "<USER_PROMPT>"
+                                + prompt
+                                + "</USER_PROMPT>"
+                                + "\n<METADATA>"
+                                + str(metadata)
+                                + "</METADATA>",
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                            },
+                        ],
+                    },
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            },
+        )
+        return result
+
+    except Exception as e:
+        raise Exception(f"Error calling VLM serving endpoint: {str(e)}")
 
 
 DICOM_MAGIC_STRING = "DICOM medical imaging data"

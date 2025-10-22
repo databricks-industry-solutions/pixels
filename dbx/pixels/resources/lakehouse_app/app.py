@@ -7,7 +7,6 @@ from pathlib import Path
 
 import httpx
 import uvicorn
-import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -23,13 +22,18 @@ from starlette.responses import (
     StreamingResponse,
 )
 from utils.pages import config_page
-from utils.partial_frames import get_file_part, pixel_frames_from_dcm_metadata_file
+from utils.partial_frames import (
+    get_file_metadata,
+    get_file_part,
+    pixel_frames_from_dcm_metadata_file,
+)
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
+from dbx.pixels.utils import call_vlm_serving_endpoint
 
 logger = LoggerProvider("OHIF")
 
@@ -121,22 +125,30 @@ async def _reverse_proxy_statements(request: Request):
     )
 
 
+async def _reverse_proxy_files_metadata(request: Request):
+    """
+    Reverse proxy endpoint for files metadata GET requests.
+
+    This function handles requests to retrieve metadata for files stored in Databricks Volumes.
+    It acts as a proxy between the OHIF viewer frontend and Databricks-hosted files, extracting
+    and returning the metadata for the requested file.
+    """
+    # Replace proxy url with right endpoint
+    url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
+    # Replace SQL Warehouse parameter
+    db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files_metadata", ""))
+    metadata = await run_in_threadpool(
+        lambda: get_file_metadata(request.headers.get("X-Forwarded-Access-Token"), db_file)
+    )
+    return Response(content=json.dumps(metadata), media_type="application/json")
+
+
 async def _reverse_proxy_files_multiframe(request: Request):
-    client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     # Replace proxy url with right endpoint
     url = httpx.URL(
         path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
     )
-
-    # Parse and validate the path using DatabricksFile
-    # Validation happens automatically during construction
-    try:
-        # Extract the volume path from URL (e.g., /api/2.0/fs/files/Volumes/catalog/schema/volume/path)
-        # Remove the API prefix to get just the Volumes path
-        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
-    except ValueError as e:
-        log(f"Invalid file path: {e}", request, "error")
-        raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
+    str_url = str(url)
 
     # Parse and validate the path using DatabricksFile
     # Validation happens automatically during construction
@@ -175,7 +187,11 @@ async def _reverse_proxy_files_multiframe(request: Request):
 
         pixels_metadata = await run_in_threadpool(
             lambda: pixel_frames_from_dcm_metadata_file(
-                request, db_file, param_frames, max_frame_idx, max_start_pos
+                request.headers.get("X-Forwarded-Access-Token"),
+                db_file,
+                param_frames,
+                max_frame_idx,
+                max_start_pos,
             )
         )
 
@@ -184,13 +200,13 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
 
-    frame_content = await run_in_threadpool(lambda: get_file_part(request, db_file, frame_metadata))
-
-    return Response(
-        content=zstd.compress(frame_content),
-        media_type="application/octet-stream",
-        headers={"Content-Encoding": "zstd"},
+    frame_content = await run_in_threadpool(
+        lambda: get_file_part(
+            request.headers.get("X-Forwarded-Access-Token"), db_file, frame_metadata
+        )
     )
+
+    return Response(content=frame_content, media_type="application/octet-stream")
 
 
 async def _reverse_proxy_files(request: Request):
@@ -513,6 +529,9 @@ app.add_route(
 app.add_route(
     "/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}", _reverse_proxy_files_multiframe, ["GET"]
 )
+app.add_route(
+    "/sqlwarehouse/api/2.0/fs/files_metadata/{path:path}", _reverse_proxy_files_metadata, ["GET"]
+)
 
 app.add_route("/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
 app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POST"])
@@ -555,13 +574,6 @@ async def set_cookie(request: Request):
 
 @app.post("/vlm/analyze", response_class=JSONResponse)
 async def vlm_analyze(request: Request):
-    import io
-
-    import pydicom
-    from utils.vlm_analyzer_utils import (
-        call_serving_endpoint
-    )
-
     body = await request.json()
     base64_image = body.get("image")
     prompt = body.get("prompt")
@@ -570,11 +582,16 @@ async def vlm_analyze(request: Request):
     temperature = body.get("temperature")
     model = body.get("model")
 
-    file_path = body.get("metadata").get("imageId")
+    system_prompt = open(
+        f"{os.path.dirname(dbx.pixels.__file__)}/resources/prompts/system/vlm_ohif.txt", "r"
+    ).read()
 
-    analysis_result = call_serving_endpoint(base64_image, prompt, metadata, model, max_tokens, temperature)
+    analysis_result = call_vlm_serving_endpoint(
+        base64_image, prompt, metadata, model, max_tokens, temperature, system_prompt
+    )
 
-    return analysis_result['choices'][0]['message']['content']
+    return analysis_result["choices"][0]["message"]["content"]
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", log_config=None)
