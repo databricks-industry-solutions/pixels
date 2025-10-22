@@ -132,7 +132,7 @@ def unzip_pandas_udf(col1, col2):
 def call_vlm_serving_endpoint(
     base64_image: str,
     prompt: str,
-    metadata: dict,
+    metadata: str,
     system_prompt: str,
     model_name: str = "databricks-claude-sonnet-4",
     max_tokens: int = 500,
@@ -170,7 +170,7 @@ def call_vlm_serving_endpoint(
                                 + prompt
                                 + "</USER_PROMPT>"
                                 + "\n<METADATA>"
-                                + str(metadata)
+                                + metadata
                                 + "</METADATA>",
                             },
                             {
@@ -180,8 +180,6 @@ def call_vlm_serving_endpoint(
                         ],
                     },
                 ],
-                "temperature": temperature,
-                "max_tokens": max_tokens,
             },
         )
         return result

@@ -575,22 +575,23 @@ async def set_cookie(request: Request):
 @app.post("/vlm/analyze", response_class=JSONResponse)
 async def vlm_analyze(request: Request):
     body = await request.json()
+
     base64_image = body.get("image")
     prompt = body.get("prompt")
-    metadata = body.get("metadata")
-    max_tokens = body.get("max_tokens")
-    temperature = body.get("temperature")
-    model = body.get("model")
+    metadata = json.dumps(body.get("metadata"))
+    max_tokens = body.get("max_tokens", 1000)
+    temperature = body.get("temperature", 0.7)
+    model = body.get("model", "databricks-claude-sonnet-4")
 
     system_prompt = open(
         f"{os.path.dirname(dbx.pixels.__file__)}/resources/prompts/system/vlm_ohif.txt", "r"
     ).read()
 
     analysis_result = call_vlm_serving_endpoint(
-        base64_image, prompt, metadata, model, max_tokens, temperature, system_prompt
+        base64_image, prompt, metadata, system_prompt, model, max_tokens, temperature
     )
 
-    return analysis_result["choices"][0]["message"]["content"]
+    return JSONResponse(content=analysis_result["choices"][0]["message"]["content"])
 
 
 if __name__ == "__main__":
