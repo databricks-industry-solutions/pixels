@@ -1,12 +1,12 @@
 import base64
 import json
 import os
-import os.path
 import re
 from pathlib import Path
 
 import httpx
 import uvicorn
+import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -207,7 +207,11 @@ async def _reverse_proxy_files_multiframe(request: Request):
         )
     )
 
-    return Response(content=frame_content, media_type="application/octet-stream")
+    return Response(
+        content=zstd.compress(frame_content),
+        media_type="application/octet-stream",
+        headers={"Content-Encoding": "zstd"},
+    )
 
 
 async def _reverse_proxy_files(request: Request):
