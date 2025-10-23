@@ -33,6 +33,7 @@ import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
+from dbx.pixels.prompt import get_prompt
 from dbx.pixels.utils import call_vlm_serving_endpoint
 
 logger = LoggerProvider("OHIF")
@@ -583,12 +584,10 @@ async def vlm_analyze(request: Request):
     temperature = body.get("temperature", 0.7)
     model = body.get("model", "databricks-claude-sonnet-4")
 
-    system_prompt = open(
-        f"{os.path.dirname(dbx.pixels.__file__)}/resources/prompts/system/vlm_ohif.txt", "r"
-    ).read()
+    system_prompt = get_prompt("vlm_ohif", "vlm_analyzer")
 
     analysis_result = call_vlm_serving_endpoint(
-        base64_image, prompt, metadata, system_prompt, model, max_tokens, temperature
+        base64_image, prompt, metadata, system_prompt.content, model, max_tokens, temperature
     )
 
     return JSONResponse(content=analysis_result["choices"][0]["message"]["content"])
