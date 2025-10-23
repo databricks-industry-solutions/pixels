@@ -1,6 +1,7 @@
 window.config = {
   routerBasename: '{ROUTER_BASENAME}',
   showStudyList: true,
+  maxCacheSize: 2147483648,
   extensions: [],
   modes: [],
   // below flag is for performance reasons, but it might not work for all servers
