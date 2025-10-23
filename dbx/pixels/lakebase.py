@@ -160,10 +160,10 @@ class LakebaseUtils:
             return None
 
     def retrieve_max_frame_range(
-        self, filename: str, table: str = DICOM_FRAMES_TABLE
+        self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
         results = self.execute_and_fetch_query(
-            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s", (filename,)
+            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s and frame <= %s", (filename, param_frames)
         )
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
