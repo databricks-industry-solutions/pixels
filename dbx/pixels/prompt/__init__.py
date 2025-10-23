@@ -28,8 +28,8 @@ Example usage:
 """
 
 import os
-from typing import Literal, Optional, List, Dict
 from dataclasses import dataclass
+from typing import Dict, List, Literal, Optional
 
 __all__ = [
     "Prompt",
@@ -37,7 +37,7 @@ __all__ = [
     "get_prompt",
     "get_system_prompts",
     "get_user_prompts",
-    "get_use_cases"
+    "get_use_cases",
 ]
 
 
@@ -45,7 +45,7 @@ __all__ = [
 class Prompt:
     """
     A class to represent a prompt for LLMs.
-    
+
     Attributes:
         name: The name/identifier of the prompt
         content: The actual prompt text content
@@ -53,12 +53,13 @@ class Prompt:
         prompt_type: Whether this is a 'system' or 'user' prompt
         use_case: The use case this prompt belongs to (e.g., 'vlm_analyzer')
     """
+
     name: str
     content: str
     description: str
     prompt_type: Literal["system", "user"]
     use_case: str = "default"
-    
+
     def __repr__(self) -> str:
         """Return a string representation of the Prompt."""
         content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
@@ -69,7 +70,7 @@ class Prompt:
             f"description='{self.description}', "
             f"content='{content_preview}')"
         )
-    
+
     def to_dict(self) -> dict:
         """Convert the Prompt to a dictionary."""
         return {
@@ -77,34 +78,34 @@ class Prompt:
             "content": self.content,
             "description": self.description,
             "prompt_type": self.prompt_type,
-            "use_case": self.use_case
+            "use_case": self.use_case,
         }
-    
+
     @classmethod
     def from_file(
         cls,
         file_path: str,
         name: Optional[str] = None,
         prompt_type: Optional[Literal["system", "user"]] = None,
-        use_case: Optional[str] = None
+        use_case: Optional[str] = None,
     ) -> "Prompt":
         """
         Create a Prompt instance from a file.
-        
+
         Args:
             file_path: Path to the prompt file
             name: Optional name for the prompt (defaults to filename without extension)
-            prompt_type: Whether this is a 'system' or 'user' prompt. 
+            prompt_type: Whether this is a 'system' or 'user' prompt.
                         If None, auto-detects from folder name (system/ or user/)
             use_case: The use case this prompt belongs to.
                      If None, auto-detects from folder structure (prompts/<use_case>/system|user)
-            
+
         Returns:
             A Prompt instance
         """
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-        
+
         # Extract description from first comment line
         description = ""
         for line in content.splitlines():
@@ -112,14 +113,14 @@ class Prompt:
             if line.startswith("#") and len(line) > 1:
                 description = line.lstrip("#").strip()
                 break
-        
+
         # Use filename without extension as name if not provided
         if name is None:
             name = os.path.splitext(os.path.basename(file_path))[0]
-        
+
         # Auto-detect from folder structure: prompts/<use_case>/system|user
         path_parts = os.path.normpath(file_path).split(os.sep)
-        
+
         # Auto-detect prompt type from folder if not provided
         if prompt_type is None:
             parent_dir = os.path.basename(os.path.dirname(file_path))
@@ -129,7 +130,7 @@ class Prompt:
                 prompt_type = "user"
             else:
                 prompt_type = "system"  # default
-        
+
         # Auto-detect use_case from folder structure
         if use_case is None:
             try:
@@ -144,23 +145,23 @@ class Prompt:
                     use_case = "default"
             except (ValueError, IndexError):
                 use_case = "default"
-        
+
         return cls(
             name=name,
             content=content,
             description=description,
             prompt_type=prompt_type,
-            use_case=use_case
+            use_case=use_case,
         )
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "Prompt":
         """
         Create a Prompt instance from a dictionary.
-        
+
         Args:
             data: Dictionary with keys 'name', 'content', 'description', 'prompt_type', 'use_case'
-            
+
         Returns:
             A Prompt instance
         """
@@ -169,7 +170,7 @@ class Prompt:
             content=data["content"],
             description=data.get("description", ""),
             prompt_type=data.get("prompt_type", "system"),
-            use_case=data.get("use_case", "default")
+            use_case=data.get("use_case", "default"),
         )
 
 
@@ -180,7 +181,7 @@ _prompts_map: Dict[tuple, Prompt] = {}
 def _load_prompts_from_use_case(use_case_path: str, use_case_name: str) -> None:
     """
     Load all prompts from a use case directory (system and user folders).
-    
+
     Args:
         use_case_path: Path to the use case directory (e.g., prompts/vlm_analyzer)
         use_case_name: Name of the use case (e.g., 'vlm_analyzer')
@@ -190,7 +191,7 @@ def _load_prompts_from_use_case(use_case_path: str, use_case_name: str) -> None:
         if os.path.exists(folder_path):
             for file_name in os.listdir(folder_path):
                 file_path = os.path.join(folder_path, file_name)
-                if os.path.isfile(file_path) and not file_name.endswith('.py'):
+                if os.path.isfile(file_path) and not file_name.endswith(".py"):
                     prompt = Prompt.from_file(file_path)  # Auto-detects everything
                     key = (prompt.use_case, prompt.name)
                     _prompts_map[key] = prompt
@@ -205,22 +206,22 @@ def _load_all_prompts() -> None:
     module_dir = os.path.dirname(__file__)
     resources_dir = os.path.dirname(module_dir)
     prompts_base_dir = os.path.join(resources_dir, "resources", "prompts")
-    
+
     if os.path.exists(prompts_base_dir):
         # Scan for use case directories
         for use_case_name in os.listdir(prompts_base_dir):
             use_case_path = os.path.join(prompts_base_dir, use_case_name)
-            if os.path.isdir(use_case_path) and not use_case_name.startswith('_'):
+            if os.path.isdir(use_case_path) and not use_case_name.startswith("_"):
                 _load_prompts_from_use_case(use_case_path, use_case_name)
 
 
 def get_all_prompts(use_case: Optional[str] = None) -> List[Prompt]:
     """
     Get all prompts (both system and user).
-    
+
     Args:
         use_case: Optional filter by use case. If None, returns all prompts.
-    
+
     Returns:
         List of Prompt objects
     """
@@ -232,14 +233,14 @@ def get_all_prompts(use_case: Optional[str] = None) -> List[Prompt]:
 def get_prompt(name: str, use_case: str = "vlm_analyzer") -> Prompt:
     """
     Get a specific prompt by name and use case.
-    
+
     Args:
         name: The name of the prompt (without file extension)
         use_case: The use case the prompt belongs to (default: 'vlm_analyzer')
-        
+
     Returns:
         A Prompt object
-        
+
     Raises:
         KeyError: If the prompt doesn't exist
     """
@@ -252,10 +253,10 @@ def get_prompt(name: str, use_case: str = "vlm_analyzer") -> Prompt:
 def get_system_prompts(use_case: Optional[str] = None) -> List[Prompt]:
     """
     Get all system prompts.
-    
+
     Args:
         use_case: Optional filter by use case. If None, returns all system prompts.
-    
+
     Returns:
         List of system Prompt objects
     """
@@ -268,10 +269,10 @@ def get_system_prompts(use_case: Optional[str] = None) -> List[Prompt]:
 def get_user_prompts(use_case: Optional[str] = None) -> List[Prompt]:
     """
     Get all user prompts.
-    
+
     Args:
         use_case: Optional filter by use case. If None, returns all user prompts.
-    
+
     Returns:
         List of user Prompt objects
     """
@@ -284,7 +285,7 @@ def get_user_prompts(use_case: Optional[str] = None) -> List[Prompt]:
 def get_use_cases() -> List[str]:
     """
     Get all available use cases.
-    
+
     Returns:
         List of use case names
     """
@@ -293,4 +294,3 @@ def get_use_cases() -> List[str]:
 
 # Auto-load all prompts from prompts/<use_case>/system|user structure
 _load_all_prompts()
-
