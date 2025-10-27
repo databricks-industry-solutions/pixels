@@ -3,6 +3,7 @@ import json
 from typing import Dict
 from dbx.pixels.logging import LoggerProvider
 from dbx.pixels.dicom.redactor.utils import redact_dcm
+from pyspark.sql.functions import col, current_timestamp, lit, explode
 
 logger = LoggerProvider("DicomRedactor")
 
@@ -86,9 +87,6 @@ class Redactor:
             .table(source_table)
             .filter(col("status") == self._STATUSES["PENDING"])
         )
-        
-        # Apply the redaction UDF
-        from pyspark.sql.functions import col, current_timestamp, lit, explode
         
         processed_df = (
             stream_df
