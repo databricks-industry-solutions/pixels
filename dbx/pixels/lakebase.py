@@ -7,12 +7,10 @@ from databricks.sdk.service.database import (
     DatabaseInstanceRoleIdentityType,
     DatabaseInstanceState,
 )
+from psycopg2.extras import execute_values
+from psycopg2.pool import SimpleConnectionPool
 
 from dbx.pixels.logging import LoggerProvider
-
-from psycopg2.pool import SimpleConnectionPool
-from psycopg2.extras import execute_values
-
 
 logger = LoggerProvider("LakebaseUtils")
 
@@ -104,22 +102,18 @@ class LakebaseUtils:
         host = self.instance.read_write_dns
         database = "databricks_postgres"
         cred = self.workspace_client.database.generate_database_credential(
-                    request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
-                )
+            request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
+        )
 
         db_kwargs = {
             "database": database,
             "user": self.user,
             "host": host,
             "sslmode": "require",
-            "password": cred.token
+            "password": cred.token,
         }
 
-        pool = SimpleConnectionPool(
-            minconn=1,
-            maxconn=10,
-            **db_kwargs
-        )
+        pool = SimpleConnectionPool(minconn=1, maxconn=10, **db_kwargs)
 
         return pool
 
@@ -132,7 +126,7 @@ class LakebaseUtils:
         finally:
             self.connection.putconn(conn)
 
-    def execute_query(self, query: str, params: tuple = None):  
+    def execute_query(self, query: str, params: tuple = None):
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
@@ -163,7 +157,8 @@ class LakebaseUtils:
         self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
         results = self.execute_and_fetch_query(
-            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s and frame <= %s", (filename, param_frames)
+            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s and frame <= %s",
+            (filename, param_frames),
         )
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
@@ -178,7 +173,7 @@ class LakebaseUtils:
         end_pos: int,
         pixel_data_pos: int,
         table: str = DICOM_FRAMES_TABLE,
-    ):  
+    ):
         self.execute_query(
             f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             (filename, frame, start_pos, end_pos, pixel_data_pos),
@@ -200,9 +195,11 @@ class LakebaseUtils:
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
-                execute_values(cursor,
-                f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING",
-                records)
+                execute_values(
+                    cursor,
+                    f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING",
+                    records,
+                )
                 conn.commit()
         finally:
             self.connection.putconn(conn)
