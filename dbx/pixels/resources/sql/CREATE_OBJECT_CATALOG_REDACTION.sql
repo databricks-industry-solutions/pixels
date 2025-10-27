@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS {UC_TABLE}_redaction (
   new_series_instance_uid STRING COMMENT 'New Series Instance UID for redacted files',
   
   -- Processing status
-  status STRING NOT NULL DEFAULT 'PENDING' COMMENT 'Processing status: PENDING, SUCCESS, FAILED',
+  status STRING NOT NULL COMMENT 'Processing status: PENDING, SUCCESS, FAILED',
   error_message STRING COMMENT 'Error message if processing failed',
   
   -- Timestamps
@@ -36,10 +36,10 @@ CREATE TABLE IF NOT EXISTS {UC_TABLE}_redaction (
   
   -- Audit fields
   created_by STRING COMMENT 'User who created the redaction job',
-  export_timestamp TIMESTAMP COMMENT 'When the redaction annotations were exported',
+  export_timestamp TIMESTAMP COMMENT 'When the redaction annotations were exported'
 )
 USING delta
-CLUSTER BY (redaction_id)
+CLUSTER BY AUTO
 COMMENT 'Table for managing DICOM redaction jobs with incremental processing and status tracking'
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
