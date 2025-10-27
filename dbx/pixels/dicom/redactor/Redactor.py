@@ -1,9 +1,6 @@
 import time
-import datetime
 import json
-import uuid
-from typing import Dict, List, Optional, Union,
-from pydicom.uid import generate_uid
+from typing import Dict
 from dbx.pixels.logging import LoggerProvider
 from dbx.pixels.dicom.redactor.utils import redact_dcm
 
