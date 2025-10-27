@@ -4,28 +4,25 @@
 CREATE TABLE IF NOT EXISTS {UC_TABLE}_redaction (
   -- Primary identifiers
   redaction_id STRING NOT NULL COMMENT 'Unique identifier for this redaction job',
-  file_path STRING NOT NULL COMMENT 'Path to the DICOM file to be redacted',
   
   -- DICOM identifiers
   study_instance_uid STRING COMMENT 'DICOM Study Instance UID',
   series_instance_uid STRING COMMENT 'DICOM Series Instance UID',
-  sop_instance_uid STRING COMMENT 'DICOM SOP Instance UID',
   modality STRING COMMENT 'DICOM modality (e.g., CT, MR, US)',
   
   -- Redaction configuration
-  redaction_json STRING COMMENT 'JSON string containing redaction instructions',
+  redaction_json VARIANT COMMENT 'JSON string containing redaction instructions',
   global_redactions_count INT COMMENT 'Number of global redactions to apply',
   frame_specific_redactions_count INT COMMENT 'Number of frame-specific redactions',
   total_redaction_areas INT COMMENT 'Total number of redaction areas',
   
   -- Output configuration
-  volume_path STRING COMMENT 'Unity Catalog volume path for output',
-  output_file_path STRING COMMENT 'Path to the redacted output file',
   new_series_instance_uid STRING COMMENT 'New Series Instance UID for redacted files',
+  output_file_paths ARRAY<STRING> COMMENT 'Paths to the redacted files',
   
   -- Processing status
   status STRING NOT NULL COMMENT 'Processing status: PENDING, SUCCESS, FAILED',
-  error_message STRING COMMENT 'Error message if processing failed',
+  error_messages ARRAY<STRING> COMMENT 'Error messages if processing failed',
   
   -- Timestamps
   insert_timestamp TIMESTAMP NOT NULL COMMENT 'When the record was initially created',

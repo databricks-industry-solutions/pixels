@@ -2,7 +2,7 @@ import time
 import datetime
 import json
 import uuid
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union,
 from pydicom.uid import generate_uid
 from dbx.pixels.logging import LoggerProvider
 from dbx.pixels.dicom.redactor.utils import redact_dcm
@@ -30,6 +30,12 @@ class Redactor:
             max_files_per_trigger=100
         )
     """
+
+    _STATUSES = {
+        "FAILED": "FAILED",
+        "PENDING": "PENDING",
+        "SUCCESS": "SUCCESS",
+    }
     
     def __init__(self, spark):
         """
@@ -81,34 +87,21 @@ class Redactor:
             .option("ignoreChanges", "true")
             .option("maxFilesPerTrigger", max_files_per_trigger)
             .table(source_table)
-            .filter("status = 'PENDING'")
+            .filter(col("status") == self._STATUSES["PENDING"])
         )
         
         # Apply the redaction UDF
-        from pyspark.sql.functions import col, current_timestamp, lit
+        from pyspark.sql.functions import col, current_timestamp, lit, explode
         
         processed_df = (
             stream_df
             .withColumn("processing_start_timestamp", current_timestamp())
-            .withColumn("status", lit("PROCESSING"))
+            .withColumn("file_path", explode(col("redaction_json.filesToEdit")))
             .withColumn("redaction_result", redaction_udf(
                 col("file_path"),
                 col("redaction_json"),
                 col("redaction_id")
             ))
-        )
-        
-        # Extract result fields
-        from pyspark.sql.functions import col as F_col
-        processed_df = (
-            processed_df
-            .withColumn("output_file_path", F_col("redaction_result.output_file_path"))
-            .withColumn("status", F_col("redaction_result.status"))
-            .withColumn("error_message", F_col("redaction_result.error_message"))
-            .withColumn("new_series_instance_uid", F_col("redaction_result.new_series_instance_uid"))
-            .withColumn("processing_end_timestamp", current_timestamp())
-            .withColumn("update_timestamp", current_timestamp())
-            .drop("redaction_result")
         )
         
         # Write stream with foreachBatch for MERGE operation
@@ -135,14 +128,14 @@ class Redactor:
         
         # Define the return schema
         result_schema = StructType([
-            StructField("output_file_path", StringType(), True),
+            StructField("output_file_path", StringType(), False),
             StructField("status", StringType(), False),
             StructField("error_message", StringType(), True),
-            StructField("new_series_instance_uid", StringType(), True),
-            StructField("processing_duration_seconds", StringType(), True)
+            StructField("new_series_instance_uid", StringType(), False),
+            StructField("processing_duration_seconds", StringType(), False)
         ])
         
-        def redact_file_udf(file_path: str, redaction_json_str: str, redaction_id: str) -> Dict:
+        def redact_file_udf(file_path: str, redaction_json_str: str, redaction_id: str, new_series_uid: str) -> Dict:
             """
             UDF to redact a single DICOM file.
             
@@ -150,40 +143,37 @@ class Redactor:
                 file_path: Path to the DICOM file
                 redaction_json_str: JSON string with redaction instructions
                 redaction_id: Unique identifier for this redaction job
-                
+                new_series_uid: New SeriesInstanceUID for the redacted file
             Returns:
                 Dictionary with processing results
             """
             result = {
                 "output_file_path": None,
-                "status": "FAILED",
+                "status": self._STATUSES["FAILED"],
                 "error_message": None,
                 "new_series_instance_uid": None,
                 "processing_duration_seconds": "0"
             }
             
-            start_time = time.time()
-            
             try:
+                start_time = time.time()
+
                 # Parse the redaction JSON
                 redaction_json = json.loads(redaction_json_str)
-                
-                # Generate a new SeriesInstanceUID
-                new_series_uid = generate_uid()
                 
                 # Perform the redaction
                 output_path = redact_dcm(file_path, redaction_json, new_series_uid)
                 
                 # Update result
                 result["output_file_path"] = output_path
-                result["status"] = "SUCCESS"
+                result["status"] = self._STATUSES["SUCCESS"]
                 result["new_series_instance_uid"] = new_series_uid
                 result["processing_duration_seconds"] = str(time.time() - start_time)
                 
                 logger.info(f"Successfully redacted {file_path} for job {redaction_id}")
                 
             except Exception as e:
-                result["status"] = "FAILED"
+                result["status"] = self._STATUSES["FAILED"]
                 result["error_message"] = str(e)
                 result["processing_duration_seconds"] = str(time.time() - start_time)
                 logger.error(f"Failed to redact {file_path} for job {redaction_id}: {e}")
@@ -201,24 +191,38 @@ class Redactor:
             target_table: Target table name for MERGE operation
         """
         from delta.tables import DeltaTable
-        from pyspark.sql.functions import col
+        from pyspark.sql.functions import col, collect_set, current_timestamp, collect_list, first, max
 
         delta_table = DeltaTable.forName(self.spark, target_table)
 
+        processed_df = (
+            batch_df
+            .groupBy("redaction_id")
+                .agg(
+                    collect_set(col("redaction_result.output_file_path")).alias("output_file_paths"),
+                    max(col("redaction_result.status")).alias("status"),
+                    collect_list(col("redaction_result.error_message")).alias("error_message"),
+                    first(col("redaction_result.new_series_instance_uid")).alias("new_series_instance_uid"),
+                    max(col("redaction_result.processing_duration_seconds")).alias("processing_duration_seconds"),
+                    max(col("redaction_result.processing_start_timestamp")).alias("processing_start_timestamp"),
+                    current_timestamp().alias("update_timestamp")
+                )
+            .drop("redaction_result")
+        )
+
         merge_condition = (
-            (col("target.redaction_id") == col("source.redaction_id")) & 
-            (col("target.file_path") == col("source.file_path"))
+            (col("target.redaction_id") == col("source.redaction_id"))
         )
 
         (
             delta_table.alias("target")
             .merge(
-                batch_df.alias("source"),
+                processed_df.alias("source"),
                 merge_condition
             )
             .whenMatchedUpdate(set = {
                 "status": col("source.status"),
-                "output_file_path": col("source.output_file_path"),
+                "output_file_paths": col("source.output_file_paths"),
                 "new_series_instance_uid": col("source.new_series_instance_uid"),
                 "error_message": col("source.error_message"),
                 "processing_start_timestamp": col("source.processing_start_timestamp"),
