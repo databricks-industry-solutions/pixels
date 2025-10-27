@@ -60,6 +60,7 @@ class Catalog:
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
+        self._redaction_base_path = f"{self._volume_path}/redacted/"
 
         # Check if the volume exist
         spark.sql(f"LIST '{self._volume_path}' limit 1").count()

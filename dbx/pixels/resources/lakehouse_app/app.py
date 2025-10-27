@@ -27,6 +27,9 @@ from utils.partial_frames import (
     get_file_part,
     pixel_frames_from_dcm_metadata_file,
 )
+from utils.redaction_utils import (
+    insert_redaction_job
+)
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
@@ -575,6 +578,78 @@ async def set_cookie(request: Request):
     response.set_cookie(key="seg_dest_dir", value=seg_dest_dir)
     response.set_cookie(key="is_local", value=("local" in path))
     return response
+
+
+@app.post("/api/redaction/insert", response_class=JSONResponse)
+async def create_redaction_job(request: Request):
+    """
+    Create a new redaction job from JSON annotation data.
+    
+    Expected JSON body:
+    {
+        "file_path": "/Volumes/.../file.dcm",
+        "volume_path": "/Volumes/.../output/",
+        "redaction_json": {
+            "exportTimestamp": "2025-10-27T10:00:00.000Z",
+            "studyInstanceUID": "1.2.840...",
+            "seriesInstanceUID": "1.2.840...",
+            "modality": "US",
+            "totalGlobalRedactions": 1,
+            "totalFrameSpecificRedactions": 0,
+            "totalRedactionAreas": 1,
+            "globalRedactions": [...],
+            "frameRedactions": {},
+            "filesToEdit": ["/Volumes/.../file.dcm"],
+            "enableFileOverwrite": false
+        }
+    }
+    
+    Returns:
+        JSON with redaction_id and status
+    """
+    try:
+        body = await request.json()
+        log(f"Received redaction job creation request", request, "info")
+        
+        # Extract required fields
+        file_path = body.get("file_path")
+        volume_path = body.get("volume_path")
+        redaction_json = body.get("redaction_json")
+        
+        if not file_path:
+            raise HTTPException(status_code=400, detail="file_path is required")
+        if not volume_path:
+            raise HTTPException(status_code=400, detail="volume_path is required")
+        if not redaction_json:
+            raise HTTPException(status_code=400, detail="redaction_json is required")
+        
+        # Get user from headers
+        created_by = request.headers.get("X-Forwarded-Email", "unknown")
+        
+        # Get table name from cookies or environment
+        pixels_table = get_pixels_table(request)
+        redaction_table = f"{pixels_table}_redaction"
+        
+        # Insert redaction job
+        result = await insert_redaction_job(
+            table_name=redaction_table,
+            file_path=file_path,
+            redaction_json=redaction_json,
+            volume_path=volume_path,
+            warehouse_id=warehouse_id,
+            databricks_host=cfg.host,
+            databricks_token=os.environ["DATABRICKS_TOKEN"],
+            created_by=created_by
+        )
+        
+        log(f"Created redaction job {result['redaction_id']} for {file_path}", request, "info")
+        return JSONResponse(content=result, status_code=201)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        log(f"Error creating redaction job: {str(e)}", request, "error")
+        raise HTTPException(status_code=500, detail=f"Failed to create redaction job: {str(e)}")
 
 
 @app.post("/vlm/analyze", response_class=JSONResponse)
