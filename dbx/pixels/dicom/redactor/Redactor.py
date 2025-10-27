@@ -200,36 +200,34 @@ class Redactor:
             batch_df: Batch DataFrame with processed results
             target_table: Target table name for MERGE operation
         """
-        if batch_df.isEmpty():
-            self.logger.info("Empty batch, skipping MERGE")
-            return
-        
-        self.logger.info(f"Merging {batch_df.count()} records to {target_table}")
-        
-        # Create a temporary view for the batch
-        temp_view = f"redaction_batch_{uuid.uuid4().hex}"
-        batch_df.createOrReplaceTempView(temp_view)
-        
-        # Perform MERGE operation
-        merge_sql = f"""
-        MERGE INTO {target_table} AS target
-        USING {temp_view} AS source
-        ON target.redaction_id = source.redaction_id 
-           AND target.file_path = source.file_path 
-        WHEN MATCHED THEN UPDATE SET
-            target.status = source.status,
-            target.output_file_path = source.output_file_path,
-            target.new_series_instance_uid = source.new_series_instance_uid,
-            target.error_message = source.error_message,
-            target.processing_start_timestamp = source.processing_start_timestamp,
-            target.processing_end_timestamp = source.processing_end_timestamp,
-            target.processing_duration_seconds = CAST(source.processing_duration_seconds AS DOUBLE),
-            target.update_timestamp = source.update_timestamp
-        """
-        
-        try:
-            self.spark.sql(merge_sql)
-            self.logger.info(f"Successfully merged batch to {target_table}")
-        except Exception as e:
-            self.logger.error(f"Failed to merge batch: {e}")
-            raise
+        from delta.tables import DeltaTable
+        from pyspark.sql.functions import col
+
+        delta_table = DeltaTable.forName(self.spark, target_table)
+
+        merge_condition = (
+            (col("target.redaction_id") == col("source.redaction_id")) & 
+            (col("target.file_path") == col("source.file_path"))
+        )
+
+        (
+            delta_table.alias("target")
+            .merge(
+                batch_df.alias("source"),
+                merge_condition
+            )
+            .whenMatchedUpdate(set = {
+                "status": col("source.status"),
+                "output_file_path": col("source.output_file_path"),
+                "new_series_instance_uid": col("source.new_series_instance_uid"),
+                "error_message": col("source.error_message"),
+                "processing_start_timestamp": col("source.processing_start_timestamp"),
+                "processing_end_timestamp": col("source.processing_end_timestamp"),
+                "processing_duration_seconds": col("source.processing_duration_seconds").cast("double"),
+                "update_timestamp": col("source.update_timestamp")
+            })
+            .execute()
+        )
+
+        self.logger.info(f"Successfully merged batch to {target_table} using DeltaTable API")
+
