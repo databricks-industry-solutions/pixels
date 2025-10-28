@@ -118,14 +118,13 @@ def handle_frame_transcoding(ds, fragment_list={}):
           frame_bytes[idx] = future.result()
   return frame_bytes
 
-def redact_dcm(file_path, redaction_json, new_series_instance_UID):
+def redact_dcm(file_path, redaction_json):
     """
     Redact a single DICOM file based on the redaction JSON.
     
     Args:
         file_path: Path to the DICOM file
         redaction_json: Dictionary containing redaction instructions
-        new_series_instance_UID: New SeriesInstanceUID for the redacted file
         
     Returns:
         dest_path: Path to the redacted DICOM file
@@ -161,7 +160,7 @@ def redact_dcm(file_path, redaction_json, new_series_instance_UID):
     logger.debug(f"Setting TransferSyntaxUID to {pydicom.uid.JPEG2000Lossless} and PhotometricInterpretation to YBR_FULL")
     new_ds.file_meta.TransferSyntaxUID = pydicom.uid.JPEG2000Lossless
     new_ds.PhotometricInterpretation = "YBR_FULL"
-    new_ds.SeriesInstanceUID = new_series_instance_UID
+    new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']
 
     logger.debug(f"Starting to encapsulate {len(frame_bytes)} frames")
     new_ds.PixelData = pydicom.encaps.encapsulate([frame_bytes[idx] for idx in sorted(frame_bytes.keys())])
