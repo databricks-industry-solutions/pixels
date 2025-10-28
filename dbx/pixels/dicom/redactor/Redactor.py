@@ -47,6 +47,8 @@ class Redactor:
     def process_from_table(
         self,
         source_table: str,
+        volume: str,
+        dest_base_path: str,
         checkpoint_location: str,
         trigger_processing_time: str = None,
         trigger_available_now: bool = None,
@@ -71,6 +73,8 @@ class Redactor:
         self.logger.info(f"Checkpoint location: {checkpoint_location}")
 
         self.source_table = source_table
+        self.volume = volume
+        self.dest_base_path = dest_base_path
         
         # Create the redaction UDF
         redaction_udf = _create_redaction_udf()
@@ -93,7 +97,9 @@ class Redactor:
                 fn.col("file_path"),
                 fn.to_json(fn.col("redaction_json")),
                 fn.col("redaction_id"),
-                fn.col("new_series_instance_uid")
+                fn.col("new_series_instance_uid"),
+                fn.lit(volume),
+                fn.lit(dest_base_path)
             ))
         )
         
@@ -167,7 +173,9 @@ def _create_redaction_udf():
         StructField("processing_end_timestamp", StringType(), False),
     ])
 
-    def redact_file_udf(file_path: str, redaction_json_str: str, redaction_id: str, new_series_instance_uid: str) -> Dict:
+    def redact_file_udf(file_path: str, redaction_json_str: str, redaction_id: str, new_series_instance_uid: str,
+                        volume: str,
+                        dest_base_path: str) -> Dict:
         """
         UDF to redact a single DICOM file.
         
@@ -176,6 +184,8 @@ def _create_redaction_udf():
             redaction_json_str: JSON string with redaction instructions
             redaction_id: Unique identifier for this redaction job
             new_series_instance_uid: New SeriesInstanceUID for the redacted file
+            volume: Volume name for the redacted file
+            dest_base_path: Base path for the redacted file
         Returns:
             Dictionary with processing results
         """
@@ -195,7 +205,7 @@ def _create_redaction_udf():
             redaction_json['new_series_instance_uid'] = new_series_instance_uid
             
             # Perform the redaction
-            output_path = redact_dcm(file_path, redaction_json)
+            output_path = redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path)
             
             # Update result
             result["output_file_path"] = output_path

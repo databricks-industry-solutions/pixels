@@ -8,6 +8,7 @@ import datetime
 import os
 import copy
 from pydicom.dataset import FileDataset
+import re
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -118,7 +119,7 @@ def handle_frame_transcoding(ds, fragment_list={}):
           frame_bytes[idx] = future.result()
   return frame_bytes
 
-def redact_dcm(file_path, redaction_json):
+def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     """
     Redact a single DICOM file based on the redaction JSON.
     
@@ -136,8 +137,11 @@ def redact_dcm(file_path, redaction_json):
     if redaction_json['enableFileOverwrite']:
       dest_path = file_path
     else:
-      os.makedirs(os.path.dirname(file_path.replace("unzipped/", "redacted/")), exist_ok=True)
-      dest_path = file_path.replace("unzipped/", "redacted/")
+      catalog_name, schema_name, volume_name = volume.split(".")
+      vol_base_path = f"/Volumes/{catalog_name}/{schema_name}/{volume_name}/{dest_base_path}/{redaction_id}/"
+      dest_path = vol_base_path + re.sub(r'^(/Volumes/[^/]+/[^/]+/[^/]+/)', '', file_path)
+      os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+      logger.info(f"Destination path: {dest_path}")
 
     fragment_list = handle_global_redaction(ds, redaction_json)
     fragment_list = handle_frame_redaction(ds, file_path, redaction_json, fragment_list)
