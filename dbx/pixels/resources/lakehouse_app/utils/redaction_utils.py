@@ -12,42 +12,17 @@ logger = LoggerProvider("RedactionUtils")
 
 
 def build_insert_statement(
-    table_name: str,
-    redaction_id: str,
-    redaction_json: Dict,
-    created_by: Optional[str] = None
+    table_name: str
 ) -> str:
     """
     Build SQL INSERT statement for redaction job.
     
     Args:
         table_name: Fully qualified table name (catalog.schema.table)
-        redaction_id: Unique identifier for the job
-        file_path: Path to the DICOM file to be redacted
-        redaction_json: Dictionary with redaction configuration
-        volume_path: Unity Catalog volume path for output
-        created_by: User who created the job
         
     Returns:
         SQL INSERT statement as string
     """
-    # Convert redaction JSON to string and escape single quotes
-    redaction_json_str = json.dumps(redaction_json).replace("'", "''")
-    
-    # Extract metadata from redaction JSON
-    study_instance_uid = redaction_json.get('studyInstanceUID', '')
-    series_instance_uid = redaction_json.get('seriesInstanceUID', '')
-    sop_instance_uid = redaction_json.get('sopInstanceUID', '')
-    modality = redaction_json.get('modality', '')
-    
-    global_redactions_count = redaction_json.get('totalGlobalRedactions', 0)
-    frame_specific_redactions_count = redaction_json.get('totalFrameSpecificRedactions', 0)
-    total_redaction_areas = redaction_json.get('totalRedactionAreas', 0)
-    
-    export_timestamp = redaction_json.get('exportTimestamp', '')
-    
-    # Escape single quotes in strings
-    created_by_escaped = created_by.replace("'", "''") if created_by else ''
     
     # Build INSERT statement
     sql = f"""
@@ -55,6 +30,7 @@ def build_insert_statement(
         redaction_id,
         study_instance_uid,
         series_instance_uid,
+        new_series_instance_uid,
         modality,
         redaction_json,
         global_redactions_count,
@@ -68,6 +44,7 @@ def build_insert_statement(
         :redaction_id,
         :study_instance_uid,
         :series_instance_uid,
+        :new_series_instance_uid,
         :modality,
         parse_json(:redaction_json),
         :global_redactions_count,
@@ -119,6 +96,7 @@ async def execute_sql_statement(
             { "name": "redaction_id", "value": params.get("redaction_id") },
             { "name": "study_instance_uid", "value": params.get("study_instance_uid") },
             { "name": "series_instance_uid", "value": params.get("series_instance_uid") },
+            { "name": "new_series_instance_uid", "value": params.get("new_series_instance_uid") },
             { "name": "modality", "value": params.get("modality") },
             { "name": "redaction_json", "value": params.get("redaction_json") },
             { "name": "global_redactions_count", "value": params.get("global_redactions_count") },
@@ -169,12 +147,16 @@ async def insert_redaction_job(
     Returns:
         Dictionary with redaction_id and execution status
     """
+    import pydicom
+
     redaction_id = str(uuid.uuid4())
-    
+    new_series_uid = pydicom.uid.generate_uid()
+
     params = {
         "redaction_id": redaction_id,
         "study_instance_uid": redaction_json.get("studyInstanceUID", ""),
         "series_instance_uid": redaction_json.get("seriesInstanceUID", ""),
+        "new_series_instance_uid": new_series_uid,
         "sop_instance_uid": redaction_json.get("sopInstanceUID", ""),
         "modality": redaction_json.get("modality", ""),
         "redaction_json": json.dumps(redaction_json),
@@ -192,9 +174,6 @@ async def insert_redaction_job(
         redaction_json=redaction_json,
         created_by=created_by
     )
-
-    print(sql_statement)
-    print(params)
     
     # Execute SQL statement
     result = await execute_sql_statement(
