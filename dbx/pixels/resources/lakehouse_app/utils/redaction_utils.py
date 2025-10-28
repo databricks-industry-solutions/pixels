@@ -169,10 +169,7 @@ async def insert_redaction_job(
     
     # Build INSERT statement
     sql_statement = build_insert_statement(
-        table_name=table_name,
-        redaction_id=redaction_id,
-        redaction_json=redaction_json,
-        created_by=created_by
+        table_name=table_name
     )
     
     # Execute SQL statement
