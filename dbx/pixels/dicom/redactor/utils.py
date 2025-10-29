@@ -198,7 +198,8 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     )
     new_ds.file_meta.TransferSyntaxUID = pydicom.uid.JPEG2000Lossless
     new_ds.PhotometricInterpretation = "YBR_FULL"
-    new_ds.SeriesInstanceUID = redaction_json["new_series_instance_uid"]
+    if not redaction_json['enableFileOverwrite']:
+      new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']
 
     logger.debug(f"Starting to encapsulate {len(frame_bytes)} frames")
     new_ds.PixelData = pydicom.encaps.encapsulate(
