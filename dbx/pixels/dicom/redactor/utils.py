@@ -15,6 +15,14 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("DicomRedactorUtils")
 
+def get_frame(ds, frame_index = 0):
+    """
+    Returns the frame at the given index. If the dataset has only one frame, returns the original dataset.
+    """
+    if ds.get("NumberOfFrames", 1) > 1:
+        return pydicom.encaps.get_frame(ds.PixelData, frame_index)
+    else:
+        return ds.pixel_array.copy()
 
 def redact_frame(frame, redaction):
     frame_dec = None
@@ -41,11 +49,10 @@ def handle_global_redaction(ds, redaction_json):
     Iterates for each frame in parallel and applies one redaction at a time to the frame.
     """
     fragment_list = {}
+    num_frames = ds.get("NumberOfFrames", 1)
 
     def handle_frame_global_redact(frame_index):
-        frame = pydicom.encaps.get_frame(
-            ds.PixelData, frame_index, number_of_frames=ds.get("NumberOfFrames", 1)
-        )
+        frame = get_frame(ds, frame_index)
         for global_redaction in redaction_json["globalRedactions"]:
             logger.debug(
                 f"Redacting {frame_index} with global redaction {global_redaction['annotationUID']}"
@@ -59,7 +66,6 @@ def handle_global_redaction(ds, redaction_json):
             return temp_file.name
 
     if len(redaction_json["globalRedactions"]) != 0:
-        num_frames = ds.get("NumberOfFrames", 1)
         with ThreadPoolExecutor() as executor:
             future_to_idx = {
                 executor.submit(handle_frame_global_redact, idx): idx for idx in range(num_frames)
@@ -74,7 +80,7 @@ def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
     """
     Frame redaction will be applied to
     """
-
+    num_frames = ds.get("NumberOfFrames", 1)
     def handle_frame_redact(frame_index, frame_redaction):
         frame = None
         for redaction in frame_redaction:
@@ -84,9 +90,7 @@ def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
                 )
                 if frame is None:
                     if frame_index not in fragment_list:
-                        frame = pydicom.encaps.get_frame(
-                            ds.PixelData, frame_index, number_of_frames=ds.get("NumberOfFrames", 1)
-                        )
+                        frame = get_frame(ds, frame_index)
                     else:
                         logger.debug(f"Reading {fragment_list[frame_index]}")
                         frame = cv2.imread(fragment_list[frame_index], cv2.IMREAD_UNCHANGED)
@@ -124,9 +128,7 @@ def handle_frame_transcoding(ds, fragment_list={}):
                 logger.debug(f"Reading {fragment_list[idx]}")
                 return f.read()
         else:
-            frame = pydicom.encaps.get_frame(
-                ds.PixelData, idx, number_of_frames=ds.get("NumberOfFrames", 1)
-            )
+            frame = get_frame(ds, frame_index)
             frame_np = np.frombuffer(frame, dtype=np.uint8)
             if not ds.is_decompressed:
                 frame_np = cv2.imdecode(frame_np, cv2.IMREAD_UNCHANGED)
@@ -187,19 +189,17 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
             new_ds.add(copy.deepcopy(elem))
     for elem in ds.file_meta:
         new_ds.file_meta.add(copy.deepcopy(elem))
+    
+    new_ds.file_meta.TransferSyntaxUID = pydicom.uid.JPEG2000Lossless
+    new_ds.PhotometricInterpretation = "YBR_FULL"
+    
+    if not redaction_json['enableFileOverwrite']:
+      new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']   
 
     # Collect all frame fragments and transcode them
     frame_bytes = handle_frame_transcoding(ds, fragment_list)
 
     logger.info(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
-
-    logger.debug(
-        f"Setting TransferSyntaxUID to {pydicom.uid.JPEG2000Lossless} and PhotometricInterpretation to YBR_FULL"
-    )
-    new_ds.file_meta.TransferSyntaxUID = pydicom.uid.JPEG2000Lossless
-    new_ds.PhotometricInterpretation = "YBR_FULL"
-    if not redaction_json['enableFileOverwrite']:
-      new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']
 
     logger.debug(f"Starting to encapsulate {len(frame_bytes)} frames")
     new_ds.PixelData = pydicom.encaps.encapsulate(
