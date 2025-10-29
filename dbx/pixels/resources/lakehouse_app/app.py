@@ -27,9 +27,7 @@ from utils.partial_frames import (
     get_file_part,
     pixel_frames_from_dcm_metadata_file,
 )
-from utils.redaction_utils import (
-    insert_redaction_job
-)
+from utils.redaction_utils import insert_redaction_job
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
@@ -584,7 +582,7 @@ async def set_cookie(request: Request):
 async def create_redaction_job(request: Request):
     """
     Create a new redaction job from JSON annotation data.
-    
+
     Expected JSON body:
     {
         "exportTimestamp": "2025-10-27T10:00:00.000Z",
@@ -599,39 +597,41 @@ async def create_redaction_job(request: Request):
         "filesToEdit": ["/Volumes/.../file.dcm"],
         "enableFileOverwrite": false
     }
-    
+
     Returns:
         JSON with redaction_id and status
     """
-    try:
-        body = await request.body()
-        log(f"Received redaction job creation request" ,request, "info")
-        
-        # Extract required fields
-        redaction_json = json.loads(body)
+    body = await request.body()
+    log(f"Received redaction job creation request", request, "info")
 
-        if not redaction_json or redaction_json == {}:
-            raise HTTPException(status_code=400, detail="redaction_json is required and must be a valid JSON object")
-        
-        # Get user from headers
-        created_by = request.headers.get("X-Forwarded-Email", "unknown")
-        
-        # Get table name from cookies or environment
-        pixels_table = get_pixels_table(request)
-        redaction_table = f"{pixels_table}_redaction"
-        
-        # Insert redaction job
-        result = await insert_redaction_job(
-            table_name=redaction_table,
-            redaction_json=redaction_json,
-            warehouse_id=warehouse_id,
-            databricks_host=cfg.host,
-            databricks_token=os.environ["DATABRICKS_TOKEN"],
-            created_by=created_by
+    # Extract required fields
+    redaction_json = json.loads(body)
+
+    if not redaction_json or redaction_json == {}:
+        raise HTTPException(
+            status_code=400, detail="redaction_json is required and must be a valid JSON object"
         )
-        
-        log(f"Created redaction job {result['redaction_id']}", request, "info")
-        return JSONResponse(content=result, status_code=201)
+
+    # Get user from headers
+    created_by = request.headers.get("X-Forwarded-Email", "unknown")
+
+    # Get table name from cookies or environment
+    pixels_table = get_pixels_table(request)
+    redaction_table = f"{pixels_table}_redaction"
+
+    # Insert redaction job
+    result = await insert_redaction_job(
+        table_name=redaction_table,
+        redaction_json=redaction_json,
+        warehouse_id=warehouse_id,
+        databricks_host=cfg.host,
+        databricks_token=os.environ["DATABRICKS_TOKEN"],
+        created_by=created_by,
+    )
+
+    log(f"Created redaction job {result['redaction_id']}", request, "info")
+    return JSONResponse(content=result, status_code=201)
+
 
 @app.post("/vlm/analyze", response_class=JSONResponse)
 async def vlm_analyze(request: Request):
@@ -654,4 +654,4 @@ async def vlm_analyze(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", log_config=None)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
