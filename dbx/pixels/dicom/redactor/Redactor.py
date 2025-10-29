@@ -133,6 +133,9 @@ def _merge_results(batch_df, batch_id, source_table):
         batch_df: Batch DataFrame with processed results
         target_table: Target table name for MERGE operation
     """
+    if batch_df.isEmpty():
+        return
+    
     processed_df = batch_df.groupBy("redaction_id").agg(
         fn.collect_set(fn.col("redaction_result.output_file_path")).alias("output_file_paths"),
         fn.max(fn.col("redaction_result.status")).alias("status"),
