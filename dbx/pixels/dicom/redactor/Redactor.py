@@ -184,7 +184,7 @@ def _create_redaction_udf():
     # Define the return schema
     result_schema = StructType(
         [
-            StructField("output_file_path", StringType(), False),
+            StructField("output_file_path", StringType(), True),
             StructField("status", StringType(), False),
             StructField("error_message", StringType(), True),
             StructField("processing_duration_seconds", StringType(), False),
@@ -246,6 +246,7 @@ def _create_redaction_udf():
             result["status"] = "FAILED"
             result["error_message"] = str(e)
             result["processing_duration_seconds"] = str(time.time() - start_time)
+            #result["processing_end_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             logger.error(f"Failed to redact {file_path} for job {redaction_id}: {e}")
 
         return result
