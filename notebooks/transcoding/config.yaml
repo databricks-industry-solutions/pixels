@@ -1,6 +1,8 @@
 # for compression tests
-input_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0.dcm
-output_path: /Volumes/hls_radiology/alpha/pixels_volume/20250227134948_CT_ISRA_0_{compression}.dcm
-table: hls_radiology.alpha.object_catalog
-volume: hls_radiology.alpha.pixels_volume
-write_mode: overwrite
+input_path: /Volumes/vdm-classic-q6xfh3_catalog/random/pixels_volume/xxxxx/20250227134948_CT_ISRA_0.dcm
+output_path: /Volumes/main/pixels_solacc/pixels_volume/20250227134948_CT_ISRA_0_{compression}.dcm
+table: main.pixels_solacc.object_catalog
+volume: main.pixels_solacc.pixels_volume
+write_mode: append
+num_resolutions: 6
+experiment_name: /Users/douglas.moore@databricks.com/experiments/jp2k_compression_experiments
