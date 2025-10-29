@@ -587,41 +587,31 @@ async def create_redaction_job(request: Request):
     
     Expected JSON body:
     {
-        "file_path": "/Volumes/.../file.dcm",
-        "volume_path": "/Volumes/.../output/",
-        "redaction_json": {
-            "exportTimestamp": "2025-10-27T10:00:00.000Z",
-            "studyInstanceUID": "1.2.840...",
-            "seriesInstanceUID": "1.2.840...",
-            "modality": "US",
-            "totalGlobalRedactions": 1,
-            "totalFrameSpecificRedactions": 0,
-            "totalRedactionAreas": 1,
-            "globalRedactions": [...],
-            "frameRedactions": {},
-            "filesToEdit": ["/Volumes/.../file.dcm"],
-            "enableFileOverwrite": false
-        }
+        "exportTimestamp": "2025-10-27T10:00:00.000Z",
+        "studyInstanceUID": "1.2.840...",
+        "seriesInstanceUID": "1.2.840...",
+        "modality": "US",
+        "totalGlobalRedactions": 1,
+        "totalFrameSpecificRedactions": 0,
+        "totalRedactionAreas": 1,
+        "globalRedactions": [...],
+        "frameRedactions": {...},
+        "filesToEdit": ["/Volumes/.../file.dcm"],
+        "enableFileOverwrite": false
     }
     
     Returns:
         JSON with redaction_id and status
     """
     try:
-        body = await request.json()
-        log(f"Received redaction job creation request", request, "info")
+        body = await request.body()
+        log(f"Received redaction job creation request" ,request, "info")
         
         # Extract required fields
-        file_path = body.get("file_path")
-        volume_path = body.get("volume_path")
-        redaction_json = body.get("redaction_json")
-        
-        if not file_path:
-            raise HTTPException(status_code=400, detail="file_path is required")
-        if not volume_path:
-            raise HTTPException(status_code=400, detail="volume_path is required")
-        if not redaction_json:
-            raise HTTPException(status_code=400, detail="redaction_json is required")
+        redaction_json = json.loads(body)
+
+        if not redaction_json or redaction_json == {}:
+            raise HTTPException(status_code=400, detail="redaction_json is required and must be a valid JSON object")
         
         # Get user from headers
         created_by = request.headers.get("X-Forwarded-Email", "unknown")
@@ -633,24 +623,15 @@ async def create_redaction_job(request: Request):
         # Insert redaction job
         result = await insert_redaction_job(
             table_name=redaction_table,
-            file_path=file_path,
             redaction_json=redaction_json,
-            volume_path=volume_path,
             warehouse_id=warehouse_id,
             databricks_host=cfg.host,
             databricks_token=os.environ["DATABRICKS_TOKEN"],
             created_by=created_by
         )
         
-        log(f"Created redaction job {result['redaction_id']} for {file_path}", request, "info")
+        log(f"Created redaction job {result['redaction_id']}", request, "info")
         return JSONResponse(content=result, status_code=201)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        log(f"Error creating redaction job: {str(e)}", request, "error")
-        raise HTTPException(status_code=500, detail=f"Failed to create redaction job: {str(e)}")
-
 
 @app.post("/vlm/analyze", response_class=JSONResponse)
 async def vlm_analyze(request: Request):
