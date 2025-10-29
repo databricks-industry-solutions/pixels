@@ -118,22 +118,26 @@ class LakebaseUtils:
         return pool
 
     def execute_and_fetch_query(self, query: str, params: tuple = None) -> list[tuple]:
+        conn = None
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
                 cursor.execute(query, params)
                 return cursor.fetchall()
         finally:
-            self.connection.putconn(conn)
+            if conn:
+                self.connection.putconn(conn)
 
     def execute_query(self, query: str, params: tuple = None):
+        conn = None
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
                 cursor.execute(query, params)
                 conn.commit()
         finally:
-            self.connection.putconn(conn)
+            if conn:
+                self.connection.putconn(conn)
 
     def retrieve_frame_range(
         self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
@@ -182,6 +186,7 @@ class LakebaseUtils:
     def insert_frame_ranges(
         self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
     ):
+        conn = None
         records = [
             [
                 filename,
@@ -202,4 +207,5 @@ class LakebaseUtils:
                 )
                 conn.commit()
         finally:
-            self.connection.putconn(conn)
+            if conn:
+                self.connection.putconn(conn)
