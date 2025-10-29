@@ -612,9 +612,6 @@ async def create_redaction_job(request: Request):
             status_code=400, detail="redaction_json is required and must be a valid JSON object"
         )
 
-    # Get user from headers
-    created_by = request.headers.get("X-Forwarded-Email", "unknown")
-
     # Get table name from cookies or environment
     pixels_table = get_pixels_table(request)
     redaction_table = f"{pixels_table}_redaction"
@@ -625,8 +622,8 @@ async def create_redaction_job(request: Request):
         redaction_json=redaction_json,
         warehouse_id=warehouse_id,
         databricks_host=cfg.host,
-        databricks_token=os.environ["DATABRICKS_TOKEN"],
-        created_by=created_by,
+        databricks_token=request.headers.get("X-Forwarded-Access-Token"),
+        created_by=request.headers.get("X-Forwarded-Email", "unknown"),
     )
 
     log(f"Created redaction job {result['redaction_id']}", request, "info")
@@ -654,4 +651,4 @@ async def vlm_analyze(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", log_config=None)
