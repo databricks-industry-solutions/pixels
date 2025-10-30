@@ -121,7 +121,7 @@ def handle_frame_transcode(frame_index, file_path, ds, dtype, shape, compressor,
     encoder = get_encoder(compressor)
 
     if encoder.UID == pydicom.uid.JPEG2000:
-        encoder_opts['j2k_cr'] = [ds.LossyImageCompressionRatio]
+        encoder_opts['j2k_cr'] = [ds.get("LossyImageCompressionRatio", 100)]
         
     if frame_index in fragment_list.keys():
         arr = open(fragment_list[frame_index], "rb").read()
