@@ -8,7 +8,7 @@ from databricks.sdk.service.database import (
     DatabaseInstanceState,
 )
 from psycopg2.extras import execute_values
-from psycopg2.pool import SimpleConnectionPool
+from psycopg2.pool import ThreadedConnectionPool
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -113,7 +113,7 @@ class LakebaseUtils:
             "password": cred.token,
         }
 
-        pool = SimpleConnectionPool(minconn=1, maxconn=10, **db_kwargs)
+        pool = ThreadedConnectionPool(minconn=1, maxconn=32, **db_kwargs)
 
         return pool
 
