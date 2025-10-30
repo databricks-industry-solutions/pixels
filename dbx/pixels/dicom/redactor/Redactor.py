@@ -9,6 +9,8 @@ from pyspark.sql.types import StringType, StructField, StructType
 from dbx.pixels.dicom.redactor.utils import redact_dcm
 from dbx.pixels.logging import LoggerProvider
 
+import traceback
+
 logger = LoggerProvider("DicomRedactor")
 
 
@@ -81,7 +83,7 @@ class Redactor:
         self.dest_base_path = dest_base_path
 
         # Create the redaction UDF
-        redaction_udf = _create_redaction_udf()
+        self.redaction_udf = _create_redaction_udf()
 
         # Read stream from table - only process pending records
         stream_df = (
@@ -90,31 +92,13 @@ class Redactor:
             .option("maxFilesPerTrigger", max_files_per_trigger)
             .table(self.source_table)
             .filter(fn.col("status") == fn.lit("PENDING"))
-        )
-
-        processed_df = (
-            stream_df.withColumn("processing_start_timestamp", fn.current_timestamp())
-            .withColumn(
-                "file_path",
-                fn.explode(fn.variant_get("redaction_json", "$.filesToEdit", "array<string>")),
-            )
-            .withColumn(
-                "redaction_result",
-                redaction_udf(
-                    fn.col("file_path"),
-                    fn.to_json(fn.col("redaction_json")),
-                    fn.col("redaction_id"),
-                    fn.col("new_series_instance_uid"),
-                    fn.lit(volume),
-                    fn.lit(dest_base_path),
-                ),
-            )
+            .withColumn("processing_start_timestamp", fn.current_timestamp())
         )
 
         # Write stream with foreachBatch for MERGE operation
         query = (
-            processed_df.writeStream.foreachBatch(
-                lambda batch_df, batch_id: _merge_results(batch_df, batch_id, self.source_table)
+            stream_df.writeStream.foreachBatch(
+                lambda batch_df, batch_id: self._merge_results(batch_df, batch_id)
             )
             .option("checkpointLocation", checkpoint_location)
             .trigger(processingTime=trigger_processing_time, availableNow=trigger_available_now)
@@ -125,52 +109,61 @@ class Redactor:
         return query
 
 
-def _merge_results(batch_df, batch_id, source_table):
-    """
-    Merge processed results back to the source table.
+    def _merge_results(self, batch_df, batch_id):
+        """
+        Merge processed results back to the source table.
 
-    Args:
-        batch_df: Batch DataFrame with processed results
-        target_table: Target table name for MERGE operation
-    """
-    if batch_df.isEmpty():
-        return
-    
-    processed_df = batch_df.groupBy("redaction_id").agg(
-        fn.collect_set(fn.col("redaction_result.output_file_path")).alias("output_file_paths"),
-        fn.max(fn.col("redaction_result.status")).alias("status"),
-        fn.collect_list(fn.col("redaction_result.error_message")).alias("error_messages"),
-        fn.min(fn.col("redaction_result.processing_start_timestamp")).alias(
-            "processing_start_timestamp"
-        ),
-        fn.max(fn.col("redaction_result.processing_end_timestamp")).alias(
-            "processing_end_timestamp"
-        ),
-        fn.max(fn.col("redaction_result.processing_duration_seconds")).alias(
-            "processing_duration_seconds"
-        ),
-        fn.current_timestamp().alias("update_timestamp"),
-    )
-
-    from delta.tables import DeltaTable
-
-    delta_table = DeltaTable.forName(processed_df.sparkSession, source_table)
-
-    (
-        delta_table.alias("trg")
-        .merge(processed_df.alias("src"), "trg.redaction_id == src.redaction_id")
-        .whenMatchedUpdate(
-            set={
-                "status": "src.status",
-                "output_file_paths": "src.output_file_paths",
-                "error_messages": "src.error_messages",
-                "processing_start_timestamp": "src.processing_start_timestamp",
-                "processing_end_timestamp": "src.processing_end_timestamp",
-                "processing_duration_seconds": "src.processing_duration_seconds",
-                "update_timestamp": "src.update_timestamp",
-            }
+        Args:
+            batch_df: Batch DataFrame with processed results
+            target_table: Target table name for MERGE operation
+        """
+        if batch_df.isEmpty():
+            return
+        
+        processed_df = batch_df\
+            .withColumn("file_path", fn.explode(fn.variant_get("redaction_json", "$.filesToEdit", "array<string>")))\
+            .withColumn("redaction_result", self.redaction_udf(
+                        fn.col("file_path"),
+                        fn.to_json(fn.col("redaction_json")),
+                        fn.col("redaction_id"),
+                        fn.col("new_series_instance_uid"),
+                        fn.lit(self.volume),
+                        fn.lit(self.dest_base_path)))\
+            .groupBy("redaction_id").agg(
+            fn.collect_set(fn.col("redaction_result.output_file_path")).alias("output_file_paths"),
+            fn.max(fn.col("redaction_result.status")).alias("status"),
+            fn.collect_list(fn.col("redaction_result.error_message")).alias("error_messages"),
+            fn.min(fn.col("redaction_result.processing_start_timestamp")).alias(
+                "processing_start_timestamp"
+            ),
+            fn.max(fn.col("redaction_result.processing_end_timestamp")).alias(
+                "processing_end_timestamp"
+            ),
+            fn.max(fn.col("redaction_result.processing_duration_seconds")).alias(
+                "processing_duration_seconds"
+            ),
+            fn.current_timestamp().alias("update_timestamp"),
         )
-    ).execute()
+
+        from delta.tables import DeltaTable
+
+        delta_table = DeltaTable.forName(processed_df.sparkSession, self.source_table)
+
+        (
+            delta_table.alias("trg")
+            .merge(processed_df.alias("src"), "trg.redaction_id == src.redaction_id")
+            .whenMatchedUpdate(
+                set={
+                    "status": "src.status",
+                    "output_file_paths": "src.output_file_paths",
+                    "error_messages": "src.error_messages",
+                    "processing_start_timestamp": "src.processing_start_timestamp",
+                    "processing_end_timestamp": "src.processing_end_timestamp",
+                    "processing_duration_seconds": "src.processing_duration_seconds",
+                    "update_timestamp": "src.update_timestamp",
+                }
+            )
+        ).execute()
 
 
 def _create_redaction_udf():
@@ -248,6 +241,7 @@ def _create_redaction_udf():
             result["processing_duration_seconds"] = str(time.time() - start_time)
             #result["processing_end_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             logger.error(f"Failed to redact {file_path} for job {redaction_id}: {e}")
+            logger.error(traceback.format_exc())
 
         return result
 

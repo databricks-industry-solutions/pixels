@@ -4,46 +4,37 @@ import os
 import re
 import tempfile
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 import cv2
 import numpy as np
 import pydicom
 from pydicom.dataset import FileDataset
+from pydicom.pixels import as_pixel_options
 
 from dbx.pixels.logging import LoggerProvider
+from pydicom.pixels import pixel_array
 
 logger = LoggerProvider("DicomRedactorUtils")
 
-def get_frame(ds, frame_index = 0):
+def get_frame(file_path, ds, frame_index = 0):
     """
     Returns the frame at the given index. If the dataset has only one frame, returns the original dataset.
     """
     if ds.get("NumberOfFrames", 1) > 1:
-        return pydicom.encaps.get_frame(ds.PixelData, frame_index)
+        return pixel_array(file_path, index = frame_index)
     else:
-        return ds.pixel_array.copy()
+        return pixel_array(file_path)
 
 def redact_frame(frame, redaction):
-    frame_dec = None
-
-    if not isinstance(frame, np.ndarray):
-        frame = np.frombuffer(frame, dtype=np.uint8)
-    try:
-        frame_dec = cv2.imdecode(frame, cv2.IMREAD_UNCHANGED)
-    except:
-        logger.warning("Failed to decode frame, is it already decoded? Processing original frame.")
-
-    to_process = frame if frame_dec is None else frame_dec
-
     (x_min, y_min) = redaction["imagePixelCoordinates"]["topLeft"]
     (x_max, y_max) = redaction["imagePixelCoordinates"]["bottomRight"]
 
-    cv2.rectangle(to_process, (int(x_min), int(y_min)), (int(x_max), int(y_max)), 0, -1)
-    return to_process
+    cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), 0, -1)
+    return frame
 
 
-def handle_global_redaction(ds, redaction_json):
+def handle_global_redaction(file_path, ds, redaction_json):
     """
     Global redaction applies to all frames in the dataset.
     Iterates for each frame in parallel and applies one redaction at a time to the frame.
@@ -51,8 +42,8 @@ def handle_global_redaction(ds, redaction_json):
     fragment_list = {}
     num_frames = ds.get("NumberOfFrames", 1)
 
-    def handle_frame_global_redact(frame_index):
-        frame = get_frame(ds, frame_index)
+    def handle_frame_global_redact(frame_index, file_path, ds, redaction_json):
+        frame = get_frame(file_path, ds, frame_index)
         for global_redaction in redaction_json["globalRedactions"]:
             logger.debug(
                 f"Redacting {frame_index} with global redaction {global_redaction['annotationUID']}"
@@ -60,15 +51,14 @@ def handle_global_redaction(ds, redaction_json):
             frame = redact_frame(frame, global_redaction)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as temp_file:
-            ret_va, buf = cv2.imencode(".jp2", frame)
-            temp_file.write(buf.tobytes())
+            temp_file.write(frame.tobytes())
             logger.debug(f"Frame {frame_index} written to temp file: {temp_file.name}")
             return temp_file.name
 
     if len(redaction_json["globalRedactions"]) != 0:
         with ThreadPoolExecutor() as executor:
             future_to_idx = {
-                executor.submit(handle_frame_global_redact, idx): idx for idx in range(num_frames)
+                executor.submit(handle_frame_global_redact, idx, file_path, ds, redaction_json): idx for idx in range(num_frames)
             }
             for future in as_completed(future_to_idx):
                 idx = future_to_idx[future]
@@ -76,7 +66,7 @@ def handle_global_redaction(ds, redaction_json):
     return fragment_list
 
 
-def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
+def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment_list={}):
     """
     Frame redaction will be applied to
     """
@@ -84,23 +74,24 @@ def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
     def handle_frame_redact(frame_index, frame_redaction):
         frame = None
         for redaction in frame_redaction:
-            if redaction["frameIndex"] == frame_index:
-                logger.debug(
-                    f"Redacting frame {frame_index} with redaction {redaction['annotationUID']}"
+            if num_frames == 1 or redaction["frameIndex"] == frame_index:
+                logger.info(
+                    f"========= Redacting frame {frame_index} with redaction {redaction['annotationUID']}"
                 )
                 if frame is None:
                     if frame_index not in fragment_list:
-                        frame = get_frame(ds, frame_index)
+                        frame = get_frame(file_path, ds, frame_index)
                     else:
-                        logger.debug(f"Reading {fragment_list[frame_index]}")
-                        frame = cv2.imread(fragment_list[frame_index], cv2.IMREAD_UNCHANGED)
+                        logger.info(f"Reading {fragment_list[frame_index]}")
+                        with open(fragment_list[frame_index], "rb") as buf:
+                            frame = copy.deepcopy(np.frombuffer(buf.read(), dtype=dtype)\
+                                .reshape(shape))
 
                 frame = redact_frame(frame, redaction)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".bin") as temp_file:
-            ret_va, buf = cv2.imencode(".jp2", frame)
-            temp_file.write(buf.tobytes())
-            logger.debug(f"Frame {frame_index} written to temp file: {temp_file.name}")
+            temp_file.write(frame.tobytes())
+            logger.info(f"Frame {frame_index} written to temp file: {temp_file.name}")
             return temp_file.name
 
     if (
@@ -109,7 +100,11 @@ def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
     ):
         frame_redaction = redaction_json["frameRedactions"][file_path]
 
-        frame_indexes = set([red["frameIndex"] for red in frame_redaction])
+        if num_frames == 1:
+            frame_indexes = {0}
+        else:
+            frame_indexes = set([red["frameIndex"] for red in frame_redaction])
+
         with ThreadPoolExecutor() as executor:
             future_to_idx = {
                 executor.submit(handle_frame_redact, idx, frame_redaction): idx
@@ -120,31 +115,33 @@ def handle_frame_redaction(ds, file_path, redaction_json, fragment_list={}):
                 fragment_list[idx] = future.result()
     return fragment_list
 
+def handle_frame_transcode(frame_index, file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list={}):
+    from pydicom.pixels import get_encoder
 
-def handle_frame_transcoding(ds, fragment_list={}):
-    def handle_frame_transcode(idx):
-        if idx in fragment_list.keys():
-            with open(fragment_list[idx], "rb") as f:
-                logger.debug(f"Reading {fragment_list[idx]}")
-                return f.read()
-        else:
-            frame = get_frame(ds, frame_index)
-            frame_np = np.frombuffer(frame, dtype=np.uint8)
-            if not ds.is_decompressed:
-                frame_np = cv2.imdecode(frame_np, cv2.IMREAD_UNCHANGED)
-            ret_va, buf = cv2.imencode(".jp2", frame_np)
-            logger.debug(f"Transcoded frame {idx}")
-        return buf.tobytes()
+    encoder = get_encoder(compressor)
+
+    if encoder.UID == pydicom.uid.JPEG2000:
+        encoder_opts['j2k_cr'] = [ds.LossyImageCompressionRatio]
+        
+    if frame_index in fragment_list.keys():
+        arr = open(fragment_list[frame_index], "rb").read()
+    else:
+        arr = get_frame(file_path, ds, frame_index).tobytes()
+
+    return encoder.encode(src=arr, index=0, **encoder_opts)
+
+def handle_frame_transcoding(file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list={}):
 
     frame_bytes = {}
     num_frames = ds.get("NumberOfFrames", 1)
 
-    with ThreadPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         future_to_idx = {
-            executor.submit(handle_frame_transcode, idx): idx for idx in range(num_frames)
+            executor.submit(handle_frame_transcode, idx, file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list): idx for idx in range(num_frames)
         }
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
+            #frame_bytes[idx] = encoder.encode(src=future.result(), index=0, **opts)
             frame_bytes[idx] = future.result()
     return frame_bytes
 
@@ -162,7 +159,23 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     """
     start_time = time.time()
     logger.info(f"Starting redaction of {file_path} at {datetime.datetime.now().isoformat()}")
-    ds = pydicom.dcmread(file_path)
+    ds = pydicom.dcmread(file_path, stop_before_pixels=True)
+
+    PhotometricInterpretation = "RGB"
+    if "MONOCHROME" in ds.get("PhotometricInterpretation"):
+        PhotometricInterpretation = ds.get("PhotometricInterpretation")
+    
+    # get first frame np dtype
+    dtype = pixel_array(file_path, index= 0).dtype
+    shape = pixel_array(file_path, index= 0).shape
+
+    encoder_opts = as_pixel_options(ds)
+    encoder_opts['number_of_frames'] = 1 # Force to process one frame
+    encoder_opts['photometric_interpretation'] = PhotometricInterpretation
+
+    compressor = pydicom.uid.JPEG2000Lossless
+    if ds.get("LossyImageCompression", "00") == "01":
+        compressor = pydicom.uid.JPEG2000
 
     if redaction_json["enableFileOverwrite"]:
         dest_path = file_path
@@ -175,12 +188,16 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         logger.info(f"Destination path: {dest_path}")
 
-    fragment_list = handle_global_redaction(ds, redaction_json)
-    fragment_list = handle_frame_redaction(ds, file_path, redaction_json, fragment_list)
+    fragment_list = {}
+    fragment_list = handle_global_redaction(file_path, ds, redaction_json)
+    fragment_list = handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment_list)
 
     logger.info(
         f"Frames {len(fragment_list)} patched and transcoded at {datetime.datetime.now().isoformat()}"
     )
+
+    # Collect all frame fragments and transcode them
+    frame_bytes = handle_frame_transcoding(file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list)
 
     # Copy the original dataset's metadata except for PixelData
     new_ds = FileDataset(dest_path, {}, file_meta=ds.file_meta, preamble=ds.preamble)
@@ -190,21 +207,25 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     for elem in ds.file_meta:
         new_ds.file_meta.add(copy.deepcopy(elem))
     
-    new_ds.file_meta.TransferSyntaxUID = pydicom.uid.JPEG2000Lossless
-    new_ds.PhotometricInterpretation = "YBR_FULL"
-    
     if not redaction_json['enableFileOverwrite']:
-      new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']   
-
-    # Collect all frame fragments and transcode them
-    frame_bytes = handle_frame_transcoding(ds, fragment_list)
+      new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']
 
     logger.info(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
 
-    logger.debug(f"Starting to encapsulate {len(frame_bytes)} frames")
-    new_ds.PixelData = pydicom.encaps.encapsulate(
-        [frame_bytes[idx] for idx in sorted(frame_bytes.keys())]
-    )
+    new_ds.file_meta.TransferSyntaxUID = compressor
+    new_ds.PhotometricInterpretation = PhotometricInterpretation
+    #new_ds.BitsAllocated = 8
+    #new_ds.BitsStored = 8
+    #new_ds.HighBit = 7
+
+    print(len(frame_bytes[0]))
+
+    new_ds.PixelData = pydicom.encaps.encapsulate([frame_bytes[idx] for idx in sorted(frame_bytes.keys())])
+
+    #new_ds.PixelData = b''.join([frame_bytes[idx] for idx in sorted(frame_bytes.keys())])
+
+    #new_ds.compress(compressor, j2k_cr=[ds.LossyImageCompressionRatio] if compressor == pydicom.uid.JPEG2000 else None)
+        
     logger.debug(f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}")
 
     new_ds.save_as(dest_path)
