@@ -76,7 +76,7 @@ def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment
         for redaction in frame_redaction:
             if num_frames == 1 or redaction["frameIndex"] == frame_index:
                 logger.info(
-                    f"========= Redacting frame {frame_index} with redaction {redaction['annotationUID']}"
+                    f"Redacting frame {frame_index} with redaction {redaction['annotationUID']}"
                 )
                 if frame is None:
                     if frame_index not in fragment_list:
@@ -165,7 +165,7 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     if "MONOCHROME" in ds.get("PhotometricInterpretation"):
         PhotometricInterpretation = ds.get("PhotometricInterpretation")
     
-    # get first frame np dtype
+    # get first frame np dtype and shape
     dtype = pixel_array(file_path, index= 0).dtype
     shape = pixel_array(file_path, index= 0).shape
 
@@ -210,21 +210,12 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     if not redaction_json['enableFileOverwrite']:
       new_ds.SeriesInstanceUID = redaction_json['new_series_instance_uid']
 
-    logger.info(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
+    logger.debug(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
 
     new_ds.file_meta.TransferSyntaxUID = compressor
     new_ds.PhotometricInterpretation = PhotometricInterpretation
-    #new_ds.BitsAllocated = 8
-    #new_ds.BitsStored = 8
-    #new_ds.HighBit = 7
-
-    print(len(frame_bytes[0]))
 
     new_ds.PixelData = pydicom.encaps.encapsulate([frame_bytes[idx] for idx in sorted(frame_bytes.keys())])
-
-    #new_ds.PixelData = b''.join([frame_bytes[idx] for idx in sorted(frame_bytes.keys())])
-
-    #new_ds.compress(compressor, j2k_cr=[ds.LossyImageCompressionRatio] if compressor == pydicom.uid.JPEG2000 else None)
         
     logger.debug(f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}")
 
