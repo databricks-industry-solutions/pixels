@@ -1,5 +1,6 @@
 import json
 import time
+import traceback
 from datetime import datetime
 from typing import Dict
 
@@ -8,8 +9,6 @@ from pyspark.sql.types import StringType, StructField, StructType
 
 from dbx.pixels.dicom.redactor.utils import redact_dcm
 from dbx.pixels.logging import LoggerProvider
-
-import traceback
 
 logger = LoggerProvider("DicomRedactor")
 
@@ -105,7 +104,6 @@ class Redactor:
         self.logger.info(f"Streaming query started with ID: {query.id}")
         return query
 
-
     def _merge_results(self, batch_df, batch_id):
         """
         Merge processed results back to the source table.
@@ -116,30 +114,41 @@ class Redactor:
         """
         if batch_df.isEmpty():
             return
-        
-        processed_df = batch_df\
-            .withColumn("file_path", fn.explode(fn.variant_get("redaction_json", "$.filesToEdit", "array<string>")))\
-            .withColumn("redaction_result", redact_file_udf(
-                        fn.col("file_path"),
-                        fn.to_json(fn.col("redaction_json")),
-                        fn.col("redaction_id"),
-                        fn.col("new_series_instance_uid"),
-                        fn.lit(self.volume),
-                        fn.lit(self.dest_base_path)))\
-            .groupBy("redaction_id").agg(
-            fn.collect_set(fn.col("redaction_result.output_file_path")).alias("output_file_paths"),
-            fn.max(fn.col("redaction_result.status")).alias("status"),
-            fn.collect_list(fn.col("redaction_result.error_message")).alias("error_messages"),
-            fn.min(fn.col("redaction_result.processing_start_timestamp")).alias(
-                "processing_start_timestamp"
-            ),
-            fn.max(fn.col("redaction_result.processing_end_timestamp")).alias(
-                "processing_end_timestamp"
-            ),
-            fn.max(fn.col("redaction_result.processing_duration_seconds")).alias(
-                "processing_duration_seconds"
-            ),
-            fn.current_timestamp().alias("update_timestamp"),
+
+        processed_df = (
+            batch_df.withColumn(
+                "file_path",
+                fn.explode(fn.variant_get("redaction_json", "$.filesToEdit", "array<string>")),
+            )
+            .withColumn(
+                "redaction_result",
+                redact_file_udf(
+                    fn.col("file_path"),
+                    fn.to_json(fn.col("redaction_json")),
+                    fn.col("redaction_id"),
+                    fn.col("new_series_instance_uid"),
+                    fn.lit(self.volume),
+                    fn.lit(self.dest_base_path),
+                ),
+            )
+            .groupBy("redaction_id")
+            .agg(
+                fn.collect_set(fn.col("redaction_result.output_file_path")).alias(
+                    "output_file_paths"
+                ),
+                fn.max(fn.col("redaction_result.status")).alias("status"),
+                fn.collect_list(fn.col("redaction_result.error_message")).alias("error_messages"),
+                fn.min(fn.col("redaction_result.processing_start_timestamp")).alias(
+                    "processing_start_timestamp"
+                ),
+                fn.max(fn.col("redaction_result.processing_end_timestamp")).alias(
+                    "processing_end_timestamp"
+                ),
+                fn.max(fn.col("redaction_result.processing_duration_seconds")).alias(
+                    "processing_duration_seconds"
+                ),
+                fn.current_timestamp().alias("update_timestamp"),
+            )
         )
 
         from delta.tables import DeltaTable
@@ -163,8 +172,8 @@ class Redactor:
         ).execute()
 
 
-
-fn.udf(returnType=StructType(
+fn.udf(
+    returnType=StructType(
         [
             StructField("output_file_path", StringType(), True),
             StructField("status", StringType(), False),
@@ -173,7 +182,10 @@ fn.udf(returnType=StructType(
             StructField("processing_start_timestamp", StringType(), False),
             StructField("processing_end_timestamp", StringType(), False),
         ]
-        ))
+    )
+)
+
+
 def redact_file_udf(
     file_path: str,
     redaction_json_str: str,
@@ -181,7 +193,7 @@ def redact_file_udf(
     new_series_instance_uid: str,
     volume: str,
     dest_base_path: str,
-    stop_on_exception: bool = False
+    stop_on_exception: bool = False,
 ) -> Dict:
     """
     UDF to redact a single DICOM file.
@@ -208,9 +220,7 @@ def redact_file_udf(
         redaction_json = json.loads(redaction_json_str)
         redaction_json["new_series_instance_uid"] = new_series_instance_uid
         # Perform the redaction
-        output_path = redact_dcm(
-            file_path, redaction_json, redaction_id, volume, dest_base_path
-        )
+        output_path = redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path)
         # Update result
         result["output_file_path"] = output_path
         result["status"] = "SUCCESS"
@@ -219,7 +229,7 @@ def redact_file_udf(
         logger.info(f"Successfully redacted {file_path} for job {redaction_id}")
     except Exception as e:
         result["status"] = "FAILED"
-        result["error_message"] = str(e+"\n"+traceback.format_exc())
+        result["error_message"] = str(e + "\n" + traceback.format_exc())
         result["processing_duration_seconds"] = str(time.time() - start_time)
         result["processing_end_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logger.error(f"Failed to redact {file_path} for job {redaction_id}: {e}")

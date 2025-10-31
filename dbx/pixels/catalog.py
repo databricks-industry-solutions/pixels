@@ -1,11 +1,10 @@
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
 from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf
-
-from databricks.sdk import WorkspaceClient
 
 # dfZipWithIndex helper function
 
@@ -68,7 +67,14 @@ class Catalog:
 
         # Check if the volume exist
         catalog, schema, volume_name = volume.split(".")
-        v_exists = all([l_volume.full_name == volume for l_volume in self.w_client.volumes.list(catalog_name=catalog, schema_name=schema, max_results=100)])
+        v_exists = all(
+            [
+                l_volume.full_name == volume
+                for l_volume in self.w_client.volumes.list(
+                    catalog_name=catalog, schema_name=schema, max_results=100
+                )
+            ]
+        )
         if not v_exists:
             logger.warning(f"Volume {volume} does not exist")
 

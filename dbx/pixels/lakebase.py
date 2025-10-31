@@ -95,10 +95,14 @@ class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
                     self._kwargs["password"] = new_credentials["password"]
 
                 # Update expiration time
-                self.token_expiration = datetime.now() + timedelta(seconds=self.token_lifetime_seconds)
+                self.token_expiration = datetime.now() + timedelta(
+                    seconds=self.token_lifetime_seconds
+                )
                 self.last_refresh = datetime.now()
 
-                logger.info(f"Successfully refreshed credentials. New expiration: {self.token_expiration}")
+                logger.info(
+                    f"Successfully refreshed credentials. New expiration: {self.token_expiration}"
+                )
                 return True
 
             except Exception as e:
