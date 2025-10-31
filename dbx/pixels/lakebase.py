@@ -90,9 +90,6 @@ class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
                 # Get new credentials
                 new_credentials = self.credential_refresh_callback()
 
-                # Close all existing connections in the pool
-                self.closeall()
-
                 # Update connection parameters
                 if "password" in new_credentials:
                     self._kwargs["password"] = new_credentials["password"]
