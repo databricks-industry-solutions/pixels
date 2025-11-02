@@ -46,7 +46,7 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
         return None
 
 
-def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
+def extract_metadata(ds: Dataset, deep: bool = False) -> dict:
     """Extract metadata from header of dicom image file
     params:
       path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
@@ -54,13 +54,15 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     """
     a = None
     js = ds.to_json_dict()
-    # remove binary images
-    if "60003000" in js:
-        del js["60003000"]
-    if "7FE00010" in js:
-        del js["7FE00010"]
+
     if deep:
+        # remove binary images
+        if "60003000" in js:
+            del js["60003000"]
+        if "7FE00010" in js:
+            del js["7FE00010"]
         a = check_pixel_data(ds)
+
     if deep and a is not None:
         a.flags.writeable = False
         js["has_pixel"] = True

@@ -1,0 +1,9 @@
+# for compression tests
+# input_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0.dcm
+input_path: /Volumes/hls_radiology/demo/random
+output_path: /Volumes/hls_radiology/demo/random/compressed
+table: main.pixels_solacc.object_catalog
+volume: main.pixels_solacc.pixels_volume
+write_mode: append
+num_resolutions: 6
+experiment_name: /Users/douglas.moore@databricks.com/experiments/jp2k_compression_experiments
