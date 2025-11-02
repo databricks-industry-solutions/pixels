@@ -1,7 +1,7 @@
 # for compression tests
-# input_path: /Volumes/vdm-classic-q6xfh3_catalog/random/pixels_volume/amgen/20250227134948_CT_ISRA_0.dcm
-input_path: /Volumes/vdm-classic-q6xfh3_catalog/random/pixels_volume/large-multi-frame-dicoms
-output_path: /Volumes/vdm-classic-q6xfh3_catalog/random/pixels_volume/compressed
+# input_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0.dcm
+input_path: /Volumes/hls_radiology/demo/random
+output_path: /Volumes/hls_radiology/demo/random/compressed
 table: main.pixels_solacc.object_catalog
 volume: main.pixels_solacc.pixels_volume
 write_mode: append
