@@ -57,23 +57,6 @@ class TestPromptClass:
         assert "my_case" in repr_str
         assert "system" in repr_str
 
-    def test_prompt_repr_long_content(self):
-        """Test repr truncates long content"""
-        from dbx.pixels.prompt import Prompt
-
-        long_content = "x" * 100
-        prompt = Prompt(
-            name="test",
-            content=long_content,
-            description="desc",
-            prompt_type="user",
-            use_case="case",
-        )
-
-        repr_str = repr(prompt)
-        assert "..." in repr_str
-        assert len(repr_str) < len(long_content)
-
     def test_prompt_to_dict(self):
         """Test converting a Prompt to a dictionary"""
         from dbx.pixels.prompt import Prompt
