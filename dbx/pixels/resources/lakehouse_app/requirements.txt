@@ -1,5 +1,5 @@
 databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
 requests-toolbelt
 zstd
-psycopg[binary,pool]
+psycopg2-binary
 pyspark==4.0.1
