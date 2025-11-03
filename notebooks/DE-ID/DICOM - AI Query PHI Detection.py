@@ -6,6 +6,15 @@
 # MAGIC
 # MAGIC 1. `metadata`: the json string to be evaluated
 # MAGIC 2. `label`: the target label
+# MAGIC
+# MAGIC This has been tested on the following runtimes: 
+# MAGIC 1. Serverless (v17.3)
+# MAGIC 2. DBR 16.4
+
+# COMMAND ----------
+
+# MAGIC %pip install mlflow==3.3.0
+# MAGIC %restart_python
 
 # COMMAND ----------
 
@@ -159,37 +168,46 @@ filtered_df = (
     )
 )
 
-filtered_df.persist(StorageLevel.MEMORY_AND_DISK)
-
+# Here, we're overwriting the table; 
+# however, another option is to leverage the timestamp column to append and then filter later
 (
   filtered_df
     .write
-    .mode("append")
+    .mode("overwrite")
     .format("delta")
     .saveAsTable(ai_query_prediction_table)
 )
 
 # COMMAND ----------
 
+table_for_eval = spark.table(ai_query_prediction_table)
+
 mlflow.set_experiment('/Shared/pixels_metadata_phi_detection')
-
 with mlflow.start_run():  
-
   # === Write out metrics for run ===
-  metrics_to_eval = ["f1", "accuracy", "weightedPrecision", "weightedRecall"]
-  metrics = {}
-  for metric in metrics_to_eval:
-      evaluator = MulticlassClassificationEvaluator(
-          labelCol="label",
-          predictionCol="has_phi_prediction",
-          metricName=metric
-      )
-      value = evaluator.evaluate(filtered_df)
-      mlflow.log_metric(metric, value)
-      metrics[metric] = value
+  agg = table_for_eval.groupBy().agg(
+    F.sum(F.when((F.col("label") == 1) & (F.col("has_phi_prediction") == 1), 1).otherwise(0)).alias("tp"),
+    F.sum(F.when((F.col("label") == 0) & (F.col("has_phi_prediction") == 0), 1).otherwise(0)).alias("tn"),
+    F.sum(F.when((F.col("label") == 0) & (F.col("has_phi_prediction") == 1), 1).otherwise(0)).alias("fp"),
+    F.sum(F.when((F.col("label") == 1) & (F.col("has_phi_prediction") == 0), 1).otherwise(0)).alias("fn"),
+  ).collect()[0]
+
+  tp, tn, fp, fn = agg.tp, agg.tn, agg.fp, agg.fn
+
+  accuracy = (tp + tn) / (tp + tn + fp + fn)
+  precision = tp / (tp + fp) if tp + fp else 0
+  recall = tp / (tp + fn) if tp + fn else 0
+  f1 = 2 * (precision * recall) / (precision + recall) if precision + recall else 0
+
+  metrics = {
+      "accuracy": accuracy,
+      "precision": precision,
+      "recall": recall,
+      "f1": f1
+  }
 
   # === Write out prompt/response samples to artifact dir ===
-  sample_df = filtered_df.limit(100).toPandas()
+  sample_df = table_for_eval.limit(100).toPandas()
 
   for _, row in sample_df.iterrows():
     dicom_path = str(row["original_dicom_path"]).replace("/", "_")
@@ -212,9 +230,6 @@ with mlflow.start_run():
     }
   )
 
+  mlflow.log_metrics(metrics)
   mlflow.log_text(prompt, "prompt.txt")
 
-
-# COMMAND ----------
-
-filtered_df.unpersist()

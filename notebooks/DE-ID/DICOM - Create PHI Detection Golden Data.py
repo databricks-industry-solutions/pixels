@@ -10,6 +10,15 @@
 # MAGIC 2. Gather corresponding masked metadata from the `midi_b_val` dataset
 # MAGIC 3. Keep only data that the original and masked jsons have in common (i.e., the non-phi)
 # MAGIC 5. Sample this data into the `phi_detection_golden` table
+# MAGIC
+# MAGIC
+# MAGIC ## Requirements:
+# MAGIC Tested on the following runtimes:
+# MAGIC
+# MAGIC 1. Serverless (v17.3, CPU)
+# MAGIC 2. DBR 16.4
+# MAGIC
+# MAGIC With `pydicom` and `pandas` as requirements
 
 # COMMAND ----------
 
@@ -20,6 +29,8 @@
 from pyspark.sql import functions as F
 from pyspark.sql.types import ArrayType, StringType, StructType, StructField, MapType
 from pyspark.sql.functions import pandas_udf
+from pydicom.tag import Tag
+from pydicom.datadict import keyword_for_tag, dictionary_description
 import json
 import pydicom
 import pandas as pd
@@ -31,6 +42,7 @@ dbutils.widgets.text(
   label="1. Table containing original DICOM data"
 )
 
+# The midi_b_val table contains medical imaging DICOM files. It includes information such as patient identifiers, body parts examined, and details about the imaging collection. This is joined using the Synthetic Validation dataset and Curated Validation table from https://www.cancerimagingarchive.net/collection/midi-b-test-midi-b-validation/
 dbutils.widgets.text(
   name="masked_dicom_data", 
   defaultValue="hls_radiology.tcia.midi_b_val",
@@ -49,109 +61,120 @@ dbutils.widgets.text(
   label="4. Table for which to write golden data"
 )
 
-dbutils.widgets.text(
-  name="dicom_tag_mapping_table", 
-  defaultValue="hls_radiology.ddsm.dicom_tags",
-  label="5. Table containing DICOM tag map (Optional)"
-)
-
 # COMMAND ----------
 
 dicom_data = spark.read.table(dbutils.widgets.get("original_dicom_data"))
 masked_data = spark.read.table(dbutils.widgets.get("masked_dicom_data")).drop("pixel_hash")
 joined_df = masked_data.join(dicom_data, "path")
-tag_df = spark.read.table(dbutils.widgets.get("dicom_tag_mapping_table"))
-tag_mapping = dict(tag_df.select("Tag", "Keyword").rdd.map(tuple).collect())
 
 # COMMAND ----------
 
-def dicom_to_json(path: str, remove_key: str = None) -> str:
+def get_tag_dictionary_desc(tag_input):
+    """
+    Accepts tag in several forms:
+      - hex string (e.g. '#00100030' or '00100030')
+      - tuple (0x0010, 0x0030)
+      - int (0x00100030)
+    Returns a dict with tag, keyword, and description.
+    """
+    if isinstance(tag_input, str):
+        tag_input = tag_input.strip().replace("#", "").replace("0x", "")
+        tag = Tag(int(tag_input, 16))
+    elif isinstance(tag_input, tuple):
+        tag = Tag(tag_input)
+    else:
+        tag = Tag(tag_input)
+
+    return dictionary_description(tag)
+
+def dicom_to_json(path: str) -> str:
     local_path = path.replace("dbfs:", "")
-    dcm = pydicom.dcmread(local_path)
-    data = dcm.to_json_dict()
-    if remove_key and remove_key in data:
-        del data[remove_key]
-    
+    dcm = pydicom.dcmread(local_path, stop_before_pixels=True)
+    data = dcm.to_json_dict() 
     return json.dumps(data)
 
-def make_compare_dicom_tags_udf(spark, dicom_tag_mapping: dict = None):
+def make_compare_dicom_tags_udf(spark):
     """
     This function creates a PySpark Pandas UDF that compares two JSON-encoded
     DICOM metadata columns (original and masked) to identify differing and
     unchanged tags.
-
     Returns three fields:
       - diff_tags: JSON string of differing tags mapped to human-readable names
       - non_phi_metadata: JSON string of unchanged (non-PHI) tags
       - errors: list of error dicts
     """
     diff_schema = StructType([
+        StructField("masked_meta", StringType(), True),
         StructField("diff_tags", StringType(), True),
         StructField("non_phi_metadata", StringType(), True),
         StructField("errors", ArrayType(MapType(StringType(), StringType())), True),
     ])
 
-    tag_mapping_bc = spark.sparkContext.broadcast(dicom_tag_mapping)
-
     @pandas_udf(diff_schema)
-    def compare_dicom_tags_udf(meta_col: pd.Series, masked_col: pd.Series) -> pd.DataFrame:
-        tag_mapping = tag_mapping_bc.value or {}
-        diff_dicts, non_phi_dicts, errors_list = [], [], []
-
-        for meta_str, masked_str in zip(meta_col, masked_col):
+    def compare_dicom_tags_udf(meta_col: pd.Series, masked_file_path: pd.Series) -> pd.DataFrame:
+        masked_meta, diff_dicts, non_phi_dicts, errors_list = [], [], [], []
+        for meta_str, masked_str in zip(meta_col, masked_file_path):
+            masked_str = dicom_to_json(masked_str)
             row_diff, row_non_phi, row_errors = {}, {}, []
-
             try:
                 meta_json = json.loads(meta_str or "{}")
                 masked_json = json.loads(masked_str or "{}")
-
                 for k, v in meta_json.items():
                     try:
                         if k in masked_json:
                             masked_val = masked_json[k].get("Value")
                             orig_val = v.get("Value")
                             if masked_val != orig_val:
-                                row_diff[k] = tag_mapping.get(k, k)
+                                row_diff[k] = get_tag_dictionary_desc(k)
                             else:
                                 row_non_phi[k] = v
                         else:
-                            row_diff[k] = tag_mapping.get(k, k)
+                            row_diff[k] = get_tag_dictionary_desc(k)
                     except Exception as e:
                         row_errors.append({k: str(e)})
-
             except Exception as e:
                 row_diff = {}
                 row_non_phi = {}
                 row_errors.append({"__row__": str(e)})
-
+            
+            masked_meta.append(masked_str)
             diff_dicts.append(json.dumps(row_diff))
             non_phi_dicts.append(json.dumps(row_non_phi))
             errors_list.append(row_errors)
-
+            
         return pd.DataFrame({
+            "masked_meta": masked_meta,
             "diff_tags": diff_dicts,
             "non_phi_metadata": non_phi_dicts,
             "errors": errors_list
         })
-
     return compare_dicom_tags_udf
             
 
 # COMMAND ----------
 
-compare_dicom_tags_udf = make_compare_dicom_tags_udf(spark, tag_mapping)
+# MAGIC %md
+# MAGIC
+# MAGIC Parsing metadata from the masked dicom filepaths, and comparing those json strings to their corresponding unmasked jsons. This allows us to know what, specifically, is considered PHI versus Non-PHI. The `diff_tags` here represent a JSON of `{tag: tag_description}`.
 
-# Convert dicom to json string and
-# ... remove the 7FE00010 key from the masked json, representing the binary file
-dicom_to_json_udf = udf(lambda path: dicom_to_json(path, "7FE00010"), StringType())
+# COMMAND ----------
+
+compare_dicom_tags_udf = make_compare_dicom_tags_udf(spark)
 
 compared_dicom_data = (
   joined_df
-    .withColumn("masked_metadata", dicom_to_json_udf("path_masked"))
-    .withColumn("comparison_struct", compare_dicom_tags_udf("meta", "masked_metadata"))
+    .withColumn("comparison_struct", compare_dicom_tags_udf("meta","path_masked"))
+    .withColumn("masked_meta", F.col("comparison_struct.masked_meta"))
     .withColumn("non_phi_metadata", F.col("comparison_struct.non_phi_metadata"))
     .withColumn("diff_tags", F.col("comparison_struct.diff_tags"))
+    .drop("comparison_struct")
 )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC Writing the intermediate table with the masked DICOM metadata as this is a relatively expensive UDF that should be persisted.
 
 # COMMAND ----------
 
@@ -167,8 +190,16 @@ table_name = dbutils.widgets.get("intermediate_diffing_table_to_write")
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC
+# MAGIC Creating and persisting a "golden data" table that contains either the original metadata (with PHI) or the non-PHI metadata derived above. 
+
+# COMMAND ----------
+
+dicom_data = spark.table(table_name)
+
 golden_data = (
-    compared_dicom_data.withColumn("label", (F.rand() > 0.5).cast("int"))  # randomly 0 or 1
+    dicom_data.withColumn("label", (F.rand() > 0.5).cast("int"))  # randomly 0 or 1
       .withColumn(
           "metadata",
           F.when(F.col("label") == 1, F.col("meta"))
@@ -202,6 +233,10 @@ display(golden_data.limit(5))
 
 # COMMAND ----------
 
-from pyspark.sql import functions as F
+# MAGIC %md
+# MAGIC Displaying the label counts:
+
+# COMMAND ----------
+
 golden_data.groupBy("label").count().display()
 
