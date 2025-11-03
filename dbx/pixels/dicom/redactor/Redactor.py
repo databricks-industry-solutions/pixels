@@ -172,7 +172,7 @@ class Redactor:
         ).execute()
 
 
-fn.udf(
+@fn.udf(
     returnType=StructType(
         [
             StructField("output_file_path", StringType(), True),
@@ -184,8 +184,6 @@ fn.udf(
         ]
     )
 )
-
-
 def redact_file_udf(
     file_path: str,
     redaction_json_str: str,
