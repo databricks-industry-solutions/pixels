@@ -229,7 +229,7 @@ def redact_file_udf(
         logger.info(f"Successfully redacted {file_path} for job {redaction_id}")
     except Exception as e:
         result["status"] = "FAILED"
-        result["error_message"] = str(e + "\n" + traceback.format_exc())
+        result["error_message"] = str(e) + "\n" + traceback.format_exc()
         result["processing_duration_seconds"] = str(time.time() - start_time)
         result["processing_end_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         logger.error(f"Failed to redact {file_path} for job {redaction_id}: {e}")
