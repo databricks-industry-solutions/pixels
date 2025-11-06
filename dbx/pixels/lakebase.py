@@ -7,6 +7,8 @@ from databricks.sdk.service.database import (
     DatabaseInstanceRoleIdentityType,
     DatabaseInstanceState,
 )
+from psycopg2.extras import execute_values
+from psycopg2.pool import SimpleConnectionPool
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -97,49 +99,41 @@ class LakebaseUtils:
     def get_connection(self):
         import uuid
 
-        import psycopg
-        from psycopg_pool import ConnectionPool
-
-        class CustomConnection(psycopg.Connection):
-            global w
-
-            def __init__(self, *args, **kwargs):
-                # Call the parent class constructor
-                super().__init__(*args, **kwargs)
-
-            @classmethod
-            def connect(cls, conninfo="", **kwargs):
-                # Append the new password to kwargs
-                cred = self.workspace_client.database.generate_database_credential(
-                    request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
-                )
-                kwargs["password"] = cred.token
-
-                # Call the superclass's connect method with updated kwargs
-                return super().connect(conninfo, **kwargs)
-
         host = self.instance.read_write_dns
         database = "databricks_postgres"
-
-        pool = ConnectionPool(
-            conninfo=f"dbname={database} user={self.user} host={host} sslmode=require",
-            connection_class=CustomConnection,
-            min_size=1,
-            max_size=10,
-            open=True,
+        cred = self.workspace_client.database.generate_database_credential(
+            request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
         )
 
-        return pool.connection
+        db_kwargs = {
+            "database": database,
+            "user": self.user,
+            "host": host,
+            "sslmode": "require",
+            "password": cred.token,
+        }
+
+        pool = SimpleConnectionPool(minconn=1, maxconn=10, **db_kwargs)
+
+        return pool
 
     def execute_and_fetch_query(self, query: str, params: tuple = None) -> list[tuple]:
-        with self.connection() as conn:
-            with conn.cursor() as cursor:
-                return cursor.execute(query, params).fetchall()
-
-    def execute_query(self, query: str, params: tuple = None):
-        with self.connection() as conn:
+        try:
+            conn = self.connection.getconn()
             with conn.cursor() as cursor:
                 cursor.execute(query, params)
+                return cursor.fetchall()
+        finally:
+            self.connection.putconn(conn)
+
+    def execute_query(self, query: str, params: tuple = None):
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                conn.commit()
+        finally:
+            self.connection.putconn(conn)
 
     def retrieve_frame_range(
         self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
@@ -160,10 +154,11 @@ class LakebaseUtils:
             return None
 
     def retrieve_max_frame_range(
-        self, filename: str, table: str = DICOM_FRAMES_TABLE
+        self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
         results = self.execute_and_fetch_query(
-            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s", (filename,)
+            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s and frame <= %s",
+            (filename, param_frames),
         )
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
@@ -187,12 +182,24 @@ class LakebaseUtils:
     def insert_frame_ranges(
         self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
     ):
-        for frame_range in frame_ranges:
-            self.insert_frame_range(
+        records = [
+            [
                 filename,
-                frame_range["frame_number"],
-                frame_range["start_pos"],
-                frame_range["end_pos"],
-                frame_range["pixel_data_pos"],
-                table,
-            )
+                str(frame_range.get("frame_number")),
+                str(frame_range.get("start_pos")),
+                str(frame_range.get("end_pos")),
+                str(frame_range.get("pixel_data_pos")),
+            ]
+            for frame_range in frame_ranges
+        ]
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                execute_values(
+                    cursor,
+                    f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING",
+                    records,
+                )
+                conn.commit()
+        finally:
+            self.connection.putconn(conn)
