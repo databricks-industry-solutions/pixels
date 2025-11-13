@@ -129,65 +129,59 @@ def unzip_pandas_udf(col1, col2):
     return pd.Series([unzip(path, volume_base_path) for path, volume_base_path in zip(col1, col2)])
 
 
-def call_vlm_serving_endpoint(
-    base64_image: str,
+def call_llm_serving_endpoint(
     prompt: str,
-    metadata: str,
     system_prompt: str,
+    base64_image: str = None,
     model_name: str = "databricks-claude-sonnet-4",
     max_tokens: int = 500,
     temperature: float = 0.8,
 ) -> dict:
     """
-    Call the serving endpoint with the base64 image and prompt for image analysis using VLM model.
+    Call the serving endpoint with prompt and optional base64 image for image analysis using LLM model.
 
     Args:
-        base64_image: The base64 encoded image to analyze.
         prompt: The prompt to analyze the image.
-        metadata: The metadata of the image.
-        system_prompt: The system prompt to use for the VLM model.
-        model_name: The name of the VLM model to use.
+        system_prompt: The system prompt to use for the LLM model.
+        base64_image: The base64 encoded image to analyze.
+        model_name: The name of the LLM model to use.
         max_tokens: The maximum number of tokens to generate.
-        temperature: The temperature to use for the VLM model.
+        temperature: The temperature to use for the LLM model.
 
     Returns:
-        The result of the VLM model analysis.
+        The result of the LLM model analysis.
     """
-    from mlflow.deployments import get_deploy_client
+    from mlflow.deployments import get_deploy_client    
+
+    to_send = {
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [prompt],
+            },
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens
+    }
+
+    if base64_image is not None:
+        to_send["messages"][1]["content"].append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+            }
+        )
 
     try:
         result = get_deploy_client("databricks").predict(
             endpoint=model_name,
-            inputs={
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "<USER_PROMPT>"
-                                + prompt
-                                + "</USER_PROMPT>"
-                                + "\n<METADATA>"
-                                + metadata
-                                + "</METADATA>",
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
-                            },
-                        ],
-                    },
-                ],
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
+            inputs=to_send
         )
         return result
 
     except Exception as e:
-        raise Exception(f"Error calling VLM serving endpoint: {str(e)}")
+        raise Exception(f"Error calling LLM serving endpoint: {str(e)}")
 
 
 DICOM_MAGIC_STRING = "DICOM medical imaging data"
