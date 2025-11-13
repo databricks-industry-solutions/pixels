@@ -67,7 +67,7 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     elif deep:
         js["has_pixel"] = False
 
-    # remove RTStruct
+    # remove contours
     if "30060039" in ds:
         del ds["30060039"]
 
