@@ -1,5 +1,6 @@
 import copy
 import datetime
+import hashlib
 import os
 import re
 import tempfile
@@ -10,10 +11,8 @@ import cv2
 import numpy as np
 import pydicom
 from pydicom.dataset import FileDataset
-from pydicom.tag import Tag
 from pydicom.pixels import as_pixel_options, pixel_array
-
-import hashlib
+from pydicom.tag import Tag
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -173,22 +172,22 @@ def handle_frame_transcoding(
 def handle_metadata_redaction(new_ds, redaction_json):
     if "metadataRedactions" not in redaction_json or len(redaction_json["metadataRedactions"]) == 0:
         return new_ds
-    
+
     for redaction in redaction_json["metadataRedactions"]:
         logger.info(f"Redacting metadata using {redaction}")
 
-        tag = Tag(redaction['tag'].replace("(","").replace(")","").split(","))
+        tag = Tag(redaction["tag"].replace("(", "").replace(")", "").split(","))
 
-        if new_ds.get(tag, None) is None and redaction['action'] != 'modify':
+        if new_ds.get(tag, None) is None and redaction["action"] != "modify":
             continue
 
-        match redaction['action']:
+        match redaction["action"]:
             case "remove":
                 del new_ds[tag]
             case "redact":
-                new_ds[tag].value = '***' # Redact somehow
+                new_ds[tag].value = "***"  # Redact somehow
             case "modify":
-                new_ds[tag].value = redaction['newValue']
+                new_ds[tag].value = redaction["newValue"]
             case "hash":
                 new_ds[tag].value = hashlib.sha256(new_ds.get(tag, None).value.encode()).hexdigest()
             case _:
@@ -196,7 +195,7 @@ def handle_metadata_redaction(new_ds, redaction_json):
 
     new_ds.add_new(Tag("00120063"), "LO", "Databricks PIXELS - Manual Redaction")
     return new_ds
-    
+
 
 def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     """

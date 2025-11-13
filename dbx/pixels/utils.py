@@ -151,7 +151,7 @@ def call_llm_serving_endpoint(
     Returns:
         The result of the LLM model analysis.
     """
-    from mlflow.deployments import get_deploy_client    
+    from mlflow.deployments import get_deploy_client
 
     to_send = {
         "messages": [
@@ -162,7 +162,7 @@ def call_llm_serving_endpoint(
             },
         ],
         "temperature": temperature,
-        "max_tokens": max_tokens
+        "max_tokens": max_tokens,
     }
 
     if base64_image is not None:
@@ -174,10 +174,7 @@ def call_llm_serving_endpoint(
         )
 
     try:
-        result = get_deploy_client("databricks").predict(
-            endpoint=model_name,
-            inputs=to_send
-        )
+        result = get_deploy_client("databricks").predict(endpoint=model_name, inputs=to_send)
         return result
 
     except Exception as e:
