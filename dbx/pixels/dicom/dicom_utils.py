@@ -53,12 +53,7 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
       deep -- True if deep inspection of the Dicom header is required
     """
     a = None
-    js = ds.to_json_dict()
-    # remove binary images
-    if "60003000" in js:
-        del js["60003000"]
-    if "7FE00010" in js:
-        del js["7FE00010"]
+    js = {}
     if deep:
         a = check_pixel_data(ds)
     if deep and a is not None:
@@ -72,6 +67,17 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     elif deep:
         js["has_pixel"] = False
 
+    # remove RTStruct
+    if "30060039" in ds:
+        del ds["30060039"]
+
+    # remove binary images
+    if "60003000" in ds:
+        del ds["60003000"]
+    if "7FE00010" in ds:
+        del ds["7FE00010"]
+
+    js = ds.to_json_dict() | js
     return js
 
 
