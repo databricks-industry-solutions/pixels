@@ -10,7 +10,10 @@ import cv2
 import numpy as np
 import pydicom
 from pydicom.dataset import FileDataset
+from pydicom.tag import Tag
 from pydicom.pixels import as_pixel_options, pixel_array
+
+import hashlib
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -56,7 +59,7 @@ def handle_global_redaction(file_path, ds, redaction_json):
             logger.debug(f"Frame {frame_index} written to temp file: {temp_file.name}")
             return temp_file.name
 
-    if len(redaction_json["globalRedactions"]) != 0:
+    if "globalRedactions" in redaction_json and len(redaction_json["globalRedactions"]) != 0:
         with ThreadPoolExecutor() as executor:
             future_to_idx = {
                 executor.submit(handle_frame_global_redact, idx, file_path, ds, redaction_json): idx
@@ -99,7 +102,8 @@ def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment
             return temp_file.name
 
     if (
-        len(redaction_json["frameRedactions"]) != 0
+        "frameRedactions" in redaction_json
+        and len(redaction_json["frameRedactions"]) != 0
         and file_path in redaction_json["frameRedactions"]
     ):
         frame_redaction = redaction_json["frameRedactions"][file_path]
@@ -162,10 +166,37 @@ def handle_frame_transcoding(
         }
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
-            # frame_bytes[idx] = encoder.encode(src=future.result(), index=0, **opts)
             frame_bytes[idx] = future.result()
     return frame_bytes
 
+
+def handle_metadata_redaction(new_ds, redaction_json):
+    if "metadataRedactions" not in redaction_json or len(redaction_json["metadataRedactions"]) == 0:
+        return new_ds
+    
+    for redaction in redaction_json["metadataRedactions"]:
+        logger.info(f"Redacting metadata using {redaction}")
+
+        tag = Tag(redaction['tag'].replace("(","").replace(")","").split(","))
+
+        if new_ds.get(tag, None) is None and redaction['action'] != 'modify':
+            continue
+
+        match redaction['action']:
+            case "remove":
+                del new_ds[tag]
+            case "redact":
+                new_ds[tag].value = '***' # Redact somehow
+            case "modify":
+                new_ds[tag].value = redaction['newValue']
+            case "hash":
+                new_ds[tag].value = hashlib.sha256(new_ds.get(tag, None).value.encode()).hexdigest()
+            case _:
+                raise ValueError(f"Invalid action {redaction['action']}")
+
+    new_ds.add_new(Tag("00120063"), "LO", "Databricks PIXELS - Manual Redaction")
+    return new_ds
+    
 
 def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     """
@@ -216,7 +247,7 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
     )
 
     logger.info(
-        f"Frames {len(fragment_list)} patched and transcoded at {datetime.datetime.now().isoformat()}"
+        f"{len(fragment_list)} frames patched and transcoded at {datetime.datetime.now().isoformat()}"
     )
 
     # Collect all frame fragments and transcode them
@@ -234,6 +265,8 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
 
     if not redaction_json["enableFileOverwrite"]:
         new_ds.SeriesInstanceUID = redaction_json["new_series_instance_uid"]
+
+    new_ds.update(handle_metadata_redaction(new_ds, redaction_json))
 
     logger.debug(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
 
