@@ -481,6 +481,13 @@ class TokenMiddleware(BaseHTTPMiddleware):
         elif request.url.path.endswith("local"):
             body = open(f"{ohif_path}/index.html", "rb").read()
             return Response(content=body.replace(b"./", b"/ohif/"), media_type="text/html")
+        elif request.url.path.startswith("/ohif/app.bundle.") and request.url.path.endswith(".js"):
+            # Patch HTJ2K decoder to free memory on decode
+            file_name = request.url.path.split("/")[-1]
+            print(f"patching {file_name}")
+            body = open(f"{ohif_path}/{file_name}", "rb").read()
+            return Response(content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"), media_type="text/javascript")
+
         response = await call_next(request)
         return response
 
