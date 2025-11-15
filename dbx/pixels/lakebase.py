@@ -243,8 +243,8 @@ class LakebaseUtils:
         # Create refreshable connection pool
         # Tokens expire in 1 hour (3600 seconds), refresh 5 minutes (300 seconds) before expiration
         pool = RefreshableThreadedConnectionPool(
-            minconn=1,
-            maxconn=32,
+            minconn=8,
+            maxconn=64,
             credential_refresh_callback=self._generate_credential,
             token_lifetime_seconds=3600,
             refresh_before_seconds=300,
