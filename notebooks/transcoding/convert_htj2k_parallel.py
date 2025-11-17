@@ -1,44 +1,12 @@
-# Copyright (c) MONAI Consortium
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# pulled from https://raw.githubusercontent.com/dmoore247/MONAILabel/refs/heads/htj2k_support/monailabel/datastore/utils/convert.py
-
-import datetime
-import json
 import logging
 import os
-import pathlib
 import tempfile
 import time
-from random import randint
 
 import numpy as np
 import pydicom
 
-from pydicom.filereader import dcmread
-from pydicom.sr.codedict import codes
-
 logger = logging.getLogger(__name__)
-
-try:
-    import highdicom as hd
-    from pydicom.sr.coding import Code
-
-    HIGHDICOM_AVAILABLE = True
-except ImportError:
-    HIGHDICOM_AVAILABLE = False
-    hd = None
-    Code = None
-    logger.warn("highdicom did not import. Please install it with: pip install highdicom")
-
 
 # Global singleton instances for nvimgcodec encoder/decoder
 # These are initialized lazily on first use to avoid import errors
@@ -48,171 +16,43 @@ _NVIMGCODEC_DECODER = None
 
 
 def _get_nvimgcodec_encoder():
-    """Get or create the global nvimgcodec encoder singleton."""
+    """Get or create the global nvimgcodec encoder instance."""
     global _NVIMGCODEC_ENCODER
     if _NVIMGCODEC_ENCODER is None:
-        try:
-            from nvidia import nvimgcodec
+        from nvidia import nvimgcodec
 
-            _NVIMGCODEC_ENCODER = nvimgcodec.Encoder()
-            logger.debug("Initialized global nvimgcodec.Encoder singleton")
-        except ImportError:
-            raise ImportError(
-                "nvidia-nvimgcodec is required for HTJ2K transcoding. "
-                "Install it with: pip install nvidia-nvimgcodec-cu{XX}[all] "
-                "(replace {XX} with your CUDA version, e.g., cu13)"
-            )
+        _NVIMGCODEC_ENCODER = nvimgcodec.Encoder()
     return _NVIMGCODEC_ENCODER
 
 
 def _get_nvimgcodec_decoder():
-    """Get or create the global nvimgcodec decoder singleton."""
+    """Get or create the global nvimgcodec decoder instance."""
     global _NVIMGCODEC_DECODER
     if _NVIMGCODEC_DECODER is None:
-        try:
-            from nvidia import nvimgcodec
+        from nvidia import nvimgcodec
 
-            _NVIMGCODEC_DECODER = nvimgcodec.Decoder()
-            logger.debug("Initialized global nvimgcodec.Decoder singleton")
-        except ImportError:
-            raise ImportError(
-                "nvidia-nvimgcodec is required for HTJ2K decoding. "
-                "Install it with: pip install nvidia-nvimgcodec-cu{XX}[all] "
-                "(replace {XX} with your CUDA version, e.g., cu13)"
-            )
+        _NVIMGCODEC_DECODER = nvimgcodec.Decoder(options=":fancy_upsampling=1")
     return _NVIMGCODEC_DECODER
 
 
-class SegmentDescription:
-    """Wrapper class for segment description following MONAI Deploy pattern.
-
-    This class encapsulates segment metadata and can convert to either:
-    - highdicom.seg.SegmentDescription for the primary highdicom-based conversion
-    - dcmqi JSON dict for ITK/dcmqi-based conversion (legacy fallback)
-    """
-
-    def __init__(
-        self,
-        segment_label,
-        segmented_property_category=None,
-        segmented_property_type=None,
-        algorithm_name="MONAILABEL",
-        algorithm_version="1.0",
-        segment_description=None,
-        recommended_display_rgb_value=None,
-        label_id=None,
-    ):
-        """Initialize segment description.
-
-        Args:
-            segment_label: Label for the segment (e.g., "Spleen")
-            segmented_property_category: Code for category (e.g., codes.SCT.Organ)
-            segmented_property_type: Code for type (e.g., codes.SCT.Spleen)
-            algorithm_name: Name of the algorithm
-            algorithm_version: Version of the algorithm
-            segment_description: Optional description text
-            recommended_display_rgb_value: RGB color tuple [R, G, B]
-            label_id: Numeric label ID
-        """
-        self.segment_label = segment_label
-        # Use default category if not provided (safe fallback)
-        if segmented_property_category is None:
-            try:
-                self.segmented_property_category = codes.SCT.Organ
-            except Exception:
-                self.segmented_property_category = None
-        else:
-            self.segmented_property_category = segmented_property_category
-        self.segmented_property_type = segmented_property_type
-        self.algorithm_name = algorithm_name
-        self.algorithm_version = algorithm_version
-        self.segment_description = segment_description or segment_label
-        self.recommended_display_rgb_value = recommended_display_rgb_value or [255, 0, 0]
-        self.label_id = label_id
-
-    def to_highdicom_description(self, segment_number):
-        """Convert to highdicom SegmentDescription object.
-
-        Args:
-            segment_number: Segment number (1-based)
-
-        Returns:
-            hd.seg.SegmentDescription object
-        """
-        if not HIGHDICOM_AVAILABLE:
-            raise ImportError("highdicom is not available")
-
-        return hd.seg.SegmentDescription(
-            segment_number=segment_number,
-            segment_label=self.segment_label,
-            segmented_property_category=self.segmented_property_category,
-            segmented_property_type=self.segmented_property_type,
-            algorithm_identification=hd.AlgorithmIdentificationSequence(
-                name=self.algorithm_name,
-                family=codes.DCM.ArtificialIntelligence,
-                version=self.algorithm_version,
-            ),
-            algorithm_type="AUTOMATIC",
-        )
-
-    def to_dcmqi_dict(self):
-        """Convert to dcmqi JSON dict for ITK-based conversion.
-
-        Returns:
-            Dictionary compatible with dcmqi itkimage2segimage
-        """
-        # Extract code values from pydicom Code objects
-        if hasattr(self.segmented_property_type, "value"):
-            type_code_value = self.segmented_property_type.value
-            type_scheme = self.segmented_property_type.scheme_designator
-            type_meaning = self.segmented_property_type.meaning
-        else:
-            type_code_value = "78961009"
-            type_scheme = "SCT"
-            type_meaning = self.segment_label
-
-        return {
-            "labelID": self.label_id if self.label_id is not None else 1,
-            "SegmentLabel": self.segment_label,
-            "SegmentDescription": self.segment_description,
-            "SegmentAlgorithmType": "AUTOMATIC",
-            "SegmentAlgorithmName": self.algorithm_name,
-            "SegmentedPropertyCategoryCodeSequence": {
-                "CodeValue": "123037004",
-                "CodingSchemeDesignator": "SCT",
-                "CodeMeaning": "Anatomical Structure",
-            },
-            "SegmentedPropertyTypeCodeSequence": {
-                "CodeValue": type_code_value,
-                "CodingSchemeDesignator": type_scheme,
-                "CodeMeaning": type_meaning,
-            },
-            "recommendedDisplayRGBValue": self.recommended_display_rgb_value,
-        }
-
-
-def random_with_n_digits(n):
-    """Generate a random number with n digits."""
-    n = n if n >= 1 else 1
-    range_start = 10 ** (n - 1)
-    range_end = (10**n) - 1
-    return randint(range_start, range_end)
-
-
-def _setup_htj2k_decode_params():
+def _setup_htj2k_decode_params(color_spec=None):
     """
     Create nvimgcodec decoding parameters for DICOM images.
+
+    Args:
+        color_spec: Color specification to use. If None, defaults to UNCHANGED.
 
     Returns:
         nvimgcodec.DecodeParams: Decode parameters configured for DICOM
     """
     from nvidia import nvimgcodec
 
+    if color_spec is None:
+        color_spec = nvimgcodec.ColorSpec.UNCHANGED
     decode_params = nvimgcodec.DecodeParams(
         allow_any_depth=True,
-        color_spec=nvimgcodec.ColorSpec.UNCHANGED,
+        color_spec=color_spec,
     )
-
     return decode_params
 
 
@@ -229,8 +69,7 @@ def _setup_htj2k_encode_params(num_resolutions: int = 6, code_block_size: tuple 
     """
     from nvidia import nvimgcodec
 
-#    target_transfer_syntax = "1.2.840.10008.1.2.4.202"  # HTJ2K with RPCL Options (Lossless)
-    target_transfer_syntax = "1.2.840.10008.1.2.4.201"  # HTJ2K with RPCL Options (Lossless)
+    target_transfer_syntax = "1.2.840.10008.1.2.4.202"  # HTJ2K with RPCL Options (Lossless)
     quality_type = nvimgcodec.QualityType.LOSSLESS
 
     # Configure JPEG2K encoding parameters
@@ -247,6 +86,107 @@ def _setup_htj2k_encode_params(num_resolutions: int = 6, code_block_size: tuple 
     )
 
     return encode_params, target_transfer_syntax
+
+
+def _extract_frames_from_compressed(ds, number_of_frames=None):
+    """
+    Extract frames from encapsulated (compressed) DICOM pixel data.
+
+    Args:
+        ds: pydicom Dataset with encapsulated PixelData
+        number_of_frames: Expected number of frames (from NumberOfFrames tag)
+
+    Returns:
+        list: List of compressed frame data (bytes)
+    """
+    # Default to 1 frame if not specified (for single-frame images without NumberOfFrames tag)
+    if number_of_frames is None:
+        number_of_frames = 1
+
+    frames = list(pydicom.encaps.generate_frames(ds.PixelData, number_of_frames=number_of_frames))
+    return frames
+
+
+def _extract_frames_from_uncompressed(pixel_array, num_frames_tag):
+    """
+    Extract individual frames from uncompressed pixel array.
+
+    Handles different array shapes:
+    - 2D (H, W): single frame grayscale
+    - 3D (N, H, W): multi-frame grayscale OR (H, W, C): single frame color
+    - 4D (N, H, W, C): multi-frame color
+
+    Args:
+        pixel_array: Numpy array of pixel data
+        num_frames_tag: NumberOfFrames value from DICOM tag
+
+    Returns:
+        list: List of frame arrays
+    """
+    if not isinstance(pixel_array, np.ndarray):
+        pixel_array = np.array(pixel_array)
+
+    # 2D: single frame grayscale
+    if pixel_array.ndim == 2:
+        return [pixel_array]
+
+    # 3D: multi-frame grayscale OR single-frame color
+    if pixel_array.ndim == 3:
+        if num_frames_tag > 1 or pixel_array.shape[0] == num_frames_tag:
+            # Multi-frame grayscale: (N, H, W)
+            return [pixel_array[i] for i in range(pixel_array.shape[0])]
+        # Single-frame color: (H, W, C)
+        return [pixel_array]
+
+    # 4D: multi-frame color
+    if pixel_array.ndim == 4:
+        return [pixel_array[i] for i in range(pixel_array.shape[0])]
+
+    raise ValueError(f"Unexpected pixel array dimensions: {pixel_array.ndim}")
+
+
+def _validate_frames(frames, context_msg="Frame"):
+    """
+    Check for None values in decoded/encoded frames.
+
+    Args:
+        frames: List of frames to validate
+        context_msg: Context message for error reporting
+
+    Raises:
+        ValueError: If any frame is None
+    """
+    for idx, frame in enumerate(frames):
+        if frame is None:
+            raise ValueError(f"{context_msg} {idx} failed (returned None)")
+
+
+def _find_dicom_files(input_dir):
+    """
+    Recursively find all valid DICOM files in a directory.
+
+    Args:
+        input_dir: Directory to search
+
+    Returns:
+        list: Sorted list of DICOM file paths
+    """
+    valid_dicom_files = []
+    for root, dirs, files in os.walk(input_dir):
+        logger.info(f"Scanning directory: {root}, dirs: {dirs}")
+        for f in files:
+            file_path = os.path.join(root, f)
+            if os.path.isfile(file_path):
+                try:
+                    with open(file_path, "rb") as fp:
+                        fp.seek(128)
+                        if fp.read(4) == b"DICM":
+                            valid_dicom_files.append(file_path)
+                except Exception:
+                    continue
+
+    valid_dicom_files.sort()  # For reproducible processing order
+    return valid_dicom_files
 
 
 def _get_transfer_syntax_constants():
@@ -289,7 +229,7 @@ def _get_transfer_syntax_constants():
 
 
 def transcode_dicom_to_htj2k(
-    input_dir: str,
+    input_dir: str = None,
     output_dir: str = None,
     num_resolutions: int = 6,
     code_block_size: tuple = (64, 64),
@@ -304,12 +244,17 @@ def transcode_dicom_to_htj2k(
     accelerated decoding and encoding with batch processing for optimal performance.
     All transcoding is performed using lossless compression to preserve image quality.
 
-    The function processes files in configurable batches:
+    The function processes files with streaming decode-encode batches:
     1. Categorizes files by transfer syntax (HTJ2K/JPEG2000/JPEG/uncompressed)
-    2. Uses nvimgcodec decoder for compressed files (HTJ2K, JPEG2000, JPEG)
-    3. Falls back to pydicom pixel_array for uncompressed files
-    4. Batch encodes all images to HTJ2K using nvimgcodec
-    5. Saves transcoded files with updated transfer syntax and optional Basic Offset Table
+    2. Extracts all frames from source files
+    3. Processes frames in batches of max_batch_size:
+       - Decodes batch using nvimgcodec (compressed) or pydicom (uncompressed)
+       - Immediately encodes batch to HTJ2K
+       - Discards decoded frames to save memory (streaming)
+    4. Saves transcoded files with updated transfer syntax and optional Basic Offset Table
+
+    This streaming approach minimizes memory usage by never holding all decoded frames
+    in memory simultaneously.
 
     Supported source transfer syntaxes:
     - HTJ2K (High-Throughput JPEG 2000) - decoded and re-encoded to add BOT if needed
@@ -373,8 +318,6 @@ def transcode_dicom_to_htj2k(
     import shutil
     from pathlib import Path
 
-    logger.info("Running transcode_dicom_to_htj2k... V0.15")
-
     # Check for nvidia-nvimgcodec
     try:
         from nvidia import nvimgcodec
@@ -392,29 +335,12 @@ def transcode_dicom_to_htj2k(
     if not os.path.isdir(input_dir):
         raise ValueError(f"Input path is not a directory: {input_dir}")
 
-    # Get all DICOM files
-    dicom_files = []
-    for pattern in ["*.dcm"]:
-        dicom_files.extend(glob.glob(os.path.join(input_dir, pattern)))
-
-    # Filter to actual DICOM files
-    valid_dicom_files = []
-    for file_path in dicom_files:
-        if os.path.isfile(file_path):
-            try:
-                # Quick check if it's a DICOM file
-                with open(file_path, "rb") as f:
-                    f.seek(128)
-                    magic = f.read(4)
-                    if magic == b"DICM":
-                        valid_dicom_files.append(file_path)
-            except Exception:
-                continue
-
+    # Find all valid DICOM files
+    valid_dicom_files = _find_dicom_files(input_dir)
     if not valid_dicom_files:
         raise ValueError(f"No valid DICOM files found in {input_dir}")
 
-    logger.info(f"Found {len(valid_dicom_files)} DICOM files to transcode {valid_dicom_files}")
+    logger.info(f"Found {len(valid_dicom_files)} DICOM files to transcode")
 
     # Create output directory
     if output_dir is None:
@@ -426,11 +352,11 @@ def transcode_dicom_to_htj2k(
     encoder = _get_nvimgcodec_encoder()
     decoder = _get_nvimgcodec_decoder()  # Always needed for decoding input DICOM images
 
-    # Setup HTJ2K encoding and decoding parameters
+    # Setup HTJ2K encoding parameters
     encode_params, target_transfer_syntax = _setup_htj2k_encode_params(
         num_resolutions=num_resolutions, code_block_size=code_block_size
     )
-    decode_params = _setup_htj2k_decode_params()
+    # Note: decode_params is created per-PhotometricInterpretation group in the batch processing
     logger.info("Using lossless HTJ2K compression")
 
     # Get transfer syntax constants
@@ -444,7 +370,6 @@ def transcode_dicom_to_htj2k(
     total_files = len(valid_dicom_files)
     total_batches = (total_files + max_batch_size - 1) // max_batch_size
 
-    logger.info(f"{total_files} DICOM files found. Processing in batches of {max_batch_size}")
     for batch_start in range(0, total_files, max_batch_size):
         batch_end = min(batch_start + max_batch_size, total_files)
         current_batch = batch_start // max_batch_size + 1
@@ -468,50 +393,130 @@ def transcode_dicom_to_htj2k(
                 nvimgcodec_batch.append(idx)
             else:
                 pydicom_batch.append(idx)
-        
-        logger.info(f"{len(nvimgcodec_batch)} files will be transcoded using nvimgcodec")
-        logger.info(f"{len(pydicom_batch)} files will be transcoded using pydicom")
-        data_sequence = []
-        decoded_data = []
+
         num_frames = []
+        encoded_data = []
 
-        # Decode using nvimgcodec for compressed formats
+        # Process nvimgcodec_batch: extract frames, decode, encode in streaming batches
         if nvimgcodec_batch:
-            logger.info("Decoding using nvimgcodec")
+            from collections import defaultdict
+
+            # First, extract all compressed frames and group by PhotometricInterpretation
+            grouped_frames = defaultdict(list)  # Key: PhotometricInterpretation, Value: list of (file_idx, frame_data)
+            frame_counts = {}  # Track number of frames per file
+
+            logger.info(f"  Extracting frames from {len(nvimgcodec_batch)} nvimgcodec files:")
             for idx in nvimgcodec_batch:
-                frames = [fragment for fragment in pydicom.encaps.generate_frames(batch_datasets[idx].PixelData)]
-                logger.info(f"Decoding {frames.shape} frames")
+                ds = batch_datasets[idx]
+                number_of_frames = int(ds.NumberOfFrames) if hasattr(ds, "NumberOfFrames") else None
+                frames = _extract_frames_from_compressed(ds, number_of_frames)
+                logger.info(
+                    f"    File idx={idx} ({os.path.basename(batch_files[idx])}): extracted {len(frames)} frames (expected: {number_of_frames})"
+                )
+
+                # Get PhotometricInterpretation for this file
+                photometric = getattr(ds, "PhotometricInterpretation", "UNKNOWN")
+
+                # Store frames grouped by PhotometricInterpretation
+                for frame in frames:
+                    grouped_frames[photometric].append((idx, frame))
+
+                frame_counts[idx] = len(frames)
                 num_frames.append(len(frames))
-                data_sequence.extend(frames)
-            decoder_output = decoder.decode(data_sequence, params=decode_params)
-            decoded_data.extend(decoder_output)
 
-        # Decode using pydicom for uncompressed formats
+            # Process each PhotometricInterpretation group separately
+            logger.info(f"  Found {len(grouped_frames)} unique PhotometricInterpretation groups")
+
+            # Track encoded frames per file to maintain order
+            encoded_frames_by_file = {idx: [] for idx in nvimgcodec_batch}
+
+            for photometric, frame_list in grouped_frames.items():
+                # Determine color_spec based on PhotometricInterpretation
+                if photometric.startswith("YBR"):
+                    color_spec = nvimgcodec.ColorSpec.RGB
+                    logger.info(
+                        f"  Processing {len(frame_list)} frames with PhotometricInterpretation={photometric} using color_spec=RGB"
+                    )
+                else:
+                    color_spec = nvimgcodec.ColorSpec.UNCHANGED
+                    logger.info(
+                        f"  Processing {len(frame_list)} frames with PhotometricInterpretation={photometric} using color_spec=UNCHANGED"
+                    )
+
+                # Create decode params for this group
+                group_decode_params = _setup_htj2k_decode_params(color_spec=color_spec)
+
+                # Extract just the frame data (without file index)
+                compressed_frames = [frame_data for _, frame_data in frame_list]
+
+                # Decode and encode in batches (streaming to reduce memory)
+                total_frames = len(compressed_frames)
+
+                for frame_batch_start in range(0, total_frames, max_batch_size):
+                    frame_batch_end = min(frame_batch_start + max_batch_size, total_frames)
+                    compressed_batch = compressed_frames[frame_batch_start:frame_batch_end]
+                    file_indices_batch = [file_idx for file_idx, _ in frame_list[frame_batch_start:frame_batch_end]]
+
+                    if total_frames > max_batch_size:
+                        logger.info(
+                            f"    Processing frames [{frame_batch_start}..{frame_batch_end}) of {total_frames} for {photometric}"
+                        )
+
+                    # Decode batch with appropriate color_spec
+                    decoded_batch = decoder.decode(compressed_batch, params=group_decode_params)
+                    _validate_frames(decoded_batch, f"Decoded frame [{frame_batch_start}+")
+
+                    # Encode batch immediately (streaming - no need to keep decoded data)
+                    encoded_batch = encoder.encode(decoded_batch, codec="jpeg2k", params=encode_params)
+                    _validate_frames(encoded_batch, f"Encoded frame [{frame_batch_start}+")
+
+                    # Store encoded frames by file index to maintain order
+                    for file_idx, encoded_frame in zip(file_indices_batch, encoded_batch):
+                        encoded_frames_by_file[file_idx].append(encoded_frame)
+
+                    # decoded_batch is automatically freed here
+
+            # Reconstruct encoded_data in original file order
+            for idx in nvimgcodec_batch:
+                encoded_data.extend(encoded_frames_by_file[idx])
+
+        # Process pydicom_batch: extract frames and encode in streaming batches
         if pydicom_batch:
-            logger.info("Decoding using pydicom")
-            for idx in pydicom_batch:
-                source_pixel_array = batch_datasets[idx].pixel_array
-                if not isinstance(source_pixel_array, np.ndarray):
-                    source_pixel_array = np.array(source_pixel_array)
-                if source_pixel_array.ndim == 2:
-                    source_pixel_array = source_pixel_array[:, :, np.newaxis]
-                for frame_idx in range(source_pixel_array.shape[0]):    #FIXED
-                    decoded_data.append(source_pixel_array[frame_idx, :, :])  #FIXED
-                logger.info(f"{source_pixel_array.shape=}")
-                num_frames.append(source_pixel_array.shape[0]) #FIXED
+            # Extract all frames from uncompressed files
+            all_decoded_frames = []
 
-        # Encode all frames to HTJ2K
-        encoded_data = encoder.encode(decoded_data, codec="jpeg2k", params=encode_params)
+            for idx in pydicom_batch:
+                ds = batch_datasets[idx]
+                num_frames_tag = int(ds.NumberOfFrames) if hasattr(ds, "NumberOfFrames") else 1
+                frames = _extract_frames_from_uncompressed(ds.pixel_array, num_frames_tag)
+                all_decoded_frames.extend(frames)
+                num_frames.append(len(frames))
+
+            # Encode in batches (streaming)
+            total_frames = len(all_decoded_frames)
+            if total_frames > 0:
+                logger.info(f"  Encoding {total_frames} uncompressed frames in batches of {max_batch_size}")
+
+                for frame_batch_start in range(0, total_frames, max_batch_size):
+                    frame_batch_end = min(frame_batch_start + max_batch_size, total_frames)
+                    decoded_batch = all_decoded_frames[frame_batch_start:frame_batch_end]
+
+                    if total_frames > max_batch_size:
+                        logger.info(f"    Encoding frames [{frame_batch_start}..{frame_batch_end}) of {total_frames}")
+
+                    # Encode batch
+                    encoded_batch = encoder.encode(decoded_batch, codec="jpeg2k", params=encode_params)
+                    _validate_frames(encoded_batch, f"Encoded frame [{frame_batch_start}+")
+
+                    # Store encoded frames
+                    encoded_data.extend(encoded_batch)
 
         # Reassemble and save transcoded files
         frame_offset = 0
         files_to_process = nvimgcodec_batch + pydicom_batch
 
-        logger.info(f"Saving {len(files_to_process)} files to {output_dir}")
-        logger.info(f"{files_to_process=}")
         for list_idx, dataset_idx in enumerate(files_to_process):
             nframes = num_frames[list_idx]
-            logger.info(f"{nframes=} {len(encoded_data)=}")
             encoded_frames = [bytes(enc) for enc in encoded_data[frame_offset : frame_offset + nframes]]
             frame_offset += nframes
 
@@ -525,11 +530,19 @@ def transcode_dicom_to_htj2k(
 
             batch_datasets[dataset_idx].file_meta.TransferSyntaxUID = pydicom.uid.UID(target_transfer_syntax)
 
+            # Update PhotometricInterpretation to RGB for YBR images since we decoded with RGB color_spec
+            # The pixel data is now in RGB color space, so the metadata must reflect this
+            # to prevent double conversion by DICOM readers
+            if hasattr(batch_datasets[dataset_idx], "PhotometricInterpretation"):
+                original_pi = batch_datasets[dataset_idx].PhotometricInterpretation
+                if original_pi.startswith("YBR"):
+                    batch_datasets[dataset_idx].PhotometricInterpretation = "RGB"
+                    logger.info(f"  Updated PhotometricInterpretation: {original_pi} -> RGB")
+
             # Save transcoded file
             output_file = os.path.join(output_dir, os.path.basename(batch_files[dataset_idx]))
             batch_datasets[dataset_idx].save_as(output_file)
             transcoded_count += 1
-            logger.info(f"Saved {output_file} ({nframes} frames) {transcoded_count=}")
 
     elapsed_time = time.time() - start_time
 
@@ -661,7 +674,7 @@ def convert_single_frame_dicom_series_to_multiframe(
     if not dicom_files:
         raise ValueError(f"No valid DICOM files found in {input_dir}")
 
-    logger.info(f"Found {len(dicom_files)} DICOM files to process {dicom_files}")
+    logger.info(f"Found {len(dicom_files)} DICOM files to process")
 
     # Group files by study and series
     series_groups = defaultdict(list)  # Key: (StudyUID, SeriesUID), Value: list of file paths
@@ -697,18 +710,17 @@ def convert_single_frame_dicom_series_to_multiframe(
         encoder = _get_nvimgcodec_encoder()
         decoder = _get_nvimgcodec_decoder()
 
-        # Setup HTJ2K encoding and decoding parameters
+        # Setup HTJ2K encoding parameters
         encode_params, target_transfer_syntax = _setup_htj2k_encode_params(
             num_resolutions=num_resolutions, code_block_size=code_block_size
         )
-        decode_params = _setup_htj2k_decode_params()
+        # Note: decode_params is created per-series based on PhotometricInterpretation
         logger.info("HTJ2K conversion enabled")
     else:
         # No conversion - preserve original transfer syntax
         encoder = None
         decoder = None
         encode_params = None
-        decode_params = None
         target_transfer_syntax = None  # Will be determined from first dataset
         logger.info("Preserving original transfer syntax (no HTJ2K conversion)")
 
@@ -762,6 +774,17 @@ def convert_single_frame_dicom_series_to_multiframe(
                 and template_ds.file_meta.TransferSyntaxUID != pydicom.uid.ExplicitVRLittleEndian
             )
 
+            # Determine color_spec for this series based on PhotometricInterpretation
+            if convert_to_htj2k:
+                photometric = getattr(template_ds, "PhotometricInterpretation", "UNKNOWN")
+                if photometric.startswith("YBR"):
+                    series_color_spec = nvimgcodec.ColorSpec.RGB
+                    logger.info(f"  Series PhotometricInterpretation={photometric}, using color_spec=RGB")
+                else:
+                    series_color_spec = nvimgcodec.ColorSpec.UNCHANGED
+                    logger.info(f"  Series PhotometricInterpretation={photometric}, using color_spec=UNCHANGED")
+                series_decode_params = _setup_htj2k_decode_params(color_spec=series_color_spec)
+
             # Collect all frames from all instances
             all_frames = []  # Will contain either numpy arrays (for HTJ2K) or bytes (for preserving)
 
@@ -773,7 +796,7 @@ def convert_single_frame_dicom_series_to_multiframe(
                     if current_ts in NVIMGCODEC_SYNTAXES:
                         # Compressed format - use nvimgcodec decoder
                         frames = [fragment for fragment in pydicom.encaps.generate_frames(ds.PixelData)]
-                        decoded = decoder.decode(frames, params=decode_params)
+                        decoded = decoder.decode(frames, params=series_decode_params)
                         all_frames.extend(decoded)
                     else:
                         # Uncompressed format - use pydicom
@@ -871,6 +894,13 @@ def convert_single_frame_dicom_series_to_multiframe(
                 output_ds.PixelData = combined_pixel_array.tobytes()
 
             output_ds.file_meta.TransferSyntaxUID = pydicom.uid.UID(target_transfer_syntax)
+
+            # Update PhotometricInterpretation if we converted from YBR to RGB
+            if convert_to_htj2k and hasattr(output_ds, "PhotometricInterpretation"):
+                original_pi = output_ds.PhotometricInterpretation
+                if original_pi.startswith("YBR"):
+                    output_ds.PhotometricInterpretation = "RGB"
+                    logger.info(f"  Updated PhotometricInterpretation: {original_pi} -> RGB")
 
             # Set NumberOfFrames (critical!)
             output_ds.NumberOfFrames = total_frame_count

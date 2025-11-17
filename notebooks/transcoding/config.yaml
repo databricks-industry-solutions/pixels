@@ -1,7 +1,10 @@
 # for compression tests
 # input_path: /Volumes/hls_radiology/demo/random/20250227134948_CT_ISRA_0.dcm
-input_path: /Volumes/hls_radiology/demo/random
-output_path: /Volumes/hls_radiology/demo/random/compressed
+#input_path: /Volumes/hls_radiology/demo/random/dicoms/pydicom-examples/
+#input_path: /Volumes/hls_radiology/demo/random/dicoms/1.3.6.1.4.1.14519.5.2.1.8700.9920.252523222353066176062109208361/
+#input_path: /Volumes/hls_radiology/demo/random/dicoms/
+input_path: /Volumes/hls_radiology/tcia/downloads/unzipped
+output_path: /Volumes/hls_radiology/tcia/htj2k_compressed/
 table: main.pixels_solacc.object_catalog
 volume: main.pixels_solacc.pixels_volume
 write_mode: append
