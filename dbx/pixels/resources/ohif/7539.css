@@ -1,0 +1,369 @@
+.metadata-shortcuts-container {
+  background-color: #1a1a1a;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.metadata-shortcuts-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.metadata-shortcuts-toggle {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+  -webkit-transition: color 0.2s;
+  transition: color 0.2s;
+}
+
+.metadata-shortcuts-toggle:hover {
+  color: #20A5D6;
+}
+
+.metadata-shortcuts-loading,
+.metadata-shortcuts-error {
+  color: #888;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+.metadata-shortcuts-error {
+  color: #ef4444;
+}
+
+.metadata-shortcuts-content {
+  -webkit-animation: slideDown 0.2s ease-out;
+          animation: slideDown 0.2s ease-out;
+}
+
+@-webkit-keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.metadata-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.metadata-shortcut-button {
+  background-color: #2a2a2a;
+  border: 2px solid;
+  border-radius: 6px;
+  padding: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  -webkit-transition: all 0.2s ease;
+  transition: all 0.2s ease;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metadata-shortcut-button:hover {
+  background-color: #3a3a3a;
+  -webkit-transform: translateY(-2px);
+          transform: translateY(-2px);
+  -webkit-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.metadata-shortcut-button:active {
+  -webkit-transform: translateY(0);
+          transform: translateY(0);
+}
+
+.metadata-shortcut-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: start;
+      -ms-flex-align: start;
+          align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.metadata-shortcut-name {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+}
+
+.metadata-shortcut-priority {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.metadata-shortcut-priority.priority-high {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.metadata-shortcut-priority.priority-medium {
+  background-color: #f59e0b;
+  color: #000000;
+}
+
+.metadata-shortcut-priority.priority-low {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.metadata-shortcut-description {
+  color: #aaaaaa;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.metadata-shortcut-count {
+  color: #888888;
+  font-size: 0.75rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+/* Priority border colors */
+.border-red-500 {
+  border-color: #ef4444;
+}
+
+.border-yellow-500 {
+  border-color: #f59e0b;
+}
+
+.border-blue-500 {
+  border-color: #3b82f6;
+}
+
+.border-gray-500 {
+  border-color: #6b7280;
+}
+
+
+.max-width-tag-redactor {
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.dicom-tag-redactor-table {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.dicom-tag-redactor-table-wrapper {
+  overflow-x: scroll;
+}
+
+.dicom-tag-redactor-table tr {
+  padding-left: 10px;
+  padding-right: 10px;
+  color: #ffffff;
+  border-top: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.stick {
+  position: sticky;
+  overflow: clip;
+}
+
+.dicom-tag-redactor-content {
+  padding: 1.5rem;
+}
+
+.dicom-tag-redactor-instance-range .range {
+  height: 20px;
+}
+
+.dicom-tag-redactor-instance-range {
+  padding: 20px 0 20px 0;
+}
+
+.dicom-tag-redactor-table td.dicom-tag-redactor-table-center {
+  text-align: center;
+}
+
+.dicom-tag-redactor-table th {
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: center;
+  color: '#20A5D6';
+}
+
+.dicom-tag-redactor-table th.dicom-tag-redactor-table-left {
+  text-align: left;
+}
+
+/* Action column styling */
+.action-dropdown {
+  background-color: #1a1a1a;
+  border: 1px solid #4a4a4a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.action-dropdown:hover {
+  border-color: #6a6a6a;
+}
+
+.action-dropdown:focus {
+  outline: none;
+  border-color: #20A5D6;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #20A5D6;
+}
+
+/* Input field styling for modify action */
+input[type="text"] {
+  background-color: #1a1a1a;
+  border: 1px solid #4a4a4a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #20A5D6;
+}
+
+/* Row highlighting */
+.row-selected {
+  background-color: rgba(32, 165, 214, 0.1);
+}
+
+.row-has-action {
+  background-color: rgba(255, 193, 7, 0.05);
+}
+
+.clear-all-action {
+  background-color: #dc2626; /* Tailwind's red-600 */
+  color: #fff;
+  padding: 6px 16px;
+  cursor: pointer;
+  -webkit-transition: background 0.15s;
+  transition: background 0.15s;
+  outline: none;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+
+.clear-all-action:hover,
+.clear-all-action:focus {
+  background-color: #b91c1c; /* Tailwind's red-700 */
+}
+
+.clear-all-action:active {
+  background-color: #991b1b; /* Even darker for active */
+}
+
+.ai-redact-btn {
+  background: -webkit-gradient(linear, left top, left bottom, from(#101522), to(#101522)) padding-box,
+              -webkit-gradient(linear, left top, right top, color-stop(10%, #ff0059), color-stop(25%, #fffa00), color-stop(40%, #21ff80), color-stop(55%, #00cfff), color-stop(70%, #a259ff), to(#ff0059)) border-box;
+  background: linear-gradient(#101522, #101522) padding-box,
+              linear-gradient(90deg, #ff0059 10%, #fffa00 25%, #21ff80 40%, #00cfff 55%, #a259ff 70%, #ff0059 100%) border-box;
+  color: #fff;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-transition: 
+    background 0.18s,
+    color 0.13s,
+    -webkit-box-shadow 0.2s;
+  transition: 
+    background 0.18s,
+    color 0.13s,
+    -webkit-box-shadow 0.2s;
+  transition: 
+    background 0.18s,
+    color 0.13s,
+    box-shadow 0.2s;
+  transition: 
+    background 0.18s,
+    color 0.13s,
+    box-shadow 0.2s,
+    -webkit-box-shadow 0.2s;
+  -webkit-box-shadow: 0 1px 8px 0 rgba(45, 83, 170, 0.09);
+          box-shadow: 0 1px 8px 0 rgba(45, 83, 170, 0.09);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-redact-btn:hover,
+.ai-redact-btn:focus {
+  background: -webkit-gradient(linear, left top, left bottom, from(#19203a), to(#19203a)) padding-box,
+              -webkit-gradient(linear, left top, right top, color-stop(10%, #ff0059), color-stop(25%, #fffa00), color-stop(40%, #21ff80), color-stop(55%, #00cfff), color-stop(70%, #a259ff), to(#ff0059)) border-box;
+  background: linear-gradient(#19203a, #19203a) padding-box,
+              linear-gradient(90deg, #ff0059 10%, #fffa00 25%, #21ff80 40%, #00cfff 55%, #a259ff 70%, #ff0059 100%) border-box;
+  color: #e7fffb;
+  -webkit-box-shadow: 0 2px 16px 0 rgba(80, 37, 204, 0.18);
+          box-shadow: 0 2px 16px 0 rgba(80, 37, 204, 0.18);
+  outline: none;
+}
+
+.ai-redact-btn:active {
+  background: -webkit-gradient(linear, left top, left bottom, from(#0f1729), to(#0f1729)) padding-box,
+              -webkit-gradient(linear, left top, right top, color-stop(10%, #ff0059), color-stop(25%, #fffa00), color-stop(40%, #21ff80), color-stop(55%, #00cfff), color-stop(70%, #a259ff), to(#ff0059)) border-box;
+  background: linear-gradient(#0f1729, #0f1729) padding-box,
+              linear-gradient(90deg, #ff0059 10%, #fffa00 25%, #21ff80 40%, #00cfff 55%, #a259ff 70%, #ff0059 100%) border-box;
+  color: #ffd6ff;
+}
+

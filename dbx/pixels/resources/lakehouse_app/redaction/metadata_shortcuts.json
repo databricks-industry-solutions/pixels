@@ -1,0 +1,514 @@
+[
+    {
+        "id": "patient_identity",
+        "name": "Patient Identity",
+        "description": "Direct patient identifiers (names, IDs, demographics)",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "PatientName",
+                "tag": "(0010,0010)"
+            },
+            {
+                "action": "hash",
+                "keyword": "PatientID",
+                "tag": "(0010,0020)"
+            },
+            {
+                "action": "remove",
+                "keyword": "OtherPatientNames",
+                "tag": "(0010,1001)"
+            },
+            {
+                "action": "remove",
+                "keyword": "OtherPatientIDs",
+                "tag": "(0010,1000)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientBirthName",
+                "tag": "(0010,1005)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientMotherBirthName",
+                "tag": "(0010,1060)"
+            },
+            {
+                "action": "remove",
+                "keyword": "IssuerOfPatientID",
+                "tag": "(0010,0021)"
+            }
+        ]
+    },
+    {
+        "id": "patient_demographics",
+        "name": "Patient Demographics",
+        "description": "Birth date, age, sex, and other demographic info",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "PatientBirthDate",
+                "tag": "(0010,0030)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientBirthTime",
+                "tag": "(0010,0032)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientSex",
+                "tag": "(0010,0040)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientAge",
+                "tag": "(0010,1010)"
+            },
+            {
+                "action": "remove",
+                "keyword": "EthnicGroup",
+                "tag": "(0010,2160)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientReligiousPreference",
+                "tag": "(0010,21F0)"
+            }
+        ]
+    },
+    {
+        "id": "patient_contact",
+        "name": "Patient Contact Information",
+        "description": "Addresses, phone numbers, and contact details",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "PatientAddress",
+                "tag": "(0010,1040)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientTelephoneNumbers",
+                "tag": "(0010,2154)"
+            }
+        ]
+    },
+    {
+        "id": "patient_medical",
+        "name": "Patient Medical Information",
+        "description": "Insurance, medical records, and patient history",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "PatientInsurancePlanCodeSequence",
+                "tag": "(0010,0050)"
+            },
+            {
+                "action": "remove",
+                "keyword": "MedicalRecordLocator",
+                "tag": "(0010,1090)"
+            },
+            {
+                "action": "remove",
+                "keyword": "MilitaryRank",
+                "tag": "(0010,1080)"
+            },
+            {
+                "action": "remove",
+                "keyword": "BranchOfService",
+                "tag": "(0010,1081)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PatientComments",
+                "tag": "(0010,4000)"
+            },
+            {
+                "action": "redact",
+                "keyword": "AdditionalPatientHistory",
+                "tag": "(0010,21B0)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            }
+        ]
+    },
+    {
+        "id": "study_identifiers",
+        "name": "Study & Series Identifiers",
+        "description": "UIDs, accession numbers, and study IDs",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "hash",
+                "keyword": "StudyInstanceUID",
+                "tag": "(0020,000D)"
+            },
+            {
+                "action": "hash",
+                "keyword": "SeriesInstanceUID",
+                "tag": "(0020,000E)"
+            },
+            {
+                "action": "hash",
+                "keyword": "SOPInstanceUID",
+                "tag": "(0008,0018)"
+            },
+            {
+                "action": "remove",
+                "keyword": "StudyID",
+                "tag": "(0020,0010)"
+            },
+            {
+                "action": "remove",
+                "keyword": "AccessionNumber",
+                "tag": "(0008,0050)"
+            },
+            {
+                "action": "hash",
+                "keyword": "FrameOfReferenceUID",
+                "tag": "(0020,0052)"
+            },
+            {
+                "action": "hash",
+                "keyword": "SynchronizationFrameOfReferenceUID",
+                "tag": "(0020,0200)"
+            }
+        ]
+    },
+    {
+        "id": "study_descriptions",
+        "name": "Study & Series Descriptions",
+        "description": "Descriptions and protocol names (may contain PHI)",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "redact",
+                "keyword": "StudyDescription",
+                "tag": "(0008,1030)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            },
+            {
+                "action": "redact",
+                "keyword": "SeriesDescription",
+                "tag": "(0008,103E)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            },
+            {
+                "action": "redact",
+                "keyword": "ProtocolName",
+                "tag": "(0018,1030)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            }
+        ]
+    },
+    {
+        "id": "dates_times",
+        "name": "Dates & Times",
+        "description": "All date and time stamps",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "StudyDate",
+                "tag": "(0008,0020)"
+            },
+            {
+                "action": "remove",
+                "keyword": "SeriesDate",
+                "tag": "(0008,0021)"
+            },
+            {
+                "action": "remove",
+                "keyword": "AcquisitionDate",
+                "tag": "(0008,0022)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ContentDate",
+                "tag": "(0008,0023)"
+            },
+            {
+                "action": "remove",
+                "keyword": "StudyTime",
+                "tag": "(0008,0030)"
+            },
+            {
+                "action": "remove",
+                "keyword": "SeriesTime",
+                "tag": "(0008,0031)"
+            },
+            {
+                "action": "remove",
+                "keyword": "AcquisitionTime",
+                "tag": "(0008,0032)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ContentTime",
+                "tag": "(0008,0033)"
+            },
+            {
+                "action": "remove",
+                "keyword": "AcquisitionDateTime",
+                "tag": "(0008,002A)"
+            },
+            {
+                "action": "remove",
+                "keyword": "InstanceCreationDate",
+                "tag": "(0008,0012)"
+            },
+            {
+                "action": "remove",
+                "keyword": "InstanceCreationTime",
+                "tag": "(0008,0013)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PerformedProcedureStepStartDate",
+                "tag": "(0040,0244)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PerformedProcedureStepStartTime",
+                "tag": "(0040,0245)"
+            }
+        ]
+    },
+    {
+        "id": "physicians",
+        "name": "Physician & Operator Names",
+        "description": "All healthcare provider and operator information",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "ReferringPhysicianName",
+                "tag": "(0008,0090)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ReferringPhysicianAddress",
+                "tag": "(0008,0092)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ReferringPhysicianTelephoneNumbers",
+                "tag": "(0008,0094)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PerformingPhysicianName",
+                "tag": "(0008,1050)"
+            },
+            {
+                "action": "remove",
+                "keyword": "NameOfPhysiciansReadingStudy",
+                "tag": "(0008,1060)"
+            },
+            {
+                "action": "remove",
+                "keyword": "OperatorsName",
+                "tag": "(0008,1070)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PhysiciansOfRecord",
+                "tag": "(0008,1048)"
+            },
+            {
+                "action": "remove",
+                "keyword": "RequestingPhysician",
+                "tag": "(0032,1032)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ContentCreatorName",
+                "tag": "(0070,0084)"
+            }
+        ]
+    },
+    {
+        "id": "institution",
+        "name": "Institution & Location",
+        "description": "Hospital, department, and station information",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "InstitutionName",
+                "tag": "(0008,0080)"
+            },
+            {
+                "action": "remove",
+                "keyword": "InstitutionAddress",
+                "tag": "(0008,0081)"
+            },
+            {
+                "action": "remove",
+                "keyword": "InstitutionalDepartmentName",
+                "tag": "(0008,1040)"
+            },
+            {
+                "action": "remove",
+                "keyword": "StationName",
+                "tag": "(0008,1010)"
+            },
+            {
+                "action": "remove",
+                "keyword": "CurrentPatientLocation",
+                "tag": "(0038,0300)"
+            }
+        ]
+    },
+    {
+        "id": "device_equipment",
+        "name": "Device & Equipment",
+        "description": "Device serial numbers and equipment identifiers",
+        "priority": "low",
+        "tags": [
+            {
+                "action": "hash",
+                "keyword": "DeviceSerialNumber",
+                "tag": "(0018,1000)"
+            },
+            {
+                "action": "remove",
+                "keyword": "DeviceUID",
+                "tag": "(0018,1002)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PlateID",
+                "tag": "(0018,1004)"
+            },
+            {
+                "action": "remove",
+                "keyword": "CassetteID",
+                "tag": "(0018,1007)"
+            },
+            {
+                "action": "remove",
+                "keyword": "GantryID",
+                "tag": "(0018,1008)"
+            }
+        ]
+    },
+    {
+        "id": "procedure_info",
+        "name": "Procedure & Scheduling",
+        "description": "Procedure descriptions and scheduling information",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "RequestedProcedureDescription",
+                "tag": "(0032,1060)"
+            },
+            {
+                "action": "remove",
+                "keyword": "ScheduledProcedureStepDescription",
+                "tag": "(0040,0007)"
+            },
+            {
+                "action": "remove",
+                "keyword": "PerformedProcedureStepDescription",
+                "tag": "(0040,0254)"
+            },
+            {
+                "action": "remove",
+                "keyword": "RequestAttributesSequence",
+                "tag": "(0040,0275)"
+            }
+        ]
+    },
+    {
+        "id": "admission",
+        "name": "Admission & Visit",
+        "description": "Hospital admission and visit information",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "AdmissionID",
+                "tag": "(0038,0010)"
+            },
+            {
+                "action": "remove",
+                "keyword": "IssuerOfAdmissionID",
+                "tag": "(0038,0011)"
+            },
+            {
+                "action": "remove",
+                "keyword": "AdmittingDiagnosesDescription",
+                "tag": "(0008,1080)"
+            }
+        ]
+    },
+    {
+        "id": "comments",
+        "name": "Comments & Free Text",
+        "description": "Free text fields that may contain PHI",
+        "priority": "high",
+        "tags": [
+            {
+                "action": "redact",
+                "keyword": "ImageComments",
+                "tag": "(0020,4000)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            },
+            {
+                "action": "redact",
+                "keyword": "StudyComments",
+                "tag": "(0032,4000)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            },
+            {
+                "action": "redact",
+                "keyword": "RequestedProcedureComments",
+                "tag": "(0040,1400)",
+                "pattern": "\\b[A-Z][a-z]+\\s[A-Z][a-z]+\\b"
+            }
+        ]
+    },
+    {
+        "id": "overlay_curve",
+        "name": "Overlay & Curve Data",
+        "description": "Overlays and curves (may contain burned-in PHI)",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "OverlayComments",
+                "tag": "(6000,4000)"
+            },
+            {
+                "action": "remove",
+                "keyword": "OverlayData",
+                "tag": "(6000,3000)"
+            },
+            {
+                "action": "remove",
+                "keyword": "CurveData",
+                "tag": "(5000,3000)"
+            }
+        ]
+    },
+    {
+        "id": "private_tags",
+        "name": "Private Tags",
+        "description": "Institution-specific private tags",
+        "priority": "medium",
+        "tags": [
+            {
+                "action": "remove",
+                "keyword": "PrivateCreator",
+                "tag": "(0009,0010)"
+            }
+        ]
+    }
+]
