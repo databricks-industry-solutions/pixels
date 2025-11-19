@@ -26,7 +26,7 @@ Functions:
 """
 
 
-def get_file_part(token: str, db_file: DatabricksFile, frame=None):
+def get_file_part(token: str, db_file: DatabricksFile, frame=None) -> requests.Response:
     """
     Retrieve a specific byte range (optionally a frame) from a file in Databricks Volumes.
 
@@ -36,7 +36,7 @@ def get_file_part(token: str, db_file: DatabricksFile, frame=None):
         frame (dict, optional): Dictionary with 'start_pos' and 'end_pos' keys specifying the byte range to retrieve.
 
     Returns:
-        bytes: The content of the requested file part (or frame).
+        requests.Response: The response from the requests library with the file part.
 
     Raises:
         Exception: If the file part cannot be retrieved (non-200/206 response).
@@ -50,10 +50,10 @@ def get_file_part(token: str, db_file: DatabricksFile, frame=None):
     if frame is not None:
         headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
 
-    response = requests.get(file_url, headers=headers)
+    response = requests.get(file_url, headers=headers, stream=True)
     if response.status_code != 206 and response.status_code != 200:
         raise Exception(f"Failed to retrieve frame {frame} from {db_file.file_path}")
-    return response.content
+    return response
 
 
 def get_file_metadata(token: str, db_file: DatabricksFile):

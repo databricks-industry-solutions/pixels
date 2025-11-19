@@ -1,12 +1,12 @@
 import base64
 import json
 import os
+import os.path
 import re
 from pathlib import Path
 
 import httpx
 import uvicorn
-import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -27,7 +27,9 @@ from utils.partial_frames import (
     get_file_part,
     pixel_frames_from_dcm_metadata_file,
 )
-from utils.redaction_utils import insert_redaction_job
+from utils.redaction_utils import (
+    insert_redaction_job,
+)
 
 import dbx.pixels.resources
 import dbx.pixels.version as dbx_pixels_version
@@ -127,7 +129,7 @@ async def _reverse_proxy_statements(request: Request):
     )
 
 
-async def _reverse_proxy_files_metadata(request: Request):
+def _reverse_proxy_files_metadata(request: Request):
     """
     Reverse proxy endpoint for files metadata GET requests.
 
@@ -139,9 +141,7 @@ async def _reverse_proxy_files_metadata(request: Request):
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
     # Replace SQL Warehouse parameter
     db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files_metadata", ""))
-    metadata = await run_in_threadpool(
-        lambda: get_file_metadata(request.headers.get("X-Forwarded-Access-Token"), db_file)
-    )
+    metadata = get_file_metadata(request.headers.get("X-Forwarded-Access-Token"), db_file)
     return Response(content=json.dumps(metadata), media_type="application/json")
 
 
@@ -162,17 +162,24 @@ async def _reverse_proxy_files_multiframe(request: Request):
         log(f"Invalid file path: {e}", request, "error")
         raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
 
+    # Check for frame parameter to determine if this is a multiframe request
     if "frames" in request.query_params:  # WSI Multi Frame images
         param_frames = int(request.query_params.get("frames"))
     elif "frame" in str_url:  # Multi Frame images
-        param_frames = int(re.search(r"&frame=(\d+)", str_url).group(1))
-        str_url = str_url.split("&frame=")[0]
+        # Extract the frame parameter value
+        frame_match = re.search(r"&frame=([\d,]+)", str_url)
+        if frame_match:
+            frame_param = frame_match.group(1)
+            str_url = str_url.split("&frame=")[0]
+
+            param_frames = int(frame_param)
+        else:
+            return await _reverse_proxy_files(request)
     else:
         return await _reverse_proxy_files(request)
 
-    results = await run_in_threadpool(
-        lambda: lb_utils.retrieve_frame_range(db_file.full_path, param_frames - 1)
-    )
+    # Handle single frame request (existing behavior)
+    results = lb_utils.retrieve_frame_range(db_file.full_path, param_frames - 1)
 
     frame_metadata = {}
 
@@ -180,40 +187,33 @@ async def _reverse_proxy_files_multiframe(request: Request):
         frame_metadata = results
     else:
         # get latest available index
-        results = await run_in_threadpool(
-            lambda: lb_utils.retrieve_max_frame_range(db_file.full_path, param_frames - 1)
-        )
+        results = lb_utils.retrieve_max_frame_range(db_file.full_path, param_frames - 1)
 
         max_frame_idx = 0 if results["max_frame_idx"] is None else results["max_frame_idx"]
         max_start_pos = 0 if results["max_start_pos"] is None else results["max_start_pos"]
 
-        pixels_metadata = await run_in_threadpool(
-            lambda: pixel_frames_from_dcm_metadata_file(
-                request.headers.get("X-Forwarded-Access-Token"),
-                db_file,
-                param_frames,
-                max_frame_idx,
-                max_start_pos,
-            )
+        pixels_metadata = pixel_frames_from_dcm_metadata_file(
+            request.headers.get("X-Forwarded-Access-Token"),
+            db_file,
+            param_frames,
+            max_frame_idx,
+            max_start_pos,
         )
 
-        await run_in_threadpool(
-            lambda: lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
-        )
+        lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
 
-    frame_content = await run_in_threadpool(
-        lambda: get_file_part(
-            request.headers.get("X-Forwarded-Access-Token"), db_file, frame_metadata
-        )
+    frame_content_req = get_file_part(
+        request.headers.get("X-Forwarded-Access-Token"), db_file, frame_metadata
     )
 
-    return Response(
-        content=zstd.compress(frame_content),
-        media_type="application/octet-stream",
-        headers={"Content-Encoding": "zstd"},
+    return StreamingResponse(
+        frame_content_req.iter_content(chunk_size=1024 * 100),
+        status_code=frame_content_req.status_code,
+        headers=frame_content_req.headers,
+        background=BackgroundTask(frame_content_req.close),
     )
 
 
@@ -486,7 +486,10 @@ class TokenMiddleware(BaseHTTPMiddleware):
             file_name = request.url.path.split("/")[-1]
             print(f"patching {file_name}")
             body = open(f"{ohif_path}/{file_name}", "rb").read()
-            return Response(content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"), media_type="text/javascript")
+            return Response(
+                content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"),
+                media_type="text/javascript",
+            )
 
         response = await call_next(request)
         return response
@@ -564,7 +567,7 @@ app.mount(
 
 
 @app.get("/", response_class=HTMLResponse)
-async def main_page(request: Request):
+def main_page(request: Request):
     pixels_table = get_pixels_table(request)
     seg_dest_dir = get_seg_dest_dir(request)
     return config_page(pixels_table, seg_dest_dir)
@@ -610,38 +613,43 @@ async def create_redaction_job(request: Request):
     Returns:
         JSON with redaction_id and status
     """
+    try:
+        body = await request.body()
+        log(f"Received redaction job creation request", request, "info")
 
-    body = await request.body()
-    log(f"Received redaction job creation request", request, "info")
+        # Extract required fields
+        redaction_json = json.loads(body)
 
-    # Extract required fields
-    redaction_json = json.loads(body)
+        if not redaction_json or redaction_json == {}:
+            raise HTTPException(
+                status_code=400, detail="redaction_json is required and must be a valid JSON object"
+            )
 
-    if not redaction_json or redaction_json == {}:
-        raise HTTPException(
-            status_code=400, detail="redaction_json is required and must be a valid JSON object"
+        # Get user from headers
+        created_by = request.headers.get("X-Forwarded-Email", "unknown")
+        token = request.headers.get("X-Forwarded-Access-Token")
+        # Get table name from cookies or environment
+        pixels_table = get_pixels_table(request)
+        redaction_table = f"{pixels_table}_redaction"
+
+        # Insert redaction job
+        result = await insert_redaction_job(
+            table_name=redaction_table,
+            redaction_json=redaction_json,
+            warehouse_id=warehouse_id,
+            databricks_host=cfg.host,
+            databricks_token=token,
+            created_by=created_by,
         )
 
-    # Get user from headers
-    created_by = request.headers.get("X-Forwarded-Email", "unknown")
-    token = request.headers.get("X-Forwarded-Access-Token")
+        log(f"Created redaction job {result['redaction_id']}", request, "info")
+        return JSONResponse(content=result, status_code=201)
 
-    # Get table name from cookies or environment
-    pixels_table = get_pixels_table(request)
-    redaction_table = f"{pixels_table}_redaction"
-
-    # Insert redaction job
-    result = await insert_redaction_job(
-        table_name=redaction_table,
-        redaction_json=redaction_json,
-        warehouse_id=warehouse_id,
-        databricks_host=cfg.host,
-        databricks_token=token,
-        created_by=created_by,
-    )
-
-    log(f"Created redaction job {result['redaction_id']}", request, "info")
-    return JSONResponse(content=result, status_code=201)
+    except HTTPException:
+        raise
+    except Exception as e:
+        log(f"Error creating redaction job: {str(e)}", request, "error")
+        raise HTTPException(status_code=500, detail=f"Failed to create redaction job: {str(e)}")
 
 
 @app.post("/vlm/analyze", response_class=JSONResponse)
