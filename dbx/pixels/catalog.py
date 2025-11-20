@@ -99,12 +99,14 @@ class Catalog:
             file_path = os.path.join(sql_base_path, file_name)
             logger.debug(f"Executing SQL file: {file_name}")
             with open(file_path, "r") as file:
-                sql_command = (
+                sql_commands = (
                     file.read()
                     .replace("{UC_TABLE}", self._table)
                     .replace("{UC_SCHEMA}", self._schema)
                 )
-                self._spark.sql(sql_command)
+                for sql_command in sql_commands.split(";"):
+                    if sql_command.strip() != "":
+                        self._spark.sql(sql_command)
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
