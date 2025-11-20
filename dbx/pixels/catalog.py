@@ -99,11 +99,9 @@ class Catalog:
             file_path = os.path.join(sql_base_path, file_name)
             logger.debug(f"Executing SQL file: {file_name}")
             with open(file_path, "r") as file:
-                sql_command = (
-                    file.read()
-                    .replace("{UC_TABLE}", self._table)
-                    .replace("{UC_SCHEMA}".self._schema)
-                )
+                sql_command = file.read()\
+                    .replace("{UC_TABLE}", self._table)\
+                    .replace("{UC_SCHEMA}", self._schema)
                 self._spark.sql(sql_command)
 
     def __repr__(self):
