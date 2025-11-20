@@ -90,9 +90,14 @@ class Catalog:
         path = Path(dbx.pixels.__file__).parent
         sql_base_path = f"{path}/resources/sql"
 
-        files = os.listdir(sql_base_path)
+        files = [
+            f
+            for f in os.listdir(sql_base_path)
+            if not os.path.isdir(os.path.join(sql_base_path, f))
+        ]
         for file_name in files:
             file_path = os.path.join(sql_base_path, file_name)
+            logger.debug(f"Executing SQL file: {file_name}")
             with open(file_path, "r") as file:
                 sql_command = file.read()\
                     .replace("{UC_TABLE}", self._table)\

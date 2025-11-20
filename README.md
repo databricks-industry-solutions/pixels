@@ -85,7 +85,15 @@ This architecture is designed to handle healthcare imaging data securely while e
 ---
 ## Getting started
 
-To run this accelerator, clone this repo into a Databricks workspace. Attach the `RUNME` notebook to Serverless Compute or any cluster running a DBR 14.3 LTS or later runtime, and execute the notebook via Run-All. A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. Execute the multi-step-job to see how the pipeline runs. The job configuration is written in the RUNME notebook in json format. The cost associated with running the accelerator is the user's responsibility.
+1. To run this accelerator, [clone](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) this repo into a Databricks workspace. 
+
+2. Attach a notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS)
+3. Run [`config/setup.py`]($./config/setup) from the notebook. This will install the pixels package onto your workspace
+
+
+## Run pipeline as a job
+1. Attach the [`RUNME`]($./RUNME) notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS). 2. Execute the notebook via Run-All. You can configure the notebook tasks run by the job in `job_json`
+A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. The cost associated with running the accelerator is the user's responsibility.
 
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
@@ -219,8 +227,10 @@ DICOM file Ingestion works with Shared, Dedicated and Serverless Compute types.
 - Nicole Jingting Lu @ Databricks
 - Krishanu Nandy @ Databricks
 - May Merkle-Tan @ Databricks
-- Ben Russoniello @ Prominence Advisors
 - Cal Reynolds @ Databricks
+- Guanyu Chen @ Databricks
+- Yen Low @ Databricks
+- Ben Russoniello @ Prominence Advisors
 
 
 ## About `dbx.pixels`

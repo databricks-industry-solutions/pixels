@@ -31,9 +31,10 @@ dependencies:
   - uvicorn>=0.29.0
   - fire==0.6.0
   - watchdog==4.0.0
-  - itk>=5.2
+  - itk==5.4.3
   - nibabel
   - scikit-image>=0.19.0
   - cucim-cu12
   - databricks-sdk==0.36
+  - huggingface_hub
 name: mlflow-env

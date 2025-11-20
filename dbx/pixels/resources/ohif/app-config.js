@@ -1,6 +1,7 @@
 window.config = {
   routerBasename: '{ROUTER_BASENAME}',
   showStudyList: true,
+  maxCacheSize: 4294967296, // 4GB
   extensions: [],
   modes: [],
   // below flag is for performance reasons, but it might not work for all servers
@@ -10,15 +11,10 @@ window.config = {
   showLoadingIndicator: true,
   strictZSpacingForVolumeViewport: true,
   defaultDataSourceName: 'databricksPixelsDicom',
-  useSharedArrayBuffer: 'FALSE',
+  useSharedArrayBuffer: 'AUTO',
+  useNorm16Texture: true,
+  preferSizeOverAccuracy: true,
   dataSources: [
-    {
-      namespace: '@ohif/extension-default.dataSourcesModule.dicomlocal',
-      sourceName: 'dicomlocal',
-      configuration: {
-        friendlyName: 'dicom local',
-      },
-    },
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
       sourceName: 'databricksPixelsDicom',
@@ -29,6 +25,15 @@ window.config = {
         //serverHostname: "{ROUTER_BASENAME}/sqlwarehouse",
         serverHostname: "{HOST_NAME}",
         pixelsTable: "{PIXELS_TABLE}",
+        staticWado: true,
+        lazyLoad: true
+      },
+    },
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomlocal',
+      sourceName: 'dicomlocal',
+      configuration: {
+        friendlyName: 'dicom local',
       },
     },
   ],

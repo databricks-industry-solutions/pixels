@@ -35,6 +35,9 @@ class DBVISTA3DModel(DBModel):
         import sys
         from monai import bundle
 
+        self.module_path = os.path.dirname(os.path.abspath(__file__))
+        sys.path.append(self.module_path)
+
         self.model_name = "vista3d"
 
         label_dict_path = f"{self.module_path}/vista3d_bundle/data/jsons/label_dict.json"

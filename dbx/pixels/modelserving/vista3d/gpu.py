@@ -99,7 +99,7 @@ class Vista3DGPUTransformer(Transformer):
             def process_series(series_uid, pid):
                 # Perf fix for single node multi gpu
                 if self.nWorkers == 1:
-                    params["torch_device"] = pid % self.gpuCount
+                    params["torch_device"] = f"cuda:{pid % self.gpuCount}"
 
                 try:
                     result = model.predict(

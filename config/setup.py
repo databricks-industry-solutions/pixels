@@ -6,16 +6,6 @@
 
 # COMMAND ----------
 
-from pyspark.sql.functions import udf, lit
-from pyspark.sql.types import StringType
-import sys
-
-@udf(StringType())
-def add_repo_to_sys_path(repo_path):
-    return sys.path
-
-# COMMAND ----------
-
 import os
 import dbx
 
@@ -23,7 +13,9 @@ repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), o
 print("Installing Pixels Solution Accelerator dependencies from ", repo_main_folder)
 
 %pip install --quiet -r {repo_main_folder}/requirements.txt
-%pip install --quiet --upgrade databricks-sdk==0.36.0
+%pip install --quiet --upgrade databricks-sdk==0.60.0
+
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
