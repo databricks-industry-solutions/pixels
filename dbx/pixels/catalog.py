@@ -61,6 +61,9 @@ class Catalog:
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
 
+        catalog, schema, _ = table.split(".")
+        self._schema = f"{catalog}.{schema}"
+
         # Check if the volume exist
         spark.sql(f"LIST '{self._volume_path}' limit 1").count()
 
@@ -91,7 +94,9 @@ class Catalog:
         for file_name in files:
             file_path = os.path.join(sql_base_path, file_name)
             with open(file_path, "r") as file:
-                sql_command = file.read().replace("{UC_TABLE}", self._table)
+                sql_command = file.read()\
+                    .replace("{UC_TABLE}", self._table)\
+                    .replace("{UC_SCHEMA}". self._schema)
                 self._spark.sql(sql_command)
 
     def __repr__(self):

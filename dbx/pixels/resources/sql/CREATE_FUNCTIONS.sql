@@ -1,19 +1,4 @@
-CREATE OR REPLACE FUNCTION retrieve_dicom_tag(keyword STRING) RETURNS STRUCT<TAG STRING, KEYWORD STRING, VM STRING>
-LANGUAGE SQL RETURN (
-    SELECT
-      struct(tag,
-      keyword,
-      VM)
-    FROM
-      VECTOR_SEARCH(
-        index => "{UC_DICOM_TAGS_VS}",
-        query_text => retrieve_dicom_tag.keyword,
-        num_results => 1
-      )
-    LIMIT 1
-);
-
-CREATE or replace FUNCTION extract_tags(dicom_tags ARRAY<STRUCT<TAG STRING, KEYWORD STRING, VM STRING>>, meta STRING)
+CREATE or replace FUNCTION {UC_SCHEMA}.extract_tags(dicom_tags ARRAY<STRUCT<TAG STRING, KEYWORD STRING, VM STRING>>, meta STRING)
   RETURNS MAP<STRING,STRING>
   LANGUAGE PYTHON
   AS $$
@@ -41,7 +26,7 @@ CREATE or replace FUNCTION extract_tags(dicom_tags ARRAY<STRUCT<TAG STRING, KEYW
     return results
   $$;
 
-CREATE or replace FUNCTION extract_tag_value(dicom_tag STRUCT<TAG STRING, KEYWORD STRING, VM STRING>, meta STRING)
+CREATE or replace FUNCTION {UC_SCHEMA}.extract_tag_value(dicom_tag STRUCT<TAG STRING, KEYWORD STRING, VM STRING>, meta STRING)
   RETURNS STRING
   LANGUAGE PYTHON
   AS $$
