@@ -80,7 +80,7 @@ class Catalog:
             "spark.databricks.delta.optimizeWrite.enabled": False,
         }
 
-    def _init_tables(self):
+    def init_tables(self):
         import os
         import os.path
         from pathlib import Path
@@ -173,9 +173,6 @@ class Catalog:
         assert self._spark.version is not None
 
         self._anon = self._is_anon(path)
-        self._spark
-
-        self._init_tables()
 
         # Used only for streaming
         self._queryName = f"pixels_{path}_{self._table}"
