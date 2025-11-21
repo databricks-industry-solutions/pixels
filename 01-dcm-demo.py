@@ -44,6 +44,7 @@ from dbx.pixels.dicom import DicomMetaExtractor # The Dicom transformers
 
 # DBTITLE 1,Catalog files in <path>
 catalog = Catalog(spark, table=table, volume=volume)
+catalog.init_tables()
 catalog_df = catalog.catalog(path=path, extractZip=True)
 
 # COMMAND ----------
