@@ -49,6 +49,7 @@ def setup_teardown_database(spark: SparkSession):
     Session-scoped fixture that creates the database and volume at the start of the test session
     and drops them after all tests are completed.
     """
+    from dbx.pixels import Catalog
 
     print("CREATING VOLUME AND SCHEMA")
 
@@ -56,6 +57,9 @@ def setup_teardown_database(spark: SparkSession):
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {CATALOG}.{SCHEMA}")
     spark.sql(f"CREATE VOLUME IF NOT EXISTS {VOLUME_UC}")
     
+    catalog = Catalog(spark, table=TABLE, volume=VOLUME_UC)
+    catalog.init_tables()
+
     yield
 
     print("DROPPING SCHEMA AND EVERYTHING IN IT")
