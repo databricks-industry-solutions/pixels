@@ -79,7 +79,7 @@ class InferClass:
         self.patch_size = patch_size
 
         ckpt_name = parser.get_parsed_content("infer")["ckpt_name"]
-        output_path = parser.get_parsed_content("infer")["output_path"]
+        output_path = parser.get("output_dir")
         if not os.path.exists(output_path):
             os.makedirs(output_path, exist_ok=True)
 
@@ -258,6 +258,7 @@ class InferClass:
 
                 finished = True
             except RuntimeError as e:
+                logger.error(str(e))
                 if not any(x in str(e).lower() for x in ("memory", "cuda", "cudnn")):
                     raise e
                 finished = False

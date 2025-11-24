@@ -64,7 +64,7 @@ def to_nrrd(file_path, pixel_type="uint16"):
         raise Exception("Unable to convert file", file_path)
 
 @mlflow.trace(span_type=SpanType.TOOL)
-def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_overlays=False, export_metrics=False, output_dir='overlaps', num_slices=5,  keys=['image','label'], window_center = 50, window_width = 400):
+def calculate_volumes_and_overlays(image_file, seg_file, label_dict, export_overlays=False, export_metrics=False, output_dir='overlaps', num_slices=5,  keys=['image','label'], window_center = 50, window_width = 400):
     """
     Calculate volumes and overlays for a given NIfTI file and segmentation file.
     Args:
@@ -99,11 +99,11 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
                         b_min=0,
                         b_max=255,
                         clip=True)
-        ])({'image': nifti_file,'label': seg_file})
+        ])({'image': image_file,'label': seg_file})
 
-    nifti_seg_header = nib.load(seg_file).header
+    seg_header = nib.load(seg_file).header
 
-    nifti_data = cp.rot90(cp.array(composed['image'][0]), k=1)
+    image_data = cp.rot90(cp.array(composed['image'][0]), k=1)
     seg_data = cp.rot90(cp.array(composed['label'][0]), k=1)
 
     # Get unique labels
@@ -111,7 +111,7 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
     unique_labels = unique_labels[unique_labels != 0]
 
     # Get voxel dimensions from header
-    voxel_dims = nifti_seg_header.get_zooms()
+    voxel_dims = seg_header.get_zooms()
     voxel_volume = np.prod(voxel_dims)
     
     output = {}
@@ -152,7 +152,7 @@ def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_over
         
             for idx in indices:
                 idx_val = idx.get()
-                slice_img = nifti_data[:,:,idx_val]
+                slice_img = image_data[:,:,idx_val]
                 slice_img = (slice_img - slice_img.min()) / (slice_img.max() - slice_img.min())
 
                 slice_mask = mask[:,:,idx]
@@ -204,7 +204,7 @@ def init_dicomweb_datastore(host, access_token, sql_warehouse_id, table) -> Data
     cache_path = cache_path.strip() if cache_path else ""
     fetch_by_frame = settings.MONAI_LABEL_DICOMWEB_FETCH_BY_FRAME
     search_filter = settings.MONAI_LABEL_DICOMWEB_SEARCH_FILTER
-    convert_to_nifti = settings.MONAI_LABEL_DICOMWEB_CONVERT_TO_NIFTI
+    convert_to_nifti = False
     
     return DICOMWebDatastore(
         client=dw_client,
