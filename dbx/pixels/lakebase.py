@@ -1,4 +1,7 @@
+import threading
 import time
+import uuid
+from datetime import datetime, timedelta
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.database import (
@@ -15,6 +18,111 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("LakebaseUtils")
 
 DICOM_FRAMES_TABLE = "dicom_frames"
+
+
+class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
+    """
+    A custom ThreadedConnectionPool that automatically refreshes database credentials
+    before they expire. The pool tracks token expiration and proactively refreshes
+    credentials 5 minutes before expiration to prevent connection failures.
+    """
+
+    def __init__(
+        self,
+        minconn,
+        maxconn,
+        credential_refresh_callback,
+        token_lifetime_seconds=3600,
+        refresh_before_seconds=300,
+        *args,
+        **kwargs,
+    ):
+        """
+        Initialize the refreshable connection pool.
+
+        Args:
+            minconn: Minimum number of connections to maintain
+            maxconn: Maximum number of connections to create
+            credential_refresh_callback: Function that returns new credentials dict with 'password' key
+            token_lifetime_seconds: How long the token is valid (default: 3600 = 1 hour)
+            refresh_before_seconds: Refresh token this many seconds before expiration (default: 300 = 5 minutes)
+            *args, **kwargs: Additional arguments passed to ThreadedConnectionPool
+        """
+        super().__init__(minconn, maxconn, *args, **kwargs)
+
+        self.credential_refresh_callback = credential_refresh_callback
+        self.token_lifetime_seconds = token_lifetime_seconds
+        self.refresh_before_seconds = refresh_before_seconds
+        self.token_expiration = datetime.now() + timedelta(seconds=token_lifetime_seconds)
+        self.refresh_lock = threading.Lock()
+        self.last_refresh = datetime.now()
+
+        logger.info(
+            f"Initialized RefreshableThreadedConnectionPool with token expiration at {self.token_expiration}"
+        )
+
+    def _check_and_refresh_token(self):
+        """
+        Check if token needs refresh and refresh it if necessary.
+        This method is thread-safe and only one thread will perform the refresh.
+        """
+        now = datetime.now()
+        time_until_expiration = (self.token_expiration - now).total_seconds()
+
+        # Check if we need to refresh (without holding the lock)
+        if time_until_expiration > self.refresh_before_seconds:
+            return False
+
+        # Acquire lock to perform refresh
+        with self.refresh_lock:
+            # Double-check after acquiring lock (another thread might have refreshed)
+            now = datetime.now()
+            time_until_expiration = (self.token_expiration - now).total_seconds()
+
+            if time_until_expiration > self.refresh_before_seconds:
+                return False
+
+            try:
+                logger.info(
+                    f"Refreshing credentials. Time until expiration: {time_until_expiration:.2f} seconds"
+                )
+
+                # Get new credentials
+                new_credentials = self.credential_refresh_callback()
+
+                # Update connection parameters
+                if "password" in new_credentials:
+                    self._kwargs["password"] = new_credentials["password"]
+
+                # Update expiration time
+                self.token_expiration = datetime.now() + timedelta(
+                    seconds=self.token_lifetime_seconds
+                )
+                self.last_refresh = datetime.now()
+
+                logger.info(
+                    f"Successfully refreshed credentials. New expiration: {self.token_expiration}"
+                )
+                return True
+
+            except Exception as e:
+                logger.error(f"Failed to refresh credentials: {str(e)}")
+                # Update expiration to retry sooner
+                self.token_expiration = datetime.now() + timedelta(seconds=60)
+                raise
+
+    def getconn(self, key=None):
+        """
+        Get a connection from the pool, refreshing credentials if needed.
+        """
+        self._check_and_refresh_token()
+        return super().getconn(key)
+
+    def get_time_until_expiration(self):
+        """
+        Get the time until token expiration in seconds.
+        """
+        return (self.token_expiration - datetime.now()).total_seconds()
 
 
 class LakebaseUtils:
@@ -96,24 +204,57 @@ class LakebaseUtils:
 
         return db_role
 
-    def get_connection(self):
-        import uuid
+    def _generate_credential(self):
+        """
+        Generate a new database credential token.
+        This method is called by the connection pool to refresh credentials.
 
-        host = self.instance.read_write_dns
-        database = "databricks_postgres"
+        Returns:
+            dict: Dictionary with 'password' key containing the new token
+        """
         cred = self.workspace_client.database.generate_database_credential(
             request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
         )
+        logger.info(f"Generated new database credential for instance '{self.instance_name}'")
+        return {"password": cred.token}
+
+    def get_connection(self):
+        """
+        Create and return a RefreshableThreadedConnectionPool that automatically
+        refreshes credentials before they expire.
+
+        Returns:
+            RefreshableThreadedConnectionPool: A connection pool with auto-refresh capability
+        """
+        host = self.instance.read_write_dns
+        database = "databricks_postgres"
+
+        # Generate initial credentials
+        initial_cred = self._generate_credential()
 
         db_kwargs = {
             "database": database,
             "user": self.user,
             "host": host,
             "sslmode": "require",
-            "password": cred.token,
+            "password": initial_cred["password"],
         }
 
-        pool = ThreadedConnectionPool(minconn=1, maxconn=32, **db_kwargs)
+        # Create refreshable connection pool
+        # Tokens expire in 1 hour (3600 seconds), refresh 5 minutes (300 seconds) before expiration
+        pool = RefreshableThreadedConnectionPool(
+            minconn=8,
+            maxconn=64,
+            credential_refresh_callback=self._generate_credential,
+            token_lifetime_seconds=3600,
+            refresh_before_seconds=300,
+            **db_kwargs,
+        )
+
+        logger.info(
+            f"Created RefreshableThreadedConnectionPool for instance '{self.instance_name}' "
+            f"with auto-refresh at 55 minutes"
+        )
 
         return pool
 

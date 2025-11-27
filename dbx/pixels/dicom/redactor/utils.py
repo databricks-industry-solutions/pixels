@@ -1,5 +1,6 @@
 import copy
 import datetime
+import hashlib
 import os
 import re
 import tempfile
@@ -12,6 +13,8 @@ import pydicom
 from pydicom.dataset import FileDataset
 from pydicom import dcmread
 from pydicom.pixels import as_pixel_options, pixel_array
+from pydicom.tag import Tag
+
 from typing import Dict, List
 
 from dbx.pixels.dicom.dicom_utils import remove_dbfs_prefix
@@ -73,7 +76,7 @@ def frame_iterator(file_path: str, some_fn, executor_type: str = "threadpool", m
         results[0] = some_fn(**kwargs)
     return results
 
-    
+  
 def merge_results_from_frame_iterator(frame_iterator_output):
     """
     Extends the frame_iterator_output[0] with frame_iterator_output[i] such that it resembles redaction_json
@@ -101,7 +104,7 @@ def handle_frame_global_redact(frame_index, file_path, redaction_json):
         temp_file.write(frame.tobytes())
         logger.debug(f"Frame {frame_index} written to temp file: {temp_file.name}")
         return temp_file.name
-
+        
 
 def handle_global_redaction(file_path, redaction_json):
     """

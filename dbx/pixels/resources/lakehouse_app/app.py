@@ -35,7 +35,7 @@ from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 from dbx.pixels.prompt import get_prompt
-from dbx.pixels.utils import call_vlm_serving_endpoint
+from dbx.pixels.utils import call_llm_serving_endpoint
 
 logger = LoggerProvider("OHIF")
 
@@ -197,7 +197,9 @@ async def _reverse_proxy_files_multiframe(request: Request):
             )
         )
 
-        lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
+        await run_in_threadpool(
+            lambda: lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
+        )
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]
         frame_metadata["pixel_data_pos"] = pixels_metadata["pixel_data_pos"]
@@ -479,6 +481,16 @@ class TokenMiddleware(BaseHTTPMiddleware):
         elif request.url.path.endswith("local"):
             body = open(f"{ohif_path}/index.html", "rb").read()
             return Response(content=body.replace(b"./", b"/ohif/"), media_type="text/html")
+        elif request.url.path.startswith("/ohif/app.bundle.") and request.url.path.endswith(".js"):
+            # Patch HTJ2K decoder to free memory on decode
+            file_name = request.url.path.split("/")[-1]
+            print(f"patching {file_name}")
+            body = open(f"{ohif_path}/{file_name}", "rb").read()
+            return Response(
+                content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"),
+                media_type="text/javascript",
+            )
+
         response = await call_next(request)
         return response
 
@@ -601,6 +613,7 @@ async def create_redaction_job(request: Request):
     Returns:
         JSON with redaction_id and status
     """
+
     body = await request.body()
     log(f"Received redaction job creation request", request, "info")
 
@@ -612,6 +625,10 @@ async def create_redaction_job(request: Request):
             status_code=400, detail="redaction_json is required and must be a valid JSON object"
         )
 
+    # Get user from headers
+    created_by = request.headers.get("X-Forwarded-Email", "unknown")
+    token = request.headers.get("X-Forwarded-Access-Token")
+
     # Get table name from cookies or environment
     pixels_table = get_pixels_table(request)
     redaction_table = f"{pixels_table}_redaction"
@@ -622,8 +639,8 @@ async def create_redaction_job(request: Request):
         redaction_json=redaction_json,
         warehouse_id=warehouse_id,
         databricks_host=cfg.host,
-        databricks_token=request.headers.get("X-Forwarded-Access-Token"),
-        created_by=request.headers.get("X-Forwarded-Email", "unknown"),
+        databricks_token=token,
+        created_by=created_by,
     )
 
     log(f"Created redaction job {result['redaction_id']}", request, "info")
@@ -643,11 +660,100 @@ async def vlm_analyze(request: Request):
 
     system_prompt = get_prompt("vlm_ohif", "vlm_analyzer")
 
-    analysis_result = call_vlm_serving_endpoint(
-        base64_image, prompt, metadata, system_prompt.content, model, max_tokens, temperature
+    user_prompt = {
+        "type": "text",
+        "text": "<USER_PROMPT>"
+        + prompt
+        + "</USER_PROMPT>"
+        + "\n<METADATA>"
+        + metadata
+        + "</METADATA>",
+    }
+
+    analysis_result = await run_in_threadpool(
+        lambda: call_llm_serving_endpoint(
+            user_prompt, system_prompt.content, base64_image, model, max_tokens, temperature
+        )
     )
 
     return JSONResponse(content=analysis_result["choices"][0]["message"]["content"])
+
+
+@app.get("/redaction/metadata_shortcuts", response_class=JSONResponse)
+def redaction_metadata_shortcuts(request: Request):
+    try:
+        with open(f"{path}/resources/lakehouse_app/redaction/metadata_shortcuts.json", "r") as f:
+            metadata_shortcuts = json.load(f)
+        return JSONResponse(content=metadata_shortcuts)
+    except Exception as e:
+        log(f"Error getting metadata shortcuts: {str(e)}", request, "error")
+        raise HTTPException(status_code=500, detail=f"Failed to get metadata shortcuts: {str(e)}")
+
+
+@app.post("/redaction/ai_redaction", response_class=JSONResponse)
+async def ai_redaction(request: Request):
+    try:
+        body = await request.json()
+
+        metadata = json.dumps(body.get("metadata"))
+        prompt = body.get("prompt", "")
+        max_tokens = body.get("max_tokens", 5000)
+        temperature = body.get("temperature", 0.2)
+        model = body.get("model", "databricks-llama-4-maverick")
+
+        system_prompt = get_prompt("metadata_redaction", "ohif_redactor")
+
+        user_prompt = {
+            "type": "text",
+            "text": "<USER_PROMPT>"
+            + prompt
+            + "</USER_PROMPT>"
+            + "\n<METADATA>"
+            + metadata
+            + "</METADATA>",
+        }
+
+        result = await run_in_threadpool(
+            lambda: call_llm_serving_endpoint(
+                user_prompt, system_prompt.content, None, model, max_tokens, temperature
+            )
+        )
+
+        # Clean up code block formatting in result if present
+        # Handles if model output is wrapped in triple backticks or similar artifacts
+        if "choices" in result and "message" in result["choices"][0]:
+            cleaned = result["choices"][0]["message"]["content"]
+        else:
+            cleaned = result
+
+        if "```" in cleaned:
+            # Remove any leading/trailing backticks sections
+            import re
+
+            # This will find the first code block, optionally with language label
+            matches = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned)
+            if matches:
+                cleaned = matches[0].strip()
+            else:
+                # fallback: strip the backticks manually
+                cleaned = cleaned.replace("```json", "").replace("```", "").strip()
+
+        print(cleaned)
+
+        if cleaned:
+            content = json.loads(cleaned)
+            if "summary" in content and "tags" in content:
+                summary = content["summary"]
+                tags = content["tags"]
+                return JSONResponse(content={"summary": summary, "tags": tags})
+            else:
+                return JSONResponse(content={"error": "No tags returned from model"})
+        else:
+            return JSONResponse(content={"error": "No content returned from model"})
+
+    except Exception as e:
+        log(f"Error doing AI redaction: {str(e)}", request, "error")
+        raise HTTPException(status_code=500, detail=f"Failed to do AI redaction: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS {UC_TABLE}_redaction (
   export_timestamp TIMESTAMP COMMENT 'When the redaction annotations were exported'
 )
 USING delta
-CLUSTER BY AUTO
+CLUSTER BY (redaction_id)
 COMMENT 'Table for managing DICOM redaction jobs with incremental processing and status tracking'
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
