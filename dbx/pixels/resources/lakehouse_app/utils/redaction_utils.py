@@ -26,7 +26,7 @@ def build_insert_statement(table_name: str) -> str:
 
     # Build INSERT statement
     sql = f"""
-    INSERT INTO {table_name} (
+    INSERT INTO IDENTIFIER("{table_name}") (
         redaction_id,
         study_instance_uid,
         series_instance_uid,
