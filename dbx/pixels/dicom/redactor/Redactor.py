@@ -205,6 +205,7 @@ def redact_file_udf(
     Returns:
         Dictionary with processing results
     """
+    start_time = time.time()
     result = {
         "output_file_path": None,
         "error_message": None,
@@ -213,7 +214,6 @@ def redact_file_udf(
         "processing_duration_seconds": "0",
     }
     try:
-        start_time = time.time()
         # Parse the redaction JSON
         redaction_json = json.loads(redaction_json_str)
         redaction_json["new_series_instance_uid"] = new_series_instance_uid
