@@ -162,9 +162,7 @@ class TestHandleMetadataRedaction:
         ds = sample_ct_dataset
         # Use a tag that doesn't exist
         redaction_json = {
-            "metadataRedactions": [
-                {"tag": "(9999,9999)", "action": "remove"}  # Non-existent tag
-            ]
+            "metadataRedactions": [{"tag": "(9999,9999)", "action": "remove"}]  # Non-existent tag
         }
 
         # Should not raise, just skip
@@ -202,9 +200,7 @@ class TestHandleMetadataRedaction:
         from dbx.pixels.dicom.redactor.utils import handle_metadata_redaction
 
         ds = sample_ct_dataset
-        redaction_json = {
-            "metadataRedactions": [{"tag": "(0010,0010)", "action": "redact"}]
-        }
+        redaction_json = {"metadataRedactions": [{"tag": "(0010,0010)", "action": "redact"}]}
 
         result = handle_metadata_redaction(ds, redaction_json)
 
@@ -242,9 +238,7 @@ class TestRedactFrame:
         # Create a simple test frame (100x100 grayscale)
         frame = np.ones((100, 100), dtype=np.uint8) * 255
 
-        redaction = {
-            "imagePixelCoordinates": {"topLeft": [10, 10], "bottomRight": [50, 50]}
-        }
+        redaction = {"imagePixelCoordinates": {"topLeft": [10, 10], "bottomRight": [50, 50]}}
 
         result = redact_frame(frame, redaction)
 
@@ -273,9 +267,7 @@ class TestRedactFrame:
 
         frame = np.ones((512, 512, 3), dtype=np.uint8) * 255  # RGB
 
-        redaction = {
-            "imagePixelCoordinates": {"topLeft": [0, 0], "bottomRight": [100, 100]}
-        }
+        redaction = {"imagePixelCoordinates": {"topLeft": [0, 0], "bottomRight": [100, 100]}}
 
         result = redact_frame(frame, redaction)
 
@@ -482,10 +474,10 @@ class TestMutableDefaultArguments:
 
     def test_handle_frame_transcode_default_isolation(self):
         """Test that default fragment_list is not shared between calls."""
-        from dbx.pixels.dicom.redactor.utils import handle_frame_transcode
-
         # We can't easily test this without mocking more, but we verify the function signature
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import handle_frame_transcode
 
         sig = inspect.signature(handle_frame_transcode)
         fragment_list_param = sig.parameters["fragment_list"]
@@ -495,9 +487,9 @@ class TestMutableDefaultArguments:
 
     def test_handle_frame_transcoding_default_isolation(self):
         """Test that default fragment_list parameter is None."""
-        from dbx.pixels.dicom.redactor.utils import handle_frame_transcoding
-
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import handle_frame_transcoding
 
         sig = inspect.signature(handle_frame_transcoding)
         fragment_list_param = sig.parameters["fragment_list"]
@@ -511,9 +503,9 @@ class TestTypeHints:
 
     def test_get_frame_has_type_hints(self):
         """Test that get_frame has type hints."""
-        from dbx.pixels.dicom.redactor.utils import get_frame
-
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import get_frame
 
         sig = inspect.signature(get_frame)
 
@@ -522,9 +514,9 @@ class TestTypeHints:
 
     def test_redact_frame_has_type_hints(self):
         """Test that redact_frame has type hints."""
-        from dbx.pixels.dicom.redactor.utils import redact_frame
-
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import redact_frame
 
         sig = inspect.signature(redact_frame)
 
@@ -532,9 +524,9 @@ class TestTypeHints:
 
     def test_handle_metadata_redaction_has_type_hints(self):
         """Test that handle_metadata_redaction has type hints."""
-        from dbx.pixels.dicom.redactor.utils import handle_metadata_redaction
-
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import handle_metadata_redaction
 
         sig = inspect.signature(handle_metadata_redaction)
 
@@ -546,9 +538,9 @@ class TestRedactDcmFunction:
 
     def test_redact_dcm_has_type_hints(self):
         """Test that redact_dcm has proper type hints."""
-        from dbx.pixels.dicom.redactor.utils import redact_dcm
-
         import inspect
+
+        from dbx.pixels.dicom.redactor.utils import redact_dcm
 
         sig = inspect.signature(redact_dcm)
 
@@ -612,13 +604,10 @@ class TestEndToEndRedaction:
         original_rows = ds.Rows
         original_cols = ds.Columns
 
-        redaction_json = {
-            "metadataRedactions": [{"tag": "(0010,0010)", "action": "redact"}]
-        }
+        redaction_json = {"metadataRedactions": [{"tag": "(0010,0010)", "action": "redact"}]}
 
         result = handle_metadata_redaction(ds, redaction_json)
 
         # Image dimensions should be unchanged
         assert result.Rows == original_rows
         assert result.Columns == original_cols
-
