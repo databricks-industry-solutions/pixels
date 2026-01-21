@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -62,6 +63,7 @@ lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
 app = FastAPI(title="Pixels")
 
 cache_segmentations = {}
+cache_segmentations_lock = asyncio.Lock()
 
 
 def get_pixels_table(request: Request):
@@ -351,26 +353,58 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
     # Execute inference with caching and error handling
     try:
-        # Check if segmentation already exists in cache
-        if q_params["image"] not in cache_segmentations:
-            # Cache miss: Execute new inference request
-            file_res = await run_in_threadpool(
-                lambda: get_deploy_client("databricks").predict(
-                    endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
+        image_key = q_params["image"]
+        should_run_inference = False
+        pending_event = None
+
+        # Quick lock to check/update cache state
+        async with cache_segmentations_lock:
+            if image_key not in cache_segmentations:
+                # Mark as pending to prevent duplicate inference
+                pending_event = asyncio.Event()
+                cache_segmentations[image_key] = {"pending": pending_event}
+                should_run_inference = True
+            elif "pending" in cache_segmentations[image_key]:
+                # Another request is already processing this image, wait for it
+                pending_event = cache_segmentations[image_key]["pending"]
+            else:
+                # Cache hit: Retrieve existing file path and parameters
+                file_path = cache_segmentations[image_key]["file_path"]
+                params = cache_segmentations[image_key]["params"]
+
+        if should_run_inference:
+            # Cache miss: Execute inference (outside lock for concurrency)
+            try:
+                file_res = await run_in_threadpool(
+                    lambda: get_deploy_client("databricks").predict(
+                        endpoint=serving_endpoint, inputs={"inputs": {"input": {"infer": to_send}}}
+                    )
                 )
-            )
 
-            # Parse inference response to get file location and parameters
-            res_json = json.loads(file_res.predictions)
-            file_path = res_json["file"]
-            params = res_json["params"]
+                # Parse inference response to get file location and parameters
+                res_json = json.loads(file_res.predictions)
+                file_path = res_json["file"]
+                params = res_json["params"]
 
-            # Cache the results for future requests
-            cache_segmentations[q_params["image"]] = {"file_path": file_path, "params": params}
-        else:
-            # Cache hit: Retrieve existing file path and parameters
-            file_path = cache_segmentations[q_params["image"]]["file_path"]
-            params = cache_segmentations[q_params["image"]]["params"]
+                # Update cache with results
+                async with cache_segmentations_lock:
+                    cache_segmentations[image_key] = {"file_path": file_path, "params": params}
+                pending_event.set()  # Signal waiting requests
+            except Exception as e:
+                # Clean up on error and signal waiters
+                async with cache_segmentations_lock:
+                    if image_key in cache_segmentations:
+                        del cache_segmentations[image_key]
+                pending_event.set()
+                raise
+        elif pending_event is not None:
+            # Wait for the other request to finish inference
+            await pending_event.wait()
+            async with cache_segmentations_lock:
+                if image_key not in cache_segmentations or "pending" in cache_segmentations.get(image_key, {}):
+                    raise Exception("Inference failed in another request")
+                file_path = cache_segmentations[image_key]["file_path"]
+                params = cache_segmentations[image_key]["params"]
 
         # Retrieve the actual segmentation file content
         file_content = await run_in_threadpool(
@@ -391,8 +425,9 @@ async def _reverse_proxy_monai_infer_post(request: Request):
         resp = {"message": f"Error querying model: {e}"}
 
         # Remove potentially corrupted cache entry
-        if q_params["image"] in cache_segmentations:
-            del cache_segmentations[q_params["image"]]
+        async with cache_segmentations_lock:
+            if q_params["image"] in cache_segmentations and "pending" not in cache_segmentations.get(q_params["image"], {}):
+                del cache_segmentations[q_params["image"]]
 
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)
 
