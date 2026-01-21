@@ -591,8 +591,6 @@ app.add_route("/monai/infer/{path:path}", _reverse_proxy_monai_infer_post, ["POS
 app.add_route("/monai/activelearning/{path:path}", _reverse_proxy_monai_nextsample_post, ["POST"])
 app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
 
-app.add_route("/monai/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
-
 app.mount("/ohif/", DBStaticFiles(directory=f"{ohif_path}", html=True), name="ohif")
 app.mount(
     "/dicom-microscopy-viewer/",
