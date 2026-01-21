@@ -7,7 +7,6 @@ import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 import pydicom
@@ -66,7 +65,12 @@ def redact_frame(frame: npt.NDArray, redaction: dict) -> npt.NDArray:
 
     Returns:
         NumPy array: The frame with the redacted region filled with black (0)
+
+    Raises:
+        ImportError: If cv2 (opencv-python) is not installed
     """
+    import cv2
+
     x_min, y_min = redaction["imagePixelCoordinates"]["topLeft"]
     x_max, y_max = redaction["imagePixelCoordinates"]["bottomRight"]
 
