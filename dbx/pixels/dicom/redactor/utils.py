@@ -81,10 +81,28 @@ def handle_global_redaction(file_path, ds, redaction_json):
     return fragment_list
 
 
-def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment_list={}):
+def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment_list=None):
     """
-    Frame redaction will be applied to
+    Apply frame-specific redactions to individual frames in a DICOM dataset.
+
+    This function processes frame-level redaction instructions, applying redactions
+    only to the specific frames indicated in the redaction JSON. It can build upon
+    previously processed frames from global redactions.
+
+    Args:
+        file_path: Path to the DICOM file
+        ds: PyDICOM dataset object
+        redaction_json: Dictionary containing redaction instructions with frameRedactions
+        dtype: NumPy dtype for frame pixel data
+        shape: Shape tuple for frame pixel data
+        fragment_list: Optional dict mapping frame indices to temp file paths from
+                       previous processing steps. Defaults to None (empty dict).
+
+    Returns:
+        dict: Updated fragment_list mapping frame indices to temp file paths
     """
+    if fragment_list is None:
+        fragment_list = {}
     num_frames = ds.get("NumberOfFrames", 1)
 
     def handle_frame_redact(frame_index, frame_redaction):
@@ -135,8 +153,10 @@ def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment
 
 
 def handle_frame_transcode(
-    frame_index, file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list={}
+    frame_index, file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list=None
 ):
+    if fragment_list is None:
+        fragment_list = {}
     from pydicom.pixels import get_encoder
 
     encoder = get_encoder(compressor)
@@ -154,9 +174,10 @@ def handle_frame_transcode(
 
 
 def handle_frame_transcoding(
-    file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list={}
+    file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list=None
 ):
-
+    if fragment_list is None:
+        fragment_list = {}
     frame_bytes = {}
     num_frames = ds.get("NumberOfFrames", 1)
 
