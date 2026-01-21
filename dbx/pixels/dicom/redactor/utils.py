@@ -199,9 +199,16 @@ def handle_metadata_redaction(new_ds, redaction_json):
             case "redact":
                 new_ds[tag].value = "***"  # Redact somehow
             case "modify":
-                new_ds[tag].value = redaction["newValue"]
+                if tag in new_ds:
+                    new_ds[tag].value = redaction["newValue"]
+                else:
+                    # Tag doesn't exist, add it with VR from redaction or default to LO
+                    vr = redaction.get("vr", "LO")
+                    new_ds.add_new(tag, vr, redaction["newValue"])
             case "hash":
-                new_ds[tag].value = hashlib.sha256(new_ds.get(tag, None).value.encode()).hexdigest()
+                # Convert value to string before encoding to handle non-string values
+                val = str(new_ds[tag].value)
+                new_ds[tag].value = hashlib.sha256(val.encode()).hexdigest()
             case _:
                 raise ValueError(f"Invalid action {redaction['action']}")
 
