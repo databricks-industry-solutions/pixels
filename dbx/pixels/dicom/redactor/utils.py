@@ -67,8 +67,8 @@ def redact_frame(frame: npt.NDArray, redaction: dict) -> npt.NDArray:
     Returns:
         NumPy array: The frame with the redacted region filled with black (0)
     """
-    (x_min, y_min) = redaction["imagePixelCoordinates"]["topLeft"]
-    (x_max, y_max) = redaction["imagePixelCoordinates"]["bottomRight"]
+    x_min, y_min = redaction["imagePixelCoordinates"]["topLeft"]
+    x_max, y_max = redaction["imagePixelCoordinates"]["bottomRight"]
 
     cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), 0, -1)
     return frame
