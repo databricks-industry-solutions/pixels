@@ -70,13 +70,11 @@ class Catalog:
 
         # Check if the volume exist
         catalog, schema, volume_name = volume.split(".")
-        v_exists = all(
-            [
-                l_volume.full_name == volume
-                for l_volume in self.w_client.volumes.list(
-                    catalog_name=catalog, schema_name=schema, max_results=100
-                )
-            ]
+        v_exists = any(
+            l_volume.full_name == volume
+            for l_volume in self.w_client.volumes.list(
+                catalog_name=catalog, schema_name=schema, max_results=100
+            )
         )
         if not v_exists:
             logger.warning(f"Volume {volume} does not exist")
