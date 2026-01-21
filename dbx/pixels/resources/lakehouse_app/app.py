@@ -519,7 +519,7 @@ class TokenMiddleware(BaseHTTPMiddleware):
         elif request.url.path.startswith("/ohif/app.bundle.") and request.url.path.endswith(".js"):
             # Patch HTJ2K decoder to free memory on decode
             file_name = request.url.path.split("/")[-1]
-            print(f"patching {file_name}")
+            log(f"patching {file_name}", request, "debug")
             body = open(f"{ohif_path}/{file_name}", "rb").read()
             return Response(
                 content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"),
@@ -773,7 +773,7 @@ async def ai_redaction(request: Request):
                 # fallback: strip the backticks manually
                 cleaned = cleaned.replace("```json", "").replace("```", "").strip()
 
-        print(cleaned)
+        log(f"Cleaned AI response: {cleaned}", request, "debug")
 
         if cleaned:
             content = json.loads(cleaned)
