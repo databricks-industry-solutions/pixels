@@ -32,7 +32,15 @@ def _cleanup_temp_files(fragment_list: dict) -> None:
 
 def get_frame(file_path, ds, frame_index=0):
     """
-    Returns the frame at the given index. If the dataset has only one frame, returns the original dataset.
+    Retrieve pixel data for a specific frame from a DICOM file.
+
+    Args:
+        file_path: Path to the DICOM file
+        ds: PyDICOM dataset object used to check the number of frames
+        frame_index: Zero-based index of the frame to retrieve (default: 0)
+
+    Returns:
+        NumPy array: Pixel data for the requested frame
     """
     if ds.get("NumberOfFrames", 1) > 1:
         return pixel_array(file_path, index=frame_index)
@@ -41,6 +49,22 @@ def get_frame(file_path, ds, frame_index=0):
 
 
 def redact_frame(frame, redaction):
+    """
+    Apply a single redaction to a frame by drawing a black rectangle.
+
+    Args:
+        frame: NumPy array representing the pixel data of the frame
+        redaction: Dictionary containing redaction coordinates with structure:
+            {
+                "imagePixelCoordinates": {
+                    "topLeft": [x_min, y_min],
+                    "bottomRight": [x_max, y_max]
+                }
+            }
+
+    Returns:
+        NumPy array: The frame with the redacted region filled with black (0)
+    """
     (x_min, y_min) = redaction["imagePixelCoordinates"]["topLeft"]
     (x_max, y_max) = redaction["imagePixelCoordinates"]["bottomRight"]
 
@@ -50,8 +74,32 @@ def redact_frame(frame, redaction):
 
 def handle_global_redaction(file_path, ds, redaction_json):
     """
-    Global redaction applies to all frames in the dataset.
-    Iterates for each frame in parallel and applies one redaction at a time to the frame.
+    Apply global redactions to all frames in a DICOM dataset.
+
+    Global redactions are applied to every frame in the dataset (e.g., for removing
+    a watermark or logo that appears on all frames). Processing is done in parallel
+    using a ThreadPoolExecutor.
+
+    Args:
+        file_path: Path to the DICOM file
+        ds: PyDICOM dataset object (read with stop_before_pixels=True)
+        redaction_json: Dictionary containing redaction instructions with structure:
+            {
+                "globalRedactions": [
+                    {
+                        "annotationUID": str,
+                        "imagePixelCoordinates": {
+                            "topLeft": [x, y],
+                            "bottomRight": [x, y]
+                        }
+                    },
+                    ...
+                ]
+            }
+
+    Returns:
+        dict: Mapping of frame indices to temporary file paths containing
+              the redacted frame pixel data
     """
     fragment_list = {}
     num_frames = ds.get("NumberOfFrames", 1)
