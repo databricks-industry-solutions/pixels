@@ -19,6 +19,17 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("DicomRedactorUtils")
 
 
+def _cleanup_temp_files(fragment_list: dict) -> None:
+    """Clean up temporary files created during redaction processing."""
+    for temp_file_path in fragment_list.values():
+        try:
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+                logger.debug(f"Cleaned up temp file: {temp_file_path}")
+        except OSError as e:
+            logger.warning(f"Failed to clean up temp file {temp_file_path}: {e}")
+
+
 def get_frame(file_path, ds, frame_index=0):
     """
     Returns the frame at the given index. If the dataset has only one frame, returns the original dataset.
@@ -134,7 +145,8 @@ def handle_frame_transcode(
         encoder_opts["j2k_cr"] = [ds.get("LossyImageCompressionRatio", 100)]
 
     if frame_index in fragment_list.keys():
-        arr = open(fragment_list[frame_index], "rb").read()
+        with open(fragment_list[frame_index], "rb") as f:
+            arr = f.read()
     else:
         arr = get_frame(file_path, ds, frame_index).tobytes()
 
@@ -240,45 +252,49 @@ def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
         logger.info(f"Destination path: {dest_path}")
 
     fragment_list = {}
-    fragment_list = handle_global_redaction(file_path, ds, redaction_json)
-    fragment_list = handle_frame_redaction(
-        file_path, ds, redaction_json, dtype, shape, fragment_list
-    )
+    try:
+        fragment_list = handle_global_redaction(file_path, ds, redaction_json)
+        fragment_list = handle_frame_redaction(
+            file_path, ds, redaction_json, dtype, shape, fragment_list
+        )
 
-    logger.info(
-        f"{len(fragment_list)} frames patched and transcoded at {datetime.datetime.now().isoformat()}"
-    )
+        logger.info(
+            f"{len(fragment_list)} frames patched and transcoded at {datetime.datetime.now().isoformat()}"
+        )
 
-    # Collect all frame fragments and transcode them
-    frame_bytes = handle_frame_transcoding(
-        file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list
-    )
+        # Collect all frame fragments and transcode them
+        frame_bytes = handle_frame_transcoding(
+            file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list
+        )
 
-    # Copy the original dataset's metadata except for PixelData
-    new_ds = FileDataset(dest_path, {}, file_meta=ds.file_meta, preamble=ds.preamble)
-    for elem in ds:
-        if elem.tag != (0x7FE0, 0x0010):  # PixelData
-            new_ds.add(copy.deepcopy(elem))
-    for elem in ds.file_meta:
-        new_ds.file_meta.add(copy.deepcopy(elem))
+        # Copy the original dataset's metadata except for PixelData
+        new_ds = FileDataset(dest_path, {}, file_meta=ds.file_meta, preamble=ds.preamble)
+        for elem in ds:
+            if elem.tag != (0x7FE0, 0x0010):  # PixelData
+                new_ds.add(copy.deepcopy(elem))
+        for elem in ds.file_meta:
+            new_ds.file_meta.add(copy.deepcopy(elem))
 
-    if not redaction_json["enableFileOverwrite"]:
-        new_ds.SeriesInstanceUID = redaction_json["new_series_instance_uid"]
+        if not redaction_json["enableFileOverwrite"]:
+            new_ds.SeriesInstanceUID = redaction_json["new_series_instance_uid"]
 
-    new_ds.update(handle_metadata_redaction(new_ds, redaction_json))
+        new_ds.update(handle_metadata_redaction(new_ds, redaction_json))
 
-    logger.debug(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
+        logger.debug(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
 
-    new_ds.file_meta.TransferSyntaxUID = compressor
-    new_ds.PhotometricInterpretation = PhotometricInterpretation
+        new_ds.file_meta.TransferSyntaxUID = compressor
+        new_ds.PhotometricInterpretation = PhotometricInterpretation
 
-    new_ds.PixelData = pydicom.encaps.encapsulate(
-        [frame_bytes[idx] for idx in sorted(frame_bytes.keys())]
-    )
+        new_ds.PixelData = pydicom.encaps.encapsulate(
+            [frame_bytes[idx] for idx in sorted(frame_bytes.keys())]
+        )
 
-    logger.debug(f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}")
+        logger.debug(f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}")
 
-    new_ds.save_as(dest_path)
+        new_ds.save_as(dest_path)
 
-    logger.info(f"Redaction completed in {time.time() - start_time:.2f} seconds")
-    return dest_path
+        logger.info(f"Redaction completed in {time.time() - start_time:.2f} seconds")
+        return dest_path
+    finally:
+        # Clean up temporary files to prevent resource leak
+        _cleanup_temp_files(fragment_list)
