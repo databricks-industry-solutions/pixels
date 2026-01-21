@@ -390,7 +390,7 @@ async def _reverse_proxy_monai_infer_post(request: Request):
                 async with cache_segmentations_lock:
                     cache_segmentations[image_key] = {"file_path": file_path, "params": params}
                 pending_event.set()  # Signal waiting requests
-            except Exception as e:
+            except Exception:
                 # Clean up on error and signal waiters
                 async with cache_segmentations_lock:
                     if image_key in cache_segmentations:
@@ -401,7 +401,9 @@ async def _reverse_proxy_monai_infer_post(request: Request):
             # Wait for the other request to finish inference
             await pending_event.wait()
             async with cache_segmentations_lock:
-                if image_key not in cache_segmentations or "pending" in cache_segmentations.get(image_key, {}):
+                if image_key not in cache_segmentations or "pending" in cache_segmentations.get(
+                    image_key, {}
+                ):
                     raise Exception("Inference failed in another request")
                 file_path = cache_segmentations[image_key]["file_path"]
                 params = cache_segmentations[image_key]["params"]
@@ -426,7 +428,11 @@ async def _reverse_proxy_monai_infer_post(request: Request):
 
         # Remove potentially corrupted cache entry
         async with cache_segmentations_lock:
-            if q_params["image"] in cache_segmentations and "pending" not in cache_segmentations.get(q_params["image"], {}):
+            if q_params[
+                "image"
+            ] in cache_segmentations and "pending" not in cache_segmentations.get(
+                q_params["image"], {}
+            ):
                 del cache_segmentations[q_params["image"]]
 
         return Response(content=json.dumps(resp), media_type="application/json", status_code=500)

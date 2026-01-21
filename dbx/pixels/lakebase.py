@@ -294,9 +294,9 @@ class LakebaseUtils:
     def retrieve_frame_range(
         self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
-        query = sql.SQL("SELECT start_pos, end_pos, pixel_data_pos FROM {} WHERE filename = %s AND frame = %s").format(
-            sql.Identifier(table)
-        )
+        query = sql.SQL(
+            "SELECT start_pos, end_pos, pixel_data_pos FROM {} WHERE filename = %s AND frame = %s"
+        ).format(sql.Identifier(table))
         results = self.execute_and_fetch_query(query, (filename, frame))
         if len(results) == 1:
             return {
@@ -312,9 +312,9 @@ class LakebaseUtils:
     def retrieve_max_frame_range(
         self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
-        query = sql.SQL("SELECT max(frame), max(start_pos) FROM {} WHERE filename = %s AND frame <= %s").format(
-            sql.Identifier(table)
-        )
+        query = sql.SQL(
+            "SELECT max(frame), max(start_pos) FROM {} WHERE filename = %s AND frame <= %s"
+        ).format(sql.Identifier(table))
         results = self.execute_and_fetch_query(query, (filename, param_frames))
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}

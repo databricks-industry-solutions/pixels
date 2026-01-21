@@ -380,7 +380,9 @@ def redact_dcm(
 
         new_ds.update(handle_metadata_redaction(new_ds, redaction_json))
 
-        logger.debug(f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}")
+        logger.debug(
+            f"{len(frame_bytes)} Frames collected at {datetime.datetime.now().isoformat()}"
+        )
 
         new_ds.file_meta.TransferSyntaxUID = compressor
         new_ds.PhotometricInterpretation = PhotometricInterpretation
@@ -389,7 +391,9 @@ def redact_dcm(
             [frame_bytes[idx] for idx in sorted(frame_bytes.keys())]
         )
 
-        logger.debug(f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}")
+        logger.debug(
+            f"Encapsulated {len(frame_bytes)} frames at {datetime.datetime.now().isoformat()}"
+        )
 
         new_ds.save_as(dest_path)
 
