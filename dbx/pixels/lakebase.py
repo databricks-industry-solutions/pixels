@@ -127,6 +127,10 @@ class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
 
 
 class LakebaseUtils:
+    # Default connection pool configuration
+    DEFAULT_MIN_CONNECTIONS = 8
+    DEFAULT_MAX_CONNECTIONS = 64
+
     def __init__(
         self,
         instance_name="pixels-lakebase",
@@ -134,9 +138,13 @@ class LakebaseUtils:
         user=None,
         app_sp_id=None,
         create_instance=False,
+        min_connections: int = DEFAULT_MIN_CONNECTIONS,
+        max_connections: int = DEFAULT_MAX_CONNECTIONS,
     ):
         self.instance_name = instance_name
         self.capacity = capacity
+        self.min_connections = min_connections
+        self.max_connections = max_connections
         self.workspace_client = WorkspaceClient()
 
         if user is None:
@@ -244,8 +252,8 @@ class LakebaseUtils:
         # Create refreshable connection pool
         # Tokens expire in 1 hour (3600 seconds), refresh 5 minutes (300 seconds) before expiration
         pool = RefreshableThreadedConnectionPool(
-            minconn=8,
-            maxconn=64,
+            minconn=self.min_connections,
+            maxconn=self.max_connections,
             credential_refresh_callback=self._generate_credential,
             token_lifetime_seconds=3600,
             refresh_before_seconds=300,
