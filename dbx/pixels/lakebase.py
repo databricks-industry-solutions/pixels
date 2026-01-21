@@ -10,6 +10,7 @@ from databricks.sdk.service.database import (
     DatabaseInstanceRoleIdentityType,
     DatabaseInstanceState,
 )
+from psycopg2 import sql
 from psycopg2.extras import execute_values
 from psycopg2.pool import ThreadedConnectionPool
 
@@ -258,7 +259,9 @@ class LakebaseUtils:
 
         return pool
 
-    def execute_and_fetch_query(self, query: str, params: tuple = None) -> list[tuple]:
+    def execute_and_fetch_query(
+        self, query: str | sql.Composed, params: tuple = None
+    ) -> list[tuple]:
         conn = None
         try:
             conn = self.connection.getconn()
@@ -269,7 +272,7 @@ class LakebaseUtils:
             if conn:
                 self.connection.putconn(conn)
 
-    def execute_query(self, query: str, params: tuple = None):
+    def execute_query(self, query: str | sql.Composed, params: tuple = None):
         conn = None
         try:
             conn = self.connection.getconn()
@@ -283,10 +286,10 @@ class LakebaseUtils:
     def retrieve_frame_range(
         self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
-        results = self.execute_and_fetch_query(
-            f"SELECT start_pos, end_pos, pixel_data_pos FROM {table} where filename = %s and frame = %s",
-            (filename, frame),
+        query = sql.SQL("SELECT start_pos, end_pos, pixel_data_pos FROM {} WHERE filename = %s AND frame = %s").format(
+            sql.Identifier(table)
         )
+        results = self.execute_and_fetch_query(query, (filename, frame))
         if len(results) == 1:
             return {
                 "start_pos": results[0][0],
@@ -301,10 +304,10 @@ class LakebaseUtils:
     def retrieve_max_frame_range(
         self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
-        results = self.execute_and_fetch_query(
-            f"SELECT max(frame), max(start_pos) FROM {table} where filename = %s and frame <= %s",
-            (filename, param_frames),
+        query = sql.SQL("SELECT max(frame), max(start_pos) FROM {} WHERE filename = %s AND frame <= %s").format(
+            sql.Identifier(table)
         )
+        results = self.execute_and_fetch_query(query, (filename, param_frames))
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
         else:
@@ -319,10 +322,10 @@ class LakebaseUtils:
         pixel_data_pos: int,
         table: str = DICOM_FRAMES_TABLE,
     ):
-        self.execute_query(
-            f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-            (filename, frame, start_pos, end_pos, pixel_data_pos),
-        )
+        query = sql.SQL(
+            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+        ).format(sql.Identifier(table))
+        self.execute_query(query, (filename, frame, start_pos, end_pos, pixel_data_pos))
 
     def insert_frame_ranges(
         self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
@@ -338,14 +341,13 @@ class LakebaseUtils:
             ]
             for frame_range in frame_ranges
         ]
+        query = sql.SQL(
+            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING"
+        ).format(sql.Identifier(table))
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
-                execute_values(
-                    cursor,
-                    f"INSERT INTO {table} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING",
-                    records,
-                )
+                execute_values(cursor, query, records)
                 conn.commit()
         finally:
             if conn:
