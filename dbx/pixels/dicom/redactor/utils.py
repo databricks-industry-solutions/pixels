@@ -9,10 +9,12 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 import pydicom
 from pydicom.dataset import FileDataset
 from pydicom.pixels import as_pixel_options, pixel_array
 from pydicom.tag import Tag
+from pydicom.uid import UID
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -30,7 +32,7 @@ def _cleanup_temp_files(fragment_list: dict) -> None:
             logger.warning(f"Failed to clean up temp file {temp_file_path}: {e}")
 
 
-def get_frame(file_path, ds, frame_index=0):
+def get_frame(file_path: str, ds: FileDataset, frame_index: int = 0) -> npt.NDArray:
     """
     Retrieve pixel data for a specific frame from a DICOM file.
 
@@ -48,7 +50,7 @@ def get_frame(file_path, ds, frame_index=0):
         return pixel_array(file_path)
 
 
-def redact_frame(frame, redaction):
+def redact_frame(frame: npt.NDArray, redaction: dict) -> npt.NDArray:
     """
     Apply a single redaction to a frame by drawing a black rectangle.
 
@@ -72,7 +74,7 @@ def redact_frame(frame, redaction):
     return frame
 
 
-def handle_global_redaction(file_path, ds, redaction_json):
+def handle_global_redaction(file_path: str, ds: FileDataset, redaction_json: dict) -> dict:
     """
     Apply global redactions to all frames in a DICOM dataset.
 
@@ -129,7 +131,14 @@ def handle_global_redaction(file_path, ds, redaction_json):
     return fragment_list
 
 
-def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment_list=None):
+def handle_frame_redaction(
+    file_path: str,
+    ds: FileDataset,
+    redaction_json: dict,
+    dtype: np.dtype,
+    shape: tuple,
+    fragment_list: dict | None = None,
+) -> dict:
     """
     Apply frame-specific redactions to individual frames in a DICOM dataset.
 
@@ -201,8 +210,15 @@ def handle_frame_redaction(file_path, ds, redaction_json, dtype, shape, fragment
 
 
 def handle_frame_transcode(
-    frame_index, file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list=None
-):
+    frame_index: int,
+    file_path: str,
+    ds: FileDataset,
+    dtype: np.dtype,
+    shape: tuple,
+    compressor: UID,
+    encoder_opts: dict,
+    fragment_list: dict | None = None,
+) -> bytes:
     if fragment_list is None:
         fragment_list = {}
     from pydicom.pixels import get_encoder
@@ -222,8 +238,14 @@ def handle_frame_transcode(
 
 
 def handle_frame_transcoding(
-    file_path, ds, dtype, shape, compressor, encoder_opts, fragment_list=None
-):
+    file_path: str,
+    ds: FileDataset,
+    dtype: np.dtype,
+    shape: tuple,
+    compressor: UID,
+    encoder_opts: dict,
+    fragment_list: dict | None = None,
+) -> dict:
     if fragment_list is None:
         fragment_list = {}
     frame_bytes = {}
@@ -250,7 +272,7 @@ def handle_frame_transcoding(
     return frame_bytes
 
 
-def handle_metadata_redaction(new_ds, redaction_json):
+def handle_metadata_redaction(new_ds: FileDataset, redaction_json: dict) -> FileDataset:
     if "metadataRedactions" not in redaction_json or len(redaction_json["metadataRedactions"]) == 0:
         return new_ds
 
@@ -285,7 +307,9 @@ def handle_metadata_redaction(new_ds, redaction_json):
     return new_ds
 
 
-def redact_dcm(file_path, redaction_json, redaction_id, volume, dest_base_path):
+def redact_dcm(
+    file_path: str, redaction_json: dict, redaction_id: str, volume: str, dest_base_path: str
+) -> str:
     """
     Redact a single DICOM file based on the redaction JSON.
 
