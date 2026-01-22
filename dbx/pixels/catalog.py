@@ -1,3 +1,4 @@
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
@@ -60,12 +61,23 @@ class Catalog:
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
+        self._redaction_base_path = f"{self._volume_path}/redacted/"
+
+        self.w_client = WorkspaceClient()
 
         catalog, schema, _ = table.split(".")
         self._schema = f"{catalog}.{schema}"
 
         # Check if the volume exist
-        spark.sql(f"LIST '{self._volume_path}' limit 1").count()
+        catalog, schema, volume_name = volume.split(".")
+        v_exists = any(
+            l_volume.full_name == volume
+            for l_volume in self.w_client.volumes.list(
+                catalog_name=catalog, schema_name=schema, max_results=100
+            )
+        )
+        if not v_exists:
+            logger.warning(f"Volume {volume} does not exist")
 
         """Spark and Delta Table options for best performance"""
         self._userOptions = {
