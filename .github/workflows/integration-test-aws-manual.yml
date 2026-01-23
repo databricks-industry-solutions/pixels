@@ -1,4 +1,4 @@
-name: AWS integration test PR
+name: Manual AWS integration test
 
 on:
   workflow_dispatch:
@@ -25,7 +25,6 @@ jobs:
         with:
           local-notebook-path: 01-dcm-demo.py
           git-commit: ${{ github.event.inputs.pr_branch }}
-          schema_name: 
           databricks-host: https://e2-demo-west.cloud.databricks.com
           databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
           new-cluster-json: >
