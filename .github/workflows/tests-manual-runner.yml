@@ -1,4 +1,4 @@
-name: Test and Lint Python Package
+name: Manual Lint and Test Runner
 
 env:
   WATCH_DOGS_EMAILS: ${{ vars.WATCH_DOGS_EMAILS }}
