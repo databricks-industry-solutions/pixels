@@ -1,0 +1,58 @@
+name: Manual AWS integration test
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_branch:
+        description: 'Branch for PR integration test'
+        required: true
+        default: ''
+      schema_name:
+        description: 'Catalog and Schema name'
+        required: true
+        default: 'main.pixels_solacc_github_tests'
+
+jobs:
+  run-databricks-notebook:
+    runs-on: html_publisher
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.pr_branch }}
+      - name: Run a databricks notebook
+        uses: databricks/run-notebook@v0
+        with:
+          local-notebook-path: 01-dcm-demo.py
+          git-commit: ${{ github.event.inputs.pr_branch }}
+          databricks-host: https://e2-demo-west.cloud.databricks.com
+          databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
+          new-cluster-json: >
+            {
+              "autoscale": {
+                "min_workers": 1,
+                "max_workers": 1
+              },
+              "spark_version": "16.4.x-scala2.13",
+              "node_type_id": "i3.xlarge",
+              "aws_attributes": {
+                "zone_id": "auto",
+                "availability": "ON_DEMAND"
+              },
+              "custom_tags": {
+                "ResourceClass": "JobCluster"
+              },
+              "policy_id": "E05E27B13F0003A0"
+            }
+          notebook-params-json: >
+            {
+              "table": "${{ github.event.inputs.schema_name }}.object_catalog",
+              "volume": "${{ github.event.inputs.schema_name }}.pixels_volume"
+            }
+          access-control-list-json: >
+            [
+              {
+                "group_name": "users",
+                "permission_level": "CAN_MANAGE"
+              }
+            ]
