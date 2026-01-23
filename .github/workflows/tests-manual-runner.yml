@@ -1,0 +1,55 @@
+name: Test and Lint Python Package
+
+env:
+  WATCH_DOGS_EMAILS: ${{ vars.WATCH_DOGS_EMAILS }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_branch:
+        description: 'Branch for PR integration test'
+        required: true
+        default: ''
+
+jobs:
+  build:
+    timeout-minutes: 30
+    runs-on: html_publisher
+    strategy:
+      matrix:
+        python-version: ["3.10"] 
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.inputs.pr_branch }}
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies for style
+      run: |
+        python -m pip install --upgrade pip
+        make dev
+    - name: Run linting (linter, code style)
+      run: |
+        source .venv/bin/activate
+        make style
+    - name: Install dependencies
+      run: |
+        pip install git+https://github.com/databricks-industry-solutions/industry-solutions-release
+    - name: Debug environment
+      env:
+        DATABRICKS_HOST: https://e2-demo-west.cloud.databricks.com
+        DATABRICKS_TOKEN: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
+      run: |
+        echo "Checking Databricks host..."
+        echo "DATABRICKS_HOST is set: $([[ ! -z "$DATABRICKS_HOST" ]] && echo "yes" || echo "no")"
+        echo "DATABRICKS_TOKEN is set: $([[ ! -z "$DATABRICKS_TOKEN" ]] && echo "yes" || echo "no")"
+        echo "Token length: ${#DATABRICKS_TOKEN}"
+    - name: Execute tests on DB clusters
+      env:
+        DATABRICKS_HOST: https://e2-demo-west.cloud.databricks.com
+        DATABRICKS_TOKEN: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
+      run: |
+          python tests/db_runner.py
