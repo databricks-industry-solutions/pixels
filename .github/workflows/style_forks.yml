@@ -1,4 +1,4 @@
-name: CI: Safe checks for PRs
+name: Style checks for PRs
 
 on:
   pull_request_target:
