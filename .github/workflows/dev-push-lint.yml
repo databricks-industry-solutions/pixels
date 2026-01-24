@@ -32,5 +32,5 @@ jobs:
       
         - name: Run pre-commit checks
           run: .venv/bin/pre-commit run --all-files
-            continue-on-error: true # Don't fail the build, just report
+          continue-on-error: true # Don't fail the build, just report
   
