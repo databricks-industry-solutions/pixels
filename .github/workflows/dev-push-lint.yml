@@ -1,0 +1,36 @@
+name: Test and Lint Python Package
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  lint:
+      name: Lint Code
+      runs-on: ubuntu-latest
+  
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+  
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+  
+        - name: Install dependencies for style
+          run: |
+            python -m pip install --upgrade pip
+            make dev
+        - name: Run linting (linter, code style)
+          run: |
+            source .venv/bin/activate
+            make style
+      
+            - name: Install pre-commit
+              run: pip install pre-commit
+      
+            - name: Run pre-commit checks
+              run: pre-commit run --all-files
+              continue-on-error: true # Don't fail the build, just report
+  
