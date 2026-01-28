@@ -86,7 +86,7 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC %sql
 # MAGIC with x as (
 # MAGIC   select
-# MAGIC   format_number(count(DISTINCT meta:['00100010'].Value[0].Alphabetic),0) as patient_count,
+# MAGIC   format_number(count(DISTINCT meta:['00100010'].Value[0].Alphabetic::STRING),0) as patient_count,
 # MAGIC   format_number(count(1),0) num_dicoms,
 # MAGIC   format_number(sum(length) /(1024*1024*1024), 1) as total_size_in_gb,
 # MAGIC   format_number(avg(length), 0) avg_size_in_bytes
@@ -105,15 +105,15 @@ catalog.save(meta_df, mode=write_mode)
 # DBTITLE 1,Patient / Radiology Data Analysis
 # MAGIC %sql
 # MAGIC SELECT
-# MAGIC     meta:['0020000D'].Value[0] as study_uid,
-# MAGIC     meta:['0020000E'].Value[0] as series_instance_uid,
-# MAGIC --    meta:['00080018'].Value[0] as sop_instance_uid,
-# MAGIC     meta:['00100020'].Value[0] as patient_id,
-# MAGIC     meta:['00100010'].Value[0].Alphabetic patient_name, 
-# MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0] `Anatomic Region Sequence Attribute decoded`,
-# MAGIC     meta:['0008103E'].Value[0] `Series Description Attribute`,
-# MAGIC     meta:['00081030'].Value[0] `Study Description Attribute`,
-# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0] `projection` -- backticks work for numeric keys
+# MAGIC     meta:['0020000D'].Value[0]::STRING as study_uid,
+# MAGIC     meta:['0020000E'].Value[0]::STRING as series_instance_uid,
+# MAGIC --    meta:['00080018'].Value[0]::STRING as sop_instance_uid,
+# MAGIC     meta:['00100020'].Value[0]::STRING as patient_id,
+# MAGIC     meta:['00100010'].Value[0].Alphabetic::STRING patient_name, 
+# MAGIC     meta:['00082218'].Value[0]['00080104'].Value[0]::STRING `Anatomic Region Sequence Attribute decoded`,
+# MAGIC     meta:['0008103E'].Value[0]::STRING `Series Description Attribute`,
+# MAGIC     meta:['00081030'].Value[0]::STRING `Study Description Attribute`,
+# MAGIC     meta:`00540220`.Value[0].`00080104`.Value[0]::STRING `projection` -- backticks work for numeric keys
 # MAGIC FROM IDENTIFIER(:table)
 # MAGIC GROUP BY ALL
 # MAGIC ORDER BY 1,2,3
@@ -124,8 +124,8 @@ catalog.save(meta_df, mode=write_mode)
 # MAGIC %sql
 # MAGIC SELECT 
 # MAGIC   --rowid,
-# MAGIC   meta:['00100010'].Value[0].Alphabetic as patient_name,  -- Medical information from the DICOM header
-# MAGIC   meta:hash, meta:img_min, meta:img_max, path,            -- technical metadata
+# MAGIC   meta:['00100010'].Value[0].Alphabetic::STRING as patient_name,  -- Medical information from the DICOM header
+# MAGIC   meta:hash::STRING, meta:img_min::STRING, meta:img_max::STRING, path,            -- technical metadata
 # MAGIC   meta                                                    -- DICOM header metadata as JSON
 # MAGIC FROM IDENTIFIER(:table)
 # MAGIC WHERE array_contains( path_tags, 'patient5397' ) -- query based on a part of the filename
