@@ -28,10 +28,3 @@ jobs:
         run: |
           source .venv/bin/activate
           make style
-      - name: Comment admin instructions
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          message: |
-            ✅ Style checks passed.
-            🛡️ To run privileged integration tests, an admin must trigger the workflows **Manual Lint and Test Runner** and **Manual AWS integration test** from the Actions tab.
-            See https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow
