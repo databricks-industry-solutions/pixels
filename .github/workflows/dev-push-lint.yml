@@ -1,4 +1,4 @@
-name: Test and Lint Python Package
+name: Pixels Dev Branch Lint & Check
 
 on:
   push:
@@ -27,10 +27,8 @@ jobs:
             source .venv/bin/activate
             make style
       
-        - name: Install pre-commit
-          run: .venv/bin/pip install pre-commit
-      
         - name: Run pre-commit checks
-          run: .venv/bin/pre-commit run --all-files
-          continue-on-error: true # Don't fail the build, just report
+          run: |
+            source .venv/bin/activate
+            make check
   
