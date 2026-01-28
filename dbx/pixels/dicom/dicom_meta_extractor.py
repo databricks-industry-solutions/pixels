@@ -2,7 +2,7 @@ import hashlib
 
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, lit, udf, expr
+from pyspark.sql.functions import col, expr, lit, udf
 
 from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata
 
@@ -14,7 +14,13 @@ class DicomMetaExtractor(Transformer):
 
     # Day extractor inherit of property of Transformer
     def __init__(
-        self, catalog, inputCol="local_path", outputCol="meta", basePath="dbfs:/", deep=False, useVariant=True
+        self,
+        catalog,
+        inputCol="local_path",
+        outputCol="meta",
+        basePath="dbfs:/",
+        deep=False,
+        useVariant=True,
     ):
         self.inputCol = inputCol  # the name of your columns
         self.outputCol = outputCol  # the name of your output column
@@ -83,7 +89,9 @@ class DicomMetaExtractor(Transformer):
 
         self.check_input_type(df.schema)
         df = df.withColumn("is_anon", lit(self.catalog.is_anon()))
-        df = df.withColumn(self.outputCol, dicom_meta_udf(col(self.inputCol), lit(self.deep), col("is_anon")))
+        df = df.withColumn(
+            self.outputCol, dicom_meta_udf(col(self.inputCol), lit(self.deep), col("is_anon"))
+        )
         if self.useVariant:
             df = df.withColumn(self.outputCol, expr(f"parse_json({self.outputCol})"))
         return df
