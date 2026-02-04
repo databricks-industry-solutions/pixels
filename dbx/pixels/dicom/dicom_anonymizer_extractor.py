@@ -63,7 +63,7 @@ class DicomAnonymizerExtractor(Transformer):
         keep_tags: tuple = ("StudyDate", "StudyTime", "SeriesDate"),
         anonymization_base_path: str = None,
         save_anonymized_dicom: bool = True,
-        useVariant=True
+        useVariant=True,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
@@ -195,7 +195,8 @@ class DicomAnonymizerExtractor(Transformer):
                 return except_str
 
         self.check_input_type(df.schema)
-        df = (df.withColumn("is_anon", lit(self.catalog.is_anon()))
+        df = (
+            df.withColumn("is_anon", lit(self.catalog.is_anon()))
             .withColumn("anonym_res", dicom_meta_anonym_udf(col(self.inputCol), col("is_anon")))
             .withColumn("path", col("anonym_res.path"))
             .withColumn("local_path", replace(col("path"), lit("dbfs:"), lit("")))
@@ -208,5 +209,5 @@ class DicomAnonymizerExtractor(Transformer):
 
         if self.useVariant:
             df = df.withColumn("meta", expr("parse_json(meta)"))
-        
+
         return df
