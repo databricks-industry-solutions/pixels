@@ -11,7 +11,7 @@ jobs:
      - name: Run a databricks notebook
        uses: databricks/run-notebook@v0
        with:
-         local-notebook-path: 01-dcm-demo.py
+         local-notebook-path: 01-dcm-demo.ipynb
          git-commit: ${{ github.event.pull_request.head.sha }}
          databricks-host: https://adb-984752964297111.11.azuredatabricks.net
          databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_MSA }}
