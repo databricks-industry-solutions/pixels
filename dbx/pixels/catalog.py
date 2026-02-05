@@ -160,7 +160,7 @@ class Catalog:
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
-        zipRepartition: int = 128
+        zipRepartition: int = 128,
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -225,7 +225,8 @@ class Catalog:
                 logger.info("Started unzip process")
 
                 unzip_stream = (
-                    df.repartition(zipRepartition).withColumn(
+                    df.repartition(zipRepartition)
+                    .withColumn(
                         "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                     )
                     .writeStream.format("delta")
