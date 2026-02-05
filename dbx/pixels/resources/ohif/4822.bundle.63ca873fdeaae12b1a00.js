@@ -1951,16 +1951,14 @@ function processResults(qidoStudies) {
       studyInstanceUid: getString(JSON.parse(qidoStudy[0])),
       date: qidoStudy[1] || '',
       // YYYYMMDD
-      time: qidoStudy[2] || '',
-      // HHmmss.SSS (24-hour, minutes, seconds, fractional seconds)
-      accession: qidoStudy[3] || '',
+      accession: qidoStudy[2] || '',
       // short string, probably a number?
-      mrn: qidoStudy[4] || '',
+      mrn: qidoStudy[3] || '',
       // medicalRecordNumber
-      patientName: qidoStudy[5] && qidoStudy[5].includes("Alphabetic") ? src.utils.formatPN(getName(JSON.parse(qidoStudy[5]))) : "",
-      description: getString(JSON.parse(qidoStudy[6])) || '',
-      modalities: qidoStudy[7] + qidoStudy[8],
-      instances: Number(JSON.parse(qidoStudy[9])) || 1 // number
+      patientName: qidoStudy[4] && qidoStudy[4].includes("Alphabetic") ? src.utils.formatPN(getName(JSON.parse(qidoStudy[4]))) : "",
+      description: getString(JSON.parse(qidoStudy[5])) || '',
+      modalities: qidoStudy[6] + qidoStudy[7],
+      instances: Number(JSON.parse(qidoStudy[8])) || 1 // number
     });
   });
   return studies;
@@ -2039,7 +2037,6 @@ async function qidoStudiesSearch(databricksClient, warehouseId, pixelsTable, ori
     "statement": `select
         meta: ['0020000D']::String as studyInstanceUid,
         nullif(meta: ['00080020'].Value[0]::String, '') as date,
-        nullif(meta: ['00080030'].Value[0]::String, '') as time,
         nullif(meta: ['00080050'].Value[0]::String, '') as accession,
         nullif(meta: ['00100020'].Value[0]::String, '') as mrn,
         first(meta: ['00100010']::String, true) as patientName,
@@ -2049,7 +2046,7 @@ async function qidoStudiesSearch(databricksClient, warehouseId, pixelsTable, ori
         count(*) as instances
        FROM ${pixelsTable}
        WHERE ${filters.join(" AND ")}
-       GROUP BY studyInstanceUid, date, time, accession, mrn
+       GROUP BY studyInstanceUid, date, accession, mrn
        `,
     "wait_timeout": "30s",
     "on_wait_timeout": "CANCEL"
