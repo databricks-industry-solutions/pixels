@@ -85,7 +85,7 @@ class DicomMetaExtractor(Transformer):
                         "path": path,
                     }
                 )
-                return except_str
+                return json.dumps(except_str)
 
         self.check_input_type(df.schema)
         df = df.withColumn("is_anon", lit(self.catalog.is_anon()))
