@@ -14,6 +14,13 @@ window.config = {
   useSharedArrayBuffer: 'AUTO',
   useNorm16Texture: true,
   preferSizeOverAccuracy: true,
+  customizationService: [
+    {
+      'studyBrowser.studyMode': {
+         $set: 'primary', // or recent
+      },
+    },
+  ],
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
