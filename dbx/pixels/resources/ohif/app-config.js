@@ -11,9 +11,31 @@ window.config = {
   showLoadingIndicator: true,
   strictZSpacingForVolumeViewport: true,
   defaultDataSourceName: 'databricksPixelsDicom',
-  useSharedArrayBuffer: 'AUTO',
-  useNorm16Texture: true,
-  preferSizeOverAccuracy: true,
+  
+  // GPU Acceleration Settings
+  useSharedArrayBuffer: 'AUTO', // Enable SharedArrayBuffer for better performance
+  useNorm16Texture: true, // Use 16-bit normalized textures for GPU rendering
+  preferSizeOverAccuracy: true, // Prioritize rendering speed over precision
+  useCPURendering: false, // Force GPU rendering when available
+  
+  // Web Worker Settings for Parallel Decoding
+  maxNumberOfWebWorkers: navigator.hardwareConcurrency || 4, // Use all available CPU cores
+  
+  // Increase concurrent request pool sizes for better parallelism
+  maxNumRequests: {
+    interaction: 20,  // User interactions (pan, zoom, scroll) - high priority
+    thumbnail: 10,    // Thumbnail generation
+    prefetch: 20,     // Background prefetching - INCREASE THIS for parallel loading
+    compute: 10       // Computation tasks
+  },
+  
+  customizationService: [
+    {
+      'studyBrowser.studyMode': {
+         $set: 'primary', // or recent
+      },
+    },
+  ],
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',

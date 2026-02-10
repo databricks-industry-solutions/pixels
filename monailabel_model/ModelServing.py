@@ -18,8 +18,8 @@
 
 # MAGIC %pip install -r bundles/requirements.txt
 # MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
-# MAGIC %pip install monai==1.4.0 pytorch-ignite --no-deps
-# MAGIC %pip install databricks-sdk==0.56 --upgrade
+# MAGIC %pip install monai==1.5.2 pytorch-ignite --no-deps
+# MAGIC %pip install databricks-sdk==0.84 --upgrade
 
 # COMMAND ----------
 
@@ -240,24 +240,22 @@ import mlflow
 
 # Save the function as a model
 with mlflow.start_run():
-    mlflow.pyfunc.log_model (
-        "DBBundlesModel",
+    logged_model_info = mlflow.pyfunc.log_model (
+        name="DBBundlesModel",
         python_model=DBBundlesModel(),
         conda_env="./bundles/conda.yaml",
         signature=signature,
+        input_example=input_examples[4],
         code_paths=["./bundles", "./common", "./lib"],
         artifacts={
             "monailabel-0.8.5": "./artifacts/monailabel-0.8.5-py3-none-any.whl",
             "itkimage2segimage": "./artifacts/itkimage2segimage"
         }
     )
-    run_id = mlflow.active_run().info.run_id
-    print(run_id)
 
 # COMMAND ----------
 
-model_uri = "runs:/{}/DBBundlesModel".format(run_id)
-latest_model = mlflow.register_model(model_uri, model_uc_name)
+latest_model = mlflow.register_model(logged_model_info.model_uri, model_uc_name)
 
 # COMMAND ----------
 

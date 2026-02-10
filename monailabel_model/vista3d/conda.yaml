@@ -5,7 +5,7 @@ dependencies:
 - pip<=24.2
 - cuda-toolkit
 - pip:
-  - mlflow==2.21.3
+  - mlflow==3.9.0
   - torch>=2.5.1
   - numpy>=1.24.4
   - ./artifacts/monailabel-0.8.5-py3-none-any.whl
@@ -18,8 +18,8 @@ dependencies:
   - numpymaxflow>=0.0.7
   - passlib>=1.7.4
   - pydantic-settings>=2.2.1
-  - pydicom==2.4.4
-  - pydicom-seg>=0.4.1
+  - pydicom==3.0.1
+  - highdicom==0.26.1
   - pynetdicom>=2.0.2
   - pynrrd>=1.0.0
   - python-dotenv>=1.0.1
@@ -35,6 +35,7 @@ dependencies:
   - nibabel
   - scikit-image>=0.19.0
   - cucim-cu12
-  - databricks-sdk==0.36
   - huggingface_hub
+  - simpleitk
+  - databricks-sdk==0.84
 name: mlflow-env

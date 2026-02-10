@@ -11,14 +11,14 @@ jobs:
      - name: Run a databricks notebook
        uses: databricks/run-notebook@v0
        with:
-         local-notebook-path: 01-dcm-demo.py
+         local-notebook-path: 01-dcm-demo.ipynb
          git-commit: ${{ github.event.pull_request.head.sha }}
          databricks-host: https://adb-984752964297111.11.azuredatabricks.net
          databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_MSA }}
          new-cluster-json: >
            {
              "num_workers": 0,
-             "spark_version": "16.4.x-scala2.13",
+             "spark_version": "17.3.x-scala2.13",
              "node_type_id": "Standard_DS5_v2",
              "azure_attributes": {
                   "availability": "ON_DEMAND_AZURE"

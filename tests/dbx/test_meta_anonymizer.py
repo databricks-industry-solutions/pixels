@@ -27,6 +27,6 @@ def test_meta_anonym(spark: SparkSession):
 
     assert catalog.load().count() == 30
     assert (
-        catalog.load().limit(1).selectExpr('meta:["00120063"].Value[0]').collect()[0][0]
+        catalog.load().limit(1).selectExpr('meta:["00120063"].Value[0]::STRING').collect()[0][0]
         == "DICOGNITO"
     )
