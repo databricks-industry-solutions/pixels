@@ -28,7 +28,7 @@ window.config = {
     prefetch: 20,     // Background prefetching - INCREASE THIS for parallel loading
     compute: 10       // Computation tasks
   },
-  
+
   customizationService: [
     {
       'studyBrowser.studyMode': {
@@ -36,6 +36,7 @@ window.config = {
       },
     },
   ],
+
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
