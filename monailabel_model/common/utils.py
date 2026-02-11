@@ -64,54 +64,83 @@ def to_nrrd(file_path, pixel_type="uint16"):
         raise Exception("Unable to convert file", file_path)
 
 @mlflow.trace(span_type=SpanType.TOOL)
-def calculate_volumes_and_overlays(nifti_file, seg_file, label_dict, export_overlays=False, export_metrics=False, output_dir='overlaps', num_slices=5,  keys=['image','label'], window_center = 50, window_width = 400):
+def calculate_volumes_and_overlays(series_dir, dicom_seg_file, label_dict, export_overlays=False, export_metrics=False, output_dir='overlaps', num_slices=5, window_center = 50, window_width = 400):
     """
-    Calculate volumes and overlays for a given NIfTI file and segmentation file.
+    Calculate volumes and overlays for a given DICOM series and DICOM SEG file.
     Args:
-        nifti_file (str): Path to the NIfTI file.
-        seg_file (str): Path to the segmentation file.
+        series_dir (str): Path to the DICOM series directory.
+        dicom_seg_file (str): Path to the DICOM SEG file.
         label_dict (dict): Dictionary mapping label indices to names.
         export_overlays (bool): Whether to export overlay images.
         export_metrics (bool): Whether to export volume metrics.
         output_dir (str): Directory to save overlay images.
         num_slices (int): Number of slices to export.
-        keys (list): List of keys for the transforms.
         window_center (int): Window center for intensity scaling.
         window_width (int): Window width for intensity scaling.
     Returns:
         dict: Dictionary containing volume metrics and overlay paths.
     """
 
-    from monai.transforms import Compose, LoadImageD, OrientationD, ScaleIntensityRangeD
     import cupy as cp
-    import nibabel as nib
+    import pydicom
+    import highdicom as hd
     import skimage
     from cucim.skimage.color import label2rgb
 
     os.makedirs(output_dir, exist_ok=True)
 
-    composed = Compose([LoadImageD(keys=keys, ensure_channel_first=True),
-                        OrientationD(keys=keys, axcodes="LAS"),
-                        ScaleIntensityRangeD(
-                        keys=['image'],
-                        a_min=window_center - window_width / 2,
-                        a_max=window_center + window_width / 2,
-                        b_min=0,
-                        b_max=255,
-                        clip=True)
-        ])({'image': nifti_file,'label': seg_file})
+    # Read DICOM series directly
+    series_reader = sitk.ImageSeriesReader()
+    dicom_names = series_reader.GetGDCMSeriesFileNames(series_dir)
+    series_reader.SetFileNames(dicom_names)
+    series_image = series_reader.Execute()
 
-    nifti_seg_header = nib.load(seg_file).header
+    # Read DICOM SEG with highdicom
+    dcm = pydicom.dcmread(dicom_seg_file)
+    seg = hd.seg.Segmentation.from_dataset(dcm)
 
-    nifti_data = cp.rot90(cp.array(composed['image'][0]), k=1)
-    seg_data = cp.rot90(cp.array(composed['label'][0]), k=1)
+    # Get source SOP Instance UIDs in the same spatial order as the series reader
+    source_datasets = [pydicom.dcmread(str(f), stop_before_pixels=True) for f in dicom_names]
+    source_sop_uids = [ds.SOPInstanceUID for ds in source_datasets]
+
+    # Extract combined multi-class label map aligned to the source series
+    seg_array = seg.get_pixels_by_source_instance(
+        source_sop_instance_uids=source_sop_uids,
+        segment_numbers=list(seg.segment_numbers),
+        combine_segments=True,
+        relabel=False,
+    )
+
+    # Build a SimpleITK image from the label array and copy spatial info from source
+    seg_image = sitk.GetImageFromArray(seg_array.astype(np.uint16))
+    seg_image.CopyInformation(series_image)
+
+    # Reorient both images to LAS
+    orienter = sitk.DICOMOrientImageFilter()
+    orienter.SetDesiredCoordinateOrientation('LAS')
+    series_image = orienter.Execute(series_image)
+    seg_image = orienter.Execute(seg_image)
+
+    # Get voxel dimensions from spacing
+    voxel_dims = series_image.GetSpacing()
+
+    # Convert to cupy arrays — SimpleITK returns (z,y,x), transpose to (x,y,z) matching LAS axes
+    image_array = cp.array(sitk.GetArrayFromImage(series_image).transpose(2, 1, 0), dtype=cp.float32)
+    seg_array_gpu = cp.array(sitk.GetArrayFromImage(seg_image).transpose(2, 1, 0), dtype=cp.float32)
+
+    # Scale image intensity: map [a_min, a_max] → [0, 255] with clipping
+    a_min = window_center - window_width / 2
+    a_max = window_center + window_width / 2
+    image_array = cp.clip((image_array - a_min) / (a_max - a_min) * 255, 0, 255)
+
+    nifti_data = cp.rot90(image_array, k=1)
+    seg_data = cp.rot90(seg_array_gpu, k=1)
 
     # Get unique labels
     unique_labels = cp.unique(seg_data)
     unique_labels = unique_labels[unique_labels != 0]
 
-    # Get voxel dimensions from header
-    voxel_dims = nifti_seg_header.get_zooms()
+    # Get voxel volume from spacing
     voxel_volume = np.prod(voxel_dims)
     
     output = {}
@@ -204,7 +233,7 @@ def init_dicomweb_datastore(host, access_token, sql_warehouse_id, table) -> Data
     cache_path = cache_path.strip() if cache_path else ""
     fetch_by_frame = settings.MONAI_LABEL_DICOMWEB_FETCH_BY_FRAME
     search_filter = settings.MONAI_LABEL_DICOMWEB_SEARCH_FILTER
-    convert_to_nifti = settings.MONAI_LABEL_DICOMWEB_CONVERT_TO_NIFTI
+    convert_to_nifti = False
     
     return DICOMWebDatastore(
         client=dw_client,

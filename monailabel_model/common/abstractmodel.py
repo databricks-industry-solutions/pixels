@@ -9,6 +9,7 @@ from mlflow.entities import SpanType
 from abc import abstractmethod
 import datetime
 from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal
+import common.writers
 from monailabel.datastore.databricks_client import DatabricksClient
 
 logger = logging.getLogger(__name__)
@@ -313,8 +314,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 elif "infer" in model_input['input'][0]:
                     label_prompt, points, point_labels, datastore = self.handle_labels(model_input["input"][0]['infer'])
                             
-                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
-                    to_return = {"file": nifti_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
+                    series_dir, out_seg_path = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
+                    to_return = {"file": out_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
                 else:
                     to_return = self.handle_input(model_input['input'][0])
@@ -324,20 +325,23 @@ class DBModel(mlflow.pyfunc.PythonModel):
                     input_params = model_input["params"][0]
                 else:
                     input_params = {}
+
+                series_uid = model_input["series_uid"][0]
                 
                 label_prompt, points, point_labels, datastore = self.handle_labels(input_params)
                 dest_dir, export_overlays, export_metrics, torch_device = self.handle_params(input_params)
 
-                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels, torch_device=torch_device, file_ext=".nii")
+                series_dir, out_seg_path = self.model_infer(datastore, series_uid, label_prompt, points, point_labels, torch_device=torch_device, file_ext=".dcm")
                 
-                dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
+                #dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
+                self.upload_file(out_seg_path, dest_dir + "/segmentations/" + series_uid + ".dcm")
 
                 if export_overlays or export_metrics:
-                    metrics = calculate_volumes_and_overlays(nifti_path, nifti_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/"+image_info['StudyInstanceUID'] + "/" + image_info['SeriesInstanceUID'] + "/", export_overlays=export_overlays, export_metrics=export_metrics)
+                    metrics = calculate_volumes_and_overlays(series_dir, out_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/" + series_uid+ "/", export_overlays=export_overlays, export_metrics=export_metrics)
                 else:
                     metrics = None
 
-                to_return =  {"file_path": dicom_seg_path, "metrics": metrics}
+                to_return =  {"file_path": out_seg_path, "metrics": metrics}
 
                 span.set_outputs(to_return)
             
