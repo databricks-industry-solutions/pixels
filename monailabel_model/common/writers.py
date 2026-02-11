@@ -177,7 +177,7 @@ class HighDicomSegWriter(ImageWriter):
         if not sorted_dcm_files:
             raise ValueError(f"No DICOM files found in {series_dir}")
 
-        source_images = [pydicom.dcmread(f) for f in sorted_dcm_files]
+        source_images = [pydicom.dcmread(f, stop_before_pixels=True) for f in sorted_dcm_files]
 
         # ---- segmentation array ----------------------------------------
         seg_array = self._prepare_pixel_array(

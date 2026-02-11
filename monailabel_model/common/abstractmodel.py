@@ -9,7 +9,6 @@ from mlflow.entities import SpanType
 from abc import abstractmethod
 import datetime
 from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal
-import common.writers
 from monailabel.datastore.databricks_client import DatabricksClient
 
 logger = logging.getLogger(__name__)
@@ -56,7 +55,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
             self.bin_path = os.path.join(self.module_path, "../artifacts/itkimage2segimage")
 
         from common.dblabelapp import DBMONAILabelApp
-     
+        import common.writers
+
         self.conf = {
             "models": "segmentation",
             "preload": "false",
@@ -332,16 +332,16 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 dest_dir, export_overlays, export_metrics, torch_device = self.handle_params(input_params)
 
                 series_dir, out_seg_path = self.model_infer(datastore, series_uid, label_prompt, points, point_labels, torch_device=torch_device, file_ext=".dcm")
+                final_path = dest_dir + "/segmentations/" + series_uid + ".dcm"
                 
-                #dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
-                self.upload_file(out_seg_path, dest_dir + "/segmentations/" + series_uid + ".dcm")
+                self.upload_file(out_seg_path, final_path)
 
                 if export_overlays or export_metrics:
                     metrics = calculate_volumes_and_overlays(series_dir, out_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/" + series_uid+ "/", export_overlays=export_overlays, export_metrics=export_metrics)
                 else:
                     metrics = None
 
-                to_return =  {"file_path": out_seg_path, "metrics": metrics}
+                to_return =  {"file_path": final_path, "metrics": metrics}
 
                 span.set_outputs(to_return)
             
