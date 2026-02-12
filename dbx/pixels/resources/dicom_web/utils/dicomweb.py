@@ -18,7 +18,7 @@ os.environ["DATABRICKS_HOST"] = "https://e2-demo-field-eng.cloud.databricks.com/
 os.environ["DATABRICKS_TOKEN"] = "<TOKEN>"
 os.environ["DATABRICKS_WAREHOUSE_ID"] = "8baced1ff014912d"
 os.environ["DATABRICKS_PIXELS_TABLE"] = "ema_rina.pixels_solacc.object_catalog"
-os.environ["LAKEBASE_INSTANCE_NAME"] = "shared-online-store"
+#os.environ["LAKEBASE_INSTANCE_NAME"] = "shared-online-store"
 
 import io
 import json
@@ -219,7 +219,6 @@ class DICOMwebDatabricksWrapper:
         - PatientName
         - PatientID
         - StudyDate
-        - StudyTime
         - AccessionNumber
         - ModalitiesInStudy
         - StudyDescription
@@ -300,7 +299,6 @@ class DICOMwebDatabricksWrapper:
             meta:['00100020'].Value[0]::String as PatientID,
             meta:['0020000D'].Value[0]::String as StudyInstanceUID,
             meta:['00080020'].Value[0]::String as StudyDate,
-            meta:['00080030'].Value[0]::String as StudyTime,
             meta:['00080050'].Value[0]::String as AccessionNumber,
             meta:['00081030'].Value[0]::String as StudyDescription,
             meta:['00080060'].Value[0]::String as Modality,
@@ -311,8 +309,8 @@ class DICOMwebDatabricksWrapper:
         WHERE {where_clause}
         GROUP BY 
             PatientName, PatientID, StudyInstanceUID, StudyDate, 
-            StudyTime, AccessionNumber, StudyDescription, Modality, ModalitiesInStudy
-        ORDER BY StudyDate DESC, StudyTime DESC
+            AccessionNumber, StudyDescription, Modality, ModalitiesInStudy
+        ORDER BY StudyDate DESC
         {limit_clause} {offset_clause}
         """
         
@@ -357,13 +355,12 @@ class DICOMwebDatabricksWrapper:
             meta:['00200011'].Value[0]::String as SeriesNumber,
             meta:['0008103E'].Value[0]::String as SeriesDescription,
             meta:['00080021'].Value[0]::String as SeriesDate,
-            meta:['00080031'].Value[0]::String as SeriesTime,
             COUNT(*) as NumberOfSeriesRelatedInstances
         FROM {self.pixels_table}
         WHERE {where_clause}
         GROUP BY 
             StudyInstanceUID, SeriesInstanceUID, Modality, 
-            SeriesNumber, SeriesDescription, SeriesDate, SeriesTime
+            SeriesNumber, SeriesDescription, SeriesDate
         ORDER BY SeriesNumber
         """
         
@@ -570,7 +567,7 @@ class DICOMwebDatabricksWrapper:
         
         # Get column names from query
         columns = [
-            'PatientName', 'PatientID', 'StudyInstanceUID', 'StudyDate', 'StudyTime',
+            'PatientName', 'PatientID', 'StudyInstanceUID', 'StudyDate',
             'AccessionNumber', 'StudyDescription', 'Modality', 'ModalitiesInStudy',
             'NumberOfStudyRelatedSeries', 'NumberOfStudyRelatedInstances'
         ]
@@ -600,7 +597,7 @@ class DICOMwebDatabricksWrapper:
         
         columns = [
             'StudyInstanceUID', 'SeriesInstanceUID', 'Modality', 'SeriesNumber',
-            'SeriesDescription', 'SeriesDate', 'SeriesTime', 'NumberOfSeriesRelatedInstances'
+            'SeriesDescription', 'SeriesDate', 'NumberOfSeriesRelatedInstances'
         ]
         
         formatted = self._format_dicomweb_response(results, columns)
@@ -945,7 +942,7 @@ def dicomweb_qido_studies(request: Request) -> Response:
     """
     QIDO-RS endpoint for searching studies.
     
-    GET /dicomweb/studies?PatientName=Smith&StudyDate=20240101-20241231
+    GET /api/dicomweb/studies?PatientName=Smith&StudyDate=20240101-20241231
     """
     wrapper = get_dicomweb_wrapper(request)
     params = dict(request.query_params)
@@ -962,7 +959,7 @@ def dicomweb_qido_series(request: Request, study_instance_uid: str) -> Response:
     """
     QIDO-RS endpoint for searching series within a study.
     
-    GET /dicomweb/studies/{studyInstanceUID}/series
+    GET /api/dicomweb/studies/{studyInstanceUID}/series
     """
     wrapper = get_dicomweb_wrapper(request)
     params = dict(request.query_params)
@@ -980,7 +977,7 @@ def dicomweb_qido_instances(request: Request, study_instance_uid: str,
     """
     QIDO-RS endpoint for searching instances within a series.
     
-    GET /dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances
+    GET /api/dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances
     """
     wrapper = get_dicomweb_wrapper(request)
     params = dict(request.query_params)
@@ -999,7 +996,7 @@ def dicomweb_wado_series_metadata(request: Request, study_instance_uid: str,
     """
     WADO-RS endpoint for retrieving metadata for all instances in a series.
     
-    GET /dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/metadata
+    GET /api/dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/metadata
     """
     wrapper = get_dicomweb_wrapper(request)
     
@@ -1016,7 +1013,7 @@ def dicomweb_wado_instance(request: Request, study_instance_uid: str,
     """
     WADO-RS endpoint for retrieving a DICOM instance.
     
-    GET /dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances/{sopInstanceUID}
+    GET /api/dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances/{sopInstanceUID}
     """
     wrapper = get_dicomweb_wrapper(request)
     
@@ -1041,7 +1038,7 @@ def dicomweb_wado_instance_frames(request: Request, study_instance_uid: str,
     """
     WADO-RS endpoint for retrieving specific frames from a DICOM instance.
     
-    GET /dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances/{sopInstanceUID}/frames/{frameList}
+    GET /api/dicomweb/studies/{studyInstanceUID}/series/{seriesInstanceUID}/instances/{sopInstanceUID}/frames/{frameList}
     
     frameList can be:
     - Single frame: "1"

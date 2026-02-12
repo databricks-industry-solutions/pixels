@@ -28,19 +28,19 @@ def register_dicomweb_routes(app: FastAPI):
     This adds the following endpoints:
     
     QIDO-RS (Query/Search):
-    - GET /dicomweb/studies - Search for studies
-    - GET /dicomweb/studies/{study}/series - Search for series
-    - GET /dicomweb/studies/{study}/series/{series}/instances - Search for instances
+    - GET /api/dicomweb/studies - Search for studies
+    - GET /api/dicomweb/studies/{study}/series - Search for series
+    - GET /api/dicomweb/studies/{study}/series/{series}/instances - Search for instances
     
     WADO-RS (Retrieve):
-    - GET /dicomweb/studies/{study}/series/{series}/instances/{instance} - Retrieve instance
+    - GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance} - Retrieve instance
     
     Args:
         app: FastAPI application instance
     """
     
     # QIDO-RS endpoints
-    @app.get("/dicomweb/studies", tags=["DICOMweb QIDO-RS"])
+    @app.get("/api/dicomweb/studies", tags=["DICOMweb QIDO-RS"])
     def search_studies(request: Request):
         """
         Search for DICOM studies.
@@ -56,11 +56,11 @@ def register_dicomweb_routes(app: FastAPI):
         - offset: Offset for pagination
         
         Example:
-        GET /dicomweb/studies?PatientName=Smith*&StudyDate=20240101-20241231&limit=10
+        GET /api/dicomweb/studies?PatientName=Smith*&StudyDate=20240101-20241231&limit=10
         """
         return dicomweb_qido_studies(request)
     
-    @app.get("/dicomweb/studies/{study_instance_uid}/series", tags=["DICOMweb QIDO-RS"])
+    @app.get("/api/dicomweb/studies/{study_instance_uid}/series", tags=["DICOMweb QIDO-RS"])
     def search_series(request: Request, study_instance_uid: str):
         """
         Search for DICOM series within a study.
@@ -74,11 +74,11 @@ def register_dicomweb_routes(app: FastAPI):
         - SeriesInstanceUID: Series Instance UID
         
         Example:
-        GET /dicomweb/studies/1.2.840.113619.../series?Modality=CT
+        GET /api/dicomweb/studies/1.2.840.113619.../series?Modality=CT
         """
         return dicomweb_qido_series(request, study_instance_uid)
     
-    @app.get("/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances",
+    @app.get("/api/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances",
              tags=["DICOMweb QIDO-RS"])
     def search_instances(request: Request, study_instance_uid: str, series_instance_uid: str):
         """
@@ -92,12 +92,12 @@ def register_dicomweb_routes(app: FastAPI):
         - SOPInstanceUID: SOP Instance UID (optional filter)
         
         Example:
-        GET /dicomweb/studies/1.2.840.../series/1.2.840.../instances
+        GET /api/dicomweb/studies/1.2.840.../series/1.2.840.../instances
         """
         return dicomweb_qido_instances(request, study_instance_uid, series_instance_uid)
     
     # WADO-RS endpoints
-    @app.get("/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/metadata",
+    @app.get("/api/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/metadata",
              tags=["DICOMweb WADO-RS"])
     def retrieve_series_metadata(request: Request, study_instance_uid: str, 
                                        series_instance_uid: str):
@@ -112,11 +112,11 @@ def register_dicomweb_routes(app: FastAPI):
         - JSON array of DICOM metadata for all instances (without pixel data)
         
         Example:
-        GET /dicomweb/studies/1.2.840.../series/1.2.840.../metadata
+        GET /api/dicomweb/studies/1.2.840.../series/1.2.840.../metadata
         """
         return dicomweb_wado_series_metadata(request, study_instance_uid, series_instance_uid)
     
-    @app.get("/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances/{sop_instance_uid}/frames/{frame_list}",
+    @app.get("/api/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances/{sop_instance_uid}/frames/{frame_list}",
              tags=["DICOMweb WADO-RS"])
     def retrieve_instance_frames(request: Request, study_instance_uid: str, 
                                        series_instance_uid: str, sop_instance_uid: str,
@@ -134,12 +134,12 @@ def register_dicomweb_routes(app: FastAPI):
         - Binary pixel data for the requested frame(s)
         
         Example:
-        GET /dicomweb/studies/1.2.840.../series/1.2.840.../instances/1.2.840.../frames/1
+        GET /api/dicomweb/studies/1.2.840.../series/1.2.840.../instances/1.2.840.../frames/1
         """
         return dicomweb_wado_instance_frames(request, study_instance_uid, 
                                                    series_instance_uid, sop_instance_uid, frame_list)
     
-    @app.get("/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances/{sop_instance_uid}",
+    @app.get("/api/dicomweb/studies/{study_instance_uid}/series/{series_instance_uid}/instances/{sop_instance_uid}",
              tags=["DICOMweb WADO-RS"])
     def retrieve_instance(request: Request, study_instance_uid: str, 
                                series_instance_uid: str, sop_instance_uid: str):
@@ -155,14 +155,14 @@ def register_dicomweb_routes(app: FastAPI):
         - Binary DICOM file content
         
         Example:
-        GET /dicomweb/studies/1.2.840.../series/1.2.840.../instances/1.2.840...
+        GET /api/dicomweb/studies/1.2.840.../series/1.2.840.../instances/1.2.840...
         """
         return dicomweb_wado_instance(request, study_instance_uid, 
                                            series_instance_uid, sop_instance_uid)
     
     # Additional convenience endpoints
     
-    @app.get("/dicomweb/", tags=["DICOMweb"])
+    @app.get("/api/dicomweb/", tags=["DICOMweb"])
     def dicomweb_root():
         """
         DICOMweb service root endpoint.
@@ -175,17 +175,17 @@ def register_dicomweb_routes(app: FastAPI):
                 "QIDO-RS": {
                     "description": "Query based on ID for DICOM Objects",
                     "endpoints": [
-                        "GET /dicomweb/studies",
-                        "GET /dicomweb/studies/{study}/series",
-                        "GET /dicomweb/studies/{study}/series/{series}/instances"
+                        "GET /api/dicomweb/studies",
+                        "GET /api/dicomweb/studies/{study}/series",
+                        "GET /api/dicomweb/studies/{study}/series/{series}/instances"
                     ]
                 },
                 "WADO-RS": {
                     "description": "Web Access to DICOM Objects",
                     "endpoints": [
-                        "GET /dicomweb/studies/{study}/series/{series}/metadata",
-                        "GET /dicomweb/studies/{study}/series/{series}/instances/{instance}",
-                        "GET /dicomweb/studies/{study}/series/{series}/instances/{instance}/frames/{frameList}"
+                        "GET /api/dicomweb/studies/{study}/series/{series}/metadata",
+                        "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}",
+                        "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}/frames/{frameList}"
                     ]
                 },
                 "STOW-RS": {
