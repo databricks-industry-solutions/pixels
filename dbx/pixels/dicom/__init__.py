@@ -1,4 +1,5 @@
 import dbx.pixels.dicom.dicom_utils
+from dbx.pixels.dicom.converter import ImageToDicomTransformer
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 from dbx.pixels.dicom.dicom_meta_extractor import DicomMetaExtractor
 from dbx.pixels.dicom.dicom_plot import DicomPlot
