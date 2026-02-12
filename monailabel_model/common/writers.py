@@ -6,7 +6,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 import numpy as np
 import SimpleITK as sitk
 
-from monai.data.image_writer import ImageWriter, register_writer
+from monai.data.image_writer import ImageWriter, register_writer, NibabelWriter
 
 logger = logging.getLogger(__name__)
 
@@ -489,4 +489,5 @@ def label_to_dicom_seg(
 
 # Register the writer for .dcm extension so MONAI's resolve_writer can find it
 register_writer("dcm", HighDicomSegWriter)
+register_writer(".nii.gz", NibabelWriter)
 

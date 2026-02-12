@@ -322,7 +322,6 @@ def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*
     """
     
     import pathlib
-    import pydicom_seg
     from pydicom.filereader import dcmread
     from monai.transforms import LoadImage
     from monailabel.datastore.utils.colors import GENERIC_ANATOMY_COLORS
@@ -392,6 +391,7 @@ def nifti_to_dicom_seg(itkbin_folder, series_dir, label, label_info, file_ext="*
     if use_itk:
         output_file = itk_image_to_dicom_seg(itkbin_folder, label, series_dir, template)
     else:
+        import pydicom_seg
         template = pydicom_seg.template.from_dcmqi_metainfo(template)
         writer = pydicom_seg.MultiClassWriter(
             template=template,

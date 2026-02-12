@@ -166,14 +166,13 @@ class DBModel(mlflow.pyfunc.PythonModel):
         pass
     
     @mlflow.trace(span_type=SpanType.TOOL)
-    def to_dicom_seg(self, dicom_path, nifti_seg_path, image_info, dest_dir):
+    def to_dicom_seg(self, dicom_path, nifti_seg_path, series_description):
         """
         Converts a NIfTI segmentation file to a DICOM SEG file and uploads it to the destination.
         Args:
             dicom_path (str): The path to the DICOM file.
             nifti_seg_path (str): The path to the NIfTI segmentation file.
-            image_info (dict): The image information dictionary.
-            dest_dir (str): The destination directory for the DICOM SEG file.
+            series_description (str): The description of the series.
         Returns:
             str: The path to the DICOM SEG file.
         """
@@ -190,18 +189,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
             }
 
         self.logger.warning(f"Starting conversion on image: {nifti_seg_path}")
-        dicom_seg_file = nifti_to_dicom_seg(self.bin_path, dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
+        dicom_seg_file = nifti_to_dicom_seg(self.bin_path, dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=series_description)
         self.logger.warning(f"Conversion completed on image: {nifti_seg_path}, temp file path: {dicom_seg_file}")
-
-        dicom_seg_path = os.path.join(dest_dir, image_info['StudyInstanceUID'], image_info['SeriesInstanceUID']+".dcm")
-        self.logger.warning(f"Destination file path: {dicom_seg_path}")
         
-        self.upload_file(dicom_seg_file, dicom_seg_path)
-
-        print(f"++++ DICOM File: {dicom_path}")
-        print(f"++++ DICOM SEG File: {dicom_seg_path}")
-        
-        return dicom_seg_path
+        return dicom_seg_file
     
     def handle_labels(self, input):
         """
