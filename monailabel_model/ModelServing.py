@@ -457,7 +457,7 @@ display(df_monai)
 # MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
 # MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
 # MAGIC with ct as (
-# MAGIC   select distinct(meta:['0020000E'].Value[0]) as series_uid
+# MAGIC   select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
 # MAGIC   from ${table}
 # MAGIC   where meta:['00080008'] like '%AXIAL%'
 # MAGIC )
