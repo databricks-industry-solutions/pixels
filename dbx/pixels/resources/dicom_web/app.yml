@@ -1,0 +1,9 @@
+env:
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "main.pixels_solacc.object_catalog"
+  - name: "LAKEBASE_INSTANCE"
+    value: "pixels-lakebase"
+  - name: "LAKEBASE_DICOM_FRAMES_TABLE"
+    value: "dicom_frames"
