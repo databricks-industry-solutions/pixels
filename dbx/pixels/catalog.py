@@ -228,8 +228,7 @@ class Catalog:
                     df = df.repartition(zipRepartition)
 
                 unzip_stream = (
-                    df
-                    .withColumn(
+                    df.withColumn(
                         "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                     )
                     .writeStream.format("delta")
