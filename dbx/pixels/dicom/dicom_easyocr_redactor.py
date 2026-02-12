@@ -44,7 +44,7 @@ def fill_bounding_boxes(image_array: np.ndarray, horizontal_list: List) -> np.nd
     # https://www.jaided.ai/easyocr/documentation/
     try:
         for bbox in horizontal_list:
-            (x_min, x_max, y_min, y_max) = bbox
+            x_min, x_max, y_min, y_max = bbox
             top_left = (x_min, y_max)
             bottom_right = (x_max, y_min)
             cv2.rectangle(image_array, top_left, bottom_right, (0, 0, 0), -1)

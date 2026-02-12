@@ -1,3 +1,4 @@
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkValueError
 from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
@@ -60,9 +61,23 @@ class Catalog:
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
+        self._redaction_base_path = f"{self._volume_path}/redacted/"
+
+        self.w_client = WorkspaceClient()
+
+        catalog, schema, _ = table.split(".")
+        self._schema = f"{catalog}.{schema}"
 
         # Check if the volume exist
-        spark.sql(f"LIST '{self._volume_path}' limit 1").count()
+        catalog, schema, volume_name = volume.split(".")
+        v_exists = any(
+            l_volume.full_name == volume
+            for l_volume in self.w_client.volumes.list(
+                catalog_name=catalog, schema_name=schema, max_results=100
+            )
+        )
+        if not v_exists:
+            logger.warning(f"Volume {volume} does not exist")
 
         """Spark and Delta Table options for best performance"""
         self._userOptions = {
@@ -77,7 +92,7 @@ class Catalog:
             "spark.databricks.delta.optimizeWrite.enabled": False,
         }
 
-    def _init_tables(self):
+    def init_tables(self):
         import os
         import os.path
         from pathlib import Path
@@ -96,8 +111,14 @@ class Catalog:
             file_path = os.path.join(sql_base_path, file_name)
             logger.debug(f"Executing SQL file: {file_name}")
             with open(file_path, "r") as file:
-                sql_command = file.read().replace("{UC_TABLE}", self._table)
-                self._spark.sql(sql_command)
+                sql_commands = (
+                    file.read()
+                    .replace("{UC_TABLE}", self._table)
+                    .replace("{UC_SCHEMA}", self._schema)
+                )
+                for sql_command in sql_commands.split(";"):
+                    if sql_command.strip() != "":
+                        self._spark.sql(sql_command)
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
@@ -139,6 +160,7 @@ class Catalog:
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
+        zipRepartition: int = 128,
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -157,6 +179,7 @@ class Catalog:
         - maxUnzippedRecordsPerFile (int, optional): The maximum number of records per file when unzipping. Defaults to 102400.
         - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
         - detectFileType (bool, optional): Whether to detect file types. Defaults to False.
+        - zipRepartition (int, optional): The number of partitions for repartitioning zip files. Defaults to 128
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -166,9 +189,6 @@ class Catalog:
         assert self._spark.version is not None
 
         self._anon = self._is_anon(path)
-        self._spark
-
-        self._init_tables()
 
         # Used only for streaming
         self._queryName = f"pixels_{path}_{self._table}"
@@ -205,7 +225,8 @@ class Catalog:
                 logger.info("Started unzip process")
 
                 unzip_stream = (
-                    df.withColumn(
+                    df.repartition(zipRepartition)
+                    .withColumn(
                         "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                     )
                     .writeStream.format("delta")
@@ -240,7 +261,7 @@ class Catalog:
             if extractZip:
                 logger.info("Started unzip process")
 
-                df.withColumn(
+                df.repartition(zipRepartition).withColumn(
                     "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 
