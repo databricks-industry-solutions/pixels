@@ -18,6 +18,7 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("LakebaseUtils")
 
+LAKEBASE_SCHEMA = "pixels"
 DICOM_FRAMES_TABLE = "dicom_frames"
 INSTANCE_PATHS_TABLE = "instance_paths"
 
@@ -297,7 +298,7 @@ class LakebaseUtils:
     ) -> dict | None:
         query = sql.SQL(
             "SELECT start_pos, end_pos, pixel_data_pos FROM {} WHERE filename = %s AND frame = %s"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(query, (filename, frame))
         if len(results) == 1:
             return {
@@ -315,7 +316,7 @@ class LakebaseUtils:
     ) -> dict | None:
         query = sql.SQL(
             "SELECT max(frame), max(start_pos) FROM {} WHERE filename = %s AND frame <= %s"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(query, (filename, param_frames))
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
@@ -333,7 +334,7 @@ class LakebaseUtils:
     ):
         query = sql.SQL(
             "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         self.execute_query(query, (filename, frame, start_pos, end_pos, pixel_data_pos))
 
     def retrieve_all_frame_ranges(
@@ -356,7 +357,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT frame, start_pos, end_pos, pixel_data_pos FROM {} "
             "WHERE filename = %s ORDER BY frame"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(query, (filename,))
         if not results:
             return None
@@ -386,7 +387,7 @@ class LakebaseUtils:
         ]
         query = sql.SQL(
             "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
@@ -413,7 +414,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT local_path, num_frames, study_instance_uid, series_instance_uid "
             "FROM {} WHERE sop_instance_uid = %s"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(query, (sop_instance_uid,))
         if not results:
             return None
@@ -441,7 +442,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT sop_instance_uid, local_path, num_frames "
             "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(
             query, (study_instance_uid, series_instance_uid),
         )
@@ -480,7 +481,7 @@ class LakebaseUtils:
             "INSERT INTO {} (sop_instance_uid, study_instance_uid, "
             "series_instance_uid, local_path, num_frames) "
             "VALUES %s ON CONFLICT DO NOTHING"
-        ).format(sql.Identifier(table))
+        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         conn = None
         try:
             conn = self.connection.getconn()

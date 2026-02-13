@@ -26,7 +26,7 @@
 --   - Table supports high-volume medical imaging workloads
 -- =====================================================================================
 
-CREATE TABLE IF NOT EXISTS DICOM_FRAMES (
+CREATE TABLE IF NOT EXISTS pixels.dicom_frames (
     filename TEXT NOT NULL,
     frame INTEGER NOT NULL,
     start_pos BIGINT NOT NULL,
@@ -36,25 +36,23 @@ CREATE TABLE IF NOT EXISTS DICOM_FRAMES (
 );
 
 -- =====================================================================================
--- PostgreSQL Native Comments for DICOM_FRAMES Table and Columns
+-- PostgreSQL Native Comments for pixels.dicom_frames Table and Columns
 -- =====================================================================================
 
--- Table-level comment describing the overall purpose and context
-COMMENT ON TABLE DICOM_FRAMES IS 
+COMMENT ON TABLE pixels.dicom_frames IS 
 'Stores frame-level metadata for DICOM (Digital Imaging and Communications in Medicine) files to enable efficient random access to individual frames within multi-frame DICOM images. This table supports the lakehouse architecture for medical imaging data by providing byte-level positioning information for frame extraction. Used for fast frame retrieval, OHIF viewer partial frame loading, and integration with Databricks lakehouse for scalable medical imaging workflows.';
 
--- Column-level comments providing detailed field descriptions
-COMMENT ON COLUMN DICOM_FRAMES.filename IS 
+COMMENT ON COLUMN pixels.dicom_frames.filename IS 
 'File identifier: Full path or unique name of the DICOM file. Used to associate frame metadata with the source DICOM file for efficient lookups and data organization.';
 
-COMMENT ON COLUMN DICOM_FRAMES.frame IS 
+COMMENT ON COLUMN pixels.dicom_frames.frame IS 
 'Frame number: Zero-based index of the frame within the DICOM file. Multi-frame DICOM files can contain hundreds or thousands of frames, each uniquely identified by this sequential number.';
 
-COMMENT ON COLUMN DICOM_FRAMES.start_pos IS 
+COMMENT ON COLUMN pixels.dicom_frames.start_pos IS 
 'Start position: Byte offset where the frame data begins in the DICOM file. Enables direct seeking to frame start for efficient partial reads without parsing the entire file.';
 
-COMMENT ON COLUMN DICOM_FRAMES.end_pos IS 
+COMMENT ON COLUMN pixels.dicom_frames.end_pos IS 
 'End position: Byte offset where the frame data ends in the DICOM file. Combined with start_pos, defines the exact byte range for frame extraction and streaming operations.';
 
-COMMENT ON COLUMN DICOM_FRAMES.pixel_data_pos IS 
+COMMENT ON COLUMN pixels.dicom_frames.pixel_data_pos IS 
 'Pixel data position: Byte offset of the actual pixel data within the frame. Points to the compressed or uncompressed image data, skipping DICOM headers and metadata for direct image access.';

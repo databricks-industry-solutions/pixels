@@ -54,6 +54,7 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
             create_instance=True,
         )
         for sql_file in [
+            "CREATE_LAKEBASE_SCHEMA.sql",
             "CREATE_LAKEBASE_DICOM_FRAMES.sql",
             "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
         ]:
