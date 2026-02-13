@@ -316,10 +316,9 @@ class FilePrefetcher:
         per-file size cap the connection is closed immediately —
         no bandwidth or memory is wasted on large files.
 
-        As a **side-effect**, the file's BOT is computed from the
-        already-downloaded bytes and pushed into the in-memory
-        ``bot_cache``.  This means that by the time the viewer requests
-        frames, *both* the file content and the BOT are already cached.
+        BOT computation is **not** performed here — it is deferred to
+        the first frame-level request (``_resolve_frame_offsets``) so
+        that WADO-RS instance retrievals (no frames) stay lightweight.
 
         Returns ``None`` when the file is too large (caller falls back
         to streaming).
@@ -356,20 +355,6 @@ class FilePrefetcher:
         with self._lock:
             self._memory_used += len(content)
 
-        # ── Side-effect: pre-compute BOT from in-memory bytes ───────
-        try:
-            from .cache import bot_cache
-
-            if not bot_cache.get(db_file.full_path):
-                bot_data = _compute_bot_from_bytes(content, db_file.full_path)
-                bot_cache.put(db_file.full_path, bot_data)
-                logger.debug(
-                    f"Pre-computed BOT for {db_file.file_path} "
-                    f"({bot_data['num_frames']} frames)"
-                )
-        except Exception as exc:
-            logger.debug(f"BOT pre-computation skipped for {path}: {exc}")
-
         return content
 
 
@@ -381,86 +366,6 @@ file_prefetcher = FilePrefetcher()
 # Background BOT pre-computation (for files that bypass the prefetcher)
 # ---------------------------------------------------------------------------
 
-_bot_futures: dict[str, concurrent.futures.Future] = {}
-_bot_futures_lock = threading.Lock()
-_bot_precompute_count = 0
-_bot_precompute_done = 0
-
-
-def schedule_bot_precompute(
-    token: str,
-    paths: list[str],
-    lb_utils=None,
-) -> int:
-    """
-    Schedule background BOT computation for a list of file paths.
-
-    Uses the **prefetcher's thread pool** so no extra threads are created
-    and the CPU budget is shared.
-
-    Files whose BOTs are already cached (in-memory) are skipped.
-    Computed BOTs are also persisted to Lakebase when available.
-
-    Returns the number of newly scheduled computations.
-    """
-    global _bot_precompute_count
-    from .cache import bot_cache
-
-    count = 0
-    with _bot_futures_lock:
-        for path in paths:
-            db_file = DatabricksFile.from_full_path(path)
-            key = db_file.full_path
-            if key in _bot_futures:
-                continue
-            if bot_cache.get(key):
-                continue
-            _bot_futures[key] = file_prefetcher._pool.submit(
-                _precompute_bot_one, token, path, lb_utils,
-            )
-            count += 1
-        _bot_precompute_count += count
-    if count:
-        logger.info(f"Background BOT pre-computation: {count} new tasks scheduled")
-    return count
-
-
-def _precompute_bot_one(token: str, path: str, lb_utils=None):
-    """Compute and cache BOT for one file (runs in a worker thread)."""
-    global _bot_precompute_done
-    from .cache import bot_cache
-
-    try:
-        db_file = DatabricksFile.from_full_path(path)
-        bot_data = compute_full_bot(token, db_file)
-        bot_cache.put(db_file.full_path, bot_data)
-
-        if lb_utils:
-            try:
-                lb_utils.insert_frame_ranges(db_file.full_path, bot_data["frames"])
-            except Exception:
-                pass  # Lakebase persist is best-effort
-
-        with _bot_futures_lock:
-            _bot_precompute_done += 1
-        logger.debug(
-            f"Background BOT ready for {db_file.file_path} "
-            f"({bot_data['num_frames']} frames)"
-        )
-    except Exception as exc:
-        with _bot_futures_lock:
-            _bot_precompute_done += 1
-        logger.debug(f"Background BOT failed for {path}: {exc}")
-
-
-def bot_precompute_stats() -> dict:
-    """Snapshot of background BOT pre-computation state."""
-    with _bot_futures_lock:
-        return {
-            "total": _bot_precompute_count,
-            "done": _bot_precompute_done,
-            "pending": _bot_precompute_count - _bot_precompute_done,
-        }
 
 
 # ---------------------------------------------------------------------------
@@ -639,80 +544,6 @@ def _fetch_bytes_range(
             f"HTTP {resp.status_code} fetching {db_file.file_path}"
         )
     return resp.content
-
-
-def _compute_bot_from_bytes(raw: bytes, filename: str) -> dict:
-    """
-    Compute the complete BOT from **in-memory** file bytes — zero I/O.
-
-    Works identically to ``compute_full_bot`` but operates on a
-    ``BytesIO`` buffer so it can be called from the prefetcher (which
-    already has the bytes) without an extra HTTP round-trip.
-    """
-    pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
-
-    f = BytesIO(raw)
-    ds = pydicom.dcmread(f, stop_before_pixels=True)
-
-    transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)
-    is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
-    number_of_frames = int(ds.get("NumberOfFrames", 1))
-    frames: list[dict] = []
-
-    if not is_compressed:
-        # ── Uncompressed: analytical offsets (no pixel-data scanning) ──
-        item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
-        for idx in range(number_of_frames):
-            offset = (idx * item_length) + 12
-            frames.append({
-                "frame_number": idx,
-                "frame_size": item_length,
-                "start_pos": pixel_data_pos + offset,
-                "end_pos": pixel_data_pos + offset + item_length - 1,
-                "pixel_data_pos": pixel_data_pos,
-            })
-    else:
-        # ── Compressed: parse Basic Offset Table ────────────────────────
-        f = BytesIO(raw)
-        try:
-            endianness = (
-                "<" if ds.file_meta.TransferSyntaxUID.is_little_endian else ">"
-            )
-            frames = _extract_from_basic_offsets(f, pixel_data_pos, endianness)
-
-            if len(frames) < number_of_frames:
-                f.seek(pixel_data_pos)
-                buf = f.read(100)
-                offset_pos = buf.find(b"\xfe\xff\x00\xe0")
-                f.seek(pixel_data_pos + offset_pos)
-                offsets = pydicom.encaps.parse_basic_offsets(
-                    f, endianness=endianness,
-                )
-                data_start = f.tell()
-
-                last = _extract_last_frame(
-                    f, frames, offsets, pixel_data_pos,
-                    data_start=data_start,
-                )
-                if last:
-                    frames.append(last)
-        except Exception as exc:
-            logger.warning(
-                f"BOT parsing from bytes failed ({exc}), "
-                "falling back to sequential scan"
-            )
-            f = BytesIO(raw)
-            frames = _legacy_extract_frames(
-                f, number_of_frames, pixel_data_pos,
-                number_of_frames, pixel_data_pos, 0,
-            )
-
-    return {
-        "transfer_syntax_uid": transfer_syntax_uid,
-        "frames": frames,
-        "pixel_data_pos": pixel_data_pos,
-        "num_frames": number_of_frames,
-    }
 
 
 def compute_full_bot(token: str, db_file: DatabricksFile) -> dict:

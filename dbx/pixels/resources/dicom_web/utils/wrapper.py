@@ -29,7 +29,6 @@ from .dicom_io import (
     file_prefetcher,
     get_file_metadata,
     get_file_part,
-    schedule_bot_precompute,
     stream_file,
 )
 from .dicom_tags import format_dicomweb_response
@@ -180,9 +179,9 @@ class DICOMwebDatabricksWrapper:
             _series_primed.add(series_key)
 
         # Background prefetch — download files from Volumes in parallel ─
-        # Small files are downloaded fully (prefetcher) and get their BOT
-        # computed as a side-effect.  Large files are NOT downloaded but
-        # their BOTs are pre-computed separately so frame requests are fast.
+        # Small files are downloaded fully so that subsequent WADO-RS
+        # instance retrieval is instant (served from memory).
+        # BOT computation is deferred to the first frame-level request.
         prefetch_paths = [info["path"] for info in cache_entries.values()]
         if prefetch_paths:
             n = file_prefetcher.schedule(self._token, prefetch_paths)
@@ -190,14 +189,6 @@ class DICOMwebDatabricksWrapper:
                 f"Background prefetch: {n} new downloads scheduled "
                 f"({len(prefetch_paths)} instances)"
             )
-            # Pre-compute BOTs for ALL paths (including those skipped by
-            # the prefetcher due to file size).  Already-cached BOTs are
-            # skipped cheaply inside schedule_bot_precompute().
-            nb = schedule_bot_precompute(
-                self._token, prefetch_paths, lb_utils=self._lb,
-            )
-            if nb:
-                logger.info(f"Background BOT pre-computation: {nb} tasks")
         # ──────────────────────────────────────────────────────────────
 
         columns = [
