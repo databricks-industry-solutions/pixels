@@ -8,7 +8,8 @@ Modules
 -------
 cache        — In-memory BOT + instance-path LRU caches
 dicom_tags   — Tag constants, VR mappings, DICOMweb JSON formatting
-dicom_io     — Low-level DICOM file I/O and BOT computation
+dicom_io     — Low-level DICOM file I/O, streaming, and prefetching
+metrics      — System and application metrics (CPU, RAM, caches)
 queries      — QIDO-RS SQL query builders (parameterized)
 sql_client   — Databricks SQL Connector with App / User (OBO) auth
 wrapper      — ``DICOMwebDatabricksWrapper`` service class

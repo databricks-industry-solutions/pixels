@@ -23,7 +23,13 @@ from dbx.pixels.logging import LoggerProvider
 
 from . import timing_decorator
 from .cache import bot_cache, instance_path_cache
-from .dicom_io import compute_full_bot, get_file_metadata, get_file_part, stream_file
+from .dicom_io import (
+    compute_full_bot,
+    file_prefetcher,
+    get_file_metadata,
+    get_file_part,
+    stream_file,
+)
 from .dicom_tags import format_dicomweb_response
 from .queries import build_instances_query, build_series_query, build_study_query
 from .sql_client import DatabricksSQLClient, validate_table_name
@@ -102,12 +108,47 @@ class DICOMwebDatabricksWrapper:
     def search_for_instances(
         self, study_instance_uid: str, series_instance_uid: str, params: Dict[str, Any] | None = None
     ) -> List[Dict]:
-        """QIDO-RS: search for instances within a series."""
+        """QIDO-RS: search for instances within a series.
+
+        **Side-effect**: pre-warms the ``instance_path_cache`` with every
+        returned instance's local_path so that subsequent WADO-RS calls
+        skip the SQL query entirely (~0.3 s saved per instance).
+        """
         logger.info(f"QIDO-RS: instances search in series {series_instance_uid}")
         query, sql_params = build_instances_query(
             self._table, study_instance_uid, series_instance_uid, params or {},
         )
         results = self._query(query, sql_params)
+
+        # Pre-warm instance path cache ────────────────────────────────
+        # Column mapping from build_instances_query:
+        #   [0] StudyInstanceUID  [1] SeriesInstanceUID  [2] SOPInstanceUID
+        #   [3] SOPClassUID  [4] InstanceNumber  [5] Rows  [6] Columns
+        #   [7] NumberOfFrames  [8] path  [9] local_path
+        cache_entries: dict[str, dict] = {}
+        for row in results:
+            if row and len(row) >= 10 and row[2] and row[9]:
+                sop_uid = str(row[2])
+                local_path = str(row[9])
+                num_frames = int(row[7]) if row[7] else 1
+                cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
+        if cache_entries:
+            instance_path_cache.batch_put(cache_entries)
+            logger.info(
+                f"Pre-warmed instance path cache with {len(cache_entries)} entries "
+                f"(eliminates SQL for subsequent WADO-RS calls)"
+            )
+
+        # Background prefetch — download files from Volumes in parallel ─
+        prefetch_paths = [info["path"] for info in cache_entries.values()]
+        if prefetch_paths:
+            n = file_prefetcher.schedule(self._token, prefetch_paths)
+            logger.info(
+                f"Background prefetch: {n} new downloads scheduled "
+                f"({len(prefetch_paths)} instances, 10 threads)"
+            )
+        # ──────────────────────────────────────────────────────────────
+
         columns = [
             "StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID", "SOPClassUID",
             "InstanceNumber", "Rows", "Columns", "NumberOfFrames", "path", "local_path",
@@ -144,34 +185,58 @@ class DICOMwebDatabricksWrapper:
         self, study_instance_uid: str, series_instance_uid: str, sop_instance_uid: str
     ) -> tuple[Iterator[bytes], str | None]:
         """
-        WADO-RS: **stream** a full DICOM instance from the Volumes API.
+        WADO-RS: retrieve a full DICOM instance.
+
+        Resolution order (fastest → slowest):
+
+        1. **Prefetch cache** — file was downloaded in the background by a
+           worker thread right after the QIDO query.  Served instantly
+           from memory (~0 ms).
+        2. **Stream from Volumes** — fallback if the prefetch hasn't
+           finished yet.  Uses the pooled ``requests.Session`` (~0.2 s).
+
+        Both paths check ``instance_path_cache`` first so the SQL query
+        to resolve the file path is skipped entirely.
 
         Returns ``(chunk_generator, content_length_str | None)``.
-
-        The generator pipes bytes directly from the upstream Volumes HTTP
-        connection to the client with zero buffering.  Callers **must**
-        consume or close the generator (``StreamingResponse`` does this
-        automatically).
         """
-        logger.info(f"WADO-RS: streaming instance {sop_instance_uid}")
-        query = f"""
-        SELECT local_path, path
-        FROM {self._table}
-        WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-          AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-          AND meta:['00080018'].Value[0]::String = %(sop_uid)s
-        LIMIT 1
-        """
-        params = {
-            "study_uid": study_instance_uid,
-            "series_uid": series_instance_uid,
-            "sop_uid": sop_instance_uid,
-        }
-        results = self._query(query, params)
-        if not results or not results[0]:
-            raise HTTPException(status_code=404, detail="Instance not found")
+        # --- Resolve SOP UID → file path (cache or SQL) ---
+        path_info = instance_path_cache.get(sop_instance_uid)
+        if path_info:
+            local_path = path_info["path"]
+        else:
+            logger.info(f"WADO-RS: instance {sop_instance_uid} (path cache MISS — querying SQL)")
+            query = f"""
+            SELECT local_path, path
+            FROM {self._table}
+            WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+              AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+              AND meta:['00080018'].Value[0]::String = %(sop_uid)s
+            LIMIT 1
+            """
+            params = {
+                "study_uid": study_instance_uid,
+                "series_uid": series_instance_uid,
+                "sop_uid": sop_instance_uid,
+            }
+            results = self._query(query, params)
+            if not results or not results[0]:
+                raise HTTPException(status_code=404, detail="Instance not found")
 
-        local_path = results[0][0]
+            local_path = results[0][0]
+            instance_path_cache.put(sop_instance_uid, {"path": local_path, "num_frames": 1})
+
+        # --- Check prefetch cache (instant if background download finished) ---
+        prefetched = file_prefetcher.get(local_path)
+        if prefetched is not None:
+            logger.info(
+                f"WADO-RS: {sop_instance_uid} served from prefetch "
+                f"({len(prefetched)} bytes, instant)"
+            )
+            return iter([prefetched]), str(len(prefetched))
+
+        # --- Fallback: stream from Volumes ---
+        logger.info(f"WADO-RS: {sop_instance_uid} streaming from Volumes (prefetch miss)")
         try:
             db_file = DatabricksFile.from_full_path(local_path)
             return stream_file(self._token, db_file)

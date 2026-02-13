@@ -5,6 +5,7 @@ Registers QIDO-RS and WADO-RS routes and starts a uvicorn server.
 """
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from utils.handlers import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
@@ -13,6 +14,8 @@ from utils.handlers import (
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
 )
+from utils.metrics import collect_metrics, start_metrics_logger
+
 
 def register_dicomweb_routes(app: FastAPI):
     """
@@ -84,6 +87,12 @@ def register_dicomweb_routes(app: FastAPI):
             request, study_instance_uid, series_instance_uid, sop_instance_uid
         )
 
+    # Metrics
+    @app.get("/api/metrics", tags=["Monitoring"])
+    def metrics():
+        """Return a full metrics snapshot (CPU, memory, caches, prefetcher)."""
+        return JSONResponse(content=collect_metrics())
+
     # Service root
     @app.get("/api/dicomweb/", tags=["DICOMweb"])
     def dicomweb_root():
@@ -120,13 +129,23 @@ def register_dicomweb_routes(app: FastAPI):
 # ------------------------------------------------------------------
 
 if __name__ == "__main__":
+    from contextlib import asynccontextmanager
+
     from fastapi.middleware.cors import CORSMiddleware
     from starlette.middleware.base import BaseHTTPMiddleware
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # ── startup ──
+        start_metrics_logger(interval_seconds=300)  # log every 5 minutes
+        yield
+        # ── shutdown (cleanup if needed) ──
 
     app = FastAPI(
         title="Pixels DICOMweb Service",
         description="DICOMweb-compliant API for Databricks Pixels",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     register_dicomweb_routes(app)

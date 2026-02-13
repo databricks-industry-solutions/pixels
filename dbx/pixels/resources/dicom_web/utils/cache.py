@@ -136,13 +136,17 @@ class InstancePathCache:
         self._cache: OrderedDict = OrderedDict()
         self._lock = threading.Lock()
         self._max_entries = max_entries
+        self._hits = 0
+        self._misses = 0
 
     def get(self, sop_instance_uid: str) -> Optional[dict]:
         """Get cached path info for a SOP Instance UID."""
         with self._lock:
             if sop_instance_uid in self._cache:
                 self._cache.move_to_end(sop_instance_uid)
+                self._hits += 1
                 return self._cache[sop_instance_uid]
+            self._misses += 1
             return None
 
     def put(self, sop_instance_uid: str, path_info: dict):
@@ -152,6 +156,36 @@ class InstancePathCache:
             self._cache.move_to_end(sop_instance_uid)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
+
+    def batch_put(self, entries: dict[str, dict]):
+        """
+        Cache multiple SOP Instance UID → path_info mappings at once.
+
+        Used to **pre-warm** the cache after a QIDO-RS instance query so
+        that subsequent WADO-RS calls skip the SQL lookup entirely.
+        """
+        with self._lock:
+            for uid, info in entries.items():
+                self._cache[uid] = info
+                self._cache.move_to_end(uid)
+            while len(self._cache) > self._max_entries:
+                self._cache.popitem(last=False)
+
+    @property
+    def stats(self) -> dict:
+        """Cache statistics."""
+        with self._lock:
+            total = self._hits + self._misses
+            return {
+                "entries": len(self._cache),
+                "max_entries": self._max_entries,
+                "hits": self._hits,
+                "misses": self._misses,
+                "hit_rate": f"{self._hits / total * 100:.1f}%" if total > 0 else "N/A",
+            }
+
+    def __len__(self):
+        return len(self._cache)
 
 
 # ---------------------------------------------------------------------------

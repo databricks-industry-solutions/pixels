@@ -1,25 +1,58 @@
 """
 Low-level DICOM file I/O operations.
 
-Provides byte-range reads, **streaming** file delivery, DICOM metadata
-extraction, and full Basic Offset Table (BOT) computation for PACS-style
-frame indexing.
+Provides byte-range reads, **streaming** file delivery, **background
+prefetching**, DICOM metadata extraction, and full Basic Offset Table
+(BOT) computation for PACS-style frame indexing.
 
 All functions operate on Databricks Volumes via the Files API.
+
+A **persistent ``requests.Session``** with connection pooling is used for
+all HTTP calls to the Volumes API.  This avoids the TCP + TLS handshake
+overhead (~100 ms) that would otherwise occur on every request, which is
+critical when streaming hundreds of instances in a series.
 """
 
+import concurrent.futures
+import os
 import struct
+import threading
 from collections.abc import Iterator
 
 import fsspec
+import psutil
 import pydicom
 import requests
+from requests.adapters import HTTPAdapter
 
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("DICOMweb.IO")
+
+# ---------------------------------------------------------------------------
+# Resource budget constants (reserve 20 % for the rest of the application)
+# ---------------------------------------------------------------------------
+_CPU_BUDGET_RATIO = 0.80          # use at most 80 % of available cores
+_RAM_BUDGET_RATIO = 0.80          # prefetcher may cache up to 80 % of free RAM
+_DISK_TOTAL_BYTES = 100 * 1024 ** 3   # 100 GB assumed disk
+_DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
+
+
+# ---------------------------------------------------------------------------
+# Persistent HTTP session (connection pool — reused across all requests)
+# ---------------------------------------------------------------------------
+# A single Session holds a pool of TCP+TLS connections to Databricks.
+# Subsequent requests to the same host skip the handshake entirely.
+
+_session = requests.Session()
+_adapter = HTTPAdapter(
+    pool_connections=20,   # distinct host pools (typically 1 for Databricks)
+    pool_maxsize=50,       # concurrent connections per host
+)
+_session.mount("https://", _adapter)
+_session.mount("http://", _adapter)
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +75,9 @@ def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None
     """
     Retrieve a specific byte range from a file in Databricks Volumes.
 
+    Uses the persistent session so that consecutive calls (e.g. fetching
+    427 instances in a series) reuse the same TCP+TLS connection.
+
     Args:
         token: Databricks authentication token.
         db_file: Target file in a Unity Catalog volume.
@@ -54,7 +90,7 @@ def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None
     if frame is not None:
         headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
 
-    response = requests.get(db_file.to_api_url(), headers=headers)
+    response = _session.get(db_file.to_api_url(), headers=headers)
     if response.status_code not in (200, 206):
         raise RuntimeError(
             f"Failed to retrieve file part from {db_file.file_path} "
@@ -75,9 +111,9 @@ def stream_file(
     """
     Stream an entire file from Databricks Volumes **without buffering**.
 
-    Opens a streaming HTTP connection to the Files API and yields chunks
-    as they arrive.  This avoids loading the full file into server memory,
-    which is critical for large DICOM instances (multi-frame CT / MR scans).
+    Uses the persistent session with ``stream=True``.  The connection is
+    held for the duration of the transfer and returned to the pool once
+    the generator is closed.
 
     The returned generator **must** be fully consumed or explicitly closed
     to release the upstream HTTP connection.  FastAPI's ``StreamingResponse``
@@ -92,7 +128,7 @@ def stream_file(
         ``(chunk_generator, content_length_str | None)``
     """
     headers = _auth_headers(token)
-    response = requests.get(db_file.to_api_url(), headers=headers, stream=True)
+    response = _session.get(db_file.to_api_url(), headers=headers, stream=True)
 
     if response.status_code != 200:
         body = response.text
@@ -118,6 +154,212 @@ def stream_file(
 
     return generate(), content_length
 
+
+# ---------------------------------------------------------------------------
+# Background file prefetcher (parallel downloads from Volumes)
+# ---------------------------------------------------------------------------
+
+
+class FilePrefetcher:
+    """
+    Resource-aware background file prefetcher for Databricks Volumes.
+
+    When a QIDO-RS query returns instance paths, the prefetcher downloads
+    files **in parallel** using a thread pool.  By the time the viewer
+    requests individual instances via WADO-RS, the content is already in
+    memory and can be served instantly.
+
+    Resource limits (computed once at construction):
+
+    * **CPU** — worker threads = ``floor(cpu_count × 0.80)``, so 20 % of
+      cores are always free for request handling, streaming, etc.
+    * **RAM** — total bytes held in the prefetch cache are bounded by
+      ``available_ram × 0.80``.  Once the budget is exhausted, new
+      ``schedule()`` calls are silently skipped and the viewer falls back
+      to streaming.
+    * **Per-file size** — files larger than *max_file_bytes* (default
+      5 MB) are **not** prefetched.  Large multi-frame DICOMs gain
+      nothing from being held in memory because their transfer time
+      dominates; streaming them directly is equally efficient.
+    """
+
+    _DEFAULT_MAX_FILE_BYTES = 5 * 1024 * 1024   # 5 MB
+
+    def __init__(
+        self,
+        max_workers: int | None = None,
+        max_memory_bytes: int | None = None,
+        max_file_bytes: int | None = None,
+    ):
+        # ── CPU budget ──────────────────────────────────────────────
+        cpu_count = os.cpu_count() or 4
+        self._max_workers = max_workers or max(1, int(cpu_count * _CPU_BUDGET_RATIO))
+
+        self._pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._max_workers, thread_name_prefix="volprefetch",
+        )
+
+        # ── RAM budget ──────────────────────────────────────────────
+        if max_memory_bytes is not None:
+            self._max_memory_bytes = max_memory_bytes
+        else:
+            available = psutil.virtual_memory().available
+            self._max_memory_bytes = int(available * _RAM_BUDGET_RATIO)
+
+        # ── Per-file size cap ───────────────────────────────────────
+        self._max_file_bytes = (
+            max_file_bytes if max_file_bytes is not None
+            else self._DEFAULT_MAX_FILE_BYTES
+        )
+
+        self._futures: dict[str, concurrent.futures.Future] = {}
+        self._lock = threading.Lock()
+        self._memory_used: int = 0        # bytes of completed, unconsumed results
+        self._memory_skipped: int = 0     # downloads skipped due to budget
+        self._files_skipped_too_large: int = 0  # downloads skipped (file too big)
+
+        logger.info(
+            f"Prefetcher initialised: workers={self._max_workers} "
+            f"(of {cpu_count} cores), memory budget="
+            f"{self._max_memory_bytes / (1024**2):.0f} MB, "
+            f"max file size={self._max_file_bytes / (1024**2):.1f} MB"
+        )
+
+    # -- public API -------------------------------------------------------
+
+    def schedule(self, token: str, paths: list[str]) -> int:
+        """
+        Schedule background download of files from Volumes.
+
+        Non-blocking — returns immediately.  Paths that are already
+        scheduled or completed are skipped.  New downloads are also
+        skipped when the memory budget has been reached.
+
+        Returns the number of **newly** scheduled downloads.
+        """
+        with self._lock:
+            new_count = 0
+            skipped = 0
+            for path in paths:
+                if path in self._futures:
+                    continue
+                if self._memory_used >= self._max_memory_bytes:
+                    skipped += 1
+                    continue
+                self._futures[path] = self._pool.submit(
+                    self._fetch_one, token, path,
+                )
+                new_count += 1
+            self._memory_skipped += skipped
+            if skipped:
+                logger.warning(
+                    f"Prefetch memory budget reached — "
+                    f"skipped {skipped} downloads "
+                    f"(used {self._memory_used / (1024**2):.0f} MB "
+                    f"/ {self._max_memory_bytes / (1024**2):.0f} MB)"
+                )
+            return new_count
+
+    def get(self, path: str, timeout: float = 5.0) -> bytes | None:
+        """
+        Get prefetched file content.
+
+        * Already downloaded → returns **instantly**.
+        * Still downloading → waits up to *timeout* seconds.
+        * Not scheduled / failed → returns ``None`` (caller falls back to
+          streaming from Volumes).
+        """
+        with self._lock:
+            future = self._futures.pop(path, None)
+        if future is None:
+            return None
+        try:
+            content = future.result(timeout=timeout)
+            if content is None:
+                return None  # file was too large — fall back to streaming
+            with self._lock:
+                self._memory_used -= len(content)
+            return content
+        except concurrent.futures.TimeoutError:
+            logger.warning(f"Prefetch timeout for {path}")
+            return None
+        except Exception as exc:
+            logger.warning(f"Prefetch failed for {path}: {exc}")
+            return None
+
+    @property
+    def stats(self) -> dict:
+        """Snapshot of prefetcher state (JSON-serialisable)."""
+        with self._lock:
+            total = len(self._futures)
+            done = sum(1 for f in self._futures.values() if f.done())
+            return {
+                "total": total,
+                "done": done,
+                "pending": total - done,
+                "memory_used_mb": round(self._memory_used / (1024 ** 2), 2),
+                "memory_budget_mb": round(self._max_memory_bytes / (1024 ** 2), 2),
+                "memory_skipped": self._memory_skipped,
+                "max_file_size_mb": round(self._max_file_bytes / (1024 ** 2), 2),
+                "files_skipped_too_large": self._files_skipped_too_large,
+                "pool_workers": self._max_workers,
+            }
+
+    # -- internal ---------------------------------------------------------
+
+    def _fetch_one(self, token: str, path: str) -> bytes | None:
+        """
+        Download a single file from Volumes (runs in a worker thread).
+
+        Uses ``stream=True`` so the response headers are read first
+        without downloading the body.  If ``Content-Length`` exceeds the
+        per-file size cap the connection is closed immediately —
+        no bandwidth or memory is wasted on large files.
+
+        Returns ``None`` when the file is too large (caller falls back
+        to streaming).
+        """
+        db_file = DatabricksFile.from_full_path(path)
+        headers = _auth_headers(token)
+        response = _session.get(
+            db_file.to_api_url(), headers=headers, stream=True,
+        )
+
+        if response.status_code != 200:
+            response.close()
+            raise RuntimeError(
+                f"Prefetch HTTP {response.status_code} for {path}"
+            )
+
+        # ── Check file size before downloading the body ─────────────
+        content_length = int(response.headers.get("Content-Length", 0))
+        if content_length > self._max_file_bytes:
+            response.close()
+            with self._lock:
+                self._files_skipped_too_large += 1
+            logger.debug(
+                f"Prefetch skipped {path} — "
+                f"{content_length / (1024**2):.1f} MB exceeds "
+                f"{self._max_file_bytes / (1024**2):.1f} MB cap"
+            )
+            return None
+
+        # ── Download body ───────────────────────────────────────────
+        content = response.content  # reads the streamed body
+        response.close()
+
+        with self._lock:
+            self._memory_used += len(content)
+        return content
+
+
+# Module-level singleton (resource-aware)
+file_prefetcher = FilePrefetcher()
+
+
+# ---------------------------------------------------------------------------
+# DICOM metadata
+# ---------------------------------------------------------------------------
 
 def get_file_metadata(token: str, db_file: DatabricksFile) -> dict:
     """
