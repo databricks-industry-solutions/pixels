@@ -42,18 +42,22 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
     try:
         from pathlib import Path
 
-        import dbx.pixels.resources
+        # dbx.pixels.resources is a namespace package (__file__ is None).
+        # Locate the SQL directory relative to lakebase.py which always
+        # has a concrete __file__.
+        import dbx.pixels.lakebase as _lb_mod
+
+        _sql_dir = Path(_lb_mod.__file__).parent / "resources" / "sql" / "lakebase"
 
         lb_utils = LakebaseUtils(
             instance_name=os.environ["LAKEBASE_INSTANCE_NAME"],
             create_instance=True,
         )
-        sql_dir = Path(dbx.pixels.resources.__file__).parent / "sql/lakebase"
         for sql_file in [
             "CREATE_LAKEBASE_DICOM_FRAMES.sql",
             "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
         ]:
-            with open(sql_dir / sql_file) as fh:
+            with open(_sql_dir / sql_file) as fh:
                 lb_utils.execute_query(fh.read())
         logger.info(f"Lakebase initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
     except Exception as exc:
