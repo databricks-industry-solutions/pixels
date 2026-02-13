@@ -31,11 +31,12 @@ CREATE TABLE IF NOT EXISTS pixels.instance_paths (
     series_instance_uid TEXT    NOT NULL,
     local_path          TEXT    NOT NULL,
     num_frames          INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY (sop_instance_uid)
+    uc_table_name       TEXT    NOT NULL,
+    PRIMARY KEY (sop_instance_uid, uc_table_name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_instance_paths_series
-    ON pixels.instance_paths (study_instance_uid, series_instance_uid);
+    ON pixels.instance_paths (study_instance_uid, series_instance_uid, uc_table_name);
 
 -- =====================================================================================
 -- PostgreSQL Native Comments
@@ -58,3 +59,6 @@ COMMENT ON COLUMN pixels.instance_paths.local_path IS
 
 COMMENT ON COLUMN pixels.instance_paths.num_frames IS
 'Number of frames in the DICOM file (default 1 for single-frame images).';
+
+COMMENT ON COLUMN pixels.instance_paths.uc_table_name IS
+'Unity Catalog table name: Fully qualified catalog.schema.table name of the source Unity Catalog table this instance originates from. Enables multi-table support within the same Lakebase cache.';

@@ -32,8 +32,13 @@ CREATE TABLE IF NOT EXISTS pixels.dicom_frames (
     start_pos BIGINT NOT NULL,
     end_pos BIGINT NOT NULL,
     pixel_data_pos INTEGER NOT NULL,
-    PRIMARY KEY (filename, frame)
+    uc_table_name TEXT NOT NULL,
+    PRIMARY KEY (filename, frame, uc_table_name)
 );
+
+CREATE INDEX IF NOT EXISTS idx_dicom_frames_filename
+    ON pixels.dicom_frames (filename);
+
 
 -- =====================================================================================
 -- PostgreSQL Native Comments for pixels.dicom_frames Table and Columns
@@ -56,3 +61,6 @@ COMMENT ON COLUMN pixels.dicom_frames.end_pos IS
 
 COMMENT ON COLUMN pixels.dicom_frames.pixel_data_pos IS 
 'Pixel data position: Byte offset of the actual pixel data within the frame. Points to the compressed or uncompressed image data, skipping DICOM headers and metadata for direct image access.';
+
+COMMENT ON COLUMN pixels.dicom_frames.uc_table_name IS 
+'Unity Catalog table name: Fully qualified catalog.schema.table name of the source Unity Catalog table this frame data originates from. Enables multi-table support within the same Lakebase cache.';

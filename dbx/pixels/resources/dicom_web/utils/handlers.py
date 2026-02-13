@@ -60,14 +60,17 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
             instance_name=os.environ["LAKEBASE_INSTANCE_NAME"],
             create_instance=True,
         )
-        for sql_file in [
-            "CREATE_LAKEBASE_SCHEMA.sql",
-            "CREATE_LAKEBASE_DICOM_FRAMES.sql",
-            "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
-        ]:
-            with open(_sql_dir / sql_file) as fh:
-                lb_utils.execute_query(fh.read())
-        logger.info(f"Lakebase initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
+        if os.environ.get("LAKEBASE_INIT_DB", "").lower() in ("1", "true", "yes"):
+            for sql_file in [
+                "CREATE_LAKEBASE_SCHEMA.sql",
+                "CREATE_LAKEBASE_DICOM_FRAMES.sql",
+                "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
+            ]:
+                with open(_sql_dir / sql_file) as fh:
+                    lb_utils.execute_query(fh.read())
+            logger.info(f"Lakebase schema initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
+        else:
+            logger.info(f"Lakebase connected (schema init skipped): {os.environ['LAKEBASE_INSTANCE_NAME']}")
     except Exception as exc:
         logger.warning(f"Lakebase init failed: {exc}")
 else:

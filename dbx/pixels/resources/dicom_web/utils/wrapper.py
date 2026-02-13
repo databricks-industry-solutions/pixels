@@ -174,6 +174,7 @@ class DICOMwebDatabricksWrapper:
                         "series_instance_uid": series_instance_uid,
                         "local_path": info["path"],
                         "num_frames": info.get("num_frames", 1),
+                        "uc_table_name": self._table,
                     }
                     for uid, info in cache_entries.items()
                 ]
@@ -393,7 +394,7 @@ class DICOMwebDatabricksWrapper:
                 try:
                     t0 = time.time()
                     lb_entries = self._lb.retrieve_instance_paths_by_series(
-                        study_instance_uid, series_instance_uid,
+                        study_instance_uid, series_instance_uid, self._table,
                     )
                     elapsed = time.time() - t0
                     if lb_entries:
@@ -448,6 +449,7 @@ class DICOMwebDatabricksWrapper:
                                 "series_instance_uid": series_instance_uid,
                                 "local_path": info["path"],
                                 "num_frames": info.get("num_frames", 1),
+                                "uc_table_name": self._table,
                             }
                             for uid, info in cache_entries.items()
                         ]
@@ -518,7 +520,7 @@ class DICOMwebDatabricksWrapper:
         if self._lb:
             try:
                 t0 = time.time()
-                lb_info = self._lb.retrieve_instance_path(sop_instance_uid)
+                lb_info = self._lb.retrieve_instance_path(sop_instance_uid, self._table)
                 logger.info(f"⏱️  Lakebase path lookup took {time.time() - t0:.4f}s")
                 if lb_info:
                     logger.info(f"Instance path Lakebase HIT for {sop_instance_uid}")
@@ -567,6 +569,7 @@ class DICOMwebDatabricksWrapper:
                     "series_instance_uid": series_instance_uid,
                     "local_path": local_path,
                     "num_frames": num_frames,
+                    "uc_table_name": self._table,
                 }])
             except Exception as exc:
                 logger.warning(f"Lakebase path persist failed (non-fatal): {exc}")
@@ -615,7 +618,7 @@ class DICOMwebDatabricksWrapper:
             if self._lb:
                 logger.info(f"Checking Lakebase for {filename}")
                 t0 = time.time()
-                lb_frames = self._lb.retrieve_all_frame_ranges(filename)
+                lb_frames = self._lb.retrieve_all_frame_ranges(filename, self._table)
                 logger.info(f"⏱️  Lakebase lookup took {time.time() - t0:.4f}s")
 
                 if lb_frames:
@@ -646,7 +649,7 @@ class DICOMwebDatabricksWrapper:
             if self._lb:
                 try:
                     t0 = time.time()
-                    self._lb.insert_frame_ranges(filename, bot_data["frames"])
+                    self._lb.insert_frame_ranges(filename, bot_data["frames"], self._table)
                     logger.info(f"⏱️  Lakebase persist took {time.time() - t0:.4f}s")
                 except Exception as exc:
                     logger.warning(f"Lakebase persist failed (non-fatal): {exc}")

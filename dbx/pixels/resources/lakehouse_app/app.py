@@ -172,8 +172,10 @@ async def _reverse_proxy_files_multiframe(request: Request):
     else:
         return await _reverse_proxy_files(request)
 
+    uc_table_name = get_pixels_table(request)
+
     results = await run_in_threadpool(
-        lambda: lb_utils.retrieve_frame_range(db_file.full_path, param_frames - 1)
+        lambda: lb_utils.retrieve_frame_range(db_file.full_path, param_frames - 1, uc_table_name)
     )
 
     frame_metadata = {}
@@ -183,7 +185,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
     else:
         # get latest available index
         results = await run_in_threadpool(
-            lambda: lb_utils.retrieve_max_frame_range(db_file.full_path, param_frames - 1)
+            lambda: lb_utils.retrieve_max_frame_range(db_file.full_path, param_frames - 1, uc_table_name)
         )
 
         max_frame_idx = 0 if results["max_frame_idx"] is None else results["max_frame_idx"]
@@ -200,7 +202,7 @@ async def _reverse_proxy_files_multiframe(request: Request):
         )
 
         await run_in_threadpool(
-            lambda: lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"])
+            lambda: lb_utils.insert_frame_ranges(db_file.full_path, pixels_metadata["frames"], uc_table_name)
         )
 
         frame_metadata = pixels_metadata["frames"][param_frames - 1 - max_frame_idx]

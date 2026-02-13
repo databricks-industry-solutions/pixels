@@ -294,12 +294,13 @@ class LakebaseUtils:
                 self.connection.putconn(conn)
 
     def retrieve_frame_range(
-        self, filename: str, frame: int, table: str = DICOM_FRAMES_TABLE
+        self, filename: str, frame: int, uc_table_name: str, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
         query = sql.SQL(
-            "SELECT start_pos, end_pos, pixel_data_pos FROM {} WHERE filename = %s AND frame = %s"
+            "SELECT start_pos, end_pos, pixel_data_pos FROM {} "
+            "WHERE filename = %s AND frame = %s AND uc_table_name = %s"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
-        results = self.execute_and_fetch_query(query, (filename, frame))
+        results = self.execute_and_fetch_query(query, (filename, frame, uc_table_name))
         if len(results) == 1:
             return {
                 "start_pos": results[0][0],
@@ -312,12 +313,13 @@ class LakebaseUtils:
             return None
 
     def retrieve_max_frame_range(
-        self, filename: str, param_frames: int, table: str = DICOM_FRAMES_TABLE
+        self, filename: str, param_frames: int, uc_table_name: str, table: str = DICOM_FRAMES_TABLE
     ) -> dict | None:
         query = sql.SQL(
-            "SELECT max(frame), max(start_pos) FROM {} WHERE filename = %s AND frame <= %s"
+            "SELECT max(frame), max(start_pos) FROM {} "
+            "WHERE filename = %s AND frame <= %s AND uc_table_name = %s"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
-        results = self.execute_and_fetch_query(query, (filename, param_frames))
+        results = self.execute_and_fetch_query(query, (filename, param_frames, uc_table_name))
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
         else:
@@ -330,15 +332,17 @@ class LakebaseUtils:
         start_pos: int,
         end_pos: int,
         pixel_data_pos: int,
+        uc_table_name: str,
         table: str = DICOM_FRAMES_TABLE,
     ):
         query = sql.SQL(
-            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
+            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name) "
+            "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
-        self.execute_query(query, (filename, frame, start_pos, end_pos, pixel_data_pos))
+        self.execute_query(query, (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name))
 
     def retrieve_all_frame_ranges(
-        self, filename: str, table: str = DICOM_FRAMES_TABLE
+        self, filename: str, uc_table_name: str, table: str = DICOM_FRAMES_TABLE
     ) -> list[dict] | None:
         """
         Retrieve ALL cached frame offsets for a file in a single query.
@@ -348,6 +352,7 @@ class LakebaseUtils:
         
         Args:
             filename: Full path of the DICOM file
+            uc_table_name: Fully qualified Unity Catalog table name (catalog.schema.table)
             table: Table name (default: dicom_frames)
             
         Returns:
@@ -356,9 +361,9 @@ class LakebaseUtils:
         """
         query = sql.SQL(
             "SELECT frame, start_pos, end_pos, pixel_data_pos FROM {} "
-            "WHERE filename = %s ORDER BY frame"
+            "WHERE filename = %s AND uc_table_name = %s ORDER BY frame"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
-        results = self.execute_and_fetch_query(query, (filename,))
+        results = self.execute_and_fetch_query(query, (filename, uc_table_name))
         if not results:
             return None
         return [
@@ -372,7 +377,7 @@ class LakebaseUtils:
         ]
 
     def insert_frame_ranges(
-        self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
+        self, filename: str, frame_ranges: list[dict], uc_table_name: str, table: str = DICOM_FRAMES_TABLE
     ):
         conn = None
         records = [
@@ -382,11 +387,13 @@ class LakebaseUtils:
                 str(frame_range.get("start_pos")),
                 str(frame_range.get("end_pos")),
                 str(frame_range.get("pixel_data_pos")),
+                uc_table_name,
             ]
             for frame_range in frame_ranges
         ]
         query = sql.SQL(
-            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos) VALUES %s ON CONFLICT DO NOTHING"
+            "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name) "
+            "VALUES %s ON CONFLICT DO NOTHING"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         try:
             conn = self.connection.getconn()
@@ -402,10 +409,10 @@ class LakebaseUtils:
     # ------------------------------------------------------------------
 
     def retrieve_instance_path(
-        self, sop_instance_uid: str, table: str = INSTANCE_PATHS_TABLE
+        self, sop_instance_uid: str, uc_table_name: str, table: str = INSTANCE_PATHS_TABLE
     ) -> dict | None:
         """
-        Look up a single instance path by SOP Instance UID.
+        Look up a single instance path by SOP Instance UID and UC table name.
 
         Returns:
             Dict with ``local_path``, ``num_frames``, ``study_instance_uid``,
@@ -413,9 +420,9 @@ class LakebaseUtils:
         """
         query = sql.SQL(
             "SELECT local_path, num_frames, study_instance_uid, series_instance_uid "
-            "FROM {} WHERE sop_instance_uid = %s"
+            "FROM {} WHERE sop_instance_uid = %s AND uc_table_name = %s"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
-        results = self.execute_and_fetch_query(query, (sop_instance_uid,))
+        results = self.execute_and_fetch_query(query, (sop_instance_uid, uc_table_name))
         if not results:
             return None
         row = results[0]
@@ -430,10 +437,11 @@ class LakebaseUtils:
         self,
         study_instance_uid: str,
         series_instance_uid: str,
+        uc_table_name: str,
         table: str = INSTANCE_PATHS_TABLE,
     ) -> dict[str, dict] | None:
         """
-        Retrieve all cached instance paths for a series.
+        Retrieve all cached instance paths for a series from a specific UC table.
 
         Returns:
             ``{sop_uid: {path, num_frames, ...}}`` dict, or ``None`` if
@@ -441,10 +449,11 @@ class LakebaseUtils:
         """
         query = sql.SQL(
             "SELECT sop_instance_uid, local_path, num_frames "
-            "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s"
+            "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s "
+            "AND uc_table_name = %s"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         results = self.execute_and_fetch_query(
-            query, (study_instance_uid, series_instance_uid),
+            query, (study_instance_uid, series_instance_uid, uc_table_name),
         )
         if not results:
             return None
@@ -463,7 +472,8 @@ class LakebaseUtils:
 
         Each entry dict must contain:
         ``sop_instance_uid``, ``study_instance_uid``,
-        ``series_instance_uid``, ``local_path``, ``num_frames``.
+        ``series_instance_uid``, ``local_path``, ``num_frames``,
+        ``uc_table_name``.
         """
         if not entries:
             return
@@ -474,12 +484,13 @@ class LakebaseUtils:
                 e["series_instance_uid"],
                 e["local_path"],
                 e.get("num_frames", 1),
+                e["uc_table_name"],
             )
             for e in entries
         ]
         query = sql.SQL(
             "INSERT INTO {} (sop_instance_uid, study_instance_uid, "
-            "series_instance_uid, local_path, num_frames) "
+            "series_instance_uid, local_path, num_frames, uc_table_name) "
             "VALUES %s ON CONFLICT DO NOTHING"
         ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         conn = None
