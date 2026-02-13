@@ -102,7 +102,7 @@ def _log_metrics_summary():
             f"({c['bot_cache']['hit_rate']} hit) | "
             f"Path$: {c['instance_path_cache']['entries']} entries "
             f"({c['instance_path_cache']['hit_rate']} hit) | "
-            f"Prefetch: {p['futures_done']}✓ / {p['futures_pending']}⏳ "
+            f"Prefetch: {p['done']}✓ / {p['pending']}⏳ "
             f"mem {p['memory_used_mb']}/{p['memory_budget_mb']} MB | "
             f"BOT precomp: {bp['done']}✓ / {bp['pending']}⏳"
         )
