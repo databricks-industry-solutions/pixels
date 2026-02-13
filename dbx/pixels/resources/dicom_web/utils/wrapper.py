@@ -154,8 +154,18 @@ class DICOMwebDatabricksWrapper:
                 f"(eliminates SQL for subsequent WADO-RS calls)"
             )
 
+        # Mark series as primed so that _maybe_prime_series (called by
+        # retrieve_instance / retrieve_instance_frames) skips the duplicate
+        # series-level query.
+        series_key = f"{study_instance_uid}/{series_instance_uid}"
+        already_primed = False
+        with _series_primed_lock:
+            already_primed = series_key in _series_primed
+            _series_primed.add(series_key)
+
         # Persist to Lakebase (tier-2 — survives restarts) ────────────
-        if cache_entries and self._lb:
+        # Skip if the series was already primed (data is already in Lakebase).
+        if cache_entries and self._lb and not already_primed:
             try:
                 lb_entries = [
                     {
@@ -171,24 +181,19 @@ class DICOMwebDatabricksWrapper:
             except Exception as exc:
                 logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
 
-        # Mark series as primed so that _maybe_prime_series (called by
-        # retrieve_instance / retrieve_instance_frames) skips the duplicate
-        # series-level query.
-        series_key = f"{study_instance_uid}/{series_instance_uid}"
-        with _series_primed_lock:
-            _series_primed.add(series_key)
-
         # Background prefetch — download files from Volumes in parallel ─
         # Small files are downloaded fully so that subsequent WADO-RS
         # instance retrieval is instant (served from memory).
         # BOT computation is deferred to the first frame-level request.
-        prefetch_paths = [info["path"] for info in cache_entries.values()]
-        if prefetch_paths:
-            n = file_prefetcher.schedule(self._token, prefetch_paths)
-            logger.info(
-                f"Background prefetch: {n} new downloads scheduled "
-                f"({len(prefetch_paths)} instances)"
-            )
+        # Skip if the series was already primed (downloads already scheduled).
+        if not already_primed:
+            prefetch_paths = [info["path"] for info in cache_entries.values()]
+            if prefetch_paths:
+                n = file_prefetcher.schedule(self._token, prefetch_paths)
+                logger.info(
+                    f"Background prefetch: {n} new downloads scheduled "
+                    f"({len(prefetch_paths)} instances)"
+                )
         # ──────────────────────────────────────────────────────────────
 
         columns = [
