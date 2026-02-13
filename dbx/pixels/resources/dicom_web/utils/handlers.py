@@ -102,10 +102,14 @@ def _resolve_token(request: Request) -> str:
 
     # App auth — derive a bearer token from the SDK Config
     # (same credentials_provider the SQL Connector uses internally)
+    #
+    # cfg.authenticate() returns a HeaderFactory (callable).
+    # Calling that factory returns {"Authorization": "Bearer <token>"}.
     try:
         cfg = Config()
-        headers: dict[str, str] = {}
-        cfg.authenticate(headers)
+        header_factory = cfg.authenticate()
+        # HeaderFactory is Callable[[], Dict[str, str]]
+        headers = header_factory() if callable(header_factory) else header_factory
         auth = headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             return auth[7:]
