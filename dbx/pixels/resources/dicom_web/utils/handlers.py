@@ -34,7 +34,7 @@ from .wrapper import DICOMwebDatabricksWrapper
 logger = LoggerProvider("DICOMweb.Handlers")
 
 # ---------------------------------------------------------------------------
-# Lakebase singleton (persistent frame-offset store — tier 2 cache)
+# Lakebase singleton (persistent tier-2 cache for frame offsets + instance paths)
 # ---------------------------------------------------------------------------
 
 lb_utils = None
@@ -48,9 +48,13 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
             instance_name=os.environ["LAKEBASE_INSTANCE_NAME"],
             create_instance=True,
         )
-        sql_path = Path(dbx.pixels.resources.__file__).parent / "sql/lakebase/CREATE_LAKEBASE_DICOM_FRAMES.sql"
-        with open(sql_path) as fh:
-            lb_utils.execute_query(fh.read())
+        sql_dir = Path(dbx.pixels.resources.__file__).parent / "sql/lakebase"
+        for sql_file in [
+            "CREATE_LAKEBASE_DICOM_FRAMES.sql",
+            "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
+        ]:
+            with open(sql_dir / sql_file) as fh:
+                lb_utils.execute_query(fh.read())
         logger.info(f"Lakebase initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
     except Exception as exc:
         logger.warning(f"Lakebase init failed: {exc}")
@@ -141,6 +145,7 @@ def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> D
         sql_client=sql_client,
         token=token,
         pixels_table=pixels_table,
+        lb_utils=lb_utils,
     )
 
 
@@ -239,7 +244,7 @@ def dicomweb_wado_instance_frames(
         # BOT resolution (cache/compute) happens eagerly — errors surface now
         frame_stream, transfer_syntax_uid = wrapper.retrieve_instance_frames(
             study_instance_uid, series_instance_uid, sop_instance_uid,
-            frame_numbers, lb_utils,
+            frame_numbers,
         )
 
         mime_type = TRANSFER_SYNTAX_TO_MIME.get(transfer_syntax_uid, "application/octet-stream")

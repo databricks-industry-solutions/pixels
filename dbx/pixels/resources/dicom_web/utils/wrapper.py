@@ -53,6 +53,7 @@ class DICOMwebDatabricksWrapper:
         sql_client: DatabricksSQLClient,
         token: str,
         pixels_table: str,
+        lb_utils=None,
     ):
         """
         Args:
@@ -62,10 +63,13 @@ class DICOMwebDatabricksWrapper:
                 or SDK ``Config().authenticate()`` in app-auth mode.
                 Used for both SQL (OBO) and file-API byte-range reads.
             pixels_table: Fully-qualified ``catalog.schema.table`` name.
+            lb_utils: Optional ``LakebaseUtils`` singleton for persistent
+                tier-2 caching (frame offsets + instance paths).
         """
         self._sql = sql_client
         self._token = token
         self._table = validate_table_name(pixels_table)
+        self._lb = lb_utils
 
     # -- helper: run parameterized SQL ------------------------------------
 
@@ -139,6 +143,23 @@ class DICOMwebDatabricksWrapper:
                 f"(eliminates SQL for subsequent WADO-RS calls)"
             )
 
+        # Persist to Lakebase (tier-2 — survives restarts) ────────────
+        if cache_entries and self._lb:
+            try:
+                lb_entries = [
+                    {
+                        "sop_instance_uid": uid,
+                        "study_instance_uid": study_instance_uid,
+                        "series_instance_uid": series_instance_uid,
+                        "local_path": info["path"],
+                        "num_frames": info.get("num_frames", 1),
+                    }
+                    for uid, info in cache_entries.items()
+                ]
+                self._lb.insert_instance_paths_batch(lb_entries)
+            except Exception as exc:
+                logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
+
         # Background prefetch — download files from Volumes in parallel ─
         prefetch_paths = [info["path"] for info in cache_entries.values()]
         if prefetch_paths:
@@ -200,31 +221,10 @@ class DICOMwebDatabricksWrapper:
 
         Returns ``(chunk_generator, content_length_str | None)``.
         """
-        # --- Resolve SOP UID → file path (cache or SQL) ---
-        path_info = instance_path_cache.get(sop_instance_uid)
-        if path_info:
-            local_path = path_info["path"]
-        else:
-            logger.info(f"WADO-RS: instance {sop_instance_uid} (path cache MISS — querying SQL)")
-            query = f"""
-            SELECT local_path, path
-            FROM {self._table}
-            WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-              AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-              AND meta:['00080018'].Value[0]::String = %(sop_uid)s
-            LIMIT 1
-            """
-            params = {
-                "study_uid": study_instance_uid,
-                "series_uid": series_instance_uid,
-                "sop_uid": sop_instance_uid,
-            }
-            results = self._query(query, params)
-            if not results or not results[0]:
-                raise HTTPException(status_code=404, detail="Instance not found")
-
-            local_path = results[0][0]
-            instance_path_cache.put(sop_instance_uid, {"path": local_path, "num_frames": 1})
+        # --- Resolve SOP UID → file path (3-tier: memory → Lakebase → SQL) ---
+        local_path = self._resolve_instance_path(
+            study_instance_uid, series_instance_uid, sop_instance_uid,
+        )
 
         # --- Check prefetch cache (instant if background download finished) ---
         prefetched = file_prefetcher.get(local_path)
@@ -255,7 +255,6 @@ class DICOMwebDatabricksWrapper:
         series_instance_uid: str,
         sop_instance_uid: str,
         frame_numbers: List[int],
-        lb_utils=None,
     ) -> tuple[Iterator[bytes], str]:
         """
         Retrieve specific frames using the 3-tier PACS-style BOT cache,
@@ -268,7 +267,6 @@ class DICOMwebDatabricksWrapper:
 
         Args:
             frame_numbers: 1-indexed frame numbers (per DICOMweb spec).
-            lb_utils: Optional ``LakebaseUtils`` for persistent caching.
 
         Returns:
             ``(frame_generator, transfer_syntax_uid)``
@@ -277,7 +275,7 @@ class DICOMwebDatabricksWrapper:
 
         db_file, frames_by_idx, transfer_syntax_uid = self._resolve_frame_offsets(
             study_instance_uid, series_instance_uid, sop_instance_uid,
-            frame_numbers, lb_utils,
+            frame_numbers,
         )
 
         token = self._token
@@ -300,13 +298,98 @@ class DICOMwebDatabricksWrapper:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _resolve_instance_path(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        sop_instance_uid: str,
+    ) -> str:
+        """
+        Resolve SOP Instance UID → local file path using a 3-tier cache.
+
+        1. In-memory ``instance_path_cache``  (µs)
+        2. Lakebase ``instance_paths`` table  (ms)
+        3. SQL warehouse query                (~300 ms)
+
+        Side effects: promotes results into higher-tier caches and persists
+        to Lakebase on a tier-3 hit.
+
+        Returns:
+            ``local_path`` string.
+
+        Raises:
+            HTTPException 404: if the instance is not found anywhere.
+        """
+        # ── Tier 1: in-memory cache (µs) ──────────────────────────────
+        path_info = instance_path_cache.get(sop_instance_uid)
+        if path_info:
+            return path_info["path"]
+
+        # ── Tier 2: Lakebase persistent cache (ms) ────────────────────
+        if self._lb:
+            try:
+                t0 = time.time()
+                lb_info = self._lb.retrieve_instance_path(sop_instance_uid)
+                logger.info(f"⏱️  Lakebase path lookup took {time.time() - t0:.4f}s")
+                if lb_info:
+                    logger.info(f"Instance path Lakebase HIT for {sop_instance_uid}")
+                    instance_path_cache.put(
+                        sop_instance_uid,
+                        {"path": lb_info["path"], "num_frames": lb_info["num_frames"]},
+                    )
+                    return lb_info["path"]
+            except Exception as exc:
+                logger.warning(f"Lakebase path lookup failed (non-fatal): {exc}")
+
+        # ── Tier 3: SQL warehouse (~300 ms) ───────────────────────────
+        logger.info(f"Instance path cache MISS — querying SQL for {sop_instance_uid}")
+        query = f"""
+        SELECT local_path,
+               ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
+        FROM {self._table}
+        WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+          AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+          AND meta:['00080018'].Value[0]::String = %(sop_uid)s
+        LIMIT 1
+        """
+        params = {
+            "study_uid": study_instance_uid,
+            "series_uid": series_instance_uid,
+            "sop_uid": sop_instance_uid,
+        }
+        results = self._query(query, params)
+        if not results or not results[0]:
+            raise HTTPException(status_code=404, detail="Instance not found")
+
+        local_path = results[0][0]
+        num_frames = int(results[0][1])
+
+        # Promote to tier 1
+        instance_path_cache.put(
+            sop_instance_uid, {"path": local_path, "num_frames": num_frames},
+        )
+
+        # Persist to tier 2 (Lakebase)
+        if self._lb:
+            try:
+                self._lb.insert_instance_paths_batch([{
+                    "sop_instance_uid": sop_instance_uid,
+                    "study_instance_uid": study_instance_uid,
+                    "series_instance_uid": series_instance_uid,
+                    "local_path": local_path,
+                    "num_frames": num_frames,
+                }])
+            except Exception as exc:
+                logger.warning(f"Lakebase path persist failed (non-fatal): {exc}")
+
+        return local_path
+
     def _resolve_frame_offsets(
         self,
         study_instance_uid: str,
         series_instance_uid: str,
         sop_instance_uid: str,
         frame_numbers: List[int],
-        lb_utils=None,
     ) -> tuple[DatabricksFile, dict, str]:
         """
         Resolve frame byte-offsets from the 3-tier PACS cache.
@@ -321,34 +404,10 @@ class DICOMwebDatabricksWrapper:
         Raises:
             HTTPException: If the instance or requested frames are not found.
         """
-        # --- resolve SOP UID → file path (with caching) ---
-        path_info = instance_path_cache.get(sop_instance_uid)
-        if path_info:
-            logger.info(f"Instance path cache HIT for {sop_instance_uid}")
-            path = path_info["path"]
-        else:
-            query = f"""
-            SELECT local_path,
-                   ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
-            FROM {self._table}
-            WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-              AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-              AND meta:['00080018'].Value[0]::String = %(sop_uid)s
-            LIMIT 1
-            """
-            params = {
-                "study_uid": study_instance_uid,
-                "series_uid": series_instance_uid,
-                "sop_uid": sop_instance_uid,
-            }
-            results = self._query(query, params)
-            if not results or not results[0]:
-                raise HTTPException(status_code=404, detail="Instance not found")
-
-            path = results[0][0]
-            num_frames = int(results[0][1])
-            instance_path_cache.put(sop_instance_uid, {"path": path, "num_frames": num_frames})
-            logger.info(f"Instance path cache MISS — cached {sop_instance_uid}")
+        # --- resolve SOP UID → file path (3-tier) ---
+        path = self._resolve_instance_path(
+            study_instance_uid, series_instance_uid, sop_instance_uid,
+        )
 
         db_file = DatabricksFile.from_full_path(path)
         filename = db_file.full_path
@@ -364,10 +423,10 @@ class DICOMwebDatabricksWrapper:
                     return db_file, frames_by_idx, cached_bot["transfer_syntax_uid"]
 
             # --- TIER 2: Lakebase persistent cache (ms) ---
-            if lb_utils:
+            if self._lb:
                 logger.info(f"Checking Lakebase for {filename}")
                 t0 = time.time()
-                lb_frames = lb_utils.retrieve_all_frame_ranges(filename)
+                lb_frames = self._lb.retrieve_all_frame_ranges(filename)
                 logger.info(f"⏱️  Lakebase lookup took {time.time() - t0:.4f}s")
 
                 if lb_frames:
@@ -395,10 +454,10 @@ class DICOMwebDatabricksWrapper:
 
             bot_cache.put(filename, bot_data)
 
-            if lb_utils:
+            if self._lb:
                 try:
                     t0 = time.time()
-                    lb_utils.insert_frame_ranges(filename, bot_data["frames"])
+                    self._lb.insert_frame_ranges(filename, bot_data["frames"])
                     logger.info(f"⏱️  Lakebase persist took {time.time() - t0:.4f}s")
                 except Exception as exc:
                     logger.warning(f"Lakebase persist failed (non-fatal): {exc}")

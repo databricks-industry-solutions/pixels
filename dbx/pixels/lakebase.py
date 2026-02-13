@@ -19,6 +19,7 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("LakebaseUtils")
 
 DICOM_FRAMES_TABLE = "dicom_frames"
+INSTANCE_PATHS_TABLE = "instance_paths"
 
 
 class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
@@ -391,6 +392,102 @@ class LakebaseUtils:
             with conn.cursor() as cursor:
                 execute_values(cursor, query, records)
                 conn.commit()
+        finally:
+            if conn:
+                self.connection.putconn(conn)
+
+    # ------------------------------------------------------------------
+    # Instance path cache (persistent tier-2 for SOP UID → file path)
+    # ------------------------------------------------------------------
+
+    def retrieve_instance_path(
+        self, sop_instance_uid: str, table: str = INSTANCE_PATHS_TABLE
+    ) -> dict | None:
+        """
+        Look up a single instance path by SOP Instance UID.
+
+        Returns:
+            Dict with ``local_path``, ``num_frames``, ``study_instance_uid``,
+            ``series_instance_uid`` — or ``None`` if not cached.
+        """
+        query = sql.SQL(
+            "SELECT local_path, num_frames, study_instance_uid, series_instance_uid "
+            "FROM {} WHERE sop_instance_uid = %s"
+        ).format(sql.Identifier(table))
+        results = self.execute_and_fetch_query(query, (sop_instance_uid,))
+        if not results:
+            return None
+        row = results[0]
+        return {
+            "path": row[0],
+            "num_frames": int(row[1]),
+            "study_instance_uid": row[2],
+            "series_instance_uid": row[3],
+        }
+
+    def retrieve_instance_paths_by_series(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        table: str = INSTANCE_PATHS_TABLE,
+    ) -> dict[str, dict] | None:
+        """
+        Retrieve all cached instance paths for a series.
+
+        Returns:
+            ``{sop_uid: {path, num_frames, ...}}`` dict, or ``None`` if
+            no entries exist for the series.
+        """
+        query = sql.SQL(
+            "SELECT sop_instance_uid, local_path, num_frames "
+            "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s"
+        ).format(sql.Identifier(table))
+        results = self.execute_and_fetch_query(
+            query, (study_instance_uid, series_instance_uid),
+        )
+        if not results:
+            return None
+        return {
+            row[0]: {"path": row[1], "num_frames": int(row[2])}
+            for row in results
+        }
+
+    def insert_instance_paths_batch(
+        self,
+        entries: list[dict],
+        table: str = INSTANCE_PATHS_TABLE,
+    ):
+        """
+        Bulk-insert instance path mappings (idempotent via ON CONFLICT).
+
+        Each entry dict must contain:
+        ``sop_instance_uid``, ``study_instance_uid``,
+        ``series_instance_uid``, ``local_path``, ``num_frames``.
+        """
+        if not entries:
+            return
+        records = [
+            (
+                e["sop_instance_uid"],
+                e["study_instance_uid"],
+                e["series_instance_uid"],
+                e["local_path"],
+                e.get("num_frames", 1),
+            )
+            for e in entries
+        ]
+        query = sql.SQL(
+            "INSERT INTO {} (sop_instance_uid, study_instance_uid, "
+            "series_instance_uid, local_path, num_frames) "
+            "VALUES %s ON CONFLICT DO NOTHING"
+        ).format(sql.Identifier(table))
+        conn = None
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                execute_values(cursor, query, records)
+                conn.commit()
+            logger.info(f"Persisted {len(records)} instance paths to Lakebase")
         finally:
             if conn:
                 self.connection.putconn(conn)
