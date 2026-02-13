@@ -1,5 +1,5 @@
 """
-FastAPI endpoint handlers for DICOMweb QIDO-RS / WADO-RS / WADO-URI.
+FastAPI endpoint handlers for DICOMweb QIDO-RS / WADO-RS / WADO-URI / STOW-RS.
 
 These thin handler functions are imported by ``app.py`` and wired to routes.
 They create a ``DICOMwebDatabricksWrapper`` per request and delegate to it.
@@ -10,6 +10,7 @@ Supported services:
 * **WADO-RS** — RESTful instance / frame retrieval (path-based)
 * **WADO-URI** — Legacy query-parameter retrieval
   (``?requestType=WADO&studyUID=…&objectUID=…&contentType=…``)
+* **STOW-RS** — RESTful instance storage (binary DICOM via multipart/related)
 
 Authorization is controlled by the ``DICOMWEB_USE_USER_AUTH`` env var:
 
@@ -433,4 +434,223 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
         headers["Content-Length"] = content_length
     return StreamingResponse(
         stream, media_type="application/dicom", headers=headers,
+    )
+
+
+# ---------------------------------------------------------------------------
+# STOW-RS handler
+# ---------------------------------------------------------------------------
+
+def _parse_multipart_related(body: bytes, content_type: str) -> list[bytes]:
+    """
+    Parse a ``multipart/related`` request body into its binary parts.
+
+    The STOW-RS spec mandates ``multipart/related`` (not ``multipart/form-data``),
+    so we parse it manually using boundary splitting.
+
+    Args:
+        body: Raw request body bytes.
+        content_type: The full ``Content-Type`` header value.
+
+    Returns:
+        List of raw DICOM Part-10 byte strings (one per part).
+
+    Raises:
+        HTTPException 400: If the boundary is missing or no parts are found.
+    """
+    # Extract boundary from Content-Type
+    boundary: str | None = None
+    for segment in content_type.split(";"):
+        segment = segment.strip()
+        if segment.lower().startswith("boundary="):
+            boundary = segment.split("=", 1)[1].strip().strip('"')
+            break
+
+    if not boundary:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing boundary in multipart/related Content-Type",
+        )
+
+    # The boundary marker in the body is prefixed with "--"
+    delimiter = f"--{boundary}".encode()
+    closing = f"--{boundary}--".encode()
+
+    # Split body on delimiter
+    raw_parts = body.split(delimiter)
+    parts: list[bytes] = []
+
+    for raw_part in raw_parts:
+        # Skip preamble (before first delimiter) and closing marker
+        stripped = raw_part.strip(b"\r\n")
+        if not stripped or stripped == b"--" or stripped.startswith(closing):
+            continue
+
+        # Each part: headers \r\n\r\n body
+        header_end = raw_part.find(b"\r\n\r\n")
+        if header_end == -1:
+            continue
+
+        part_body = raw_part[header_end + 4 :]
+
+        # Strip trailing \r\n (MIME boundary padding)
+        if part_body.endswith(b"\r\n"):
+            part_body = part_body[:-2]
+        # Also handle trailing "--\r\n" from the closing boundary
+        if part_body.endswith(b"--"):
+            part_body = part_body[:-2]
+            if part_body.endswith(b"\r\n"):
+                part_body = part_body[:-2]
+
+        if part_body:
+            parts.append(part_body)
+
+    if not parts:
+        raise HTTPException(
+            status_code=400,
+            detail="No DICOM parts found in multipart/related body",
+        )
+
+    return parts
+
+
+def _build_stow_response(
+    result: dict,
+    base_url: str,
+    study_instance_uid: str | None = None,
+) -> dict:
+    """
+    Build the STOW-RS response dataset (DICOM JSON format).
+
+    The response contains:
+
+    * ``00081190`` — **RetrieveURL** (base WADO-RS URL for the study)
+    * ``00081199`` — **ReferencedSOPSequence** (successfully stored instances)
+    * ``00081198`` — **FailedSOPSequence** (rejected instances with failure reasons)
+
+    See DICOM PS3.18 §10.5.1 (Store Instances Response).
+    """
+    response: dict = {}
+
+    # ReferencedSOPSequence
+    if result["referenced"]:
+        ref_items = []
+        for ref in result["referenced"]:
+            item: dict = {
+                # ReferencedSOPClassUID
+                "00081150": {"vr": "UI", "Value": [ref["sop_class_uid"]]},
+                # ReferencedSOPInstanceUID
+                "00081155": {"vr": "UI", "Value": [ref["sop_instance_uid"]]},
+            }
+            # Per-instance RetrieveURL
+            study_uid = ref.get("study_instance_uid", study_instance_uid or "")
+            if study_uid and base_url:
+                item["00081190"] = {
+                    "vr": "UR",
+                    "Value": [f"{base_url}/studies/{study_uid}"],
+                }
+            ref_items.append(item)
+        response["00081199"] = {"vr": "SQ", "Value": ref_items}
+
+    # FailedSOPSequence
+    if result["failed"]:
+        fail_items = []
+        for fail in result["failed"]:
+            item = {
+                # ReferencedSOPClassUID
+                "00081150": {"vr": "UI", "Value": [fail.get("sop_class_uid", "")]},
+                # ReferencedSOPInstanceUID
+                "00081155": {"vr": "UI", "Value": [fail.get("sop_instance_uid", "")]},
+                # FailureReason
+                "00081197": {"vr": "US", "Value": [int(fail.get("failure_reason", "0110"), 16)]},
+            }
+            fail_items.append(item)
+        response["00081198"] = {"vr": "SQ", "Value": fail_items}
+
+    # Top-level RetrieveURL (study level)
+    if result["referenced"] and base_url:
+        # Use the first successfully stored instance's study UID
+        first_study_uid = (
+            study_instance_uid
+            or result["referenced"][0].get("study_instance_uid", "")
+        )
+        if first_study_uid:
+            response["00081190"] = {
+                "vr": "UR",
+                "Value": [f"{base_url}/studies/{first_study_uid}"],
+            }
+
+    return response
+
+
+@timing_decorator
+async def dicomweb_stow_store(
+    request: Request,
+    study_instance_uid: str | None = None,
+) -> Response:
+    """
+    STOW-RS: store DICOM instances.
+
+    Accepts ``POST /api/dicomweb/studies`` (any study) or
+    ``POST /api/dicomweb/studies/{study}`` (specific study).
+
+    Request body must be ``multipart/related; type="application/dicom"``
+    containing one or more DICOM Part-10 instances.
+
+    Returns:
+        * **200 OK** — all instances stored successfully.
+        * **409 Conflict** — partial success (some stored, some failed).
+        * **400 Bad Request** — invalid request body.
+
+    Response body is ``application/dicom+json`` containing the
+    ``ReferencedSOPSequence`` and ``FailedSOPSequence``.
+    """
+    content_type = request.headers.get("content-type", "")
+
+    # Validate Content-Type
+    ct_lower = content_type.lower()
+    if "multipart/related" not in ct_lower:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                f"Unsupported Content-Type: '{content_type}'. "
+                "STOW-RS requires multipart/related; type=\"application/dicom\""
+            ),
+        )
+
+    # Read full body
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=400, detail="Empty request body")
+
+    logger.info(
+        f"STOW-RS: received {len(body)} bytes, "
+        f"Content-Type: {content_type}, "
+        f"study_constraint: {study_instance_uid or '(any)'}"
+    )
+
+    # Parse multipart parts
+    dicom_parts = _parse_multipart_related(body, content_type)
+    logger.info(f"STOW-RS: parsed {len(dicom_parts)} DICOM part(s)")
+
+    # Store via wrapper
+    wrapper = get_dicomweb_wrapper(request)
+    result = wrapper.store_instances(dicom_parts, study_instance_uid)
+
+    # Build response
+    base_url = str(request.base_url).rstrip("/") + "/api/dicomweb"
+    response_body = _build_stow_response(result, base_url, study_instance_uid)
+
+    # HTTP status: 200 if all succeeded, 409 if partial failure
+    if result["failed"] and result["referenced"]:
+        status_code = 409  # Conflict — partial success
+    elif result["failed"]:
+        status_code = 409  # All failed
+    else:
+        status_code = 200  # All succeeded
+
+    return Response(
+        content=json.dumps(response_body, indent=2),
+        media_type="application/dicom+json",
+        status_code=status_code,
     )

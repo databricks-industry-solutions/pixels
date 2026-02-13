@@ -1,22 +1,27 @@
 """
 DICOMweb Databricks Wrapper — main service class.
 
-Orchestrates QIDO-RS (query) and WADO-RS (retrieve) operations using:
+Orchestrates QIDO-RS (query), WADO-RS (retrieve), and STOW-RS (store)
+operations using:
 
 * **Databricks SQL Connector** with parameterized queries (no SQL injection)
 * **PACS-style 3-tier BOT cache** for sub-second frame retrieval
 * **Streaming** file delivery for zero-copy instance / frame transfers
+* **Volumes Files API** for STOW-RS instance uploads
 
 Authorization is handled by the ``DatabricksSQLClient`` which supports
 both App auth and User (OBO) auth.
 """
 
 import json
+import os
 import threading
 import time
 from collections.abc import Iterator
+from io import BytesIO
 from typing import Any, Dict, List
 
+import pydicom
 from fastapi import HTTPException
 
 from dbx.pixels.databricks_file import DatabricksFile
@@ -30,9 +35,15 @@ from .dicom_io import (
     get_file_metadata,
     get_file_part,
     stream_file,
+    upload_file,
 )
 from .dicom_tags import format_dicomweb_response
-from .queries import build_instances_query, build_series_query, build_study_query
+from .queries import (
+    build_insert_instance_query,
+    build_instances_query,
+    build_series_query,
+    build_study_query,
+)
 from .sql_client import DatabricksSQLClient, validate_table_name
 
 logger = LoggerProvider("DICOMweb.Wrapper")
@@ -206,6 +217,169 @@ class DICOMwebDatabricksWrapper:
         return formatted
 
     # ------------------------------------------------------------------
+    # STOW-RS — store instances
+    # ------------------------------------------------------------------
+
+    @timing_decorator
+    def store_instances(
+        self,
+        dicom_parts: List[bytes],
+        study_instance_uid: str | None = None,
+    ) -> Dict[str, Any]:
+        """
+        STOW-RS: store one or more DICOM Part-10 instances.
+
+        For each binary DICOM part:
+
+        1. Parse with *pydicom* to extract UIDs and metadata.
+        2. If *study_instance_uid* is given, verify it matches the instance.
+        3. Upload the raw bytes to Databricks Volumes via the Files API.
+        4. Insert a catalog row into the pixels table with full DICOM JSON
+           metadata (``meta`` VARIANT column).
+        5. Warm the in-memory and Lakebase caches.
+
+        Args:
+            dicom_parts: List of raw DICOM Part-10 byte strings.
+            study_instance_uid: Optional — when the request targets
+                ``POST /studies/{study}``, every instance's Study UID
+                must match or it is rejected with failure reason ``0112``.
+
+        Returns:
+            A dict with keys ``referenced`` (successfully stored) and
+            ``failed`` (rejected instances), each a list of per-instance
+            result dicts ready for the STOW-RS JSON response builder.
+        """
+        referenced: List[Dict[str, Any]] = []
+        failed: List[Dict[str, Any]] = []
+
+        volume_base = self._stow_volume_base()
+        insert_query, _ = build_insert_instance_query(self._table)
+
+        for part_bytes in dicom_parts:
+            sop_class_uid = ""
+            sop_instance_uid = ""
+            try:
+                # ── Parse DICOM ──────────────────────────────────────
+                ds = pydicom.dcmread(BytesIO(part_bytes), stop_before_pixels=True)
+
+                sop_class_uid = str(getattr(ds, "SOPClassUID", ""))
+                sop_instance_uid = str(getattr(ds, "SOPInstanceUID", ""))
+                inst_study_uid = str(getattr(ds, "StudyInstanceUID", ""))
+                inst_series_uid = str(getattr(ds, "SeriesInstanceUID", ""))
+
+                if not sop_instance_uid or not inst_study_uid:
+                    raise ValueError("Missing required UIDs (SOPInstanceUID / StudyInstanceUID)")
+
+                # ── Study UID constraint ─────────────────────────────
+                if study_instance_uid and inst_study_uid != study_instance_uid:
+                    failed.append({
+                        "sop_class_uid": sop_class_uid,
+                        "sop_instance_uid": sop_instance_uid,
+                        "failure_reason": "0112",  # Does not belong to this study
+                    })
+                    logger.warning(
+                        f"STOW-RS: rejected {sop_instance_uid} — "
+                        f"Study UID mismatch ({inst_study_uid} != {study_instance_uid})"
+                    )
+                    continue
+
+                # ── Build destination path ───────────────────────────
+                file_rel = (
+                    f"stow-rs/{inst_study_uid}/{inst_series_uid}/"
+                    f"{sop_instance_uid}.dcm"
+                )
+                local_path = f"{volume_base}/{file_rel}"
+                db_file = DatabricksFile.from_full_path(local_path)
+
+                # ── Upload to Volumes ────────────────────────────────
+                upload_file(self._token, db_file, part_bytes)
+
+                # ── Extract metadata JSON (no pixel data) ────────────
+                meta_dict = ds.to_json_dict()
+                if hasattr(ds, "file_meta"):
+                    meta_dict.update(ds.file_meta.to_json_dict())
+                # Remove pixel data tag if present (7FE00010)
+                meta_dict.pop("7FE00010", None)
+                meta_json = json.dumps(meta_dict)
+
+                # ── Insert catalog row ───────────────────────────────
+                params = {
+                    "pixels_table": self._table,
+                    "path": f"dbfs:{local_path}",
+                    "length": len(part_bytes),
+                    "relative_path": file_rel,
+                    "local_path": local_path,
+                    "meta_json": meta_json,
+                }
+                self._query(insert_query, params)
+
+                logger.info(
+                    f"STOW-RS: stored {sop_instance_uid} "
+                    f"({len(part_bytes)} bytes) → {local_path}"
+                )
+
+                # ── Warm caches ──────────────────────────────────────
+                num_frames = int(getattr(ds, "NumberOfFrames", 1))
+                instance_path_cache.put(
+                    sop_instance_uid,
+                    {"path": local_path, "num_frames": num_frames},
+                )
+                if self._lb:
+                    try:
+                        self._lb.insert_instance_paths_batch([{
+                            "sop_instance_uid": sop_instance_uid,
+                            "study_instance_uid": inst_study_uid,
+                            "series_instance_uid": inst_series_uid,
+                            "local_path": local_path,
+                            "num_frames": num_frames,
+                            "uc_table_name": self._table,
+                        }])
+                    except Exception as exc:
+                        logger.warning(f"STOW-RS: Lakebase cache warm failed (non-fatal): {exc}")
+
+                referenced.append({
+                    "sop_class_uid": sop_class_uid,
+                    "sop_instance_uid": sop_instance_uid,
+                    "study_instance_uid": inst_study_uid,
+                })
+
+            except Exception as exc:
+                logger.error(f"STOW-RS: failed to store instance: {exc}", exc_info=True)
+                failed.append({
+                    "sop_class_uid": sop_class_uid,
+                    "sop_instance_uid": sop_instance_uid,
+                    "failure_reason": "0110",  # Processing failure
+                    "error_message": str(exc),
+                })
+
+        logger.info(
+            f"STOW-RS complete: {len(referenced)} stored, {len(failed)} failed"
+        )
+        return {"referenced": referenced, "failed": failed}
+
+    def _stow_volume_base(self) -> str:
+        """
+        Derive the Volumes base path for STOW-RS file uploads.
+
+        Resolution order:
+
+        1. ``DATABRICKS_STOW_VOLUME_PATH`` env var (explicit override).
+        2. Derived from ``pixels_table`` — ``/Volumes/{catalog}/{schema}/pixels_volume``.
+        """
+        explicit = os.getenv("DATABRICKS_STOW_VOLUME_PATH")
+        if explicit:
+            return explicit.rstrip("/")
+
+        parts = self._table.split(".")
+        if len(parts) != 3:
+            raise HTTPException(
+                status_code=500,
+                detail="Cannot derive STOW volume path from pixels_table "
+                       f"'{self._table}'. Set DATABRICKS_STOW_VOLUME_PATH.",
+            )
+        return f"/Volumes/{parts[0]}/{parts[1]}/pixels_volume"
+
+    # ------------------------------------------------------------------
     # WADO-RS — metadata / instance retrieval
     # ------------------------------------------------------------------
 
@@ -213,13 +387,13 @@ class DICOMwebDatabricksWrapper:
     def retrieve_series_metadata(self, study_instance_uid: str, series_instance_uid: str) -> List[Dict]:
         """WADO-RS: retrieve DICOM metadata for every instance in a series."""
         logger.info(f"WADO-RS: metadata for series {series_instance_uid}")
-        query = f"""
+        query = """
         SELECT meta
-        FROM {self._table}
+        FROM IDENTIFIER(%(pixels_table)s)
         WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
           AND meta:['0020000E'].Value[0]::String = %(series_uid)s
         """
-        params = {"study_uid": study_instance_uid, "series_uid": series_instance_uid}
+        params = {"pixels_table": self._table, "study_uid": study_instance_uid, "series_uid": series_instance_uid}
         results = self._query(query, params)
         if not results:
             raise HTTPException(status_code=404, detail="Series not found or no instances")
@@ -411,15 +585,16 @@ class DICOMwebDatabricksWrapper:
             # ── Tier 3: SQL warehouse (~0.3 s, one-time per series) ────
             if not cache_entries:
                 t0 = time.time()
-                query = f"""
+                query = """
                 SELECT meta:['00080018'].Value[0]::String  AS SOPInstanceUID,
                        local_path,
                        ifnull(meta:['00280008'].Value[0]::integer, 1) AS NumberOfFrames
-                FROM {self._table}
+                FROM IDENTIFIER(%(pixels_table)s)
                 WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
                   AND meta:['0020000E'].Value[0]::String = %(series_uid)s
                 """
                 params = {
+                    "pixels_table": self._table,
                     "study_uid": study_instance_uid,
                     "series_uid": series_instance_uid,
                 }
@@ -534,16 +709,17 @@ class DICOMwebDatabricksWrapper:
 
         # ── Tier 3: SQL warehouse (~300 ms) ───────────────────────────
         logger.info(f"Instance path cache MISS — querying SQL for {sop_instance_uid}")
-        query = f"""
+        query = """
         SELECT local_path,
                ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
-        FROM {self._table}
+        FROM IDENTIFIER(%(pixels_table)s)
         WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
           AND meta:['0020000E'].Value[0]::String = %(series_uid)s
           AND meta:['00080018'].Value[0]::String = %(sop_uid)s
         LIMIT 1
         """
         params = {
+            "pixels_table": self._table,
             "study_uid": study_instance_uid,
             "series_uid": series_instance_uid,
             "sop_uid": sop_instance_uid,

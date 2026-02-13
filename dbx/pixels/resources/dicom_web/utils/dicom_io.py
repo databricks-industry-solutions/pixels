@@ -160,6 +160,32 @@ def stream_file(
 # ---------------------------------------------------------------------------
 
 
+def upload_file(token: str, db_file: DatabricksFile, data: bytes) -> None:
+    """
+    Upload (PUT) a file to Databricks Volumes via the Files API.
+
+    Uses the persistent ``_session`` to benefit from connection pooling.
+
+    Args:
+        token: Databricks bearer token.
+        db_file: Target file descriptor (destination path).
+        data: Raw file bytes to upload.
+
+    Raises:
+        RuntimeError: If the upload fails (non-2xx response).
+    """
+    headers = _auth_headers(token)
+    headers["Content-Type"] = "application/octet-stream"
+
+    response = _session.put(db_file.to_api_url(), headers=headers, data=data)
+    if response.status_code not in (200, 201, 204):
+        raise RuntimeError(
+            f"Failed to upload {db_file.file_path} "
+            f"(HTTP {response.status_code}): {response.text}"
+        )
+    logger.info(f"Uploaded {db_file.file_path} ({len(data)} bytes)")
+
+
 class FilePrefetcher:
     """
     Resource-aware background file prefetcher for Databricks Volumes.

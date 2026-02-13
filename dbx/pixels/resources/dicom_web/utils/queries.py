@@ -1,13 +1,14 @@
 """
-QIDO-RS SQL query builders — **parameterized**.
+QIDO-RS / STOW-RS SQL query builders — **parameterized**.
 
 Every function returns a ``(query, params)`` tuple.  User-supplied values are
 **never** interpolated into the SQL string; they are passed as bind parameters
 (``%(name)s`` placeholders) handled by the Databricks SQL Connector, which
 prevents SQL injection at the protocol level.
 
-Table names are SQL identifiers and cannot be parameterized, so they are
-validated by ``validate_table_name()`` before interpolation.
+Table names use the ``IDENTIFIER()`` clause so they are also injection-safe
+at the engine level.  See:
+https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-names-identifier-clause
 
 See: https://docs.databricks.com/aws/en/dev-tools/python-sql-connector
 """
@@ -32,9 +33,9 @@ def build_study_query(
     AccessionNumber, StudyDescription, StudyInstanceUID,
     ModalitiesInStudy, limit, offset.
     """
-    table = validate_table_name(pixels_table)
+    validate_table_name(pixels_table)
     filters: list[str] = ["1=1"]
-    sql_params: dict[str, Any] = {}
+    sql_params: dict[str, Any] = {"pixels_table": pixels_table}
 
     # Patient Name (case-insensitive, wildcard)
     if "PatientName" in params or "00100010" in params:
@@ -125,7 +126,7 @@ def build_study_query(
         meta:['00080061'].Value[0]::String as ModalitiesInStudy,
         COUNT(DISTINCT meta:['0020000E'].Value[0]::String) as NumberOfStudyRelatedSeries,
         COUNT(*) as NumberOfStudyRelatedInstances
-    FROM {table}
+    FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
     GROUP BY
         PatientName, PatientID, StudyInstanceUID, StudyDate,
@@ -142,9 +143,9 @@ def build_series_query(
     params: Dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Build a QIDO-RS *series-level* search query within a study."""
-    table = validate_table_name(pixels_table)
+    validate_table_name(pixels_table)
     filters = ["meta:['0020000D'].Value[0]::String = %(study_uid)s"]
-    sql_params: dict[str, Any] = {"study_uid": study_instance_uid}
+    sql_params: dict[str, Any] = {"pixels_table": pixels_table, "study_uid": study_instance_uid}
 
     if params:
         if "SeriesInstanceUID" in params or "0020000E" in params:
@@ -171,7 +172,7 @@ def build_series_query(
         meta:['0008103E'].Value[0]::String as SeriesDescription,
         meta:['00080021'].Value[0]::String as SeriesDate,
         COUNT(*) as NumberOfSeriesRelatedInstances
-    FROM {table}
+    FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
     GROUP BY
         StudyInstanceUID, SeriesInstanceUID, Modality,
@@ -188,12 +189,13 @@ def build_instances_query(
     params: Dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Build a QIDO-RS *instance-level* search query within a series."""
-    table = validate_table_name(pixels_table)
+    validate_table_name(pixels_table)
     filters = [
         "meta:['0020000D'].Value[0]::String = %(study_uid)s",
         "meta:['0020000E'].Value[0]::String = %(series_uid)s",
     ]
     sql_params: dict[str, Any] = {
+        "pixels_table": pixels_table,
         "study_uid": study_instance_uid,
         "series_uid": series_instance_uid,
     }
@@ -218,8 +220,54 @@ def build_instances_query(
         meta:['00280008'].Value[0]::String as NumberOfFrames,
         path,
         local_path
-    FROM {table}
+    FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
     ORDER BY InstanceNumber
     """
     return query, sql_params
+
+
+# ---------------------------------------------------------------------------
+# STOW-RS — INSERT builder
+# ---------------------------------------------------------------------------
+
+
+def build_insert_instance_query(
+    pixels_table: str,
+) -> tuple[str, None]:
+    """
+    Build a parameterized INSERT statement for a single DICOM instance.
+
+    The caller must provide a ``params`` dict with the following keys:
+
+    * ``path`` — ``dbfs:/Volumes/…`` path
+    * ``length`` — file size in bytes
+    * ``local_path`` — ``/Volumes/…`` path
+    * ``relative_path`` — path relative to the volume root
+    * ``meta_json`` — DICOM metadata as a JSON string (for ``parse_json()``)
+
+    Returns:
+        ``(query_str, None)`` — the query template; the caller binds params
+        at execution time.
+    """
+    validate_table_name(pixels_table)
+
+    query = """
+    INSERT INTO IDENTIFIER(%(pixels_table)s)
+        (path, modificationTime, length, original_path, relative_path,
+         local_path, extension, file_type, path_tags, is_anon, meta)
+    VALUES (
+        %(path)s,
+        current_timestamp(),
+        %(length)s,
+        %(path)s,
+        %(relative_path)s,
+        %(local_path)s,
+        'dcm',
+        'DICOM',
+        array(),
+        false,
+        parse_json(%(meta_json)s)
+    )
+    """
+    return query, None
