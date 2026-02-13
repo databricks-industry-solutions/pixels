@@ -1,5 +1,8 @@
 """
 Utility functions for DICOM redaction job management via SQL Warehouse API.
+
+Uses ``IDENTIFIER(:redaction_table)`` for SQL-injection-safe table
+name parameterisation (see Databricks IDENTIFIER clause docs).
 """
 
 import json
@@ -71,12 +74,13 @@ async def execute_sql_statement(
         warehouse_id: Databricks SQL Warehouse ID
         databricks_host: Databricks workspace host
         databricks_token: Databricks access token
+        params: Dictionary of named parameters
 
     Returns:
         Response dictionary from the API
 
     Raises:
-        HTTPException if the request fails
+        Exception if the request fails
     """
     url = f"{databricks_host}/api/2.0/sql/statements"
 
@@ -184,3 +188,4 @@ async def insert_redaction_job(
         "status": "inserted",
         "statement_id": result.get("statement_id"),
     }
+

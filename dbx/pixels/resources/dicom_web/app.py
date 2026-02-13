@@ -1,7 +1,9 @@
 """
-DICOMweb FastAPI application for Databricks Pixels.
+DICOMweb + OHIF FastAPI application for Databricks Pixels.
 
-Registers QIDO-RS and WADO-RS routes and starts a uvicorn server.
+Registers DICOMweb routes (QIDO-RS, WADO-RS, STOW-RS, WADO-URI) **and**
+shared OHIF routes (viewer hosting, config page, MONAI proxy, SQL
+warehouse proxy, redaction API, VLM analysis).
 """
 
 from fastapi import FastAPI, Request, Response
@@ -18,6 +20,14 @@ from utils.handlers import (
     dicomweb_stow_store,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
+
+# ── Shared common modules ─────────────────────────────────────────────
+from dbx.pixels.resources.common.middleware import (
+    LoggingMiddleware,
+    TokenMiddleware,
+)
+from dbx.pixels.resources.common.routes import register_all_common_routes
+
 
 def register_dicomweb_routes(app: FastAPI):
     """
@@ -192,12 +202,20 @@ if __name__ == "__main__":
 
     app = FastAPI(
         title="Pixels DICOMweb Service",
-        description="DICOMweb-compliant API for Databricks Pixels",
+        description="DICOMweb-compliant API with OHIF viewer, MONAI, redaction, and VLM",
         version="1.0.0",
         lifespan=lifespan,
     )
 
+    # ── DICOMweb standard routes ──────────────────────────────────────
     register_dicomweb_routes(app)
+
+    # ── Shared common routes (OHIF, proxy, MONAI, redaction, VLM) ─────
+    register_all_common_routes(app)
+
+    # ── Middleware (order matters: first added = outermost) ────────────
+    app.add_middleware(TokenMiddleware)
+    app.add_middleware(LoggingMiddleware)
 
     class Options200Middleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
