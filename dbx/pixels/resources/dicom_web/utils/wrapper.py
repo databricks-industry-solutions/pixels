@@ -159,7 +159,7 @@ class DICOMwebDatabricksWrapper:
                 num_frames = int(row[7]) if row[7] else 1
                 cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
         if cache_entries:
-            instance_path_cache.batch_put(cache_entries)
+            instance_path_cache.batch_put(self._table, cache_entries)
             logger.info(
                 f"Pre-warmed instance path cache with {len(cache_entries)} entries "
                 f"(eliminates SQL for subsequent WADO-RS calls)"
@@ -321,7 +321,7 @@ class DICOMwebDatabricksWrapper:
                 # ── Warm caches ──────────────────────────────────────
                 num_frames = int(getattr(ds, "NumberOfFrames", 1))
                 instance_path_cache.put(
-                    sop_instance_uid,
+                    sop_instance_uid, self._table,
                     {"path": local_path, "num_frames": num_frames},
                 )
                 if self._lb:
@@ -643,7 +643,7 @@ class DICOMwebDatabricksWrapper:
                 return
 
             # ── Push into in-memory cache ──────────────────────────────
-            instance_path_cache.batch_put(cache_entries)
+            instance_path_cache.batch_put(self._table, cache_entries)
             logger.info(
                 f"Series pre-warm: cached {len(cache_entries)} instance paths "
                 f"in memory"
@@ -687,7 +687,7 @@ class DICOMwebDatabricksWrapper:
             HTTPException 404: if the instance is not found anywhere.
         """
         # ── Tier 1: in-memory cache (µs) ──────────────────────────────
-        path_info = instance_path_cache.get(sop_instance_uid)
+        path_info = instance_path_cache.get(sop_instance_uid, self._table)
         if path_info:
             return path_info["path"]
 
@@ -700,7 +700,7 @@ class DICOMwebDatabricksWrapper:
                 if lb_info:
                     logger.info(f"Instance path Lakebase HIT for {sop_instance_uid}")
                     instance_path_cache.put(
-                        sop_instance_uid,
+                        sop_instance_uid, self._table,
                         {"path": lb_info["path"], "num_frames": lb_info["num_frames"]},
                     )
                     return lb_info["path"]
@@ -733,7 +733,8 @@ class DICOMwebDatabricksWrapper:
 
         # Promote to tier 1
         instance_path_cache.put(
-            sop_instance_uid, {"path": local_path, "num_frames": num_frames},
+            sop_instance_uid, self._table,
+            {"path": local_path, "num_frames": num_frames},
         )
 
         # Persist to tier 2 (Lakebase)
@@ -783,7 +784,7 @@ class DICOMwebDatabricksWrapper:
 
         try:
             # --- TIER 1: in-memory BOT cache (µs) ---
-            cached_bot = bot_cache.get(filename)
+            cached_bot = bot_cache.get(filename, self._table)
             if cached_bot:
                 logger.info(f"BOT cache HIT ({bot_cache.stats})")
                 frames_by_idx = cached_bot.get("frames_by_idx", {})
@@ -807,7 +808,7 @@ class DICOMwebDatabricksWrapper:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get("Value", ["1.2.840.10008.1.2.1"])[0]
 
-                        bot_cache.put_from_lakebase(filename, lb_frames, tsuid)
+                        bot_cache.put_from_lakebase(filename, self._table, lb_frames, tsuid)
                         logger.info("Promoted Lakebase → memory cache")
                         return db_file, lb_idx, tsuid
 
@@ -820,7 +821,7 @@ class DICOMwebDatabricksWrapper:
                 f"{len(bot_data['frames'])} frames, tsuid={bot_data['transfer_syntax_uid']}"
             )
 
-            bot_cache.put(filename, bot_data)
+            bot_cache.put(filename, self._table, bot_data)
 
             if self._lb:
                 try:

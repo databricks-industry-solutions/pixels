@@ -29,6 +29,9 @@ class BOTCache:
     Stores pre-computed byte offsets for every frame in a DICOM file,
     enabling instant random access via byte-range HTTP requests.
 
+    Cache keys are scoped by ``(filename, uc_table)`` so that entries
+    from different Unity Catalog tables never collide.
+
     Each cache entry contains:
     - transfer_syntax_uid: Transfer Syntax UID for correct MIME type
     - frames: list of frame metadata dicts
@@ -44,31 +47,39 @@ class BOTCache:
         self._hits = 0
         self._misses = 0
 
-    def get(self, filename: str) -> Optional[dict]:
+    @staticmethod
+    def _key(filename: str, uc_table: str) -> str:
+        """Build a composite cache key scoped to the UC table."""
+        return f"{filename}\x00{uc_table}"
+
+    def get(self, filename: str, uc_table: str) -> Optional[dict]:
         """Get cached BOT data for a file. Returns None if not cached."""
+        key = self._key(filename, uc_table)
         with self._lock:
-            if filename in self._cache:
-                self._cache.move_to_end(filename)
+            if key in self._cache:
+                self._cache.move_to_end(key)
                 self._hits += 1
-                return self._cache[filename]
+                return self._cache[key]
             self._misses += 1
             return None
 
-    def get_frame(self, filename: str, frame_idx: int) -> Optional[dict]:
+    def get_frame(self, filename: str, uc_table: str, frame_idx: int) -> Optional[dict]:
         """Get cached frame metadata for a specific frame. Returns None if not cached."""
-        bot = self.get(filename)
+        bot = self.get(filename, uc_table)
         if bot is None:
             return None
         return bot.get("frames_by_idx", {}).get(frame_idx)
 
-    def put(self, filename: str, bot_data: dict):
+    def put(self, filename: str, uc_table: str, bot_data: dict):
         """
         Cache BOT data for a file. Creates an indexed lookup for O(1) frame access.
 
         Args:
-            filename: Full file path (used as cache key)
+            filename: Full file path
+            uc_table: Unity Catalog table name (scopes the cache entry)
             bot_data: Dict with frames, transfer_syntax_uid, etc.
         """
+        key = self._key(filename, uc_table)
         with self._lock:
             frames_by_idx = {
                 frame["frame_number"]: frame
@@ -76,18 +87,19 @@ class BOTCache:
             }
             bot_data["frames_by_idx"] = frames_by_idx
 
-            self._cache[filename] = bot_data
-            self._cache.move_to_end(filename)
+            self._cache[key] = bot_data
+            self._cache.move_to_end(key)
 
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
 
-    def put_from_lakebase(self, filename: str, frames: list, transfer_syntax_uid: str):
+    def put_from_lakebase(self, filename: str, uc_table: str, frames: list, transfer_syntax_uid: str):
         """
         Populate BOT cache from Lakebase query results.
 
         Args:
             filename: Full file path
+            uc_table: Unity Catalog table name (scopes the cache entry)
             frames: List of frame dicts from lakebase retrieve_all_frame_ranges()
             transfer_syntax_uid: Transfer Syntax UID
         """
@@ -97,7 +109,7 @@ class BOTCache:
             "pixel_data_pos": frames[0]["pixel_data_pos"] if frames else 0,
             "num_frames": len(frames),
         }
-        self.put(filename, bot_data)
+        self.put(filename, uc_table, bot_data)
 
     @property
     def stats(self) -> dict:
@@ -125,7 +137,11 @@ class InstancePathCache:
     Thread-safe LRU cache for SOP Instance UID → file path + metadata mapping.
 
     Eliminates the SQL query to Databricks warehouse for repeated frame requests
-    to the same instance. SOP Instance UIDs are globally unique, so this is safe.
+    to the same instance.
+
+    Cache keys are scoped by ``(sop_instance_uid, uc_table)`` so that entries
+    from different Unity Catalog tables never collide, even though SOP Instance
+    UIDs are globally unique per the DICOM standard.
 
     Each cache entry contains:
     - path: local_path of the DICOM file
@@ -139,25 +155,32 @@ class InstancePathCache:
         self._hits = 0
         self._misses = 0
 
-    def get(self, sop_instance_uid: str) -> Optional[dict]:
+    @staticmethod
+    def _key(sop_instance_uid: str, uc_table: str) -> str:
+        """Build a composite cache key scoped to the UC table."""
+        return f"{sop_instance_uid}\x00{uc_table}"
+
+    def get(self, sop_instance_uid: str, uc_table: str) -> Optional[dict]:
         """Get cached path info for a SOP Instance UID."""
+        key = self._key(sop_instance_uid, uc_table)
         with self._lock:
-            if sop_instance_uid in self._cache:
-                self._cache.move_to_end(sop_instance_uid)
+            if key in self._cache:
+                self._cache.move_to_end(key)
                 self._hits += 1
-                return self._cache[sop_instance_uid]
+                return self._cache[key]
             self._misses += 1
             return None
 
-    def put(self, sop_instance_uid: str, path_info: dict):
+    def put(self, sop_instance_uid: str, uc_table: str, path_info: dict):
         """Cache path info for a SOP Instance UID."""
+        key = self._key(sop_instance_uid, uc_table)
         with self._lock:
-            self._cache[sop_instance_uid] = path_info
-            self._cache.move_to_end(sop_instance_uid)
+            self._cache[key] = path_info
+            self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
 
-    def batch_put(self, entries: dict[str, dict]):
+    def batch_put(self, uc_table: str, entries: dict[str, dict]):
         """
         Cache multiple SOP Instance UID → path_info mappings at once.
 
@@ -166,8 +189,9 @@ class InstancePathCache:
         """
         with self._lock:
             for uid, info in entries.items():
-                self._cache[uid] = info
-                self._cache.move_to_end(uid)
+                key = self._key(uid, uc_table)
+                self._cache[key] = info
+                self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
 
