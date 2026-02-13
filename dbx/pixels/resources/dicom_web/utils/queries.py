@@ -1,0 +1,225 @@
+"""
+QIDO-RS SQL query builders — **parameterized**.
+
+Every function returns a ``(query, params)`` tuple.  User-supplied values are
+**never** interpolated into the SQL string; they are passed as bind parameters
+(``%(name)s`` placeholders) handled by the Databricks SQL Connector, which
+prevents SQL injection at the protocol level.
+
+Table names are SQL identifiers and cannot be parameterized, so they are
+validated by ``validate_table_name()`` before interpolation.
+
+See: https://docs.databricks.com/aws/en/dev-tools/python-sql-connector
+"""
+
+from typing import Any, Dict
+
+from .sql_client import validate_table_name
+
+
+# ---------------------------------------------------------------------------
+# Public query builders — each returns (query_str, params_dict)
+# ---------------------------------------------------------------------------
+
+
+def build_study_query(
+    pixels_table: str, params: Dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a QIDO-RS *study-level* search query.
+
+    Supported DICOMweb params: PatientName, PatientID, StudyDate,
+    AccessionNumber, StudyDescription, StudyInstanceUID,
+    ModalitiesInStudy, limit, offset.
+    """
+    table = validate_table_name(pixels_table)
+    filters: list[str] = ["1=1"]
+    sql_params: dict[str, Any] = {}
+
+    # Patient Name (case-insensitive, wildcard)
+    if "PatientName" in params or "00100010" in params:
+        name = params.get("PatientName", params.get("00100010", ""))
+        name = name.replace("*", "%").replace("?", "_")
+        filters.append(
+            "lower(meta:['00100010'].Value[0]::String) like lower(%(patient_name)s)"
+        )
+        sql_params["patient_name"] = name
+
+    # Patient ID
+    if "PatientID" in params or "00100020" in params:
+        pid = params.get("PatientID", params.get("00100020", ""))
+        pid = pid.replace("*", "%").replace("?", "_")
+        filters.append("meta:['00100020'].Value[0]::String like %(patient_id)s")
+        sql_params["patient_id"] = pid
+
+    # Accession Number
+    if "AccessionNumber" in params or "00080050" in params:
+        acc = params.get("AccessionNumber", params.get("00080050", ""))
+        acc = acc.replace("*", "%").replace("?", "_")
+        filters.append("meta:['00080050'].Value[0]::String like %(accession)s")
+        sql_params["accession"] = acc
+
+    # Study Description
+    if "StudyDescription" in params or "00081030" in params:
+        desc = params.get("StudyDescription", params.get("00081030", ""))
+        desc = desc.replace("*", "%").replace("?", "_")
+        filters.append(
+            "lower(meta:['00081030'].Value[0]::String) like lower(%(study_desc)s)"
+        )
+        sql_params["study_desc"] = desc
+
+    # Study Instance UID
+    if "StudyInstanceUID" in params or "0020000D" in params:
+        uid = params.get("StudyInstanceUID", params.get("0020000D", ""))
+        filters.append("meta:['0020000D'].Value[0]::String = %(study_uid)s")
+        sql_params["study_uid"] = uid
+
+    # Modalities in Study (variable-length IN clause)
+    if "ModalitiesInStudy" in params or "00080061" in params:
+        modalities = params.get("ModalitiesInStudy", params.get("00080061", ""))
+        if isinstance(modalities, str):
+            modalities = [modalities]
+        placeholders = []
+        for i, mod in enumerate(modalities):
+            key = f"mod_{i}"
+            placeholders.append(f"%({key})s")
+            sql_params[key] = mod
+        in_clause = ", ".join(placeholders)
+        filters.append(
+            f"(meta:['00080060'].Value[0]::String IN ({in_clause}) OR "
+            f"meta:['00080061'].Value[0]::String IN ({in_clause}))"
+        )
+
+    # Study Date (single value or range YYYYMMDD-YYYYMMDD)
+    if "StudyDate" in params or "00080020" in params:
+        sd = params.get("StudyDate", params.get("00080020", ""))
+        if "-" in sd:
+            start, end = sd.split("-", 1)
+            filters.append("meta:['00080020'].Value[0]::String >= %(date_start)s")
+            filters.append("meta:['00080020'].Value[0]::String <= %(date_end)s")
+            sql_params["date_start"] = start
+            sql_params["date_end"] = end
+        else:
+            filters.append("meta:['00080020'].Value[0]::String = %(study_date)s")
+            sql_params["study_date"] = sd
+
+    # Pagination (integers — validated, not parameterized)
+    limit_clause = ""
+    if "limit" in params:
+        limit_clause = f"LIMIT {int(params['limit'])}"
+    offset_clause = ""
+    if "offset" in params:
+        offset_clause = f"OFFSET {int(params['offset'])}"
+
+    where = " AND ".join(filters)
+
+    query = f"""
+    SELECT
+        meta:['00100010'].Value[0]::String as PatientName,
+        meta:['00100020'].Value[0]::String as PatientID,
+        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
+        meta:['00080020'].Value[0]::String as StudyDate,
+        meta:['00080050'].Value[0]::String as AccessionNumber,
+        meta:['00081030'].Value[0]::String as StudyDescription,
+        meta:['00080060'].Value[0]::String as Modality,
+        meta:['00080061'].Value[0]::String as ModalitiesInStudy,
+        COUNT(DISTINCT meta:['0020000E'].Value[0]::String) as NumberOfStudyRelatedSeries,
+        COUNT(*) as NumberOfStudyRelatedInstances
+    FROM {table}
+    WHERE {where}
+    GROUP BY
+        PatientName, PatientID, StudyInstanceUID, StudyDate,
+        AccessionNumber, StudyDescription, Modality, ModalitiesInStudy
+    ORDER BY StudyDate DESC
+    {limit_clause} {offset_clause}
+    """
+    return query, sql_params
+
+
+def build_series_query(
+    pixels_table: str,
+    study_instance_uid: str,
+    params: Dict[str, Any] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Build a QIDO-RS *series-level* search query within a study."""
+    table = validate_table_name(pixels_table)
+    filters = ["meta:['0020000D'].Value[0]::String = %(study_uid)s"]
+    sql_params: dict[str, Any] = {"study_uid": study_instance_uid}
+
+    if params:
+        if "SeriesInstanceUID" in params or "0020000E" in params:
+            uid = params.get("SeriesInstanceUID", params.get("0020000E", ""))
+            filters.append("meta:['0020000E'].Value[0]::String = %(series_uid)s")
+            sql_params["series_uid"] = uid
+        if "Modality" in params or "00080060" in params:
+            mod = params.get("Modality", params.get("00080060", ""))
+            filters.append("meta:['00080060'].Value[0]::String = %(modality)s")
+            sql_params["modality"] = mod
+        if "SeriesNumber" in params or "00200011" in params:
+            sn = params.get("SeriesNumber", params.get("00200011", ""))
+            filters.append("meta:['00200011'].Value[0]::String = %(series_number)s")
+            sql_params["series_number"] = sn
+
+    where = " AND ".join(filters)
+
+    query = f"""
+    SELECT
+        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
+        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        meta:['00080060'].Value[0]::String as Modality,
+        meta:['00200011'].Value[0]::String as SeriesNumber,
+        meta:['0008103E'].Value[0]::String as SeriesDescription,
+        meta:['00080021'].Value[0]::String as SeriesDate,
+        COUNT(*) as NumberOfSeriesRelatedInstances
+    FROM {table}
+    WHERE {where}
+    GROUP BY
+        StudyInstanceUID, SeriesInstanceUID, Modality,
+        SeriesNumber, SeriesDescription, SeriesDate
+    ORDER BY SeriesNumber
+    """
+    return query, sql_params
+
+
+def build_instances_query(
+    pixels_table: str,
+    study_instance_uid: str,
+    series_instance_uid: str,
+    params: Dict[str, Any] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Build a QIDO-RS *instance-level* search query within a series."""
+    table = validate_table_name(pixels_table)
+    filters = [
+        "meta:['0020000D'].Value[0]::String = %(study_uid)s",
+        "meta:['0020000E'].Value[0]::String = %(series_uid)s",
+    ]
+    sql_params: dict[str, Any] = {
+        "study_uid": study_instance_uid,
+        "series_uid": series_instance_uid,
+    }
+
+    if params:
+        if "SOPInstanceUID" in params or "00080018" in params:
+            uid = params.get("SOPInstanceUID", params.get("00080018", ""))
+            filters.append("meta:['00080018'].Value[0]::String = %(sop_uid)s")
+            sql_params["sop_uid"] = uid
+
+    where = " AND ".join(filters)
+
+    query = f"""
+    SELECT
+        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
+        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        meta:['00080018'].Value[0]::String as SOPInstanceUID,
+        meta:['00080016'].Value[0]::String as SOPClassUID,
+        meta:['00200013'].Value[0]::INT as InstanceNumber,
+        meta:['00280010'].Value[0]::String as Rows,
+        meta:['00280011'].Value[0]::String as Columns,
+        meta:['00280008'].Value[0]::String as NumberOfFrames,
+        path,
+        local_path
+    FROM {table}
+    WHERE {where}
+    ORDER BY InstanceNumber
+    """
+    return query, sql_params

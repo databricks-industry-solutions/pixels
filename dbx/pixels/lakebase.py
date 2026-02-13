@@ -335,6 +335,40 @@ class LakebaseUtils:
         ).format(sql.Identifier(table))
         self.execute_query(query, (filename, frame, start_pos, end_pos, pixel_data_pos))
 
+    def retrieve_all_frame_ranges(
+        self, filename: str, table: str = DICOM_FRAMES_TABLE
+    ) -> list[dict] | None:
+        """
+        Retrieve ALL cached frame offsets for a file in a single query.
+        
+        This is the PACS-style BOT lookup: one query returns the complete
+        offset table for the file, enabling instant random access to any frame.
+        
+        Args:
+            filename: Full path of the DICOM file
+            table: Table name (default: dicom_frames)
+            
+        Returns:
+            List of frame metadata dicts sorted by frame number, or None if no data cached.
+            Each dict has: frame_number, start_pos, end_pos, pixel_data_pos
+        """
+        query = sql.SQL(
+            "SELECT frame, start_pos, end_pos, pixel_data_pos FROM {} "
+            "WHERE filename = %s ORDER BY frame"
+        ).format(sql.Identifier(table))
+        results = self.execute_and_fetch_query(query, (filename,))
+        if not results:
+            return None
+        return [
+            {
+                "frame_number": int(row[0]),
+                "start_pos": int(row[1]),
+                "end_pos": int(row[2]),
+                "pixel_data_pos": int(row[3]),
+            }
+            for row in results
+        ]
+
     def insert_frame_ranges(
         self, filename: str, frame_ranges: list[dict], table: str = DICOM_FRAMES_TABLE
     ):
