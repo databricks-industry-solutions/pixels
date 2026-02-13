@@ -1,13 +1,15 @@
 """
 Low-level DICOM file I/O operations.
 
-Provides byte-range reads, DICOM metadata extraction, and full Basic Offset
-Table (BOT) computation for PACS-style frame indexing.
+Provides byte-range reads, **streaming** file delivery, DICOM metadata
+extraction, and full Basic Offset Table (BOT) computation for PACS-style
+frame indexing.
 
 All functions operate on Databricks Volumes via the Files API.
 """
 
 import struct
+from collections.abc import Iterator
 
 import fsspec
 import pydicom
@@ -21,7 +23,19 @@ logger = LoggerProvider("DICOMweb.IO")
 
 
 # ---------------------------------------------------------------------------
-# Byte-range file access
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _auth_headers(token: str) -> dict[str, str]:
+    """Standard auth + UA headers for the Databricks Files API."""
+    return {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Byte-range file access (buffered — for frames / small reads)
 # ---------------------------------------------------------------------------
 
 def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None) -> bytes:
@@ -36,10 +50,7 @@ def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None
     Returns:
         Raw bytes of the requested range (or whole file if *frame* is ``None``).
     """
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
-    }
+    headers = _auth_headers(token)
     if frame is not None:
         headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
 
@@ -52,18 +63,69 @@ def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None
     return response.content
 
 
+# ---------------------------------------------------------------------------
+# Streaming file access (zero-copy — for full instance retrieval)
+# ---------------------------------------------------------------------------
+
+def stream_file(
+    token: str,
+    db_file: DatabricksFile,
+    chunk_size: int = 256 * 1024,
+) -> tuple[Iterator[bytes], str | None]:
+    """
+    Stream an entire file from Databricks Volumes **without buffering**.
+
+    Opens a streaming HTTP connection to the Files API and yields chunks
+    as they arrive.  This avoids loading the full file into server memory,
+    which is critical for large DICOM instances (multi-frame CT / MR scans).
+
+    The returned generator **must** be fully consumed or explicitly closed
+    to release the upstream HTTP connection.  FastAPI's ``StreamingResponse``
+    handles this automatically.
+
+    Args:
+        token: Databricks bearer token.
+        db_file: Target file descriptor.
+        chunk_size: Bytes per yield (default 256 KiB).
+
+    Returns:
+        ``(chunk_generator, content_length_str | None)``
+    """
+    headers = _auth_headers(token)
+    response = requests.get(db_file.to_api_url(), headers=headers, stream=True)
+
+    if response.status_code != 200:
+        body = response.text
+        response.close()
+        raise RuntimeError(
+            f"Failed to stream {db_file.file_path} "
+            f"(HTTP {response.status_code}): {body}"
+        )
+
+    content_length = response.headers.get("Content-Length")
+    logger.info(
+        f"Streaming {db_file.file_path} "
+        f"(Content-Length: {content_length or 'unknown'}, chunk={chunk_size})"
+    )
+
+    def generate() -> Iterator[bytes]:
+        try:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    yield chunk
+        finally:
+            response.close()
+
+    return generate(), content_length
+
+
 def get_file_metadata(token: str, db_file: DatabricksFile) -> dict:
     """
     Read DICOM metadata (header + file meta) without loading pixel data.
 
     Returns a merged JSON dict of the dataset and file-meta information header.
     """
-    client_kwargs = {
-        "headers": {
-            "Authorization": f"Bearer {token}",
-            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
-        },
-    }
+    client_kwargs = {"headers": _auth_headers(token)}
     with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
         ds = pydicom.dcmread(f, stop_before_pixels=True)
         result = ds.to_json_dict()
@@ -210,12 +272,7 @@ def compute_full_bot(token: str, db_file: DatabricksFile) -> dict:
     pixel_data_marker = b"\xe0\x7f\x10\x00"
     frames: list[dict] = []
 
-    client_kwargs = {
-        "headers": {
-            "Authorization": f"Bearer {token}",
-            "User-Agent": f"DatabricksPixels/{dbx_pixels_version}",
-        },
-    }
+    client_kwargs = {"headers": _auth_headers(token)}
 
     with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
         ds = pydicom.dcmread(f, stop_before_pixels=True)

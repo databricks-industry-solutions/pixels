@@ -21,6 +21,7 @@ import uuid
 
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 
 from dbx.pixels.lakebase import LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
@@ -192,15 +193,20 @@ def dicomweb_wado_instance(
     study_instance_uid: str,
     series_instance_uid: str,
     sop_instance_uid: str,
-) -> Response:
-    """GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}"""
+) -> StreamingResponse:
+    """GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}
+
+    Streams the full DICOM file directly from Databricks Volumes → client
+    without buffering the entire file in server memory.
+    """
     wrapper = get_dicomweb_wrapper(request)
-    content = wrapper.retrieve_instance(study_instance_uid, series_instance_uid, sop_instance_uid)
-    return Response(
-        content=content,
-        media_type="application/octet-stream",
-        headers={"Content-Length": str(len(content)), "Cache-Control": "private, max-age=3600"},
+    stream, content_length = wrapper.retrieve_instance(
+        study_instance_uid, series_instance_uid, sop_instance_uid,
     )
+    headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
+    if content_length:
+        headers["Content-Length"] = content_length
+    return StreamingResponse(stream, media_type="application/dicom", headers=headers)
 
 
 @timing_decorator
@@ -210,8 +216,13 @@ def dicomweb_wado_instance_frames(
     series_instance_uid: str,
     sop_instance_uid: str,
     frame_list: str,
-) -> Response:
-    """GET /…/instances/{instance}/frames/{frameList}"""
+) -> StreamingResponse:
+    """GET /…/instances/{instance}/frames/{frameList}
+
+    Streams the multipart response frame-by-frame: the client receives
+    each frame as soon as it arrives from the Volumes byte-range read,
+    without waiting for all frames to be fetched first.
+    """
     wrapper = get_dicomweb_wrapper(request)
 
     try:
@@ -225,7 +236,8 @@ def dicomweb_wado_instance_frames(
     )
 
     try:
-        frames_data, transfer_syntax_uid = wrapper.retrieve_instance_frames(
+        # BOT resolution (cache/compute) happens eagerly — errors surface now
+        frame_stream, transfer_syntax_uid = wrapper.retrieve_instance_frames(
             study_instance_uid, series_instance_uid, sop_instance_uid,
             frame_numbers, lb_utils,
         )
@@ -233,26 +245,24 @@ def dicomweb_wado_instance_frames(
         mime_type = TRANSFER_SYNTAX_TO_MIME.get(transfer_syntax_uid, "application/octet-stream")
         boundary = f"BOUNDARY_{uuid.uuid4()}"
 
-        parts = []
-        for idx, frame_data in enumerate(frames_data):
-            logger.info(
-                f"Frame {idx + 1}: {len(frame_data)} bytes, "
-                f"first 4 bytes: {frame_data[:4].hex() if len(frame_data) >= 4 else 'N/A'}"
-            )
-            header = (
-                f"--{boundary}\r\n"
-                f"Content-Type: {mime_type};transfer-syntax={transfer_syntax_uid}\r\n\r\n"
-            )
-            parts.append(header.encode() + frame_data + b"\r\n")
-        parts.append(f"--{boundary}--\r\n".encode())
+        def multipart_generator():
+            """Yield multipart parts as each frame arrives from Volumes."""
+            for idx, frame_data in enumerate(frame_stream):
+                logger.info(
+                    f"Frame {idx + 1}: {len(frame_data)} bytes, "
+                    f"first 4 bytes: {frame_data[:4].hex() if len(frame_data) >= 4 else 'N/A'}"
+                )
+                part_header = (
+                    f"--{boundary}\r\n"
+                    f"Content-Type: {mime_type};transfer-syntax={transfer_syntax_uid}\r\n\r\n"
+                )
+                yield part_header.encode() + frame_data + b"\r\n"
+            yield f"--{boundary}--\r\n".encode()
 
-        body = b"".join(parts)
-        logger.info(f"Returning {len(frames_data)} frame(s), total {len(body)} bytes")
-
-        return Response(
-            content=body,
+        return StreamingResponse(
+            multipart_generator(),
             media_type=f"multipart/related; type={mime_type}; boundary={boundary}",
-            headers={"Content-Length": str(len(body)), "Cache-Control": "private, max-age=3600"},
+            headers={"Cache-Control": "private, max-age=3600"},
         )
     except Exception:
         logger.error("Error retrieving frames", exc_info=True)

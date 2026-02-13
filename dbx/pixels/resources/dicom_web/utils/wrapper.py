@@ -5,6 +5,7 @@ Orchestrates QIDO-RS (query) and WADO-RS (retrieve) operations using:
 
 * **Databricks SQL Connector** with parameterized queries (no SQL injection)
 * **PACS-style 3-tier BOT cache** for sub-second frame retrieval
+* **Streaming** file delivery for zero-copy instance / frame transfers
 
 Authorization is handled by the ``DatabricksSQLClient`` which supports
 both App auth and User (OBO) auth.
@@ -12,6 +13,7 @@ both App auth and User (OBO) auth.
 
 import json
 import time
+from collections.abc import Iterator
 from typing import Any, Dict, List
 
 from fastapi import HTTPException
@@ -21,7 +23,7 @@ from dbx.pixels.logging import LoggerProvider
 
 from . import timing_decorator
 from .cache import bot_cache, instance_path_cache
-from .dicom_io import compute_full_bot, get_file_metadata, get_file_part
+from .dicom_io import compute_full_bot, get_file_metadata, get_file_part, stream_file
 from .dicom_tags import format_dicomweb_response
 from .queries import build_instances_query, build_series_query, build_study_query
 from .sql_client import DatabricksSQLClient, validate_table_name
@@ -137,11 +139,21 @@ class DICOMwebDatabricksWrapper:
         logger.info(f"WADO-RS: {len(metadata)} instance metadata records")
         return metadata
 
+    @timing_decorator
     def retrieve_instance(
         self, study_instance_uid: str, series_instance_uid: str, sop_instance_uid: str
-    ) -> tuple[bytes, str]:
-        """WADO-RS: retrieve a full DICOM instance (all bytes)."""
-        logger.info(f"WADO-RS: retrieving instance {sop_instance_uid}")
+    ) -> tuple[Iterator[bytes], str | None]:
+        """
+        WADO-RS: **stream** a full DICOM instance from the Volumes API.
+
+        Returns ``(chunk_generator, content_length_str | None)``.
+
+        The generator pipes bytes directly from the upstream Volumes HTTP
+        connection to the client with zero buffering.  Callers **must**
+        consume or close the generator (``StreamingResponse`` does this
+        automatically).
+        """
+        logger.info(f"WADO-RS: streaming instance {sop_instance_uid}")
         query = f"""
         SELECT local_path, path
         FROM {self._table}
@@ -161,14 +173,14 @@ class DICOMwebDatabricksWrapper:
 
         local_path = results[0][0]
         try:
-            with open(local_path, "rb") as fh:
-                return fh.read(), "application/dicom"
+            db_file = DatabricksFile.from_full_path(local_path)
+            return stream_file(self._token, db_file)
         except Exception as exc:
-            logger.error(f"Error reading instance: {exc}")
-            raise HTTPException(status_code=500, detail=f"Error reading instance: {exc}")
+            logger.error(f"Error streaming instance: {exc}")
+            raise HTTPException(status_code=500, detail=f"Error streaming instance: {exc}")
 
     # ------------------------------------------------------------------
-    # WADO-RS — PACS-style frame retrieval (3-tier cache)
+    # WADO-RS — PACS-style frame retrieval (3-tier cache, streaming)
     # ------------------------------------------------------------------
 
     @timing_decorator
@@ -179,29 +191,76 @@ class DICOMwebDatabricksWrapper:
         sop_instance_uid: str,
         frame_numbers: List[int],
         lb_utils=None,
-    ) -> tuple[List[bytes], str]:
+    ) -> tuple[Iterator[bytes], str]:
         """
-        Retrieve specific frames using the 3-tier PACS-style BOT cache.
+        Retrieve specific frames using the 3-tier PACS-style BOT cache,
+        returning a **streaming** generator.
 
-        1. In-memory BOT cache  (µs)
-        2. Lakebase persistent   (ms)
-        3. Full BOT computation  (s) — only on first access
+        The BOT resolution (cache lookups / computation) happens eagerly so
+        that errors surface before the first byte is sent.  Frame bytes are
+        then yielded one-by-one via byte-range HTTP reads, giving the client
+        data as soon as each frame arrives.
 
         Args:
             frame_numbers: 1-indexed frame numbers (per DICOMweb spec).
             lb_utils: Optional ``LakebaseUtils`` for persistent caching.
 
         Returns:
-            ``(list_of_frame_bytes, transfer_syntax_uid)``
+            ``(frame_generator, transfer_syntax_uid)``
         """
         logger.info(f"WADO-RS: frames {frame_numbers} from {sop_instance_uid}")
 
+        db_file, frames_by_idx, transfer_syntax_uid = self._resolve_frame_offsets(
+            study_instance_uid, series_instance_uid, sop_instance_uid,
+            frame_numbers, lb_utils,
+        )
+
+        token = self._token
+
+        def generate() -> Iterator[bytes]:
+            for fn in frame_numbers:
+                meta = frames_by_idx[fn - 1]
+                t0 = time.time()
+                content = get_file_part(token, db_file, meta)
+                logger.info(
+                    f"⏱️  get_file_part frame {fn}: "
+                    f"{time.time() - t0:.4f}s, {len(content)} bytes"
+                )
+                content = DICOMwebDatabricksWrapper._strip_item_header(content, fn)
+                yield content
+
+        return generate(), transfer_syntax_uid
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _resolve_frame_offsets(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        sop_instance_uid: str,
+        frame_numbers: List[int],
+        lb_utils=None,
+    ) -> tuple[DatabricksFile, dict, str]:
+        """
+        Resolve frame byte-offsets from the 3-tier PACS cache.
+
+        1. In-memory BOT cache  (µs)
+        2. Lakebase persistent   (ms)
+        3. Full BOT computation  (s) — only on first access
+
+        Returns:
+            ``(db_file, frames_by_idx, transfer_syntax_uid)``
+
+        Raises:
+            HTTPException: If the instance or requested frames are not found.
+        """
         # --- resolve SOP UID → file path (with caching) ---
         path_info = instance_path_cache.get(sop_instance_uid)
         if path_info:
             logger.info(f"Instance path cache HIT for {sop_instance_uid}")
             path = path_info["path"]
-            num_frames = path_info["num_frames"]
         else:
             query = f"""
             SELECT local_path,
@@ -235,11 +294,9 @@ class DICOMwebDatabricksWrapper:
             cached_bot = bot_cache.get(filename)
             if cached_bot:
                 logger.info(f"BOT cache HIT ({bot_cache.stats})")
-                if all((fn - 1) in cached_bot.get("frames_by_idx", {}) for fn in frame_numbers):
-                    return self._read_frames(
-                        token, db_file, cached_bot["frames_by_idx"],
-                        frame_numbers, cached_bot["transfer_syntax_uid"], "memory",
-                    )
+                frames_by_idx = cached_bot.get("frames_by_idx", {})
+                if all((fn - 1) in frames_by_idx for fn in frame_numbers):
+                    return db_file, frames_by_idx, cached_bot["transfer_syntax_uid"]
 
             # --- TIER 2: Lakebase persistent cache (ms) ---
             if lb_utils:
@@ -260,10 +317,7 @@ class DICOMwebDatabricksWrapper:
 
                         bot_cache.put_from_lakebase(filename, lb_frames, tsuid)
                         logger.info("Promoted Lakebase → memory cache")
-
-                        return self._read_frames(
-                            token, db_file, lb_idx, frame_numbers, tsuid, "lakebase",
-                        )
+                        return db_file, lb_idx, tsuid
 
             # --- TIER 3: compute full BOT (one-time cost per file) ---
             logger.info(f"Cache MISS — computing full BOT for {filename}")
@@ -295,43 +349,13 @@ class DICOMwebDatabricksWrapper:
                         ),
                     )
 
-            return self._read_frames(
-                token, db_file, frames_by_idx,
-                frame_numbers, bot_data["transfer_syntax_uid"], "computed",
-            )
+            return db_file, frames_by_idx, bot_data["transfer_syntax_uid"]
 
         except HTTPException:
             raise
         except Exception as exc:
-            logger.error(f"Frame extraction error: {exc}")
-            raise HTTPException(status_code=500, detail=f"Error extracting frames: {exc}")
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _read_frames(
-        self,
-        token: str,
-        db_file: DatabricksFile,
-        frames_by_idx: dict,
-        frame_numbers: List[int],
-        transfer_syntax_uid: str,
-        source: str,
-    ) -> tuple[List[bytes], str]:
-        """Fetch raw frame bytes using cached offsets and return them."""
-        frames_data: List[bytes] = []
-        for fn in frame_numbers:
-            meta = frames_by_idx[fn - 1]
-            t0 = time.time()
-            content = get_file_part(token, db_file, meta)
-            logger.info(
-                f"⏱️  get_file_part ({source}) frame {fn}: "
-                f"{time.time() - t0:.4f}s, {len(content)} bytes"
-            )
-            content = self._strip_item_header(content, fn)
-            frames_data.append(content)
-        return frames_data, transfer_syntax_uid
+            logger.error(f"Frame offset resolution error: {exc}")
+            raise HTTPException(status_code=500, detail=f"Error resolving frame offsets: {exc}")
 
     @staticmethod
     def _strip_item_header(frame_content: bytes, frame_num: int) -> bytes:
