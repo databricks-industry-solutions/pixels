@@ -24,7 +24,25 @@ from dbx.pixels.resources.common.config import (
 
 
 class TokenMiddleware(BaseHTTPMiddleware):
-    """Inject runtime config into OHIF JavaScript on the fly."""
+    """Inject runtime config into OHIF JavaScript on the fly.
+
+    Parameters
+    ----------
+    app : ASGIApp
+        The ASGI application (injected by Starlette).
+    default_data_source : str
+        The OHIF data-source name to activate by default.
+        Use ``"databricksPixelsDicom"`` for the legacy Lakehouse app and
+        ``"dicomweb"`` for the DICOMweb app.
+    dicomweb_root : str
+        Base URL for the DICOMweb endpoints (e.g. ``"/api/dicomweb"``).
+        Only relevant when *default_data_source* is ``"dicomweb"``.
+    """
+
+    def __init__(self, app, default_data_source: str = "databricksPixelsDicom", dicomweb_root: str = "/api/dicomweb"):
+        super().__init__(app)
+        self.default_data_source = default_data_source
+        self.dicomweb_root = dicomweb_root
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path.endswith("app-config-custom.js"):
@@ -34,6 +52,8 @@ class TokenMiddleware(BaseHTTPMiddleware):
                 body.replace(b"{ROUTER_BASENAME}", b"/ohif/")
                 .replace(b"{PIXELS_TABLE}", pixels_table.encode())
                 .replace(b"{HOST_NAME}", b"/sqlwarehouse")
+                .replace(b"{DEFAULT_DATA_SOURCE}", self.default_data_source.encode())
+                .replace(b"{DICOMWEB_ROOT}", self.dicomweb_root.encode())
             )
             return Response(content=new_body, media_type="text/javascript")
 

@@ -10,17 +10,17 @@ window.config = {
   showCPUFallbackMessage: true,
   showLoadingIndicator: true,
   strictZSpacingForVolumeViewport: true,
-  defaultDataSourceName: 'databricksPixelsDicom',
-  
+  defaultDataSourceName: '{DEFAULT_DATA_SOURCE}',
+
   // GPU Acceleration Settings
   useSharedArrayBuffer: 'AUTO', // Enable SharedArrayBuffer for better performance
   useNorm16Texture: true, // Use 16-bit normalized textures for GPU rendering
   preferSizeOverAccuracy: true, // Prioritize rendering speed over precision
   useCPURendering: false, // Force GPU rendering when available
-  
+
   // Web Worker Settings for Parallel Decoding
   maxNumberOfWebWorkers: navigator.hardwareConcurrency || 4, // Use all available CPU cores
-  
+
   // Increase concurrent request pool sizes for better parallelism
   maxNumRequests: {
     interaction: 20,  // User interactions (pan, zoom, scroll) - high priority
@@ -32,7 +32,7 @@ window.config = {
   customizationService: [
     {
       'studyBrowser.studyMode': {
-         $set: 'primary', // or recent
+        $set: 'primary', // or recent
       },
     },
   ],
@@ -51,6 +51,30 @@ window.config = {
         staticWado: true,
         lazyLoad: true
       },
+    },
+    {
+      namespace: "@ohif/extension-default.dataSourcesModule.dicomweb",
+      sourceName: "pixelsdicomweb",
+      configuration: {
+        friendlyName: "Pixels dicomweb",
+        qidoRoot: "{DICOMWEB_ROOT}",
+        wadoRoot: "{DICOMWEB_ROOT}",
+        wadoUriRoot: "{DICOMWEB_ROOT}/wado",
+        qidoSupportsIncludeField: !1,
+        supportsReject: !0,
+        supportsStow: !0,
+        imageRendering: "wadouri",
+        thumbnailRendering: "wadouri",
+        enableStudyLazyLoad: !0,
+        supportsFuzzyMatching: !1,
+        supportsWildcard: !0,
+        staticWado: !0,
+        singlepart: "bulkdata,video",
+        bulkDataURI: {
+          enabled: !0,
+          relativeResolution: "studies"
+        }
+      }
     },
     {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomlocal',

@@ -43,10 +43,11 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
             <script>document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/api/monai/; Path=/ohif; Expires=Session;"</script>
             <style>
                 .version-badge {{
-                    display: inline-block;
+                    display: block;
                     font-size: 12px;
                     color: #6b7280;
-                    margin-top: 4px;
+                    margin-top: 12px;
+                    text-align: center;
                 }}
                 /* ── update banner ── */
                 .update-banner {{
@@ -83,7 +84,6 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
                     <img src="https://{host}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
                         <div class="login-form" style="min-width:600px">
                             <h3 class="sub-header">Pixels Solution Accelerator</h3>
-                            <span class="version-badge">v{ui_version}</span>
 
                             <div id="update-banner" class="update-banner">
                                 <span>&#9888;</span>
@@ -103,6 +103,7 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
                                 <button name="path" value="/ohif/local?" class="btn btn-secondary btn-large" type="submit">Browse local files</button>
 
                                 <div style="justify-content: center;display: flex; white-space: pre"><a href="https://{host}" target="_blank" rel="noopener noreferrer">Workspace</a> | <a href="https://{host}/apps/{app_name}/logs" target="_blank" rel="noopener noreferrer">Logs</a></div>
+                                <span class="version-badge">v{ui_version}</span>
                             </div>
                             </form>
                             </div>

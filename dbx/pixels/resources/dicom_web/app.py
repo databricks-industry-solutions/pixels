@@ -214,7 +214,7 @@ if __name__ == "__main__":
     register_all_common_routes(app)
 
     # ── Middleware (order matters: first added = outermost) ────────────
-    app.add_middleware(TokenMiddleware)
+    app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
     app.add_middleware(LoggingMiddleware)
 
     class Options200Middleware(BaseHTTPMiddleware):
