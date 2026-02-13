@@ -43,7 +43,7 @@ def collect_metrics() -> dict:
     """
     # Import singletons lazily to avoid circular imports
     from .cache import bot_cache, instance_path_cache
-    from .dicom_io import file_prefetcher
+    from .dicom_io import bot_precompute_stats, file_prefetcher
 
     proc = psutil.Process()
     mem = proc.memory_info()
@@ -70,6 +70,7 @@ def collect_metrics() -> dict:
             "instance_path_cache": instance_path_cache.stats,
         },
         "prefetcher": pf_stats,
+        "bot_precompute": bot_precompute_stats(),
         "http_pool": {
             "pool_connections": 20,
             "pool_maxsize": 50,
@@ -89,6 +90,7 @@ def _log_metrics_summary():
         c = m["caches"]
         p = m["prefetcher"]
 
+        bp = m["bot_precompute"]
         logger.info(
             f"📊  CPU: {s['cpu_percent_process']:.1f}% proc / "
             f"{s['cpu_percent_system']:.1f}% sys | "
@@ -101,7 +103,8 @@ def _log_metrics_summary():
             f"Path$: {c['instance_path_cache']['entries']} entries "
             f"({c['instance_path_cache']['hit_rate']} hit) | "
             f"Prefetch: {p['futures_done']}✓ / {p['futures_pending']}⏳ "
-            f"mem {p['memory_used_mb']}/{p['memory_budget_mb']} MB"
+            f"mem {p['memory_used_mb']}/{p['memory_budget_mb']} MB | "
+            f"BOT precomp: {bp['done']}✓ / {bp['pending']}⏳"
         )
     except Exception as exc:
         logger.error(f"Metrics collection failed: {exc}")

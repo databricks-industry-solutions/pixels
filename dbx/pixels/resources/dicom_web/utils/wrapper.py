@@ -12,6 +12,7 @@ both App auth and User (OBO) auth.
 """
 
 import json
+import threading
 import time
 from collections.abc import Iterator
 from typing import Any, Dict, List
@@ -28,6 +29,7 @@ from .dicom_io import (
     file_prefetcher,
     get_file_metadata,
     get_file_part,
+    schedule_bot_precompute,
     stream_file,
 )
 from .dicom_tags import format_dicomweb_response
@@ -35,6 +37,16 @@ from .queries import build_instances_query, build_series_query, build_study_quer
 from .sql_client import DatabricksSQLClient, validate_table_name
 
 logger = LoggerProvider("DICOMweb.Wrapper")
+
+# ---------------------------------------------------------------------------
+# Module-level series pre-warming state
+# ---------------------------------------------------------------------------
+# Tracks which (study, series) pairs have already been primed so that the
+# background task is only submitted once per series — no matter how many
+# concurrent WADO-URI / WADO-RS requests arrive.
+
+_series_primed: set[str] = set()
+_series_primed_lock = threading.Lock()
 
 
 class DICOMwebDatabricksWrapper:
@@ -160,14 +172,32 @@ class DICOMwebDatabricksWrapper:
             except Exception as exc:
                 logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
 
+        # Mark series as primed so that _maybe_prime_series (called by
+        # retrieve_instance / retrieve_instance_frames) skips the duplicate
+        # series-level query.
+        series_key = f"{study_instance_uid}/{series_instance_uid}"
+        with _series_primed_lock:
+            _series_primed.add(series_key)
+
         # Background prefetch — download files from Volumes in parallel ─
+        # Small files are downloaded fully (prefetcher) and get their BOT
+        # computed as a side-effect.  Large files are NOT downloaded but
+        # their BOTs are pre-computed separately so frame requests are fast.
         prefetch_paths = [info["path"] for info in cache_entries.values()]
         if prefetch_paths:
             n = file_prefetcher.schedule(self._token, prefetch_paths)
             logger.info(
                 f"Background prefetch: {n} new downloads scheduled "
-                f"({len(prefetch_paths)} instances, 10 threads)"
+                f"({len(prefetch_paths)} instances)"
             )
+            # Pre-compute BOTs for ALL paths (including those skipped by
+            # the prefetcher due to file size).  Already-cached BOTs are
+            # skipped cheaply inside schedule_bot_precompute().
+            nb = schedule_bot_precompute(
+                self._token, prefetch_paths, lb_utils=self._lb,
+            )
+            if nb:
+                logger.info(f"Background BOT pre-computation: {nb} tasks")
         # ──────────────────────────────────────────────────────────────
 
         columns = [
@@ -206,21 +236,25 @@ class DICOMwebDatabricksWrapper:
         self, study_instance_uid: str, series_instance_uid: str, sop_instance_uid: str
     ) -> tuple[Iterator[bytes], str | None]:
         """
-        WADO-RS: retrieve a full DICOM instance.
+        WADO-RS / WADO-URI: retrieve a full DICOM instance.
 
         Resolution order (fastest → slowest):
 
         1. **Prefetch cache** — file was downloaded in the background by a
-           worker thread right after the QIDO query.  Served instantly
-           from memory (~0 ms).
+           worker thread right after the QIDO query or series prime.
+           Served instantly from memory (~0 ms).
         2. **Stream from Volumes** — fallback if the prefetch hasn't
            finished yet.  Uses the pooled ``requests.Session`` (~0.2 s).
 
-        Both paths check ``instance_path_cache`` first so the SQL query
-        to resolve the file path is skipped entirely.
+        On the **first** request for a series, a background task pre-warms
+        all sibling instances (paths + prefetch + BOTs) so subsequent
+        WADO-URI calls are instant even without a preceding QIDO-RS query.
 
         Returns ``(chunk_generator, content_length_str | None)``.
         """
+        # --- Trigger series-level pre-warming in background ───────────
+        self._maybe_prime_series(study_instance_uid, series_instance_uid)
+
         # --- Resolve SOP UID → file path (3-tier: memory → Lakebase → SQL) ---
         local_path = self._resolve_instance_path(
             study_instance_uid, series_instance_uid, sop_instance_uid,
@@ -265,6 +299,9 @@ class DICOMwebDatabricksWrapper:
         then yielded one-by-one via byte-range HTTP reads, giving the client
         data as soon as each frame arrives.
 
+        On the first request for a series, sibling instances are pre-warmed
+        in the background (same as ``retrieve_instance``).
+
         Args:
             frame_numbers: 1-indexed frame numbers (per DICOMweb spec).
 
@@ -272,6 +309,9 @@ class DICOMwebDatabricksWrapper:
             ``(frame_generator, transfer_syntax_uid)``
         """
         logger.info(f"WADO-RS: frames {frame_numbers} from {sop_instance_uid}")
+
+        # --- Trigger series-level pre-warming in background ───────────
+        self._maybe_prime_series(study_instance_uid, series_instance_uid)
 
         db_file, frames_by_idx, transfer_syntax_uid = self._resolve_frame_offsets(
             study_instance_uid, series_instance_uid, sop_instance_uid,
@@ -293,6 +333,159 @@ class DICOMwebDatabricksWrapper:
                 yield content
 
         return generate(), transfer_syntax_uid
+
+    # ------------------------------------------------------------------
+    # Series pre-warming (critical for WADO-URI without prior QIDO-RS)
+    # ------------------------------------------------------------------
+
+    def _maybe_prime_series(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+    ) -> None:
+        """
+        Trigger **background** pre-warming of all instances in a series.
+
+        Called from ``retrieve_instance`` and ``retrieve_instance_frames``
+        so that when a viewer issues WADO-URI requests directly (without
+        a preceding QIDO-RS query), the first request primes the caches
+        for all siblings and subsequent requests are instant.
+
+        * Only fires **once** per ``(study, series)`` pair.
+        * Non-blocking — returns immediately.
+        * Uses the prefetcher's thread pool (shared CPU budget).
+        """
+        key = f"{study_instance_uid}/{series_instance_uid}"
+        with _series_primed_lock:
+            if key in _series_primed:
+                return
+            _series_primed.add(key)
+
+        # Submit to the prefetcher's thread pool so we share the CPU budget.
+        file_prefetcher._pool.submit(
+            self._prime_series_task,
+            study_instance_uid,
+            series_instance_uid,
+        )
+        logger.info(
+            f"Series pre-warm scheduled for {series_instance_uid} (background)"
+        )
+
+    def _prime_series_task(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+    ) -> None:
+        """
+        Background task: load ALL instance paths for a series, pre-warm
+        every cache tier, and schedule file prefetch.
+
+        Resolution order (same 3-tier pattern):
+        1. Lakebase ``retrieve_instance_paths_by_series``  (ms)
+        2. SQL warehouse — full series query                (~0.3 s)
+
+        Results are:
+        * Pushed into the in-memory ``instance_path_cache``
+        * Persisted to Lakebase (if sourced from SQL)
+        * Passed to the file prefetcher
+        """
+        try:
+            cache_entries: dict[str, dict] = {}
+
+            # ── Tier 2: Lakebase series-level lookup (ms) ──────────────
+            if self._lb:
+                try:
+                    t0 = time.time()
+                    lb_entries = self._lb.retrieve_instance_paths_by_series(
+                        study_instance_uid, series_instance_uid,
+                    )
+                    elapsed = time.time() - t0
+                    if lb_entries:
+                        cache_entries = lb_entries
+                        logger.info(
+                            f"Series pre-warm: Lakebase HIT — "
+                            f"{len(cache_entries)} instances in {elapsed:.4f}s"
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        f"Series pre-warm: Lakebase lookup failed ({exc})"
+                    )
+
+            # ── Tier 3: SQL warehouse (~0.3 s, one-time per series) ────
+            if not cache_entries:
+                t0 = time.time()
+                query = f"""
+                SELECT meta:['00080018'].Value[0]::String  AS SOPInstanceUID,
+                       local_path,
+                       ifnull(meta:['00280008'].Value[0]::integer, 1) AS NumberOfFrames
+                FROM {self._table}
+                WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+                  AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+                """
+                params = {
+                    "study_uid": study_instance_uid,
+                    "series_uid": series_instance_uid,
+                }
+                results = self._query(query, params)
+                elapsed = time.time() - t0
+
+                for row in results:
+                    if row and len(row) >= 3 and row[0] and row[1]:
+                        sop_uid = str(row[0])
+                        cache_entries[sop_uid] = {
+                            "path": str(row[1]),
+                            "num_frames": int(row[2]),
+                        }
+
+                logger.info(
+                    f"Series pre-warm: SQL returned "
+                    f"{len(cache_entries)} instances in {elapsed:.4f}s"
+                )
+
+                # Persist to Lakebase so future restarts are instant
+                if cache_entries and self._lb:
+                    try:
+                        lb_records = [
+                            {
+                                "sop_instance_uid": uid,
+                                "study_instance_uid": study_instance_uid,
+                                "series_instance_uid": series_instance_uid,
+                                "local_path": info["path"],
+                                "num_frames": info.get("num_frames", 1),
+                            }
+                            for uid, info in cache_entries.items()
+                        ]
+                        self._lb.insert_instance_paths_batch(lb_records)
+                        logger.info(
+                            f"Series pre-warm: persisted "
+                            f"{len(lb_records)} paths to Lakebase"
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            f"Series pre-warm: Lakebase persist failed ({exc})"
+                        )
+
+            if not cache_entries:
+                logger.warning("Series pre-warm: no instances found")
+                return
+
+            # ── Push into in-memory cache ──────────────────────────────
+            instance_path_cache.batch_put(cache_entries)
+            logger.info(
+                f"Series pre-warm: cached {len(cache_entries)} instance paths "
+                f"in memory"
+            )
+
+            # ── Schedule file prefetch ──────────────────────────────────
+            paths = [info["path"] for info in cache_entries.values()]
+            n_pf = file_prefetcher.schedule(self._token, paths)
+            logger.info(
+                f"Series pre-warm complete: {n_pf} prefetch tasks scheduled "
+                f"({len(cache_entries)} instances total)"
+            )
+
+        except Exception as exc:
+            logger.warning(f"Series pre-warm failed (non-fatal): {exc}")
 
     # ------------------------------------------------------------------
     # Internal helpers

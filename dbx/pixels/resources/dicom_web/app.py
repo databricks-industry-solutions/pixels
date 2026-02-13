@@ -6,6 +6,7 @@ Registers QIDO-RS and WADO-RS routes and starts a uvicorn server.
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+
 from utils.handlers import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
@@ -13,9 +14,9 @@ from utils.handlers import (
     dicomweb_wado_series_metadata,
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
+    dicomweb_wado_uri,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
-
 
 def register_dicomweb_routes(app: FastAPI):
     """
@@ -87,6 +88,20 @@ def register_dicomweb_routes(app: FastAPI):
             request, study_instance_uid, series_instance_uid, sop_instance_uid
         )
 
+    # WADO-URI (legacy query-parameter retrieval)
+    @app.get("/api/dicomweb/wado", tags=["DICOMweb WADO-URI"])
+    def wado_uri(request: Request):
+        return dicomweb_wado_uri(request)
+
+    # Also accept WADO-URI at the base path (some viewers send it there)
+    @app.get("/api/dicomweb", tags=["DICOMweb WADO-URI"])
+    def wado_uri_base(request: Request):
+        # Only treat as WADO-URI if the requestType param is present
+        if request.query_params.get("requestType", "").upper() == "WADO":
+            return dicomweb_wado_uri(request)
+        # Otherwise, return the service root info
+        return _dicomweb_service_root()
+
     # Metrics
     @app.get("/api/metrics", tags=["Monitoring"])
     def metrics():
@@ -96,32 +111,46 @@ def register_dicomweb_routes(app: FastAPI):
     # Service root
     @app.get("/api/dicomweb/", tags=["DICOMweb"])
     def dicomweb_root():
-        return {
-            "message": "DICOMweb service for Databricks Pixels",
-            "services": {
-                "QIDO-RS": {
-                    "description": "Query based on ID for DICOM Objects",
-                    "endpoints": [
-                        "GET /api/dicomweb/studies",
-                        "GET /api/dicomweb/studies/{study}/series",
-                        "GET /api/dicomweb/studies/{study}/series/{series}/instances",
-                    ],
-                },
-                "WADO-RS": {
-                    "description": "Web Access to DICOM Objects",
-                    "endpoints": [
-                        "GET /api/dicomweb/studies/{study}/series/{series}/metadata",
-                        "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}",
-                        "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}/frames/{frameList}",
-                    ],
-                },
-                "STOW-RS": {
-                    "description": "Store Over the Web",
-                    "status": "Not yet implemented",
-                },
+        return _dicomweb_service_root()
+
+
+def _dicomweb_service_root() -> dict:
+    """Service capability document returned at the DICOMweb root."""
+    return {
+        "message": "DICOMweb service for Databricks Pixels",
+        "services": {
+            "QIDO-RS": {
+                "description": "Query based on ID for DICOM Objects",
+                "endpoints": [
+                    "GET /api/dicomweb/studies",
+                    "GET /api/dicomweb/studies/{study}/series",
+                    "GET /api/dicomweb/studies/{study}/series/{series}/instances",
+                ],
             },
-            "documentation": "https://www.dicomstandard.org/using/dicomweb",
-        }
+            "WADO-RS": {
+                "description": "Web Access to DICOM Objects (RESTful)",
+                "endpoints": [
+                    "GET /api/dicomweb/studies/{study}/series/{series}/metadata",
+                    "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}",
+                    "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}/frames/{frameList}",
+                ],
+            },
+            "WADO-URI": {
+                "description": "Web Access to DICOM Objects (legacy query-parameter)",
+                "endpoints": [
+                    "GET /api/dicomweb/wado?requestType=WADO&studyUID=...&seriesUID=...&objectUID=...",
+                    "GET /api/dicomweb?requestType=WADO&studyUID=...&seriesUID=...&objectUID=...",
+                ],
+                "supported_content_types": ["application/dicom"],
+                "optional_params": ["frameNumber", "transferSyntax"],
+            },
+            "STOW-RS": {
+                "description": "Store Over the Web",
+                "status": "Not yet implemented",
+            },
+        },
+        "documentation": "https://www.dicomstandard.org/using/dicomweb",
+    }
 
 
 # ------------------------------------------------------------------

@@ -1,8 +1,15 @@
 """
-FastAPI endpoint handlers for DICOMweb QIDO-RS / WADO-RS.
+FastAPI endpoint handlers for DICOMweb QIDO-RS / WADO-RS / WADO-URI.
 
 These thin handler functions are imported by ``app.py`` and wired to routes.
 They create a ``DICOMwebDatabricksWrapper`` per request and delegate to it.
+
+Supported services:
+
+* **QIDO-RS** — RESTful study/series/instance search
+* **WADO-RS** — RESTful instance / frame retrieval (path-based)
+* **WADO-URI** — Legacy query-parameter retrieval
+  (``?requestType=WADO&studyUID=…&objectUID=…&contentType=…``)
 
 Authorization is controlled by the ``DICOMWEB_USE_USER_AUTH`` env var:
 
@@ -63,6 +70,8 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
         logger.info(f"Lakebase initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
     except Exception as exc:
         logger.warning(f"Lakebase init failed: {exc}")
+else:
+    logger.warning("LAKEBASE_INSTANCE_NAME not configured, tier-2 caching disabled")
 
 
 # ---------------------------------------------------------------------------
@@ -277,3 +286,148 @@ def dicomweb_wado_instance_frames(
     except Exception:
         logger.error("Error retrieving frames", exc_info=True)
         raise
+
+
+# ---------------------------------------------------------------------------
+# WADO-URI handler (legacy query-parameter style)
+# ---------------------------------------------------------------------------
+
+@timing_decorator
+def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
+    """
+    WADO-URI endpoint — legacy query-parameter object retrieval.
+
+    Spec reference: DICOM PS3.18 §6.2
+    https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_6.2.html
+
+    Required query parameters::
+
+        requestType=WADO
+        studyUID=<Study Instance UID>
+        seriesUID=<Series Instance UID>
+        objectUID=<SOP Instance UID>
+
+    Optional query parameters::
+
+        contentType   — ``application/dicom`` (default) returns the raw
+                        DICOM Part-10 file.  Other values (e.g.
+                        ``image/jpeg``, ``image/png``) are **not yet
+                        supported** and will return 406.
+        frameNumber   — 1-indexed frame number.  When provided, only that
+                        single frame is returned (multipart response,
+                        same as WADO-RS frames).
+        transferSyntax — requested Transfer Syntax UID (informational;
+                         the file is returned as-is).
+
+    Example request::
+
+        GET /api/dicomweb/wado?requestType=WADO
+            &studyUID=1.2.3
+            &seriesUID=1.2.3.4
+            &objectUID=1.2.3.4.5
+            &contentType=application%2Fdicom
+
+    Returns:
+        ``StreamingResponse`` with the DICOM file, or a single-frame
+        multipart response when ``frameNumber`` is specified.
+    """
+    params = dict(request.query_params)
+
+    # ── Validate requestType ────────────────────────────────────────
+    request_type = params.get("requestType", "")
+    if request_type.upper() != "WADO":
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Invalid or missing requestType: '{request_type}'. "
+                "WADO-URI requires requestType=WADO"
+            ),
+        )
+
+    # ── Required UIDs ───────────────────────────────────────────────
+    study_uid = params.get("studyUID")
+    series_uid = params.get("seriesUID")
+    object_uid = params.get("objectUID")
+
+    if not study_uid or not object_uid:
+        raise HTTPException(
+            status_code=400,
+            detail="WADO-URI requires at least studyUID and objectUID query parameters",
+        )
+
+    # seriesUID is technically optional in the spec but most
+    # implementations require it.  We need it for our SQL queries.
+    if not series_uid:
+        raise HTTPException(
+            status_code=400,
+            detail="seriesUID is required by this server",
+        )
+
+    # ── Content type negotiation ────────────────────────────────────
+    content_type = params.get("contentType", "application/dicom")
+    if content_type not in ("application/dicom", "application/dicom;", "*/*"):
+        raise HTTPException(
+            status_code=406,
+            detail=(
+                f"Unsupported contentType: '{content_type}'. "
+                "Only application/dicom is supported."
+            ),
+        )
+
+    logger.info(
+        f"WADO-URI: study={study_uid}, series={series_uid}, "
+        f"object={object_uid}, contentType={content_type}"
+    )
+
+    wrapper = get_dicomweb_wrapper(request)
+
+    # ── Optional frameNumber → delegate to frame retrieval ──────────
+    frame_number_str = params.get("frameNumber")
+    if frame_number_str:
+        try:
+            frame_number = int(frame_number_str)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid frameNumber: '{frame_number_str}'",
+            )
+
+        logger.info(f"WADO-URI: frame {frame_number} requested")
+
+        frame_stream, transfer_syntax_uid = wrapper.retrieve_instance_frames(
+            study_uid, series_uid, object_uid, [frame_number],
+        )
+
+        mime_type = TRANSFER_SYNTAX_TO_MIME.get(
+            transfer_syntax_uid, "application/octet-stream",
+        )
+        boundary = f"BOUNDARY_{uuid.uuid4()}"
+
+        def single_frame_generator():
+            for frame_data in frame_stream:
+                part_header = (
+                    f"--{boundary}\r\n"
+                    f"Content-Type: {mime_type};"
+                    f"transfer-syntax={transfer_syntax_uid}\r\n\r\n"
+                )
+                yield part_header.encode() + frame_data + b"\r\n"
+            yield f"--{boundary}--\r\n".encode()
+
+        return StreamingResponse(
+            single_frame_generator(),
+            media_type=(
+                f"multipart/related; type={mime_type}; boundary={boundary}"
+            ),
+            headers={"Cache-Control": "private, max-age=3600"},
+        )
+
+    # ── Full instance retrieval (default) ───────────────────────────
+    stream, content_length = wrapper.retrieve_instance(
+        study_uid, series_uid, object_uid,
+    )
+    headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
+    if content_length:
+        headers["Content-Length"] = content_length
+    return StreamingResponse(
+        stream, media_type="application/dicom", headers=headers,
+    )
