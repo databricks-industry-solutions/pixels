@@ -462,20 +462,20 @@ class LakebaseUtils:
         allowed_groups: list[str] | None = None,
     ):
         conn = None
-        groups_literal = "{" + ",".join(allowed_groups) + "}" if allowed_groups else "{}"
-        records = [
-            [
-                filename,
-                str(frame_range.get("frame_number")),
-                str(frame_range.get("start_pos")),
-                str(frame_range.get("end_pos")),
-                str(frame_range.get("pixel_data_pos")),
-                uc_table_name,
-                groups_literal,
-            ]
-            for frame_range in frame_ranges
-        ]
         if allowed_groups:
+            groups_literal = "{" + ",".join(allowed_groups) + "}"
+            records = [
+                [
+                    filename,
+                    str(frame_range.get("frame_number")),
+                    str(frame_range.get("start_pos")),
+                    str(frame_range.get("end_pos")),
+                    str(frame_range.get("pixel_data_pos")),
+                    uc_table_name,
+                    groups_literal,
+                ]
+                for frame_range in frame_ranges
+            ]
             query = sql.SQL(
                 "INSERT INTO {table} (filename, frame, start_pos, end_pos, "
                 "pixel_data_pos, uc_table_name, allowed_groups) "
@@ -488,9 +488,20 @@ class LakebaseUtils:
                 ")"
             ).format(table=sql.Identifier(LAKEBASE_SCHEMA, table))
         else:
+            records = [
+                [
+                    filename,
+                    str(frame_range.get("frame_number")),
+                    str(frame_range.get("start_pos")),
+                    str(frame_range.get("end_pos")),
+                    str(frame_range.get("pixel_data_pos")),
+                    uc_table_name,
+                ]
+                for frame_range in frame_ranges
+            ]
             query = sql.SQL(
                 "INSERT INTO {} (filename, frame, start_pos, end_pos, "
-                "pixel_data_pos, uc_table_name, allowed_groups) "
+                "pixel_data_pos, uc_table_name) "
                 "VALUES %s ON CONFLICT DO NOTHING"
             ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
         try:
@@ -595,22 +606,20 @@ class LakebaseUtils:
         if not entries:
             return
 
-        groups_literal = "{" + ",".join(allowed_groups) + "}" if allowed_groups else "{}"
-
-        records = [
-            (
-                e["sop_instance_uid"],
-                e["study_instance_uid"],
-                e["series_instance_uid"],
-                e["local_path"],
-                e.get("num_frames", 1),
-                e["uc_table_name"],
-                groups_literal,
-            )
-            for e in entries
-        ]
-
         if allowed_groups:
+            groups_literal = "{" + ",".join(allowed_groups) + "}"
+            records = [
+                (
+                    e["sop_instance_uid"],
+                    e["study_instance_uid"],
+                    e["series_instance_uid"],
+                    e["local_path"],
+                    e.get("num_frames", 1),
+                    e["uc_table_name"],
+                    groups_literal,
+                )
+                for e in entries
+            ]
             # Merge allowed_groups on conflict so that multiple users'
             # groups accumulate — never removes access, only widens it.
             query = sql.SQL(
@@ -625,10 +634,20 @@ class LakebaseUtils:
                 ")"
             ).format(table=sql.Identifier(LAKEBASE_SCHEMA, table))
         else:
+            records = [
+                (
+                    e["sop_instance_uid"],
+                    e["study_instance_uid"],
+                    e["series_instance_uid"],
+                    e["local_path"],
+                    e.get("num_frames", 1),
+                    e["uc_table_name"],
+                )
+                for e in entries
+            ]
             query = sql.SQL(
                 "INSERT INTO {} (sop_instance_uid, study_instance_uid, "
-                "series_instance_uid, local_path, num_frames, uc_table_name, "
-                "allowed_groups) "
+                "series_instance_uid, local_path, num_frames, uc_table_name) "
                 "VALUES %s ON CONFLICT DO NOTHING"
             ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
 
