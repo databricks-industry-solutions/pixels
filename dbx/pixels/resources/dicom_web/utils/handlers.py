@@ -31,7 +31,7 @@ from databricks.sdk.core import Config
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 
-from dbx.pixels.lakebase import LakebaseUtils
+from dbx.pixels.lakebase import LakebaseUtils, RLS_ENABLED
 from dbx.pixels.logging import LoggerProvider
 
 from . import timing_decorator
@@ -62,14 +62,21 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
             create_instance=True,
         )
         if os.environ.get("LAKEBASE_INIT_DB", "").lower() in ("1", "true", "yes"):
-            for sql_file in [
+            init_files = [
                 "CREATE_LAKEBASE_SCHEMA.sql",
                 "CREATE_LAKEBASE_DICOM_FRAMES.sql",
                 "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
-            ]:
+            ]
+            # Apply RLS schema when enabled
+            if RLS_ENABLED:
+                init_files.append("CREATE_LAKEBASE_RLS.sql")
+            for sql_file in init_files:
                 with open(_sql_dir / sql_file) as fh:
                     lb_utils.execute_query(fh.read())
-            logger.info(f"Lakebase schema initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}")
+            logger.info(
+                f"Lakebase schema initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}"
+                f"{' (RLS enabled)' if RLS_ENABLED else ''}"
+            )
         else:
             logger.info(f"Lakebase connected (schema init skipped): {os.environ['LAKEBASE_INSTANCE_NAME']}")
     except Exception as exc:
@@ -146,6 +153,50 @@ def _resolve_token(request: Request) -> str:
 
 
 # ---------------------------------------------------------------------------
+# User group resolution (for RLS enforcement)
+# ---------------------------------------------------------------------------
+
+# In-memory cache: user email → list[str] (groups).
+# Avoids a Lakebase round-trip on every request.
+_user_groups_cache: dict[str, list[str]] = {}
+
+
+def _resolve_user_groups(request: Request) -> list[str] | None:
+    """
+    Resolve the current user's Databricks account groups for RLS.
+
+    Returns ``None`` when RLS is not active (feature flag off, no
+    Lakebase, or app-auth mode).  Handlers pass ``None`` through to
+    the wrapper and caches, which preserves the legacy behaviour.
+    """
+    if not (RLS_ENABLED and USE_USER_AUTH and lb_utils):
+        return None
+
+    email = request.headers.get("X-Forwarded-Email", "").strip()
+    if not email:
+        logger.warning(
+            "RLS enabled but X-Forwarded-Email header missing — "
+            "no user group filtering will be applied"
+        )
+        return None
+
+    # Fast path: in-memory hit
+    cached = _user_groups_cache.get(email)
+    if cached is not None:
+        return cached
+
+    # Slow path: query Lakebase user_groups table
+    try:
+        groups = lb_utils.get_user_groups(email)
+        _user_groups_cache[email] = groups
+        logger.info(f"Resolved {len(groups)} groups for {email}")
+        return groups
+    except Exception as exc:
+        logger.warning(f"User group resolution failed for {email}: {exc}")
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Wrapper factory
 # ---------------------------------------------------------------------------
 
@@ -153,6 +204,7 @@ def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> D
     """Create a ``DICOMwebDatabricksWrapper`` from the incoming request context."""
     sql_client = _get_sql_client()
     token = _resolve_token(request)
+    user_groups = _resolve_user_groups(request)
 
     if not pixels_table:
         pixels_table = request.cookies.get("pixels_table") or os.getenv("DATABRICKS_PIXELS_TABLE")
@@ -164,6 +216,7 @@ def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> D
         token=token,
         pixels_table=pixels_table,
         lb_utils=lb_utils,
+        user_groups=user_groups,
     )
 
 
@@ -434,6 +487,50 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
         headers["Content-Length"] = content_length
     return StreamingResponse(
         stream, media_type="application/dicom", headers=headers,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Path resolution handler
+# ---------------------------------------------------------------------------
+
+@timing_decorator
+async def dicomweb_resolve_paths(request: Request) -> Response:
+    """POST /api/dicomweb/resolve_paths — resolve file paths for a series.
+
+    Request body (JSON)::
+
+        {
+            "studyInstanceUID": "1.2.840.113619...",
+            "seriesInstanceUID": "1.2.840.113619..."
+        }
+
+    Response body (JSON)::
+
+        {
+            "paths": {
+                "1.2.840.113619.SOP1": "/Volumes/catalog/schema/volume/path/to/file1.dcm",
+                "1.2.840.113619.SOP2": "/Volumes/catalog/schema/volume/path/to/file2.dcm"
+            }
+        }
+    """
+    body = await request.json()
+
+    study_uid = body.get("studyInstanceUID")
+    series_uid = body.get("seriesInstanceUID")
+
+    if not study_uid or not series_uid:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'studyInstanceUID' and 'seriesInstanceUID' are required",
+        )
+
+    wrapper = get_dicomweb_wrapper(request)
+    paths = wrapper.resolve_instance_paths(study_uid, series_uid)
+
+    return Response(
+        content=json.dumps({"paths": paths}, indent=2),
+        media_type="application/json",
     )
 
 

@@ -11,8 +11,19 @@ We replicate this with a 3-tier cache hierarchy:
   3. File BOT computation (seconds) — only on first access, then cached
 
 After first access, every frame request = cache lookup + single HTTP range read.
+
+**Security (RLS-aware caching)**:
+
+When ``LAKEBASE_RLS_ENABLED=true`` **and** ``DICOMWEB_USE_USER_AUTH=true``, cache
+keys for ``InstancePathCache`` include a hash of the user's Databricks groups.
+This prevents cross-user data leakage through the in-memory cache layer.
+
+``BOTCache`` is NOT user-scoped because its entries (byte offsets) are only
+reachable *after* the instance path has been resolved through the secured
+``InstancePathCache`` — so access control is enforced upstream.
 """
 
+import hashlib
 import threading
 from collections import OrderedDict
 from typing import Optional
@@ -20,6 +31,19 @@ from typing import Optional
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("DICOMweb.Cache")
+
+
+def _groups_hash(user_groups: list[str] | None) -> str:
+    """
+    Compute a short, deterministic hash from a list of group names.
+
+    Returns ``""`` when *user_groups* is ``None`` or empty, which
+    preserves backward-compatible (non-scoped) cache keys.
+    """
+    if not user_groups:
+        return ""
+    canonical = ",".join(sorted(user_groups))
+    return hashlib.sha256(canonical.encode()).hexdigest()[:12]
 
 
 class BOTCache:
@@ -139,9 +163,13 @@ class InstancePathCache:
     Eliminates the SQL query to Databricks warehouse for repeated frame requests
     to the same instance.
 
-    Cache keys are scoped by ``(sop_instance_uid, uc_table)`` so that entries
-    from different Unity Catalog tables never collide, even though SOP Instance
-    UIDs are globally unique per the DICOM standard.
+    **RLS-aware scoping**: When ``user_groups`` is passed to ``get`` / ``put``
+    / ``batch_put``, the cache key includes a hash of the groups.  This means
+    two users with different group memberships have **separate** cache
+    entries — a user can never read another user's cached paths.
+
+    When ``user_groups`` is ``None`` (backward compatibility / app-auth mode),
+    the cache key matches the legacy format ``sop_uid\\x00uc_table``.
 
     Each cache entry contains:
     - path: local_path of the DICOM file
@@ -156,13 +184,30 @@ class InstancePathCache:
         self._misses = 0
 
     @staticmethod
-    def _key(sop_instance_uid: str, uc_table: str) -> str:
-        """Build a composite cache key scoped to the UC table."""
+    def _key(
+        sop_instance_uid: str,
+        uc_table: str,
+        user_groups: list[str] | None = None,
+    ) -> str:
+        """
+        Build a composite cache key, optionally scoped to the user's groups.
+
+        When *user_groups* is provided, a short hash is appended so that
+        users with different group sets get independent cache entries.
+        """
+        gk = _groups_hash(user_groups)
+        if gk:
+            return f"{sop_instance_uid}\x00{uc_table}\x00{gk}"
         return f"{sop_instance_uid}\x00{uc_table}"
 
-    def get(self, sop_instance_uid: str, uc_table: str) -> Optional[dict]:
+    def get(
+        self,
+        sop_instance_uid: str,
+        uc_table: str,
+        user_groups: list[str] | None = None,
+    ) -> Optional[dict]:
         """Get cached path info for a SOP Instance UID."""
-        key = self._key(sop_instance_uid, uc_table)
+        key = self._key(sop_instance_uid, uc_table, user_groups)
         with self._lock:
             if key in self._cache:
                 self._cache.move_to_end(key)
@@ -171,16 +216,27 @@ class InstancePathCache:
             self._misses += 1
             return None
 
-    def put(self, sop_instance_uid: str, uc_table: str, path_info: dict):
+    def put(
+        self,
+        sop_instance_uid: str,
+        uc_table: str,
+        path_info: dict,
+        user_groups: list[str] | None = None,
+    ):
         """Cache path info for a SOP Instance UID."""
-        key = self._key(sop_instance_uid, uc_table)
+        key = self._key(sop_instance_uid, uc_table, user_groups)
         with self._lock:
             self._cache[key] = path_info
             self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
 
-    def batch_put(self, uc_table: str, entries: dict[str, dict]):
+    def batch_put(
+        self,
+        uc_table: str,
+        entries: dict[str, dict],
+        user_groups: list[str] | None = None,
+    ):
         """
         Cache multiple SOP Instance UID → path_info mappings at once.
 
@@ -189,7 +245,7 @@ class InstancePathCache:
         """
         with self._lock:
             for uid, info in entries.items():
-                key = self._key(uid, uc_table)
+                key = self._key(uid, uc_table, user_groups)
                 self._cache[key] = info
                 self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
@@ -217,4 +273,3 @@ class InstancePathCache:
 # ---------------------------------------------------------------------------
 bot_cache = BOTCache(max_entries=10000)
 instance_path_cache = InstancePathCache(max_entries=50000)
-

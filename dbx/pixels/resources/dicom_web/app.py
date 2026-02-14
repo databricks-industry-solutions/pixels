@@ -18,6 +18,7 @@ from utils.handlers import (
     dicomweb_wado_instance_frames,
     dicomweb_wado_uri,
     dicomweb_stow_store,
+    dicomweb_resolve_paths,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
 
@@ -111,6 +112,11 @@ def register_dicomweb_routes(app: FastAPI):
     @app.post("/api/dicomweb/studies/{study_instance_uid}", tags=["DICOMweb STOW-RS"])
     async def store_instances_for_study(request: Request, study_instance_uid: str):
         return await dicomweb_stow_store(request, study_instance_uid)
+
+    # Path resolution
+    @app.post("/api/dicomweb/resolve_paths", tags=["DICOMweb Path Resolution"])
+    async def resolve_paths(request: Request):
+        return await dicomweb_resolve_paths(request)
 
     # WADO-URI (legacy query-parameter retrieval)
     @app.get("/api/dicomweb/wado", tags=["DICOMweb WADO-URI"])

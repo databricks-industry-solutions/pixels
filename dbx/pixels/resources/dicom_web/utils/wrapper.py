@@ -76,6 +76,7 @@ class DICOMwebDatabricksWrapper:
         token: str,
         pixels_table: str,
         lb_utils=None,
+        user_groups: list[str] | None = None,
     ):
         """
         Args:
@@ -87,11 +88,16 @@ class DICOMwebDatabricksWrapper:
             pixels_table: Fully-qualified ``catalog.schema.table`` name.
             lb_utils: Optional ``LakebaseUtils`` singleton for persistent
                 tier-2 caching (frame offsets + instance paths).
+            user_groups: Databricks account groups of the current user.
+                Used for RLS enforcement in Lakebase queries and for
+                user-scoped in-memory cache keys.  ``None`` in app-auth
+                mode (no per-user filtering).
         """
         self._sql = sql_client
         self._token = token
         self._table = validate_table_name(pixels_table)
         self._lb = lb_utils
+        self._user_groups = user_groups
 
     # -- helper: run parameterized SQL ------------------------------------
 
@@ -159,7 +165,9 @@ class DICOMwebDatabricksWrapper:
                 num_frames = int(row[7]) if row[7] else 1
                 cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
         if cache_entries:
-            instance_path_cache.batch_put(self._table, cache_entries)
+            instance_path_cache.batch_put(
+                self._table, cache_entries, user_groups=self._user_groups,
+            )
             logger.info(
                 f"Pre-warmed instance path cache with {len(cache_entries)} entries "
                 f"(eliminates SQL for subsequent WADO-RS calls)"
@@ -189,7 +197,9 @@ class DICOMwebDatabricksWrapper:
                     }
                     for uid, info in cache_entries.items()
                 ]
-                self._lb.insert_instance_paths_batch(lb_entries)
+                self._lb.insert_instance_paths_batch(
+                    lb_entries, allowed_groups=self._user_groups,
+                )
             except Exception as exc:
                 logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
 
@@ -215,6 +225,111 @@ class DICOMwebDatabricksWrapper:
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS: found {len(formatted)} instances")
         return formatted
+
+    # ------------------------------------------------------------------
+    # Path resolution — resolve SOP Instance UID → file path
+    # ------------------------------------------------------------------
+
+    def resolve_instance_paths(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+    ) -> dict[str, str]:
+        """
+        Resolve file paths for every instance in a series.
+
+        Uses the same 3-tier cache hierarchy as WADO-RS path resolution:
+
+        1. **In-memory** ``instance_path_cache`` (µs)
+        2. **Lakebase** persistent cache (ms)
+        3. **SQL warehouse** fallback (~300 ms)
+
+        Returns:
+            ``{sop_instance_uid: local_path}`` mapping for all instances
+            in the series.
+
+        Raises:
+            HTTPException 404: If no instances are found for the series.
+        """
+        logger.info(
+            f"Resolve paths: study={study_instance_uid}, series={series_instance_uid}"
+        )
+
+        # ── Tier 2: Lakebase persistent cache ────────────────────────
+        # (Tier 1 is keyed by individual SOP UIDs, not by series, so we
+        # start at tier 2 for series-level bulk lookups.)
+        if self._lb:
+            try:
+                lb_results = self._lb.retrieve_instance_paths_by_series(
+                    study_instance_uid, series_instance_uid, self._table,
+                    user_groups=self._user_groups,
+                )
+                if lb_results:
+                    # Promote to tier 1
+                    instance_path_cache.batch_put(
+                        self._table, lb_results, user_groups=self._user_groups,
+                    )
+                    paths = {uid: info["path"] for uid, info in lb_results.items()}
+                    logger.info(f"Resolve paths: {len(paths)} paths from Lakebase")
+                    return paths
+            except Exception as exc:
+                logger.warning(f"Lakebase path lookup failed (non-fatal): {exc}")
+
+        # ── Tier 3: SQL warehouse ────────────────────────────────────
+        query, sql_params = build_instances_query(
+            self._table, study_instance_uid, series_instance_uid,
+        )
+        results = self._query(query, sql_params)
+
+        if not results:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No instances found for study={study_instance_uid}, "
+                    f"series={series_instance_uid}"
+                ),
+            )
+
+        # Column mapping from build_instances_query:
+        #   [0] StudyInstanceUID  [1] SeriesInstanceUID  [2] SOPInstanceUID
+        #   [3] SOPClassUID  [4] InstanceNumber  [5] Rows  [6] Columns
+        #   [7] NumberOfFrames  [8] path  [9] local_path
+        paths: dict[str, str] = {}
+        cache_entries: dict[str, dict] = {}
+        for row in results:
+            if row and len(row) >= 10 and row[2] and row[9]:
+                sop_uid = str(row[2])
+                local_path = str(row[9])
+                num_frames = int(row[7]) if row[7] else 1
+                paths[sop_uid] = local_path
+                cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
+
+        # Pre-warm caches (tier 1 + tier 2) ────────────────────────────
+        if cache_entries:
+            instance_path_cache.batch_put(
+                self._table, cache_entries, user_groups=self._user_groups,
+            )
+            if self._lb:
+                try:
+                    lb_entries = [
+                        {
+                            "sop_instance_uid": uid,
+                            "study_instance_uid": study_instance_uid,
+                            "series_instance_uid": series_instance_uid,
+                            "local_path": info["path"],
+                            "num_frames": info.get("num_frames", 1),
+                            "uc_table_name": self._table,
+                        }
+                        for uid, info in cache_entries.items()
+                    ]
+                    self._lb.insert_instance_paths_batch(
+                        lb_entries, allowed_groups=self._user_groups,
+                    )
+                except Exception as exc:
+                    logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
+
+        logger.info(f"Resolve paths: {len(paths)} paths from SQL warehouse")
+        return paths
 
     # ------------------------------------------------------------------
     # STOW-RS — store instances
@@ -323,17 +438,21 @@ class DICOMwebDatabricksWrapper:
                 instance_path_cache.put(
                     sop_instance_uid, self._table,
                     {"path": local_path, "num_frames": num_frames},
+                    user_groups=self._user_groups,
                 )
                 if self._lb:
                     try:
-                        self._lb.insert_instance_paths_batch([{
-                            "sop_instance_uid": sop_instance_uid,
-                            "study_instance_uid": inst_study_uid,
-                            "series_instance_uid": inst_series_uid,
-                            "local_path": local_path,
-                            "num_frames": num_frames,
-                            "uc_table_name": self._table,
-                        }])
+                        self._lb.insert_instance_paths_batch(
+                            [{
+                                "sop_instance_uid": sop_instance_uid,
+                                "study_instance_uid": inst_study_uid,
+                                "series_instance_uid": inst_series_uid,
+                                "local_path": local_path,
+                                "num_frames": num_frames,
+                                "uc_table_name": self._table,
+                            }],
+                            allowed_groups=self._user_groups,
+                        )
                     except Exception as exc:
                         logger.warning(f"STOW-RS: Lakebase cache warm failed (non-fatal): {exc}")
 
@@ -569,6 +688,7 @@ class DICOMwebDatabricksWrapper:
                     t0 = time.time()
                     lb_entries = self._lb.retrieve_instance_paths_by_series(
                         study_instance_uid, series_instance_uid, self._table,
+                        user_groups=self._user_groups,
                     )
                     elapsed = time.time() - t0
                     if lb_entries:
@@ -628,7 +748,9 @@ class DICOMwebDatabricksWrapper:
                             }
                             for uid, info in cache_entries.items()
                         ]
-                        self._lb.insert_instance_paths_batch(lb_records)
+                        self._lb.insert_instance_paths_batch(
+                            lb_records, allowed_groups=self._user_groups,
+                        )
                         logger.info(
                             f"Series pre-warm: persisted "
                             f"{len(lb_records)} paths to Lakebase"
@@ -643,7 +765,9 @@ class DICOMwebDatabricksWrapper:
                 return
 
             # ── Push into in-memory cache ──────────────────────────────
-            instance_path_cache.batch_put(self._table, cache_entries)
+            instance_path_cache.batch_put(
+                self._table, cache_entries, user_groups=self._user_groups,
+            )
             logger.info(
                 f"Series pre-warm: cached {len(cache_entries)} instance paths "
                 f"in memory"
@@ -674,8 +798,13 @@ class DICOMwebDatabricksWrapper:
         Resolve SOP Instance UID → local file path using a 3-tier cache.
 
         1. In-memory ``instance_path_cache``  (µs)
-        2. Lakebase ``instance_paths`` table  (ms)
-        3. SQL warehouse query                (~300 ms)
+        2. Lakebase ``instance_paths`` table  (ms)  — RLS-protected
+        3. SQL warehouse query                (~300 ms) — UC row-filtered
+
+        When ``user_groups`` is set (OBO mode + RLS), the in-memory cache
+        key includes a groups hash so that two users with different group
+        memberships never share cache entries.  Lakebase queries include
+        ``SET LOCAL app.user_groups`` for PostgreSQL RLS enforcement.
 
         Side effects: promotes results into higher-tier caches and persists
         to Lakebase on a tier-3 hit.
@@ -687,7 +816,9 @@ class DICOMwebDatabricksWrapper:
             HTTPException 404: if the instance is not found anywhere.
         """
         # ── Tier 1: in-memory cache (µs) ──────────────────────────────
-        path_info = instance_path_cache.get(sop_instance_uid, self._table)
+        path_info = instance_path_cache.get(
+            sop_instance_uid, self._table, user_groups=self._user_groups,
+        )
         if path_info:
             return path_info["path"]
 
@@ -695,13 +826,17 @@ class DICOMwebDatabricksWrapper:
         if self._lb:
             try:
                 t0 = time.time()
-                lb_info = self._lb.retrieve_instance_path(sop_instance_uid, self._table)
+                lb_info = self._lb.retrieve_instance_path(
+                    sop_instance_uid, self._table,
+                    user_groups=self._user_groups,
+                )
                 logger.info(f"⏱️  Lakebase path lookup took {time.time() - t0:.4f}s")
                 if lb_info:
                     logger.info(f"Instance path Lakebase HIT for {sop_instance_uid}")
                     instance_path_cache.put(
                         sop_instance_uid, self._table,
                         {"path": lb_info["path"], "num_frames": lb_info["num_frames"]},
+                        user_groups=self._user_groups,
                     )
                     return lb_info["path"]
             except Exception as exc:
@@ -735,19 +870,23 @@ class DICOMwebDatabricksWrapper:
         instance_path_cache.put(
             sop_instance_uid, self._table,
             {"path": local_path, "num_frames": num_frames},
+            user_groups=self._user_groups,
         )
 
         # Persist to tier 2 (Lakebase)
         if self._lb:
             try:
-                self._lb.insert_instance_paths_batch([{
-                    "sop_instance_uid": sop_instance_uid,
-                    "study_instance_uid": study_instance_uid,
-                    "series_instance_uid": series_instance_uid,
-                    "local_path": local_path,
-                    "num_frames": num_frames,
-                    "uc_table_name": self._table,
-                }])
+                self._lb.insert_instance_paths_batch(
+                    [{
+                        "sop_instance_uid": sop_instance_uid,
+                        "study_instance_uid": study_instance_uid,
+                        "series_instance_uid": series_instance_uid,
+                        "local_path": local_path,
+                        "num_frames": num_frames,
+                        "uc_table_name": self._table,
+                    }],
+                    allowed_groups=self._user_groups,
+                )
             except Exception as exc:
                 logger.warning(f"Lakebase path persist failed (non-fatal): {exc}")
 
@@ -795,7 +934,9 @@ class DICOMwebDatabricksWrapper:
             if self._lb:
                 logger.info(f"Checking Lakebase for {filename}")
                 t0 = time.time()
-                lb_frames = self._lb.retrieve_all_frame_ranges(filename, self._table)
+                lb_frames = self._lb.retrieve_all_frame_ranges(
+                    filename, self._table, user_groups=self._user_groups,
+                )
                 logger.info(f"⏱️  Lakebase lookup took {time.time() - t0:.4f}s")
 
                 if lb_frames:
@@ -826,7 +967,10 @@ class DICOMwebDatabricksWrapper:
             if self._lb:
                 try:
                     t0 = time.time()
-                    self._lb.insert_frame_ranges(filename, bot_data["frames"], self._table)
+                    self._lb.insert_frame_ranges(
+                        filename, bot_data["frames"], self._table,
+                        allowed_groups=self._user_groups,
+                    )
                     logger.info(f"⏱️  Lakebase persist took {time.time() - t0:.4f}s")
                 except Exception as exc:
                     logger.warning(f"Lakebase persist failed (non-fatal): {exc}")
