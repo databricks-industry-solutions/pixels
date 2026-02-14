@@ -15,6 +15,7 @@ Each group also has its own ``register_*_routes(app)`` for granular use.
 import asyncio
 import base64
 import json
+import os
 import re
 
 import httpx
@@ -358,6 +359,7 @@ def register_redaction_routes(app: FastAPI):
     """Redaction job insertion, metadata shortcuts, AI redaction."""
 
     warehouse_id = get_warehouse_id()
+    use_user_auth: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "false").lower() == "true"
 
     @app.post("/api/redaction/insert", response_class=JSONResponse, tags=["Redaction"])
     async def create_redaction_job(request: Request):
@@ -374,6 +376,29 @@ def register_redaction_routes(app: FastAPI):
 
         created_by = request.headers.get("X-Forwarded-Email", "unknown")
         token = request.headers.get("X-Forwarded-Access-Token")
+
+        if not token:
+            if use_user_auth:
+                # User (OBO) auth is enabled — the forwarded token is mandatory.
+                raise HTTPException(
+                    status_code=401,
+                    detail="User authorization (OBO) is enabled but no "
+                           "X-Forwarded-Access-Token header was found",
+                )
+            # App-auth mode — fall back to service-principal SDK credentials.
+            try:
+                header_factory = cfg.authenticate()
+                headers = header_factory() if callable(header_factory) else header_factory
+                auth = headers.get("Authorization", "")
+                if auth.startswith("Bearer "):
+                    token = auth[7:]
+                else:
+                    raise ValueError("SDK Config did not produce a Bearer token")
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"No X-Forwarded-Access-Token header and app-auth fallback failed: {exc}",
+                )
 
         pixels_table = get_pixels_table(request)
         redaction_table = f"{pixels_table}_redaction"
