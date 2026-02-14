@@ -75,7 +75,7 @@ class DicomMetaExtractor(Transformer):
                     if deep:
                         meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
-                    return json.dumps(meta_js)
+                    return json.dumps(meta_js, allow_nan=False)
             except Exception as err:
                 except_str = str(
                     {
