@@ -116,21 +116,20 @@ def build_study_query(
 
     query = f"""
     SELECT
-        meta:['00100010'].Value[0]::String as PatientName,
+        first(meta:['00100010'].Value[0].Alphabetic::String, true) as PatientName,
         meta:['00100020'].Value[0]::String as PatientID,
         meta:['0020000D'].Value[0]::String as StudyInstanceUID,
         meta:['00080020'].Value[0]::String as StudyDate,
         meta:['00080050'].Value[0]::String as AccessionNumber,
-        meta:['00081030'].Value[0]::String as StudyDescription,
-        meta:['00080060'].Value[0]::String as Modality,
-        meta:['00080061'].Value[0]::String as ModalitiesInStudy,
+        first(meta:['00081030'].Value[0]::String, true) as StudyDescription,
+        array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
+        nullif(array_join(collect_set(meta:['00080061'].Value[0]::String), '/'), '') as ModalitiesInStudy,
         COUNT(DISTINCT meta:['0020000E'].Value[0]::String) as NumberOfStudyRelatedSeries,
         COUNT(*) as NumberOfStudyRelatedInstances
     FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
     GROUP BY
-        PatientName, PatientID, StudyInstanceUID, StudyDate,
-        AccessionNumber, StudyDescription, Modality, ModalitiesInStudy
+        PatientID, StudyInstanceUID, StudyDate, AccessionNumber
     ORDER BY StudyDate DESC
     {limit_clause} {offset_clause}
     """
@@ -167,17 +166,16 @@ def build_series_query(
     SELECT
         meta:['0020000D'].Value[0]::String as StudyInstanceUID,
         meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
-        meta:['00080060'].Value[0]::String as Modality,
-        meta:['00200011'].Value[0]::String as SeriesNumber,
-        meta:['0008103E'].Value[0]::String as SeriesDescription,
-        meta:['00080021'].Value[0]::String as SeriesDate,
+        array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
+        first(meta:['00200011'].Value[0]::String, true) as SeriesNumber,
+        first(meta:['0008103E'].Value[0]::String, true) as SeriesDescription,
+        first(meta:['00080021'].Value[0]::String, true) as SeriesDate,
         COUNT(*) as NumberOfSeriesRelatedInstances
     FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
     GROUP BY
-        StudyInstanceUID, SeriesInstanceUID, Modality,
-        SeriesNumber, SeriesDescription, SeriesDate
-    ORDER BY SeriesNumber
+        StudyInstanceUID, SeriesInstanceUID
+    ORDER BY SeriesDate DESC
     """
     return query, sql_params
 
