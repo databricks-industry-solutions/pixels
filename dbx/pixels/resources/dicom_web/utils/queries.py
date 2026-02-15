@@ -1,5 +1,5 @@
 """
-QIDO-RS / STOW-RS SQL query builders — **parameterized**.
+DICOMweb SQL query builders — **parameterized**.
 
 Every function returns a ``(query, params)`` tuple.  User-supplied values are
 **never** interpolated into the SQL string; they are passed as bind parameters
@@ -222,6 +222,98 @@ def build_instances_query(
     WHERE {where}
     ORDER BY InstanceNumber
     """
+    return query, sql_params
+
+
+# ---------------------------------------------------------------------------
+# WADO-RS — metadata / path resolution queries
+# ---------------------------------------------------------------------------
+
+
+def build_series_metadata_query(
+    pixels_table: str,
+    study_instance_uid: str,
+    series_instance_uid: str,
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a WADO-RS query to retrieve raw DICOM JSON metadata for every
+    instance in a series.
+
+    Returns only the ``meta`` VARIANT column — the caller streams it
+    directly as JSON without deserialization.
+    """
+    validate_table_name(pixels_table)
+    query = """
+    SELECT meta
+    FROM IDENTIFIER(%(pixels_table)s)
+    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+    """
+    sql_params: dict[str, Any] = {
+        "pixels_table": pixels_table,
+        "study_uid": study_instance_uid,
+        "series_uid": series_instance_uid,
+    }
+    return query, sql_params
+
+
+def build_instance_path_query(
+    pixels_table: str,
+    study_instance_uid: str,
+    series_instance_uid: str,
+    sop_instance_uid: str,
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a query to resolve a single SOP Instance UID to its local file
+    path and frame count.
+
+    Used as the tier-3 (SQL warehouse) fallback in the 3-tier instance
+    path cache.
+    """
+    validate_table_name(pixels_table)
+    query = """
+    SELECT local_path,
+           ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
+    FROM IDENTIFIER(%(pixels_table)s)
+    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+      AND meta:['00080018'].Value[0]::String = %(sop_uid)s
+    LIMIT 1
+    """
+    sql_params: dict[str, Any] = {
+        "pixels_table": pixels_table,
+        "study_uid": study_instance_uid,
+        "series_uid": series_instance_uid,
+        "sop_uid": sop_instance_uid,
+    }
+    return query, sql_params
+
+
+def build_series_instance_paths_query(
+    pixels_table: str,
+    study_instance_uid: str,
+    series_instance_uid: str,
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a lightweight query returning SOP UID, local path, and frame
+    count for every instance in a series.
+
+    Used for background series pre-warming (cache tier-3 fallback).
+    """
+    validate_table_name(pixels_table)
+    query = """
+    SELECT meta:['00080018'].Value[0]::String  AS SOPInstanceUID,
+           local_path,
+           ifnull(meta:['00280008'].Value[0]::integer, 1) AS NumberOfFrames
+    FROM IDENTIFIER(%(pixels_table)s)
+    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+    """
+    sql_params: dict[str, Any] = {
+        "pixels_table": pixels_table,
+        "study_uid": study_instance_uid,
+        "series_uid": series_instance_uid,
+    }
     return query, sql_params
 
 

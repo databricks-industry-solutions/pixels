@@ -40,7 +40,10 @@ from .dicom_io import (
 from .dicom_tags import format_dicomweb_response
 from .queries import (
     build_insert_instance_query,
+    build_instance_path_query,
     build_instances_query,
+    build_series_instance_paths_query,
+    build_series_metadata_query,
     build_series_query,
     build_study_query,
 )
@@ -518,17 +521,9 @@ class DICOMwebDatabricksWrapper:
         result set.
         """
         logger.info(f"WADO-RS: metadata for series {series_instance_uid}")
-        query = """
-        SELECT meta
-        FROM IDENTIFIER(%(pixels_table)s)
-        WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-          AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-        """
-        params = {
-            "pixels_table": self._table,
-            "study_uid": study_instance_uid,
-            "series_uid": series_instance_uid,
-        }
+        query, params = build_series_metadata_query(
+            self._table, study_instance_uid, series_instance_uid,
+        )
         row_stream = self._query_stream(query, params)
 
         # Peek at first row — raise 404 before streaming starts so the
@@ -735,19 +730,9 @@ class DICOMwebDatabricksWrapper:
             # ── Tier 3: SQL warehouse (~0.3 s, one-time per series) ────
             if not cache_entries:
                 t0 = time.time()
-                query = """
-                SELECT meta:['00080018'].Value[0]::String  AS SOPInstanceUID,
-                       local_path,
-                       ifnull(meta:['00280008'].Value[0]::integer, 1) AS NumberOfFrames
-                FROM IDENTIFIER(%(pixels_table)s)
-                WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-                  AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-                """
-                params = {
-                    "pixels_table": self._table,
-                    "study_uid": study_instance_uid,
-                    "series_uid": series_instance_uid,
-                }
+                query, params = build_series_instance_paths_query(
+                    self._table, study_instance_uid, series_instance_uid,
+                )
                 results = self._query(query, params)
                 elapsed = time.time() - t0
 
@@ -874,21 +859,9 @@ class DICOMwebDatabricksWrapper:
 
         # ── Tier 3: SQL warehouse (~300 ms) ───────────────────────────
         logger.info(f"Instance path cache MISS — querying SQL for {sop_instance_uid}")
-        query = """
-        SELECT local_path,
-               ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
-        FROM IDENTIFIER(%(pixels_table)s)
-        WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-          AND meta:['0020000E'].Value[0]::String = %(series_uid)s
-          AND meta:['00080018'].Value[0]::String = %(sop_uid)s
-        LIMIT 1
-        """
-        params = {
-            "pixels_table": self._table,
-            "study_uid": study_instance_uid,
-            "series_uid": series_instance_uid,
-            "sop_uid": sop_instance_uid,
-        }
+        query, params = build_instance_path_query(
+            self._table, study_instance_uid, series_instance_uid, sop_instance_uid,
+        )
         results = self._query(query, params)
         if not results or not results[0]:
             raise HTTPException(status_code=404, detail="Instance not found")
