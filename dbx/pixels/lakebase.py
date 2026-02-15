@@ -4,6 +4,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 
+import psycopg2
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.database import (
     DatabaseInstance,
@@ -19,7 +20,15 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider("LakebaseUtils")
 
-LAKEBASE_SCHEMA = "pixels"
+# ---------------------------------------------------------------------------
+# Defaults — used only when no UC table name is provided.
+# When a UC table (catalog.schema.table) is given, the Lakebase database
+# is set to the UC catalog and the schema to the UC schema, giving a
+# 1-to-1 namespace alignment for Reverse ETL Sync.
+# ---------------------------------------------------------------------------
+DEFAULT_LAKEBASE_DATABASE = "databricks_postgres"
+DEFAULT_LAKEBASE_SCHEMA = "pixels"
+
 DICOM_FRAMES_TABLE = "dicom_frames"
 INSTANCE_PATHS_TABLE = "instance_paths"
 ACCESS_RULES_TABLE = "access_rules"
@@ -29,6 +38,27 @@ USER_GROUPS_TABLE = "user_groups"
 # Feature flag — set LAKEBASE_RLS_ENABLED=true to activate Row-Level Security
 # ---------------------------------------------------------------------------
 RLS_ENABLED: bool = os.getenv("LAKEBASE_RLS_ENABLED", "false").lower() == "true"
+
+
+def parse_uc_table_name(uc_table_name: str) -> tuple[str, str, str]:
+    """
+    Parse a fully-qualified Unity Catalog table name into its components.
+
+    Args:
+        uc_table_name: Fully-qualified ``catalog.schema.table`` name.
+
+    Returns:
+        ``(catalog, schema, table)`` tuple.
+
+    Raises:
+        ValueError: If the name does not have exactly 3 dot-separated parts.
+    """
+    parts = uc_table_name.strip().split(".")
+    if len(parts) != 3:
+        raise ValueError(
+            f"UC table name must be 'catalog.schema.table', got: '{uc_table_name}'"
+        )
+    return parts[0], parts[1], parts[2]
 
 
 class RefreshableThreadedConnectionPool(ThreadedConnectionPool):
@@ -150,7 +180,58 @@ class LakebaseUtils:
         create_instance=False,
         min_connections: int = DEFAULT_MIN_CONNECTIONS,
         max_connections: int = DEFAULT_MAX_CONNECTIONS,
+        uc_table_name: str | None = None,
     ):
+        """
+        Initialize Lakebase utilities.
+
+        Lakebase has a 3-level namespace that mirrors Unity Catalog::
+
+            Instance  →  Database  →  Schema  →  Table
+                         (UC catalog)  (UC schema)
+
+        When ``uc_table_name`` is provided (e.g. ``catalog.schema.table``):
+
+        * **Lakebase database** is set to the UC **catalog** name.
+        * **Lakebase schema** is set to the UC **schema** name.
+        * **Lakebase instance** remains as configured (not derived from UC).
+
+        This alignment enables Reverse ETL Sync between UC and Lakebase
+        with matching database/schema names.
+
+        Args:
+            instance_name: Lakebase instance name (the server, not the
+                database).  Defaults to ``"pixels-lakebase"``.
+            capacity: Lakebase compute capacity.
+            user: Databricks username for credentials.
+            app_sp_id: Service principal client ID to grant access.
+            create_instance: Whether to create the instance if missing.
+            min_connections: Minimum pool connections.
+            max_connections: Maximum pool connections.
+            uc_table_name: Fully-qualified UC table (``catalog.schema.table``).
+                Used to derive the Lakebase **database** and **schema**.
+                Falls back to ``DATABRICKS_PIXELS_TABLE`` env var, then to
+                the built-in defaults.
+        """
+        # -- Derive Lakebase database + schema from UC table name -----------
+        uc_table_name = uc_table_name or os.getenv("DATABRICKS_PIXELS_TABLE")
+
+        if uc_table_name:
+            uc_catalog, uc_schema, _ = parse_uc_table_name(uc_table_name)
+            self.database = uc_catalog
+            self.schema = uc_schema
+            logger.info(
+                f"Lakebase aligned to UC: database='{self.database}', "
+                f"schema='{self.schema}' (from UC table '{uc_table_name}')"
+            )
+        else:
+            self.database = DEFAULT_LAKEBASE_DATABASE
+            self.schema = DEFAULT_LAKEBASE_SCHEMA
+            logger.info(
+                f"No UC table provided — using defaults: "
+                f"database='{self.database}', schema='{self.schema}'"
+            )
+
         self.instance_name = instance_name
         self.capacity = capacity
         self.min_connections = min_connections
@@ -166,6 +247,9 @@ class LakebaseUtils:
 
         if app_sp_id is not None:
             self.get_or_create_sp_role(app_sp_id)
+
+        # Ensure the target database exists before opening the pool
+        self._ensure_database_exists()
 
         self.connection = self.get_connection()
 
@@ -237,6 +321,46 @@ class LakebaseUtils:
         logger.info(f"Generated new database credential for instance '{self.instance_name}'")
         return {"password": cred.token}
 
+    def _ensure_database_exists(self):
+        """
+        Create the target database if it does not already exist.
+
+        ``CREATE DATABASE`` cannot run inside a transaction block, so this
+        method opens a **separate, temporary connection** to the default
+        ``databricks_postgres`` database with ``autocommit = True``.
+        """
+        if self.database == DEFAULT_LAKEBASE_DATABASE:
+            return  # default database always exists
+
+        host = self.instance.read_write_dns
+        cred = self._generate_credential()
+
+        conn = psycopg2.connect(
+            database=DEFAULT_LAKEBASE_DATABASE,
+            user=self.user,
+            host=host,
+            sslmode="require",
+            password=cred["password"],
+        )
+        try:
+            conn.autocommit = True  # CREATE DATABASE cannot run in a TX
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM pg_database WHERE datname = %s",
+                    (self.database,),
+                )
+                if cursor.fetchone():
+                    logger.info(f"Database '{self.database}' already exists")
+                else:
+                    cursor.execute(
+                        sql.SQL("CREATE DATABASE {}").format(
+                            sql.Identifier(self.database)
+                        )
+                    )
+                    logger.info(f"Created database '{self.database}'")
+        finally:
+            conn.close()
+
     def get_connection(self):
         """
         Create and return a RefreshableThreadedConnectionPool that automatically
@@ -246,13 +370,12 @@ class LakebaseUtils:
             RefreshableThreadedConnectionPool: A connection pool with auto-refresh capability
         """
         host = self.instance.read_write_dns
-        database = "databricks_postgres"
 
         # Generate initial credentials
         initial_cred = self._generate_credential()
 
         db_kwargs = {
-            "database": database,
+            "database": self.database,
             "user": self.user,
             "host": host,
             "sslmode": "require",
@@ -271,8 +394,8 @@ class LakebaseUtils:
         )
 
         logger.info(
-            f"Created RefreshableThreadedConnectionPool for instance '{self.instance_name}' "
-            f"with auto-refresh at 55 minutes"
+            f"Created RefreshableThreadedConnectionPool for instance '{self.instance_name}', "
+            f"database '{self.database}' with auto-refresh at 55 minutes"
         )
 
         return pool
@@ -339,7 +462,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT start_pos, end_pos, pixel_data_pos FROM {} "
             "WHERE filename = %s AND frame = %s AND uc_table_name = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+        ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
             query, (filename, frame, uc_table_name), user_groups=user_groups,
         )
@@ -365,7 +488,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT max(frame), max(start_pos) FROM {} "
             "WHERE filename = %s AND frame <= %s AND uc_table_name = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+        ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
             query, (filename, param_frames, uc_table_name), user_groups=user_groups,
         )
@@ -397,7 +520,7 @@ class LakebaseUtils:
                 "    {table}.allowed_groups || EXCLUDED.allowed_groups"
                 "  )"
                 ")"
-            ).format(table=sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(table=sql.Identifier(self.schema, table))
             self.execute_query(
                 query,
                 (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name, groups_literal),
@@ -406,7 +529,7 @@ class LakebaseUtils:
             query = sql.SQL(
                 "INSERT INTO {} (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name) "
                 "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
-            ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(sql.Identifier(self.schema, table))
             self.execute_query(
                 query, (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name),
             )
@@ -437,7 +560,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT frame, start_pos, end_pos, pixel_data_pos FROM {} "
             "WHERE filename = %s AND uc_table_name = %s ORDER BY frame"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+        ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
             query, (filename, uc_table_name), user_groups=user_groups,
         )
@@ -486,7 +609,7 @@ class LakebaseUtils:
                 "    {table}.allowed_groups || EXCLUDED.allowed_groups"
                 "  )"
                 ")"
-            ).format(table=sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(table=sql.Identifier(self.schema, table))
         else:
             records = [
                 [
@@ -503,7 +626,7 @@ class LakebaseUtils:
                 "INSERT INTO {} (filename, frame, start_pos, end_pos, "
                 "pixel_data_pos, uc_table_name) "
                 "VALUES %s ON CONFLICT DO NOTHING"
-            ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(sql.Identifier(self.schema, table))
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
@@ -538,7 +661,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT local_path, num_frames, study_instance_uid, series_instance_uid "
             "FROM {} WHERE sop_instance_uid = %s AND uc_table_name = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+        ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
             query, (sop_instance_uid, uc_table_name), user_groups=user_groups,
         )
@@ -571,7 +694,7 @@ class LakebaseUtils:
             "SELECT sop_instance_uid, local_path, num_frames "
             "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s "
             "AND uc_table_name = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+        ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
             query,
             (study_instance_uid, series_instance_uid, uc_table_name),
@@ -632,7 +755,7 @@ class LakebaseUtils:
                 "    {table}.allowed_groups || EXCLUDED.allowed_groups"
                 "  )"
                 ")"
-            ).format(table=sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(table=sql.Identifier(self.schema, table))
         else:
             records = [
                 (
@@ -649,7 +772,7 @@ class LakebaseUtils:
                 "INSERT INTO {} (sop_instance_uid, study_instance_uid, "
                 "series_instance_uid, local_path, num_frames, uc_table_name) "
                 "VALUES %s ON CONFLICT DO NOTHING"
-            ).format(sql.Identifier(LAKEBASE_SCHEMA, table))
+            ).format(sql.Identifier(self.schema, table))
 
         conn = None
         try:
@@ -679,7 +802,7 @@ class LakebaseUtils:
         """
         query = sql.SQL(
             "SELECT group_name FROM {} WHERE user_email = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, USER_GROUPS_TABLE))
+        ).format(sql.Identifier(self.schema, USER_GROUPS_TABLE))
         results = self.execute_and_fetch_query(query, (user_email,))
         return sorted(row[0] for row in results)
 
@@ -714,7 +837,7 @@ class LakebaseUtils:
             "INSERT INTO {} (user_email, group_name, synced_at) "
             "VALUES %s "
             "ON CONFLICT (user_email, group_name) DO UPDATE SET synced_at = NOW()"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, USER_GROUPS_TABLE))
+        ).format(sql.Identifier(self.schema, USER_GROUPS_TABLE))
 
         conn = None
         try:
@@ -759,7 +882,7 @@ class LakebaseUtils:
             "access_type = EXCLUDED.access_type, "
             "uc_filter_sql = EXCLUDED.uc_filter_sql, "
             "description = EXCLUDED.description"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, ACCESS_RULES_TABLE))
+        ).format(sql.Identifier(self.schema, ACCESS_RULES_TABLE))
         self.execute_query(
             query, (uc_table_name, group_name, access_type, uc_filter_sql, description),
         )
@@ -772,7 +895,7 @@ class LakebaseUtils:
         query = sql.SQL(
             "SELECT group_name, access_type, uc_filter_sql, description "
             "FROM {} WHERE uc_table_name = %s"
-        ).format(sql.Identifier(LAKEBASE_SCHEMA, ACCESS_RULES_TABLE))
+        ).format(sql.Identifier(self.schema, ACCESS_RULES_TABLE))
         results = self.execute_and_fetch_query(query, (uc_table_name,))
         return [
             {
@@ -830,7 +953,7 @@ class LakebaseUtils:
                     "  SELECT DISTINCT unnest(allowed_groups || ARRAY[%s])"
                     ") "
                     "WHERE uc_table_name = %s AND NOT (%s = ANY(allowed_groups))"
-                ).format(sql.Identifier(LAKEBASE_SCHEMA, INSTANCE_PATHS_TABLE))
+                ).format(sql.Identifier(self.schema, INSTANCE_PATHS_TABLE))
                 conn = None
                 try:
                     conn = self.connection.getconn()
@@ -852,7 +975,7 @@ class LakebaseUtils:
                     "  SELECT DISTINCT unnest(allowed_groups || ARRAY[%s])"
                     ") "
                     "WHERE uc_table_name = %s AND NOT (%s = ANY(allowed_groups))"
-                ).format(sql.Identifier(LAKEBASE_SCHEMA, DICOM_FRAMES_TABLE))
+                ).format(sql.Identifier(self.schema, DICOM_FRAMES_TABLE))
                 conn = None
                 try:
                     conn = self.connection.getconn()
@@ -899,7 +1022,7 @@ class LakebaseUtils:
                     "WHERE uc_table_name = %s "
                     "AND sop_instance_uid = ANY(%s) "
                     "AND NOT (%s = ANY(allowed_groups))"
-                ).format(sql.Identifier(LAKEBASE_SCHEMA, INSTANCE_PATHS_TABLE))
+                ).format(sql.Identifier(self.schema, INSTANCE_PATHS_TABLE))
                 conn = None
                 try:
                     conn = self.connection.getconn()
@@ -933,6 +1056,6 @@ class LakebaseUtils:
         for tbl in (INSTANCE_PATHS_TABLE, DICOM_FRAMES_TABLE):
             query = sql.SQL(
                 "UPDATE {} SET allowed_groups = '{}' WHERE uc_table_name = %s"
-            ).format(sql.Identifier(LAKEBASE_SCHEMA, tbl))
+            ).format(sql.Identifier(self.schema, tbl))
             self.execute_query(query, (uc_table_name,))
         logger.info(f"Reset allowed_groups for {uc_table_name}")

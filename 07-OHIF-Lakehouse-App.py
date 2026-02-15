@@ -25,8 +25,8 @@
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
-app_name = "pixels-ohif-viewer-3-10"
-lakebase_instance_name = "pixels-lb-1"
+app_name = "pixels-dicomweb"
+lakebase_instance_name = "pixels-pixels"
 serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()
@@ -63,74 +63,168 @@ w = WorkspaceClient()
 
 import dbx
 from dbx.pixels.lakebase import LakebaseUtils
-lb_utils = LakebaseUtils(instance_name=lakebase_instance_name)
+lb_utils = LakebaseUtils(instance_name=lakebase_instance_name, uc_table_name=table)
 
 path = os.path.dirname(dbx.pixels.__file__)
 sql_base_path = f"{path}/resources/sql/lakebase"
 
-file_path = os.path.join(sql_base_path, "CREATE_LAKEBASE_DICOM_FRAMES.sql")
-with open(file_path, "r") as file:
-    lb_utils.execute_query(file.read())
+# Database is aligned to UC catalog, schema to UC schema
+# (e.g. catalog.schema.table → database=catalog, schema=schema)
+_lb_schema = lb_utils.schema
+
+for sql_file in ["CREATE_LAKEBASE_SCHEMA.sql", "CREATE_LAKEBASE_DICOM_FRAMES.sql"]:
+    file_path = os.path.join(sql_base_path, sql_file)
+    with open(file_path, "r") as file:
+        lb_utils.execute_query(file.read().format(schema_name=_lb_schema))
+
+# Create the UC view used by Reverse ETL to sync instance_paths into Lakebase
+from dbx.pixels.lakebase import parse_uc_table_name
+_uc_catalog, _uc_schema, _uc_table = parse_uc_table_name(table)
+with open(os.path.join(sql_base_path, "CREATE_INSTANCE_PATHS_VIEW.sql"), "r") as file:
+    spark.sql(file.read().format(catalog=_uc_catalog, schema=_uc_schema, table=_uc_table))
+print(f"✓ Created UC view {_uc_catalog}.{_uc_schema}.instance_paths_vw for Reverse ETL Sync")
 
 # COMMAND ----------
 
-from databricks.sdk.service.apps import AppResource, AppResourceSqlWarehouse, AppResourceSqlWarehouseSqlWarehousePermission, AppResourceServingEndpoint, AppResourceServingEndpointServingEndpointPermission, App, AppDeployment
+# MAGIC %md
+# MAGIC # Create Reverse ETL Synced Table
+# MAGIC
+# MAGIC Sync the `instance_paths_vw` view from Unity Catalog into Lakebase using
+# MAGIC Reverse ETL.  This creates:
+# MAGIC
+# MAGIC 1. A **read-only synced table** in UC (`catalog.schema.instance_paths`)
+# MAGIC 2. A **Postgres table** in Lakebase (`schema.instance_paths`)
+# MAGIC
+# MAGIC The sync pipeline keeps the Lakebase table continuously updated so the
+# MAGIC DICOMweb app can resolve SOP Instance UIDs → file paths in sub-10 ms
+# MAGIC without querying the SQL warehouse.
 
+# COMMAND ----------
+
+from databricks.sdk.service.database import (
+    SyncedDatabaseTable,
+    SyncedTableSpec,
+    NewPipelineSpec,
+    SyncedTableSchedulingPolicy,
+)
+
+_synced_table_name = f"{_uc_catalog}.{_uc_schema}.instance_paths"
+_source_view_name  = f"{_uc_catalog}.{_uc_schema}.instance_paths_vw"
+
+# Check if the synced table already exists
+try:
+    existing = w.database.get_synced_database_table(name=_synced_table_name)
+    print(f"Synced table '{_synced_table_name}' already exists — state: {existing.data_synchronization_status.detailed_state}")
+except Exception:
+    synced_table = w.database.create_synced_database_table(
+        SyncedDatabaseTable(
+            name=_synced_table_name,
+            spec=SyncedTableSpec(
+                source_table_full_name=_source_view_name,
+                primary_key_columns=["local_path"],
+                scheduling_policy=SyncedTableSchedulingPolicy.SNAPSHOT,
+                new_pipeline_spec=NewPipelineSpec(
+                    storage_catalog=_uc_catalog,
+                    storage_schema=_uc_schema,
+                ),
+            ),
+        )
+    )
+    print(f"✓ Created synced table: {synced_table.name}")
+    print(f"  Source:   {_source_view_name}")
+    print(f"  Lakebase: {_uc_schema}.instance_paths")
+    print(f"  Mode:     SNAPSHOT")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Deploy DICOMweb App
+# MAGIC
+# MAGIC Create (or update) the DICOMweb Databricks App.  The app-config template
+# MAGIC is filled with the environment-specific values and written as `app.yml`.
+
+# COMMAND ----------
+
+from databricks.sdk.service.apps import (
+    AppResource,
+    AppResourceSqlWarehouse,
+    AppResourceSqlWarehouseSqlWarehousePermission,
+    AppResourceServingEndpoint,
+    AppResourceServingEndpointServingEndpointPermission,
+    App,
+    AppDeployment,
+)
 from pathlib import Path
-import dbx.pixels.resources
 import os
 
-# Check if the lakehouse app has already been created
-if app_name in [app.name for app in w.apps.list()]:
-  print(f"App {app_name} already exists")
-  app = w.apps.get(app_name)
-  print(app.url)
-else:
-  path = Path(dbx.pixels.__file__).parent
-  lha_path = (f"{path}/resources/lakehouse_app")
+_pixels_path = Path(dbx.pixels.__file__).parent
+_dicomweb_path = str(_pixels_path / "resources" / "dicom_web")
 
-  with open(f"{lha_path}/app-config.yml", "r") as config_input:
-          with open(f"{lha_path}/app.yml", "w") as config_custom:
-              config_custom.write(
-                  config_input.read()
-                  .replace("{PIXELS_TABLE}", table)
-                  .replace("{LAKEBASE_INSTANCE_NAME}", lakebase_instance_name)
-              )
+# Derive STOW volume path from the volume widget (catalog.schema.volume_name)
+_vol_parts = volume.split(".")
+_stow_volume_path = f"/Volumes/{_vol_parts[0]}/{_vol_parts[1]}/{_vol_parts[2]}/stow/"
 
-  resources = []
+# Generate app.yml from the template
+with open(f"{_dicomweb_path}/app-config.yml", "r") as config_input:
+    with open(f"{_dicomweb_path}/app.yml", "w") as config_output:
+        config_output.write(
+            config_input.read()
+            .replace("{PIXELS_TABLE}", table)
+            .replace("{LAKEBASE_INSTANCE_NAME}", lakebase_instance_name)
+            .replace("{LAKEBASE_INIT_DB}", "false")
+            .replace("{LAKEBASE_RLS_ENABLED}", "false")
+            .replace("{DICOMWEB_USE_USER_AUTH}", "false")
+            .replace("{STOW_VOLUME_PATH}", _stow_volume_path)
+        )
 
-  sql_resource = AppResource(
+print(f"✓ Generated app.yml for DICOMweb app")
+
+# Build app resources
+resources = []
+
+sql_resource = AppResource(
     name="sql_warehouse",
     sql_warehouse=AppResourceSqlWarehouse(
-      id=sql_warehouse_id,
-      permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE
+        id=sql_warehouse_id,
+        permission=AppResourceSqlWarehouseSqlWarehousePermission.CAN_USE,
+    ),
+)
+resources.append(sql_resource)
+
+if serving_endpoint_name in [ep.name for ep in w.serving_endpoints.list()]:
+    resources.append(
+        AppResource(
+            name="serving_endpoint",
+            serving_endpoint=AppResourceServingEndpoint(
+                name=serving_endpoint_name,
+                permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY,
+            ),
+        )
     )
-  )
-  resources.append(sql_resource)
 
-  if serving_endpoint_name in [endpoint.name for endpoint in w.serving_endpoints.list()]:
-    serving_endpoint = AppResource(
-      name="serving_endpoint",
-      serving_endpoint=AppResourceServingEndpoint(
-        name=serving_endpoint_name,
-        permission=AppResourceServingEndpointServingEndpointPermission.CAN_QUERY
-      )
+# Create or retrieve existing app
+if app_name in [a.name for a in w.apps.list()]:
+    print(f"App '{app_name}' already exists")
+    app = w.apps.get(app_name)
+else:
+    print(f"Creating DICOMweb App '{app_name}' — this may take a few minutes …")
+    app = App(
+        app_name,
+        default_source_code_path=_dicomweb_path,
+        user_api_scopes=["sql", "files.files"],
+        resources=resources,
     )
-    resources.append(serving_endpoint)
-
-  print(f"Creating Lakehouse App with name {app_name}, this step will require few minutes to complete")
-
-  app = App(app_name, default_source_code_path=lha_path, user_api_scopes=["sql","files.files"], resources=resources)
-  app_created = w.apps.create_and_wait(app)
+    app = w.apps.create_and_wait(app)
+    print(f"✓ App created: {app.url}")
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC # Granting Permissions
 # MAGIC
-# MAGIC The next cell is responsible for granting the necessary permissions to the service principal for accessing the catalog, schema, table, and volume.
-# MAGIC
-# MAGIC This ensures that the Lakehouse App has the required access to perform its operations.
+# MAGIC Grant the DICOMweb app's service principal access to:
+# MAGIC - Lakebase tables (`dicom_frames`, `instance_paths`)
+# MAGIC - Unity Catalog (catalog, schema, table, volume)
 
 # COMMAND ----------
 
@@ -140,60 +234,43 @@ app_instance = w.apps.get(app_name)
 last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
 service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
 
-#Grant permissions to the App's SP
+# Lakebase grants
 role = lb_utils.get_or_create_sp_role(service_principal_id)
-lb_utils.execute_query(f'GRANT SELECT, INSERT, TRUNCATE ON dicom_frames TO "{role.name}"')
+lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.dicom_frames TO "{role.name}"')
+lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.instance_paths TO "{role.name}"')
 
-
-#Grant USE CATALOG permissions on CATALOG
-w.grants.update(full_name=table.split(".")[0],
-  securable_type="catalog",
-  changes=[
-    catalog.PermissionsChange(
-      add=[catalog.Privilege.USE_CATALOG],
-      principal=service_principal_id
-    )
-  ]
+# UC grants
+w.grants.update(
+    full_name=_uc_catalog,
+    securable_type="catalog",
+    changes=[catalog.PermissionsChange(add=[catalog.Privilege.USE_CATALOG], principal=service_principal_id)],
+)
+w.grants.update(
+    full_name=f"{_uc_catalog}.{_uc_schema}",
+    securable_type="schema",
+    changes=[catalog.PermissionsChange(add=[catalog.Privilege.USE_SCHEMA], principal=service_principal_id)],
+)
+w.grants.update(
+    full_name=table,
+    securable_type="table",
+    changes=[catalog.PermissionsChange(add=[catalog.Privilege.ALL_PRIVILEGES], principal=service_principal_id)],
+)
+w.grants.update(
+    full_name=volume,
+    securable_type="volume",
+    changes=[catalog.PermissionsChange(add=[catalog.Privilege.ALL_PRIVILEGES], principal=service_principal_id)],
 )
 
-#Grant USE SCHEMA permissions on SCHEMA
-w.grants.update(full_name=table.split(".")[0]+"."+table.split(".")[1],
-  securable_type="schema",
-  changes=[
-    catalog.PermissionsChange(
-      add=[catalog.Privilege.USE_SCHEMA],
-      principal=service_principal_id
-    )
-  ]
-)
-
-#Grant ALL PRIVILEGES permissions on TABLE
-w.grants.update(full_name=table,
-  securable_type="table",
-  changes=[
-    catalog.PermissionsChange(
-      add=[catalog.Privilege.ALL_PRIVILEGES],
-      principal=service_principal_id
-    )
-  ]
-)
-
-#Grant ALL PRIVILEGES permissions on VOLUME
-w.grants.update(full_name=volume,
-  securable_type="volume",
-  changes=[
-    catalog.PermissionsChange(
-      add=[catalog.Privilege.ALL_PRIVILEGES],
-      principal=service_principal_id
-    )
-  ]
-)
-
-print("PERMISSIONS GRANTED")
+print("✓ Permissions granted")
 
 # COMMAND ----------
 
-app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=lha_path))
+# MAGIC %md
+# MAGIC # Deploy
 
-print(app_deploy.status.message)
-print(app_created.url)
+# COMMAND ----------
+
+app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=_dicomweb_path))
+
+print(f"✓ {app_deploy.status.message}")
+print(f"  URL: {app.url}")

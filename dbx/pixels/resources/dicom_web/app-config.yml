@@ -1,0 +1,18 @@
+env:
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "MONAI_SERVING_ENDPOINT"
+    valueFrom: "serving_endpoint"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "{PIXELS_TABLE}"
+  - name: "LAKEBASE_INSTANCE_NAME"
+    value: "{LAKEBASE_INSTANCE_NAME}"
+  - name: "LAKEBASE_INIT_DB"
+    value: "{LAKEBASE_INIT_DB}"
+  - name: "LAKEBASE_RLS_ENABLED"
+    value: "{LAKEBASE_RLS_ENABLED}"
+  - name: "DICOMWEB_USE_USER_AUTH"
+    value: "{DICOMWEB_USE_USER_AUTH}"
+  - name: "DATABRICKS_STOW_VOLUME_PATH"
+    value: "{STOW_VOLUME_PATH}"
+

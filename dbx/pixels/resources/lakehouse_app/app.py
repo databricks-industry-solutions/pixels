@@ -43,10 +43,13 @@ from utils.partial_frames import (
 # ---------------------------------------------------------------------------
 _lb_utils = None
 try:
-    if "LAKEBASE_INSTANCE_NAME" in os.environ:
+    if "LAKEBASE_INSTANCE_NAME" in os.environ or "DATABRICKS_PIXELS_TABLE" in os.environ:
         from dbx.pixels.lakebase import LakebaseUtils
 
-        _lb_utils = LakebaseUtils(instance_name=os.environ["LAKEBASE_INSTANCE_NAME"])
+        _lb_utils = LakebaseUtils(
+            instance_name=os.environ.get("LAKEBASE_INSTANCE_NAME", "pixels-lakebase"),
+            uc_table_name=os.getenv("DATABRICKS_PIXELS_TABLE"),
+        )
 except Exception as exc:
     logger.warning(f"Lakebase init failed (non-fatal): {exc}")
 

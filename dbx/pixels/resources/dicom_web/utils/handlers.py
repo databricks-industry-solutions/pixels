@@ -44,9 +44,16 @@ logger = LoggerProvider("DICOMweb.Handlers")
 # ---------------------------------------------------------------------------
 # Lakebase singleton (persistent tier-2 cache for frame offsets + instance paths)
 # ---------------------------------------------------------------------------
+# Lakebase has a 3-level namespace: Instance → Database → Schema → Table.
+# When DATABRICKS_PIXELS_TABLE is set (e.g. pixels_dicomweb.tcia.object_catalog):
+#   - Instance  → LAKEBASE_INSTANCE_NAME (the server, independent of UC)
+#   - Database  → UC catalog  ("pixels_dicomweb")
+#   - Schema    → UC schema   ("tcia")
+# This alignment enables Reverse ETL Sync between UC and Lakebase.
+# ---------------------------------------------------------------------------
 
 lb_utils = None
-if "LAKEBASE_INSTANCE_NAME" in os.environ:
+if "LAKEBASE_INSTANCE_NAME" in os.environ or "DATABRICKS_PIXELS_TABLE" in os.environ:
     try:
         from pathlib import Path
 
@@ -57,32 +64,48 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ:
 
         _sql_dir = Path(_lb_mod.__file__).parent / "resources" / "sql" / "lakebase"
 
+        # Derive the UC table name (used to align database + schema)
+        _uc_table = os.getenv("DATABRICKS_PIXELS_TABLE")
+
         lb_utils = LakebaseUtils(
-            instance_name=os.environ["LAKEBASE_INSTANCE_NAME"],
+            instance_name=os.environ.get("LAKEBASE_INSTANCE_NAME", "pixels-lakebase"),
             create_instance=True,
+            uc_table_name=_uc_table,
         )
+
         if os.environ.get("LAKEBASE_INIT_DB", "").lower() in ("1", "true", "yes"):
+            # The schema name used in DDL is the one LakebaseUtils derived
+            _lb_schema = lb_utils.schema
+
             init_files = [
                 "CREATE_LAKEBASE_SCHEMA.sql",
                 "CREATE_LAKEBASE_DICOM_FRAMES.sql",
-                "CREATE_LAKEBASE_INSTANCE_PATHS.sql",
             ]
             # Apply RLS schema when enabled
             if RLS_ENABLED:
                 init_files.append("CREATE_LAKEBASE_RLS.sql")
             for sql_file in init_files:
                 with open(_sql_dir / sql_file) as fh:
-                    lb_utils.execute_query(fh.read())
+                    ddl = fh.read().format(schema_name=_lb_schema)
+                    lb_utils.execute_query(ddl)
             logger.info(
-                f"Lakebase schema initialised: {os.environ['LAKEBASE_INSTANCE_NAME']}"
+                f"Lakebase initialised: instance='{lb_utils.instance_name}', "
+                f"database='{lb_utils.database}', schema='{_lb_schema}'"
                 f"{' (RLS enabled)' if RLS_ENABLED else ''}"
             )
         else:
-            logger.info(f"Lakebase connected (schema init skipped): {os.environ['LAKEBASE_INSTANCE_NAME']}")
+            logger.info(
+                f"Lakebase connected (schema init skipped): "
+                f"instance='{lb_utils.instance_name}', "
+                f"database='{lb_utils.database}', schema='{lb_utils.schema}'"
+            )
     except Exception as exc:
         logger.warning(f"Lakebase init failed: {exc}")
 else:
-    logger.warning("LAKEBASE_INSTANCE_NAME not configured, tier-2 caching disabled")
+    logger.warning(
+        "Neither LAKEBASE_INSTANCE_NAME nor DATABRICKS_PIXELS_TABLE configured, "
+        "tier-2 caching disabled"
+    )
 
 
 # ---------------------------------------------------------------------------
