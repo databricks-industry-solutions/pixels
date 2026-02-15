@@ -910,6 +910,7 @@ async def dicomweb_stow_studies(
     # ── Landing-zone configuration ─────────────────────────────────────
     stow_base = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
     if not stow_base:
+        logger.error("STOW-RS: DATABRICKS_STOW_VOLUME_PATH env var not set")
         raise HTTPException(
             status_code=500,
             detail="DATABRICKS_STOW_VOLUME_PATH not configured",
@@ -922,7 +923,8 @@ async def dicomweb_stow_studies(
 
     # ── Stream entire body to a single temp file ───────────────────────
     file_id = uuid.uuid4().hex
-    dest_path = f"{stow_base}/{file_id}.mpr"  # multipart-related bundle
+    current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    dest_path = f"{stow_base}/{current_date}/{file_id}.mpr"  # multipart-related bundle with date
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     logger.info(
@@ -935,10 +937,13 @@ async def dicomweb_stow_studies(
             token, dest_path, request.stream(),
         )
     except Exception as exc:
-        logger.error(f"STOW-RS: streaming upload failed for {file_id}: {exc}")
+        logger.error(
+            f"STOW-RS: streaming upload failed for {file_id}: "
+            f"{type(exc).__name__}: {exc!r}"
+        )
         raise HTTPException(
             status_code=500,
-            detail=f"Upload failed: {exc}",
+            detail=f"Upload failed ({type(exc).__name__}): {exc}",
         )
 
     logger.info(f"STOW-RS: streamed {file_id}.mpr ({file_size} bytes)")

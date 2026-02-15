@@ -188,12 +188,11 @@ async def async_stream_to_volumes(
     """
     Stream an async byte stream directly to a Databricks Volume path.
 
-    Uses ``httpx.AsyncClient`` for true async streaming — the request body
-    is piped chunk-by-chunk to the Volumes Files API with **O(chunk_size)**
-    memory, exactly like the legacy ``_reverse_proxy_files`` pattern.
+    Uses the same ``build_request`` → ``send`` — the request body is piped
+    chunk-by-chunk to the Volumes Files API with **O(chunk_size)** memory.
 
-    This is the primary upload path for STOW-RS: the raw multipart body is
-    streamed as-is to a single temp file on Volumes.  No parsing, no
+    This is the primary upload path for STOW-RS: the raw multipart body
+    is streamed as-is to a single temp file on Volumes.  No parsing, no
     buffering of the full body.
 
     Args:
@@ -227,15 +226,20 @@ async def async_stream_to_volumes(
             total_size += len(chunk)
             yield chunk
 
-    async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
-        response = await client.put(
+    client = httpx.AsyncClient(timeout=httpx.Timeout(300.0))
+    try:
+        rp_req = client.build_request(
+            "PUT",
             url,
-            content=_counting_stream(),
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/octet-stream",
             },
+            content=_counting_stream(),
         )
+        response = await client.send(rp_req)
+    finally:
+        await client.aclose()
 
     if response.status_code not in (200, 204):
         raise RuntimeError(
