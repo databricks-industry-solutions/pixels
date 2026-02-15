@@ -20,10 +20,9 @@ import time
 from collections.abc import Iterator
 from io import BytesIO
 from typing import Any, BinaryIO, Dict, List
-from urllib.parse import quote as _url_quote
-
-import httpx
 import pydicom
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.config import Config as SdkConfig
 from fastapi import HTTPException
 
 from dbx.pixels.databricks_file import DatabricksFile
@@ -369,7 +368,6 @@ class DICOMwebDatabricksWrapper:
     # ── STOW-RS upload constants ────────────────────────────────────────
     _STOW_MAX_RETRIES = 4
     _STOW_BACKOFF_BASE = 2.0
-    _STOW_UPLOAD_TIMEOUT = 600.0   # 10 min read-timeout for large files
 
     def stow_volume_base(self) -> str:
         """Public accessor for the STOW-RS volume base path."""
@@ -405,31 +403,18 @@ class DICOMwebDatabricksWrapper:
             part_size = part_file.tell()
             size_mb = part_size / (1024 ** 2)
 
-            # ── 2. Upload to Volume via httpx PUT (proxy) ────────────
-            host = os.environ["DATABRICKS_HOST"].rstrip("/")
+            # ── 2. Upload to Volume via Databricks SDK ──────────────
             token = self._token
-            encoded_path = _url_quote(volume_path, safe="/")
-            url = f"{host}/api/2.0/fs/files{encoded_path}"
+            sdk_cfg = SdkConfig(token=token, auth_type="pat")
+            sdk_client = WorkspaceClient(config=sdk_cfg)
 
             last_exc: BaseException | None = None
             for attempt in range(1, self._STOW_MAX_RETRIES + 1):
                 try:
                     part_file.seek(0)
-                    with httpx.Client(
-                        timeout=httpx.Timeout(
-                            self._STOW_UPLOAD_TIMEOUT, connect=10.0,
-                        ),
-                    ) as client:
-                        resp = client.put(
-                            url,
-                            content=part_file,
-                            headers={
-                                "Authorization": f"Bearer {token}",
-                                "Content-Type": "application/octet-stream",
-                            },
-                            params={"overwrite": "true"},
-                        )
-                        resp.raise_for_status()
+                    sdk_client.files.upload(
+                        volume_path, part_file, overwrite=True,
+                    )
                     logger.info(
                         f"STOW-RS upload: {volume_path} "
                         f"({size_mb:.1f} MB, attempt {attempt})"
@@ -437,6 +422,10 @@ class DICOMwebDatabricksWrapper:
                     break  # success
                 except Exception as exc:
                     last_exc = exc
+                    # Don't retry deterministic 4xx errors
+                    status = getattr(exc, "status_code", None)
+                    if status and 400 <= status < 500 and status not in (408, 429):
+                        raise
                     if attempt < self._STOW_MAX_RETRIES:
                         wait = self._STOW_BACKOFF_BASE ** attempt
                         logger.warning(
@@ -469,23 +458,7 @@ class DICOMwebDatabricksWrapper:
 
             num_frames = int(getattr(ds, "NumberOfFrames", 1))
 
-            # ── 4. Insert catalog row ────────────────────────────────
-            insert_query, _ = build_insert_instance_query(self._table)
-            params = {
-                "pixels_table": self._table,
-                "path": f"dbfs:{volume_path}",
-                "length": part_size,
-                "relative_path": file_rel,
-                "local_path": volume_path,
-                "meta_json": meta_json,
-            }
-            self._query(insert_query, params)
-
-            logger.info(
-                f"STOW-RS commit: {sop_instance_uid} → {volume_path}"
-            )
-
-            # ── 5. Warm caches ───────────────────────────────────────
+            # ── 4. Warm caches (fast, in-memory first) ───────────────
             instance_path_cache.put(
                 sop_instance_uid, self._table,
                 {"path": volume_path, "num_frames": num_frames},
@@ -508,6 +481,22 @@ class DICOMwebDatabricksWrapper:
                     logger.warning(
                         f"STOW-RS: Lakebase cache warm failed (non-fatal): {exc}"
                     )
+
+            # ── 5. Insert catalog row (last — slowest) ───────────────
+            insert_query, _ = build_insert_instance_query(self._table)
+            params = {
+                "pixels_table": self._table,
+                "path": f"dbfs:{volume_path}",
+                "length": part_size,
+                "relative_path": file_rel,
+                "local_path": volume_path,
+                "meta_json": meta_json,
+            }
+            self._query(insert_query, params)
+
+            logger.info(
+                f"STOW-RS commit: {sop_instance_uid} → {volume_path}"
+            )
 
         except Exception as exc:
             logger.error(
