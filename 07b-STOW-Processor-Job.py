@@ -178,6 +178,7 @@ else:
 
 # COMMAND ----------
 
+# DBTITLE 1,Cell 13
 from databricks.sdk.service import catalog as catalog_svc
 
 app_instance = w.apps.get(app_name)
@@ -197,7 +198,7 @@ w.grants.update(
 print(f"✓ Granted ALL_PRIVILEGES on {stow_table} to SP {service_principal_id}")
 
 # ── Job permission — allow the app SP to trigger runs ──────────────────
-w.jobs.set_permissions(
+w.jobs.update_permissions(
     job_id=str(job_id),
     access_control_list=[
         JobAccessControlRequest(
