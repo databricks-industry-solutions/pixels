@@ -63,7 +63,7 @@ w = WorkspaceClient()
 
 import dbx
 from dbx.pixels.lakebase import LakebaseUtils
-lb_utils = LakebaseUtils(instance_name=lakebase_instance_name, uc_table_name=table)
+lb_utils = LakebaseUtils(instance_name=lakebase_instance_name, uc_table_name=table, create_instance=True)
 
 path = os.path.dirname(dbx.pixels.__file__)
 sql_base_path = f"{path}/resources/sql/lakebase"
@@ -119,6 +119,8 @@ except Exception:
     synced_table = w.database.create_synced_database_table(
         SyncedDatabaseTable(
             name=_synced_table_name,
+            database_instance_name=lakebase_instance_name,
+            logical_database_name=_uc_catalog,
             spec=SyncedTableSpec(
                 source_table_full_name=_source_view_name,
                 primary_key_columns=["local_path"],
@@ -228,16 +230,21 @@ else:
 
 # COMMAND ----------
 
+app_instance = w.apps.get(app_name)
+app_instance.service_principal_client_id
+
+# COMMAND ----------
+
 from databricks.sdk.service import catalog
 
 app_instance = w.apps.get(app_name)
-last_deployment = w.apps.get_deployment(app_name, app_instance.active_deployment.deployment_id)
-service_principal_id = last_deployment.deployment_artifacts.source_code_path.split("/")[3]
+service_principal_id = app_instance.service_principal_client_id
 
 # Lakebase grants
 role = lb_utils.get_or_create_sp_role(service_principal_id)
 lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.dicom_frames TO "{role.name}"')
 lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.instance_paths TO "{role.name}"')
+lb_utils.execute_query(f'GRANT USAGE ON SCHEMA {_lb_schema} TO "{role.name}"')
 
 # UC grants
 w.grants.update(
