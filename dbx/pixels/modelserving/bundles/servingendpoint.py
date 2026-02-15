@@ -141,7 +141,7 @@ class MonaiLabelBundlesTransformer(Transformer):
                 yield pd.DataFrame({"result": results, "error": errors})
 
         df = (
-            df.selectExpr(f"{self.input_col}:['0020000E'].Value[0] as series_uid")
+            df.selectExpr(f"{self.input_col}:['0020000E'].Value[0]::STRING as series_uid")
             .filter("contains(meta:['00080008'], 'AXIAL')")
             .distinct()
         )

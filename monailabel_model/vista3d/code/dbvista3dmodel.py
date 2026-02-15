@@ -75,14 +75,12 @@ class DBVISTA3DModel(DBModel):
     def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
         from vista3d_bundle.scripts.infer import InferClass
 
-        nifti_path, image_info = series_to_nifti(datastore, series_uid)
+        series_dir = datastore.get_image_uri(series_uid)
 
         vista3d_model = InferClass(self.conf_file, torch_device=torch_device, file_ext=file_ext)
-        vista3d_model.infer(image_info['path'], label_prompt=label_prompt, point=points, point_label=point_labels, save_mask=True)
+        pred = vista3d_model.infer(series_dir, label_prompt=label_prompt, point=points, point_label=point_labels, save_mask=True, output_dir=self.output_path, label_info=self.label_dict)
 
-        self.logger.warning(f"Inference completed on image: {nifti_path}")
+        self.logger.warning(f"Inference completed on image: {series_dir}")
 
-        suffixes = [".nii", ".nii.gz", ".nrrd"]
-        dicom_path = [nifti_path.replace(suffix, "") for suffix in suffixes if nifti_path.endswith(suffix)][0]
-        nifti_seg_path = self.output_path + "/" + series_uid + "/" + series_uid + "_seg" + file_ext
-        return dicom_path, nifti_path, nifti_seg_path, image_info
+        out_seg_path = pred.meta['saved_to']
+        return series_dir, out_seg_path

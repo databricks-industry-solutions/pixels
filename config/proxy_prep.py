@@ -17,7 +17,7 @@ def init_widgets(show_volume=False):
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
 
   if sql_warehouse_id == "":
-    sql_warehouse = w.warehouses.list()[0]
+    sql_warehouse = next(w.warehouses.list())
     sql_warehouse_id = sql_warehouse.id
     dbutils.widgets.text("sqlWarehouseID", sql_warehouse_id, label="2.0 SQL Warehouse")
     print(f"SQL Warehouse is mandatory, taking the first available: '{sql_warehouse.name}'")
