@@ -1,7 +1,7 @@
 """
 DICOMweb + OHIF FastAPI application for Databricks Pixels.
 
-Registers DICOMweb routes (QIDO-RS, WADO-RS, STOW-RS, WADO-URI) **and**
+Registers DICOMweb routes (QIDO-RS, WADO-RS, WADO-URI) **and**
 shared OHIF routes (viewer hosting, config page, MONAI proxy, SQL
 warehouse proxy, redaction API, VLM analysis).
 """
@@ -17,7 +17,7 @@ from utils.handlers import (
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
     dicomweb_wado_uri,
-    dicomweb_stow_store,
+    dicomweb_stow_studies,
     dicomweb_resolve_paths,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
@@ -47,6 +47,7 @@ def register_dicomweb_routes(app: FastAPI):
     STOW-RS (Store):
     - POST /api/dicomweb/studies
     - POST /api/dicomweb/studies/{study}
+
     """
 
     # QIDO-RS
@@ -105,13 +106,13 @@ def register_dicomweb_routes(app: FastAPI):
         )
 
     # STOW-RS
+    @app.post("/api/dicomweb/studies/{study_instance_uid}", tags=["DICOMweb STOW-RS"])
+    async def store_instances_study(request: Request, study_instance_uid: str):
+        return await dicomweb_stow_studies(request, study_instance_uid)
+
     @app.post("/api/dicomweb/studies", tags=["DICOMweb STOW-RS"])
     async def store_instances(request: Request):
-        return await dicomweb_stow_store(request)
-
-    @app.post("/api/dicomweb/studies/{study_instance_uid}", tags=["DICOMweb STOW-RS"])
-    async def store_instances_for_study(request: Request, study_instance_uid: str):
-        return await dicomweb_stow_store(request, study_instance_uid)
+        return await dicomweb_stow_studies(request)
 
     # Path resolution
     @app.post("/api/dicomweb/resolve_paths", tags=["DICOMweb Path Resolution"])
@@ -165,6 +166,19 @@ def _dicomweb_service_root() -> dict:
                     "GET /api/dicomweb/studies/{study}/series/{series}/instances/{instance}/frames/{frameList}",
                 ],
             },
+            "STOW-RS": {
+                "description": "STore Over the Web (RESTful) — upload DICOM instances",
+                "endpoints": [
+                    "POST /api/dicomweb/studies",
+                    "POST /api/dicomweb/studies/{study}",
+                ],
+                "supported_content_types": ["multipart/related; type=application/dicom"],
+                "notes": [
+                    "Files are uploaded to Volumes immediately (landing zone).",
+                    "Metadata is indexed asynchronously in the background.",
+                    "No compression or transfer syntax negotiation.",
+                ],
+            },
             "WADO-URI": {
                 "description": "Web Access to DICOM Objects (legacy query-parameter)",
                 "endpoints": [
@@ -173,16 +187,6 @@ def _dicomweb_service_root() -> dict:
                 ],
                 "supported_content_types": ["application/dicom"],
                 "optional_params": ["frameNumber", "transferSyntax"],
-            },
-            "STOW-RS": {
-                "description": "Store Over the Web (binary DICOM)",
-                "endpoints": [
-                    "POST /api/dicomweb/studies",
-                    "POST /api/dicomweb/studies/{study}",
-                ],
-                "supported_content_types": [
-                    'multipart/related; type="application/dicom"',
-                ],
             },
         },
         "documentation": "https://www.dicomstandard.org/using/dicomweb",
