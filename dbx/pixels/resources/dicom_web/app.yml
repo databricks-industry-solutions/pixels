@@ -15,3 +15,5 @@ env:
     value: "false"
   - name: "DATABRICKS_STOW_VOLUME_PATH"
     value: "/Volumes/main/pixels_solacc/pixels_volume/stow/"
+  - name: "PIXELS_PREFETCH_ENABLED"
+    value: "false"

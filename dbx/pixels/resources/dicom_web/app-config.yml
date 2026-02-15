@@ -15,4 +15,6 @@ env:
     value: "{DICOMWEB_USE_USER_AUTH}"
   - name: "DATABRICKS_STOW_VOLUME_PATH"
     value: "{STOW_VOLUME_PATH}"
+  - name: "PIXELS_PREFETCH_ENABLED"
+    value: "false"
 

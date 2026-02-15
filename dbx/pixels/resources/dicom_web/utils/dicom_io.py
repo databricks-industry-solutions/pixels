@@ -207,6 +207,14 @@ class FilePrefetcher:
       5 MB) are **not** prefetched.  Large multi-frame DICOMs gain
       nothing from being held in memory because their transfer time
       dominates; streaming them directly is equally efficient.
+
+    **Disabling prefetch** — set the environment variable
+    ``PIXELS_PREFETCH_ENABLED=false`` to turn off background file
+    downloads entirely.  The viewer will fall back to streaming from
+    Volumes for every request, which avoids resource contention on
+    small instances.  The thread pool is still available (with a
+    minimal worker count) so that lightweight background tasks such as
+    series path pre-warming can still run.
     """
 
     _DEFAULT_MAX_FILE_BYTES = 5 * 1024 * 1024   # 5 MB
@@ -217,9 +225,19 @@ class FilePrefetcher:
         max_memory_bytes: int | None = None,
         max_file_bytes: int | None = None,
     ):
+        # ── Enabled / disabled via env var ───────────────────────────
+        self._enabled = os.environ.get(
+            "PIXELS_PREFETCH_ENABLED", "false"
+        ).strip().lower() in ("1", "true", "yes")
+
         # ── CPU budget ──────────────────────────────────────────────
         cpu_count = os.cpu_count() or 4
-        self._max_workers = max_workers or max(1, int(cpu_count * _CPU_BUDGET_RATIO))
+        if self._enabled:
+            self._max_workers = max_workers or max(1, int(cpu_count * _CPU_BUDGET_RATIO))
+        else:
+            # Minimal pool — only used for lightweight background tasks
+            # like series path pre-warming (_maybe_prime_series).
+            self._max_workers = max_workers or max(1, min(2, cpu_count))
 
         self._pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self._max_workers, thread_name_prefix="volprefetch",
@@ -230,7 +248,7 @@ class FilePrefetcher:
             self._max_memory_bytes = max_memory_bytes
         else:
             available = psutil.virtual_memory().available
-            self._max_memory_bytes = int(available * _RAM_BUDGET_RATIO)
+            self._max_memory_bytes = int(available * _RAM_BUDGET_RATIO) if self._enabled else 0
 
         # ── Per-file size cap ───────────────────────────────────────
         self._max_file_bytes = (
@@ -245,7 +263,8 @@ class FilePrefetcher:
         self._files_skipped_too_large: int = 0  # downloads skipped (file too big)
 
         logger.info(
-            f"Prefetcher initialised: workers={self._max_workers} "
+            f"Prefetcher initialised: enabled={self._enabled}, "
+            f"workers={self._max_workers} "
             f"(of {cpu_count} cores), memory budget="
             f"{self._max_memory_bytes / (1024**2):.0f} MB, "
             f"max file size={self._max_file_bytes / (1024**2):.1f} MB"
@@ -261,8 +280,14 @@ class FilePrefetcher:
         scheduled or completed are skipped.  New downloads are also
         skipped when the memory budget has been reached.
 
+        When prefetching is disabled (``PIXELS_PREFETCH_ENABLED=false``),
+        returns 0 immediately — no downloads are scheduled and the
+        viewer falls back to streaming from Volumes.
+
         Returns the number of **newly** scheduled downloads.
         """
+        if not self._enabled:
+            return 0
         with self._lock:
             new_count = 0
             skipped = 0
@@ -294,7 +319,10 @@ class FilePrefetcher:
         * Still downloading → waits up to *timeout* seconds.
         * Not scheduled / failed → returns ``None`` (caller falls back to
           streaming from Volumes).
+        * Prefetching disabled → always returns ``None``.
         """
+        if not self._enabled:
+            return None
         with self._lock:
             future = self._futures.pop(path, None)
         if future is None:
@@ -320,6 +348,7 @@ class FilePrefetcher:
             total = len(self._futures)
             done = sum(1 for f in self._futures.values() if f.done())
             return {
+                "enabled": self._enabled,
                 "total": total,
                 "done": done,
                 "pending": total - done,
