@@ -19,7 +19,7 @@ import threading
 import time
 from collections.abc import Iterator
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, BinaryIO, Dict, List
 
 import pydicom
 from fastapi import HTTPException
@@ -368,23 +368,29 @@ class DICOMwebDatabricksWrapper:
     @timing_decorator
     def store_instances(
         self,
-        dicom_parts: List[bytes],
+        dicom_parts: List[BinaryIO],
         study_instance_uid: str | None = None,
     ) -> Dict[str, Any]:
         """
         STOW-RS: store one or more DICOM Part-10 instances.
 
-        For each binary DICOM part:
+        For each DICOM part (provided as a seekable file-like object):
 
         1. Parse with *pydicom* to extract UIDs and metadata.
         2. If *study_instance_uid* is given, verify it matches the instance.
-        3. Upload the raw bytes to Databricks Volumes via the Files API.
+        3. **Stream** the file to Databricks Volumes via the Files API.
         4. Insert a catalog row into the pixels table with full DICOM JSON
            metadata (``meta`` VARIANT column).
         5. Warm the in-memory and Lakebase caches.
 
+        The caller is responsible for closing the file objects after this
+        method returns.
+
         Args:
-            dicom_parts: List of raw DICOM Part-10 byte strings.
+            dicom_parts: Seekable file-like objects containing raw DICOM
+                Part-10 data.  Typically ``SpooledTemporaryFile`` instances
+                produced by the streaming multipart parser — small parts
+                stay in memory; large parts live on disk.
             study_instance_uid: Optional — when the request targets
                 ``POST /studies/{study}``, every instance's Study UID
                 must match or it is rejected with failure reason ``0112``.
@@ -400,12 +406,17 @@ class DICOMwebDatabricksWrapper:
         volume_base = self._stow_volume_base()
         insert_query, _ = build_insert_instance_query(self._table)
 
-        for part_bytes in dicom_parts:
+        for part_file in dicom_parts:
             sop_class_uid = ""
             sop_instance_uid = ""
             try:
+                # ── Measure part size ─────────────────────────────────
+                part_file.seek(0, 2)
+                part_size = part_file.tell()
+                part_file.seek(0)
+
                 # ── Parse DICOM ──────────────────────────────────────
-                ds = pydicom.dcmread(BytesIO(part_bytes), stop_before_pixels=True)
+                ds = pydicom.dcmread(part_file, stop_before_pixels=True)
 
                 sop_class_uid = str(getattr(ds, "SOPClassUID", ""))
                 sop_instance_uid = str(getattr(ds, "SOPInstanceUID", ""))
@@ -436,8 +447,9 @@ class DICOMwebDatabricksWrapper:
                 local_path = f"{volume_base}/{file_rel}"
                 db_file = DatabricksFile.from_full_path(local_path)
 
-                # ── Upload to Volumes ────────────────────────────────
-                upload_file(self._token, db_file, part_bytes)
+                # ── Upload to Volumes (streaming from file) ──────────
+                part_file.seek(0)  # rewind — pydicom advanced the cursor
+                upload_file(self._token, db_file, part_file, part_size)
 
                 # ── Extract metadata JSON (no pixel data) ────────────
                 meta_dict = ds.to_json_dict()
@@ -451,7 +463,7 @@ class DICOMwebDatabricksWrapper:
                 params = {
                     "pixels_table": self._table,
                     "path": f"dbfs:{local_path}",
-                    "length": len(part_bytes),
+                    "length": part_size,
                     "relative_path": file_rel,
                     "local_path": local_path,
                     "meta_json": meta_json,
@@ -460,7 +472,7 @@ class DICOMwebDatabricksWrapper:
 
                 logger.info(
                     f"STOW-RS: stored {sop_instance_uid} "
-                    f"({len(part_bytes)} bytes) → {local_path}"
+                    f"({part_size} bytes) → {local_path}"
                 )
 
                 # ── Warm caches ──────────────────────────────────────

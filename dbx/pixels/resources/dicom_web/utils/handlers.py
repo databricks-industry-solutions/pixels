@@ -26,7 +26,9 @@ See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 
 import json
 import os
+import tempfile
 import uuid
+from collections.abc import AsyncIterator
 
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request, Response
@@ -620,69 +622,150 @@ async def dicomweb_resolve_paths(request: Request) -> Response:
 # STOW-RS handler
 # ---------------------------------------------------------------------------
 
-def _parse_multipart_related(body: bytes, content_type: str) -> list[bytes]:
-    """
-    Parse a ``multipart/related`` request body into its binary parts.
+# ---------------------------------------------------------------------------
+# Streaming multipart/related parser
+# ---------------------------------------------------------------------------
+# Small parts (≤ _SPILL_THRESHOLD) stay in RAM; larger ones spill to a
+# temporary file on disk transparently via ``SpooledTemporaryFile``.
+# This keeps peak heap usage at ~2 × _SPILL_THRESHOLD regardless of
+# how many or how large the DICOM instances are.
 
-    The STOW-RS spec mandates ``multipart/related`` (not ``multipart/form-data``),
-    so we parse it manually using boundary splitting.
+_SPILL_THRESHOLD = 5 * 1024 * 1024  # 5 MB — spill to disk above this
 
-    Args:
-        body: Raw request body bytes.
-        content_type: The full ``Content-Type`` header value.
 
-    Returns:
-        List of raw DICOM Part-10 byte strings (one per part).
+def _extract_boundary(content_type: str) -> str:
+    """Extract the MIME boundary string from a ``Content-Type`` header.
 
     Raises:
-        HTTPException 400: If the boundary is missing or no parts are found.
+        HTTPException 400: If the boundary parameter is missing.
     """
-    # Extract boundary from Content-Type
-    boundary: str | None = None
     for segment in content_type.split(";"):
         segment = segment.strip()
         if segment.lower().startswith("boundary="):
-            boundary = segment.split("=", 1)[1].strip().strip('"')
-            break
+            return segment.split("=", 1)[1].strip().strip('"')
+    raise HTTPException(
+        status_code=400,
+        detail="Missing boundary in multipart/related Content-Type",
+    )
 
-    if not boundary:
-        raise HTTPException(
-            status_code=400,
-            detail="Missing boundary in multipart/related Content-Type",
-        )
 
-    # The boundary marker in the body is prefixed with "--"
-    delimiter = f"--{boundary}".encode()
-    closing = f"--{boundary}--".encode()
+async def _parse_multipart_streaming(
+    body_stream: AsyncIterator[bytes],
+    boundary: str,
+) -> tuple[list[tempfile.SpooledTemporaryFile], int]:
+    """
+    Stream-parse a ``multipart/related`` request body.
 
-    # Split body on delimiter
-    raw_parts = body.split(delimiter)
-    parts: list[bytes] = []
+    Reads chunks from *body_stream* (``request.stream()``), detects
+    MIME boundary markers incrementally, and writes each part's raw
+    binary content to its own ``SpooledTemporaryFile``.
 
-    for raw_part in raw_parts:
-        # Skip preamble (before first delimiter) and closing marker
-        stripped = raw_part.strip(b"\r\n")
-        if not stripped or stripped == b"--" or stripped.startswith(closing):
-            continue
+    * Parts ≤ 5 MB stay entirely in RAM (fast path for small DICOMs).
+    * Larger parts spill to a temporary file on disk, so a 175 MB
+      instance only occupies ~1 MB of heap during parsing.
 
-        # Each part: headers \r\n\r\n body
-        header_end = raw_part.find(b"\r\n\r\n")
-        if header_end == -1:
-            continue
+    Args:
+        body_stream: Async iterator of raw request body chunks
+            (from ``request.stream()``).
+        boundary: The MIME boundary string (without ``--`` prefix).
 
-        part_body = raw_part[header_end + 4 :]
+    Returns:
+        ``(part_files, total_bytes_received)`` — a list of open
+        ``SpooledTemporaryFile`` objects seeked to position 0, and
+        the total number of bytes read from the stream.
+        **Caller must close every file.**
 
-        # Strip trailing \r\n (MIME boundary padding)
-        if part_body.endswith(b"\r\n"):
-            part_body = part_body[:-2]
-        # Also handle trailing "--\r\n" from the closing boundary
-        if part_body.endswith(b"--"):
-            part_body = part_body[:-2]
-            if part_body.endswith(b"\r\n"):
-                part_body = part_body[:-2]
+    Raises:
+        HTTPException 400: If no DICOM parts are found.
+    """
+    # The interior/closing boundary in the wire format is always preceded
+    # by CRLF.  The *first* boundary has no leading CRLF.
+    first_delim = f"--{boundary}".encode()
+    delim = b"\r\n" + first_delim  # interior boundary marker
+    delim_len = len(delim)
 
-        if part_body:
-            parts.append(part_body)
+    parts: list[tempfile.SpooledTemporaryFile] = []
+    buf = bytearray()
+    total_bytes = 0
+
+    # Parser state: "preamble" → "headers" → "body" → "headers" → …
+    state = "preamble"
+    current: tempfile.SpooledTemporaryFile | None = None
+
+    async for chunk in body_stream:
+        total_bytes += len(chunk)
+        buf.extend(chunk)
+
+        # Process as much of the buffer as possible in each iteration.
+        while True:
+            # ── Skip everything before the first boundary ─────────
+            if state == "preamble":
+                idx = buf.find(first_delim)
+                if idx == -1:
+                    # Keep tail in case boundary spans chunks
+                    if len(buf) > len(first_delim):
+                        del buf[: len(buf) - len(first_delim)]
+                    break
+                del buf[: idx + len(first_delim)]
+                # After the boundary: \r\n → next part, -- → closing
+                if len(buf) < 2:
+                    break  # need more data
+                if buf[:2] == b"--":
+                    state = "done"
+                    break
+                if buf[:2] == b"\r\n":
+                    del buf[:2]
+                state = "headers"
+                continue
+
+            # ── Parse (and discard) per-part MIME headers ─────────
+            if state == "headers":
+                idx = buf.find(b"\r\n\r\n")
+                if idx == -1:
+                    break  # need more data
+                del buf[: idx + 4]
+                current = tempfile.SpooledTemporaryFile(
+                    max_size=_SPILL_THRESHOLD,
+                )
+                parts.append(current)
+                state = "body"
+                continue
+
+            # ── Stream body bytes to the current temp file ────────
+            if state == "body":
+                idx = buf.find(delim)
+                if idx != -1:
+                    # Write everything before the boundary
+                    if current is not None and idx > 0:
+                        current.write(bytes(buf[:idx]))
+                    if current is not None:
+                        current.seek(0)
+                    # Consume boundary
+                    del buf[: idx + delim_len]
+                    # Check closing vs. next part
+                    if len(buf) >= 2 and buf[:2] == b"--":
+                        state = "done"
+                        break
+                    if len(buf) >= 2 and buf[:2] == b"\r\n":
+                        del buf[:2]
+                    state = "headers"
+                    current = None
+                    continue
+
+                # No boundary yet — flush safe prefix (keep tail
+                # long enough that a split boundary is not missed).
+                safe = len(buf) - delim_len
+                if safe > 0 and current is not None:
+                    current.write(bytes(buf[:safe]))
+                    del buf[:safe]
+                break  # need more data
+
+            break  # state == "done"
+
+    # Flush any trailing bytes in the buffer to the last part
+    if state == "body" and current is not None and buf:
+        current.write(bytes(buf))
+        current.seek(0)
 
     if not parts:
         raise HTTPException(
@@ -690,7 +773,7 @@ def _parse_multipart_related(body: bytes, content_type: str) -> list[bytes]:
             detail="No DICOM parts found in multipart/related body",
         )
 
-    return parts
+    return parts, total_bytes
 
 
 def _build_stow_response(
@@ -768,13 +851,19 @@ async def dicomweb_stow_store(
     study_instance_uid: str | None = None,
 ) -> Response:
     """
-    STOW-RS: store DICOM instances.
+    STOW-RS: store DICOM instances (**streaming pipeline**).
 
     Accepts ``POST /api/dicomweb/studies`` (any study) or
     ``POST /api/dicomweb/studies/{study}`` (specific study).
 
     Request body must be ``multipart/related; type="application/dicom"``
     containing one or more DICOM Part-10 instances.
+
+    The request body is **never fully buffered in memory**.  Instead it
+    is parsed incrementally via ``request.stream()`` and each DICOM part
+    is written to a ``SpooledTemporaryFile`` (in-RAM for ≤ 5 MB, on-disk
+    for larger files).  This keeps peak heap usage at a few MB even for
+    175 MB+ uploads.
 
     Returns:
         * **200 OK** — all instances stored successfully.
@@ -797,24 +886,35 @@ async def dicomweb_stow_store(
             ),
         )
 
-    # Read full body
-    body = await request.body()
-    if not body:
+    # Extract boundary (validates presence)
+    boundary = _extract_boundary(content_type)
+
+    # ── Stream-parse multipart body into temp files ───────────────
+    part_files, total_bytes = await _parse_multipart_streaming(
+        request.stream(), boundary,
+    )
+
+    if total_bytes == 0:
         raise HTTPException(status_code=400, detail="Empty request body")
 
     logger.info(
-        f"STOW-RS: received {len(body)} bytes, "
+        f"STOW-RS: received {total_bytes} bytes (streamed), "
         f"Content-Type: {content_type}, "
         f"study_constraint: {study_instance_uid or '(any)'}"
     )
+    logger.info(f"STOW-RS: parsed {len(part_files)} DICOM part(s)")
 
-    # Parse multipart parts
-    dicom_parts = _parse_multipart_related(body, content_type)
-    logger.info(f"STOW-RS: parsed {len(dicom_parts)} DICOM part(s)")
-
-    # Store via wrapper
-    wrapper = get_dicomweb_wrapper(request)
-    result = wrapper.store_instances(dicom_parts, study_instance_uid)
+    # ── Store via wrapper (files are seeked to 0) ─────────────────
+    try:
+        wrapper = get_dicomweb_wrapper(request)
+        result = wrapper.store_instances(part_files, study_instance_uid)
+    finally:
+        # Always close temp files (releases disk / memory)
+        for f in part_files:
+            try:
+                f.close()
+            except Exception:
+                pass
 
     # Build response
     base_url = str(request.base_url).rstrip("/") + "/api/dicomweb"

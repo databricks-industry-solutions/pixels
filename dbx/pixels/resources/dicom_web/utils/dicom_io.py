@@ -17,13 +17,16 @@ import concurrent.futures
 import os
 import struct
 import threading
+import time
 from collections.abc import Iterator
 from io import BytesIO
+from typing import BinaryIO
 
 import psutil
 import pydicom
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
@@ -45,11 +48,24 @@ _DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
 # ---------------------------------------------------------------------------
 # A single Session holds a pool of TCP+TLS connections to Databricks.
 # Subsequent requests to the same host skip the handshake entirely.
+#
+# The retry strategy handles transient connection and SSL errors that
+# commonly occur during large file uploads (e.g. 175 MB DICOM instances).
+# PUT is included in the allowed methods because it is idempotent.
+
+_retry_strategy = Retry(
+    total=3,                          # up to 3 retries (4 attempts total)
+    backoff_factor=1,                 # wait 1s, 2s, 4s between retries
+    status_forcelist=[502, 503, 504], # retry on gateway / server errors
+    allowed_methods=["GET", "HEAD", "PUT", "OPTIONS"],  # PUT is idempotent
+    raise_on_status=False,            # let caller inspect the response
+)
 
 _session = requests.Session()
 _adapter = HTTPAdapter(
     pool_connections=20,   # distinct host pools (typically 1 for Databricks)
     pool_maxsize=50,       # concurrent connections per host
+    max_retries=_retry_strategy,
 )
 _session.mount("https://", _adapter)
 _session.mount("http://", _adapter)
@@ -160,30 +176,135 @@ def stream_file(
 # ---------------------------------------------------------------------------
 
 
-def upload_file(token: str, db_file: DatabricksFile, data: bytes) -> None:
+# ---------------------------------------------------------------------------
+# Upload constants
+# ---------------------------------------------------------------------------
+_UPLOAD_MAX_RETRIES = 4          # application-level retries (on top of urllib3)
+_UPLOAD_BACKOFF_BASE = 2.0       # exponential backoff: 2s, 4s, 8s, …
+_UPLOAD_CONNECT_TIMEOUT = 30     # seconds to establish TCP+TLS connection
+_UPLOAD_MIN_READ_TIMEOUT = 60    # minimum seconds for body transfer
+_UPLOAD_BYTES_PER_SEC = 5 * 1024 ** 2   # 5 MB/s conservative throughput
+_UPLOAD_CHUNK_SIZE = 1024 * 1024         # 1 MB chunks for streaming PUT
+
+
+def _chunked_body(data: bytes, chunk_size: int = _UPLOAD_CHUNK_SIZE) -> Iterator[bytes]:
+    """Yield *data* in fixed-size chunks for a streaming PUT.
+
+    Using a generator lets ``requests`` / ``urllib3`` feed the socket in
+    controlled pieces rather than handing the entire buffer to the OS at
+    once.  On each retry the caller must create a **fresh** generator
+    because generators are single-use.
+    """
+    for offset in range(0, len(data), chunk_size):
+        yield data[offset : offset + chunk_size]
+
+
+def upload_file(
+    token: str,
+    db_file: DatabricksFile,
+    data: bytes | BinaryIO,
+    data_length: int | None = None,
+) -> None:
     """
     Upload (PUT) a file to Databricks Volumes via the Files API.
 
     Uses the persistent ``_session`` to benefit from connection pooling.
+    The body is **streamed** so that ``urllib3`` feeds the socket
+    incrementally instead of pushing the entire buffer at once:
+
+    * **bytes** — streamed via a 1 MB chunk generator.
+    * **BinaryIO** (file / ``SpooledTemporaryFile``) — ``requests``
+      reads directly in 8 KiB blocks; the file is ``seek(0)``'d on
+      each retry attempt.
+
+    Includes **application-level retries** with exponential backoff so
+    that transient SSL / connection errors on large files (≥ 100 MB) are
+    tolerated without failing the STOW-RS operation.
+
+    The read timeout is scaled by file size to accommodate slow links.
 
     Args:
         token: Databricks bearer token.
         db_file: Target file descriptor (destination path).
-        data: Raw file bytes to upload.
+        data: Raw file bytes **or** a seekable file-like object.
+        data_length: Required when *data* is a ``BinaryIO``.
+            Ignored when *data* is ``bytes`` (``len()`` is used).
 
     Raises:
-        RuntimeError: If the upload fails (non-2xx response).
+        RuntimeError: If the upload fails after all retries (non-2xx response).
+        requests.exceptions.ConnectionError: If all retries are exhausted
+            due to connection / SSL errors.
     """
+    # ── Resolve size ──────────────────────────────────────────────────
+    if isinstance(data, bytes):
+        size = len(data)
+    elif data_length is not None:
+        size = data_length
+    else:
+        pos = data.tell()
+        data.seek(0, 2)
+        size = data.tell()
+        data.seek(pos)
+
     headers = _auth_headers(token)
     headers["Content-Type"] = "application/octet-stream"
+    headers["Content-Length"] = str(size)
 
-    response = _session.put(db_file.to_api_url(), headers=headers, data=data)
-    if response.status_code not in (200, 201, 204):
-        raise RuntimeError(
-            f"Failed to upload {db_file.file_path} "
-            f"(HTTP {response.status_code}): {response.text}"
-        )
-    logger.info(f"Uploaded {db_file.file_path} ({len(data)} bytes)")
+    # Scale read timeout by file size (at least 60 s; ~5 MB/s assumed).
+    read_timeout = max(
+        _UPLOAD_MIN_READ_TIMEOUT,
+        int(size / _UPLOAD_BYTES_PER_SEC) + 30,
+    )
+    timeout = (_UPLOAD_CONNECT_TIMEOUT, read_timeout)
+
+    size_mb = size / (1024 ** 2)
+    is_bytes = isinstance(data, bytes)
+    last_exc: BaseException | None = None
+
+    for attempt in range(1, _UPLOAD_MAX_RETRIES + 1):
+        try:
+            if is_bytes:
+                body = _chunked_body(data)
+            else:
+                data.seek(0)  # rewind for each attempt
+                body = data
+
+            response = _session.put(
+                db_file.to_api_url(),
+                headers=headers,
+                data=body,
+                timeout=timeout,
+            )
+            if response.status_code not in (200, 201, 204):
+                raise RuntimeError(
+                    f"Failed to upload {db_file.file_path} "
+                    f"(HTTP {response.status_code}): {response.text}"
+                )
+            logger.info(
+                f"Uploaded {db_file.file_path} "
+                f"({size_mb:.1f} MB, attempt {attempt})"
+            )
+            return
+
+        except (requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout) as exc:
+            last_exc = exc
+            if attempt < _UPLOAD_MAX_RETRIES:
+                wait = _UPLOAD_BACKOFF_BASE ** attempt
+                logger.warning(
+                    f"Upload attempt {attempt}/{_UPLOAD_MAX_RETRIES} failed "
+                    f"for {db_file.file_path} ({size_mb:.1f} MB): {exc} — "
+                    f"retrying in {wait:.0f}s"
+                )
+                time.sleep(wait)
+            else:
+                logger.error(
+                    f"Upload failed after {_UPLOAD_MAX_RETRIES} attempts "
+                    f"for {db_file.file_path} ({size_mb:.1f} MB): {exc}"
+                )
+
+    # All retries exhausted — re-raise the last exception
+    raise last_exc  # type: ignore[misc]
 
 
 class FilePrefetcher:
