@@ -105,6 +105,10 @@ class DICOMwebDatabricksWrapper:
         """Execute a parameterized query via the SQL client."""
         return self._sql.execute(sql, parameters=params, user_token=self._token)
 
+    def _query_stream(self, sql: str, params: dict[str, Any] | None = None) -> Iterator[list[Any]]:
+        """Execute a parameterized query and return a lazy row iterator."""
+        return self._sql.execute_stream(sql, parameters=params, user_token=self._token)
+
     # ------------------------------------------------------------------
     # QIDO-RS — search
     # ------------------------------------------------------------------
@@ -503,8 +507,16 @@ class DICOMwebDatabricksWrapper:
     # ------------------------------------------------------------------
 
     @timing_decorator
-    def retrieve_series_metadata(self, study_instance_uid: str, series_instance_uid: str) -> List[Dict]:
-        """WADO-RS: retrieve DICOM metadata for every instance in a series."""
+    def retrieve_series_metadata(self, study_instance_uid: str, series_instance_uid: str) -> Iterator[str]:
+        """
+        WADO-RS: stream DICOM metadata for every instance in a series.
+
+        Returns an iterator of string chunks forming a JSON array.  Each
+        instance's ``meta`` column is emitted as-is (already valid JSON),
+        avoiding the ``json.loads`` / ``json.dumps`` round-trip and keeping
+        memory usage proportional to one Arrow batch rather than the full
+        result set.
+        """
         logger.info(f"WADO-RS: metadata for series {series_instance_uid}")
         query = """
         SELECT meta
@@ -512,14 +524,32 @@ class DICOMwebDatabricksWrapper:
         WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
           AND meta:['0020000E'].Value[0]::String = %(series_uid)s
         """
-        params = {"pixels_table": self._table, "study_uid": study_instance_uid, "series_uid": series_instance_uid}
-        results = self._query(query, params)
-        if not results:
+        params = {
+            "pixels_table": self._table,
+            "study_uid": study_instance_uid,
+            "series_uid": series_instance_uid,
+        }
+        row_stream = self._query_stream(query, params)
+
+        # Peek at first row — raise 404 before streaming starts so the
+        # HTTP status code is still correct.
+        first_row = next(row_stream, None)
+        if first_row is None or not first_row[0]:
             raise HTTPException(status_code=404, detail="Series not found or no instances")
 
-        metadata = [json.loads(row[0]) for row in results if row and row[0]]
-        logger.info(f"WADO-RS: {len(metadata)} instance metadata records")
-        return metadata
+        def _json_chunks() -> Iterator[str]:
+            count = 1
+            yield "[\n"
+            yield first_row[0]
+            for row in row_stream:
+                if row and row[0]:
+                    yield ",\n"
+                    yield row[0]
+                    count += 1
+            yield "\n]"
+            logger.info(f"WADO-RS: streamed {count} instance metadata records")
+
+        return _json_chunks()
 
     @timing_decorator
     def retrieve_instance(

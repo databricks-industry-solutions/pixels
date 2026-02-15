@@ -22,6 +22,7 @@ Authorization modes (controlled by ``DICOMWEB_USE_USER_AUTH`` env var):
 
 import os
 import re
+from collections.abc import Iterator
 from typing import Any
 
 from databricks import sql as dbsql
@@ -147,8 +148,18 @@ class DatabricksSQLClient:
 
             with conn.cursor() as cursor:
                 cursor.execute(query, parameters=parameters)
-                rows = cursor.fetchall()
-                return [list(row) for row in rows]
+                # Use fetchmany_arrow in a loop instead of fetchall to
+                # avoid crashes on large result sets (Arrow batches are
+                # more memory-friendly and bypass known connector bugs).
+                results: list[list[Any]] = []
+                while True:
+                    batch = cursor.fetchmany_arrow(10_000)
+                    if batch.num_rows == 0:
+                        break
+                    results.extend(
+                        list(row.values()) for row in batch.to_pylist()
+                    )
+                return results
 
         except Exception as exc:
             logger.error(f"SQL execution failed: {exc}")
@@ -164,6 +175,70 @@ class DatabricksSQLClient:
                     conn.close()
                 except Exception:
                     pass
+
+    def execute_stream(
+        self,
+        query: str,
+        parameters: dict[str, Any] | None = None,
+        user_token: str | None = None,
+    ) -> Iterator[list[Any]]:
+        """
+        Execute a **parameterized** SQL query and return a lazy row iterator.
+
+        The query is executed **eagerly** (errors raise immediately), but
+        rows are fetched lazily in Arrow batches — ideal for large result
+        sets that will be streamed to the HTTP client.
+
+        The caller **must** fully consume (or explicitly ``.close()``) the
+        returned iterator so that the underlying cursor is released.
+
+        Args:
+            query: SQL string with ``%(name)s`` placeholders.
+            parameters: Bind-parameter dict (values only — never identifiers).
+            user_token: The user's forwarded access token.  Used **only** when
+                ``DICOMWEB_USE_USER_AUTH=true``; ignored otherwise.
+
+        Yields:
+            ``list[Any]`` — one list of column values per row.
+
+        Raises:
+            HTTPException: On SQL execution failure.
+        """
+        logger.debug(f"SQL (stream): {query}  params={parameters}")
+
+        is_obo = USE_USER_AUTH and user_token is not None
+
+        try:
+            if is_obo:
+                conn = self._connect_as_user(user_token)
+            else:
+                conn = self._get_app_connection()
+
+            cursor = conn.cursor()
+            cursor.execute(query, parameters=parameters)
+        except Exception as exc:
+            logger.error(f"SQL execution failed: {exc}")
+            if not is_obo:
+                self._app_conn = None
+            raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
+
+        def _rows() -> Iterator[list[Any]]:
+            try:
+                while True:
+                    batch = cursor.fetchmany_arrow(10_000)
+                    if batch.num_rows == 0:
+                        break
+                    for row in batch.to_pylist():
+                        yield list(row.values())
+            finally:
+                cursor.close()
+                if is_obo:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+
+        return _rows()
 
     def close(self):
         """Close the shared app-auth connection (if open)."""

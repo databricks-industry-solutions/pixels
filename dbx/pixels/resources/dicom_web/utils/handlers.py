@@ -257,11 +257,15 @@ def dicomweb_qido_instances(
 @timing_decorator
 def dicomweb_wado_series_metadata(
     request: Request, study_instance_uid: str, series_instance_uid: str
-) -> Response:
-    """GET /api/dicomweb/studies/{study}/series/{series}/metadata"""
+) -> StreamingResponse:
+    """GET /api/dicomweb/studies/{study}/series/{series}/metadata
+
+    Streams the JSON array directly from Arrow batches — the ``meta``
+    column is already valid JSON so no parse/serialize round-trip is needed.
+    """
     wrapper = get_dicomweb_wrapper(request)
-    results = wrapper.retrieve_series_metadata(study_instance_uid, series_instance_uid)
-    return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")
+    stream = wrapper.retrieve_series_metadata(study_instance_uid, series_instance_uid)
+    return StreamingResponse(stream, media_type="application/dicom+json")
 
 
 def dicomweb_wado_instance(
