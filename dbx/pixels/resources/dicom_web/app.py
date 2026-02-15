@@ -174,8 +174,10 @@ def _dicomweb_service_root() -> dict:
                 ],
                 "supported_content_types": ["multipart/related; type=application/dicom"],
                 "notes": [
-                    "Files are uploaded to Volumes immediately (landing zone).",
-                    "Metadata is indexed asynchronously in the background.",
+                    "The raw multipart body is streamed directly to a single temp file on Volumes — O(chunk_size) memory, zero DICOM parsing.",
+                    "One tracking row per STOW request is written to the stow_operations Delta table (audit + processing queue).",
+                    "A serverless Spark job (<app_name>_stow_processor) is auto-triggered with run-coalescing (max 1 running + 1 queued).",
+                    "The Spark job splits the multipart bundle, saves individual DICOMs, extracts metadata via pydicom, and registers in the catalog.",
                     "No compression or transfer syntax negotiation.",
                 ],
             },

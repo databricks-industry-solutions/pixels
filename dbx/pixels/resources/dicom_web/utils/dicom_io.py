@@ -20,13 +20,10 @@ import threading
 import time
 from collections.abc import Iterator
 from io import BytesIO
-from typing import BinaryIO
 
 import psutil
 import pydicom
 import requests
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.core import Config as SdkConfig
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -179,105 +176,74 @@ def stream_file(
 
 
 # ---------------------------------------------------------------------------
-# Upload constants
+# Lightweight upload via persistent session (STOW-RS landing zone)
 # ---------------------------------------------------------------------------
-_UPLOAD_MAX_RETRIES = 4          # application-level retries (on top of SDK)
-_UPLOAD_BACKOFF_BASE = 2.0       # exponential backoff: 2s, 4s, 8s, …
 
 
-def upload_file(
+async def async_stream_to_volumes(
     token: str,
-    db_file: DatabricksFile,
-    data: bytes | BinaryIO,
-    data_length: int | None = None,
-) -> None:
+    volume_path: str,
+    body_stream,
+) -> int:
     """
-    Upload a file to Databricks Volumes via the **Databricks SDK**.
+    Stream an async byte stream directly to a Databricks Volume path.
 
-    Uses ``WorkspaceClient.files.upload()`` which leverages ``httpx``
-    internally — providing better SSL / TLS handling, built-in retries,
-    and streaming upload support compared to raw ``requests.put()``.
+    Uses ``httpx.AsyncClient`` for true async streaming — the request body
+    is piped chunk-by-chunk to the Volumes Files API with **O(chunk_size)**
+    memory, exactly like the legacy ``_reverse_proxy_files`` pattern.
 
-    An **application-level retry loop** with exponential backoff wraps
-    the SDK call to handle transient errors (SSL drops, 5xx gateway
-    errors) that the SDK's own retry may not cover.
+    This is the primary upload path for STOW-RS: the raw multipart body is
+    streamed as-is to a single temp file on Volumes.  No parsing, no
+    buffering of the full body.
 
     Args:
         token: Databricks bearer token.
-        db_file: Target file descriptor (destination path).
-        data: Raw file bytes **or** a seekable file-like object
-            (e.g. ``SpooledTemporaryFile``).
-        data_length: Optional — used only for logging when *data*
-            is a ``BinaryIO``.  Ignored when *data* is ``bytes``.
+        volume_path: Destination path starting with ``/Volumes/…``.
+        body_stream: An async iterable of ``bytes`` chunks (e.g.
+            ``request.stream()`` from Starlette/FastAPI).
+
+    Returns:
+        Total number of bytes streamed.
 
     Raises:
-        Exception: The last exception from the retry loop if all
-            attempts are exhausted.
+        RuntimeError: If the PUT request returns a non-success status.
     """
-    # ── Resolve size (for logging) ────────────────────────────────────
-    if isinstance(data, bytes):
-        size = len(data)
-        upload_data: BinaryIO = BytesIO(data)
-    else:
-        if data_length is not None:
-            size = data_length
-        else:
-            pos = data.tell()
-            data.seek(0, 2)
-            size = data.tell()
-            data.seek(pos)
-        upload_data = data
+    import httpx
 
-    size_mb = size / (1024 ** 2)
-    volume_path = db_file.full_path  # e.g. /Volumes/catalog/schema/vol/…
+    host = (
+        os.environ.get("DATABRICKS_HOST", "")
+        .replace("https://", "")
+        .replace("http://", "")
+        .rstrip("/")
+    )
+    api_path = volume_path.lstrip("/")
+    url = f"https://{host}/api/2.0/fs/files/{api_path}"
 
-    # ── Create SDK client (reused across retries) ─────────────────────
-    # Config picks up DATABRICKS_HOST from the environment; we override
-    # just the token so it works for both App auth and OBO auth.
-    # auth_type="pat" prevents a conflict with OAuth client credentials
-    # that may also be present in the environment (CLIENT_ID / SECRET).
-    sdk_cfg = SdkConfig(token=token, auth_type="pat")
-    client = WorkspaceClient(config=sdk_cfg)
+    total_size = 0
 
-    last_exc: BaseException | None = None
+    async def _counting_stream():
+        nonlocal total_size
+        async for chunk in body_stream:
+            total_size += len(chunk)
+            yield chunk
 
-    for attempt in range(1, _UPLOAD_MAX_RETRIES + 1):
-        try:
-            upload_data.seek(0)
-            client.files.upload(volume_path, upload_data, overwrite=True)
-            logger.info(
-                f"Uploaded {db_file.file_path} "
-                f"({size_mb:.1f} MB, attempt {attempt}) [SDK]"
-            )
-            return
+    async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
+        response = await client.put(
+            url,
+            content=_counting_stream(),
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/octet-stream",
+            },
+        )
 
-        except Exception as exc:
-            last_exc = exc
-            # Don't retry on deterministic client errors (4xx)
-            status = getattr(exc, "status_code", None)
-            if status is not None and 400 <= status < 500 and status not in (408, 429):
-                logger.error(
-                    f"Upload failed for {db_file.file_path} "
-                    f"({size_mb:.1f} MB): HTTP {status} — not retriable"
-                )
-                raise
+    if response.status_code not in (200, 204):
+        raise RuntimeError(
+            f"Volume streaming upload failed (HTTP {response.status_code}): "
+            f"{response.text[:500]}"
+        )
 
-            if attempt < _UPLOAD_MAX_RETRIES:
-                wait = _UPLOAD_BACKOFF_BASE ** attempt
-                logger.warning(
-                    f"Upload attempt {attempt}/{_UPLOAD_MAX_RETRIES} failed "
-                    f"for {db_file.file_path} ({size_mb:.1f} MB): {exc} — "
-                    f"retrying in {wait:.0f}s"
-                )
-                time.sleep(wait)
-            else:
-                logger.error(
-                    f"Upload failed after {_UPLOAD_MAX_RETRIES} attempts "
-                    f"for {db_file.file_path} ({size_mb:.1f} MB): {exc}"
-                )
-
-    # All retries exhausted — re-raise the last exception
-    raise last_exc  # type: ignore[misc]
+    return total_size
 
 
 class FilePrefetcher:

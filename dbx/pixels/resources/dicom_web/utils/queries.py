@@ -318,46 +318,65 @@ def build_series_instance_paths_query(
 
 
 # ---------------------------------------------------------------------------
-# STOW-RS — INSERT builder
+# STOW-RS — tracking table INSERT
 # ---------------------------------------------------------------------------
 
 
-def build_insert_instance_query(
-    pixels_table: str,
-) -> tuple[str, None]:
+def build_stow_insert_query(
+    stow_table: str,
+    records: list[dict],
+) -> tuple[str, dict[str, Any]]:
     """
-    Build a parameterized INSERT statement for a single DICOM instance.
+    Build a parameterized multi-row INSERT for the ``stow_operations`` table.
 
-    The caller must provide a ``params`` dict with the following keys:
+    Each *record* dict must contain:
 
-    * ``path`` — ``dbfs:/Volumes/…`` path
-    * ``length`` — file size in bytes
-    * ``local_path`` — ``/Volumes/…`` path
-    * ``relative_path`` — path relative to the volume root
-    * ``meta_json`` — DICOM metadata as a JSON string (for ``parse_json()``)
+    * ``file_id`` — UUID hex string (one per STOW-RS request)
+    * ``volume_path`` — full ``/Volumes/…`` path to the temp multipart
+      bundle (``.mpr`` file)
+    * ``file_size`` — total size in bytes of the uploaded bundle (int)
+    * ``upload_timestamp`` — ISO-8601 string (``YYYY-MM-DD HH:MM:SS``)
+    * ``study_constraint`` — Study UID from the URL or ``None``
+    * ``content_type`` — full Content-Type header including boundary
+      (e.g. ``multipart/related; boundary=…``)
+    * ``client_ip`` — client IP or ``None``
+    * ``user_email`` — uploading user's email or ``None``
+    * ``user_agent`` — client User-Agent string or ``None``
 
     Returns:
-        ``(query_str, None)`` — the query template; the caller binds params
-        at execution time.
+        ``(query, params)`` — a single INSERT with numbered bind
+        parameters (``%(file_id_0)s``, ``%(file_id_1)s``, …) safe for
+        the Databricks SQL Connector.
     """
-    validate_table_name(pixels_table)
+    validate_table_name(stow_table)
 
-    query = """
-    INSERT INTO IDENTIFIER(%(pixels_table)s)
-        (path, modificationTime, length, original_path, relative_path,
-         local_path, extension, file_type, path_tags, is_anon, meta)
-    VALUES (
-        %(path)s,
-        current_timestamp(),
-        %(length)s,
-        %(path)s,
-        %(relative_path)s,
-        %(local_path)s,
-        'dcm',
-        'DICOM',
-        array(),
-        false,
-        parse_json(%(meta_json)s)
-    )
+    sql_params: dict[str, Any] = {"stow_table": stow_table}
+    value_clauses: list[str] = []
+
+    for i, r in enumerate(records):
+        sql_params[f"file_id_{i}"] = r["file_id"]
+        sql_params[f"volume_path_{i}"] = r["volume_path"]
+        sql_params[f"file_size_{i}"] = r["file_size"]
+        sql_params[f"upload_ts_{i}"] = r["upload_timestamp"]
+        sql_params[f"study_{i}"] = r.get("study_constraint")
+        sql_params[f"ct_{i}"] = r.get("content_type", "application/dicom")
+        sql_params[f"ip_{i}"] = r.get("client_ip")
+        sql_params[f"email_{i}"] = r.get("user_email")
+        sql_params[f"ua_{i}"] = r.get("user_agent")
+
+        value_clauses.append(
+            f"(%(file_id_{i})s, %(volume_path_{i})s, %(file_size_{i})s, "
+            f"%(upload_ts_{i})s, %(study_{i})s, %(ct_{i})s, %(ip_{i})s, "
+            f"%(email_{i})s, %(ua_{i})s, "
+            f"'pending', NULL, NULL)"
+        )
+
+    query = f"""
+    INSERT INTO IDENTIFIER(%(stow_table)s)
+        (file_id, volume_path, file_size, upload_timestamp,
+         study_constraint, content_type, client_ip,
+         user_email, user_agent,
+         status, processed_at, error_message)
+    VALUES {', '.join(value_clauses)}
     """
-    return query, None
+    return query, sql_params

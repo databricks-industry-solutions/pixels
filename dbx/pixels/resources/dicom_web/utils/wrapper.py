@@ -1,26 +1,22 @@
 """
 DICOMweb Databricks Wrapper — main service class.
 
-Orchestrates QIDO-RS (query), WADO-RS (retrieve), and STOW-RS (store)
-operations using:
+Orchestrates QIDO-RS (query) and WADO-RS (retrieve) operations using:
 
 * **Databricks SQL Connector** with parameterized queries (no SQL injection)
 * **PACS-style 3-tier BOT cache** for sub-second frame retrieval
 * **Streaming** file delivery for zero-copy instance / frame transfers
-* **Volumes Files API** for STOW-RS instance uploads
 
 Authorization is handled by the ``DatabricksSQLClient`` which supports
 both App auth and User (OBO) auth.
 """
 
-import json
 import os
 import threading
 import time
 from collections.abc import Iterator
-from io import BytesIO
-from typing import Any, BinaryIO, Dict, List
-import pydicom
+from typing import Any, Dict, List
+
 from fastapi import HTTPException
 
 from dbx.pixels.databricks_file import DatabricksFile
@@ -34,11 +30,9 @@ from .dicom_io import (
     get_file_metadata,
     get_file_part,
     stream_file,
-    upload_file,
 )
 from .dicom_tags import format_dicomweb_response
 from .queries import (
-    build_insert_instance_query,
     build_instance_path_query,
     build_instances_query,
     build_series_instance_paths_query,
@@ -503,160 +497,6 @@ class DICOMwebDatabricksWrapper:
                 yield content
 
         return generate(), transfer_syntax_uid
-
-    # ------------------------------------------------------------------
-    # STOW-RS — store instances (fire-and-forget metadata indexing)
-    # ------------------------------------------------------------------
-
-    @timing_decorator
-    def store_instances(
-        self,
-        dicom_parts: list[tuple[bytes, str]],
-        study_instance_uid: str | None = None,
-    ) -> dict:
-        """
-        STOW-RS: Store DICOM instances with fire-and-forget metadata indexing.
-
-        Mirrors how enterprise PACS systems achieve near-instant availability:
-
-        1. **Parse** — extract UIDs from each DICOM header (no pixel decode).
-        2. **Upload** — write raw bytes to Volumes (the "landing zone").
-        3. **Respond** — return per-instance status to the client immediately.
-        4. **Index** — insert metadata rows into the SQL catalog table
-           *in the background* so the study becomes searchable (QIDO-RS)
-           within seconds.
-
-        Args:
-            dicom_parts: ``(raw_bytes, content_type)`` tuples parsed from
-                the ``multipart/related`` request body.
-            study_instance_uid: Optional study UID constraint.  When set
-                (``POST /studies/{study}``), every part's Study Instance UID
-                must match or the part is rejected.
-
-        Returns:
-            ``{"stored": [...], "failed": [...]}`` with per-instance status.
-        """
-        stow_base = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
-        if not stow_base:
-            raise HTTPException(
-                status_code=500,
-                detail="DATABRICKS_STOW_VOLUME_PATH not configured",
-            )
-
-        stored: list[dict] = []
-        failed: list[dict] = []
-        bg_tasks: list[tuple] = []  # deferred metadata insertions
-
-        for raw_bytes, content_type in dicom_parts:
-            sop_uid_str = "unknown"
-            try:
-                # ── 1. Parse DICOM header (fast — no pixel decode) ──────
-                ds = pydicom.dcmread(BytesIO(raw_bytes), stop_before_pixels=True)
-
-                study_uid = str(ds.StudyInstanceUID)
-                series_uid = str(ds.SeriesInstanceUID)
-                sop_uid_str = str(ds.SOPInstanceUID)
-                sop_class_uid = str(getattr(ds, "SOPClassUID", ""))
-
-                # Validate study constraint
-                if study_instance_uid and study_uid != study_instance_uid:
-                    failed.append({
-                        "sop_class_uid": sop_class_uid,
-                        "sop_instance_uid": sop_uid_str,
-                        "failure_reason": (
-                            f"Study UID mismatch: expected "
-                            f"{study_instance_uid}, got {study_uid}"
-                        ),
-                        "status": "0110",
-                    })
-                    continue
-
-                # ── 2. Upload to Volumes (synchronous — critical path) ──
-                dest_path = (
-                    f"{stow_base}/{study_uid}/{series_uid}/{sop_uid_str}.dcm"
-                )
-                db_file = DatabricksFile.from_full_path(dest_path)
-                upload_file(self._token, db_file, raw_bytes)
-
-                logger.info(
-                    f"STOW-RS: uploaded {sop_uid_str} "
-                    f"({len(raw_bytes)} bytes) → {dest_path}"
-                )
-
-                # ── 3. Prepare metadata for background INSERT ───────────
-                # Remove pixel data and overlay data before converting to dict
-                if "PixelData" in ds:
-                    del ds.PixelData
-                if (0x6000, 0x3000) in ds:
-                    del ds[(0x6000, 0x3000)]
-                meta_dict = ds.to_json_dict()
-                meta_dict.update(ds.file_meta.to_json_dict())
-                meta_json = json.dumps(meta_dict)
-
-                bg_tasks.append((
-                    db_file.dbfs_path,      # path
-                    len(raw_bytes),          # length
-                    db_file.full_path,       # local_path
-                    db_file.file_path,       # relative_path
-                    meta_json,               # meta_json
-                ))
-
-                stored.append({
-                    "sop_class_uid": sop_class_uid,
-                    "sop_instance_uid": sop_uid_str,
-                    "study_instance_uid": study_uid,
-                    "series_instance_uid": series_uid,
-                })
-
-            except Exception as exc:
-                logger.error(f"STOW-RS: failed to store {sop_uid_str}: {exc}")
-                failed.append({
-                    "sop_instance_uid": sop_uid_str,
-                    "failure_reason": str(exc),
-                    "status": "0110",
-                })
-
-        # ── 4. Fire-and-forget metadata indexing ────────────────────────
-        if bg_tasks:
-            file_prefetcher._pool.submit(self._insert_metadata_batch, bg_tasks)
-            logger.info(
-                f"STOW-RS: {len(bg_tasks)} metadata INSERT(s) "
-                f"queued for background indexing"
-            )
-
-        logger.info(
-            f"STOW-RS complete: {len(stored)} stored, {len(failed)} failed"
-        )
-        return {"stored": stored, "failed": failed}
-
-    def _insert_metadata_batch(
-        self,
-        tasks: list[tuple[str, int, str, str, str]],
-    ) -> None:
-        """
-        Background task: insert metadata rows into the SQL catalog table.
-
-        Runs on the prefetcher's thread pool *after* the HTTP response has
-        been sent to the client.  Each tuple contains
-        ``(path, length, local_path, relative_path, meta_json)``.
-        """
-        query_template, _ = build_insert_instance_query(self._table)
-        for path, length, local_path, relative_path, meta_json in tasks:
-            try:
-                params = {
-                    "pixels_table": self._table,
-                    "path": path,
-                    "length": length,
-                    "local_path": local_path,
-                    "relative_path": relative_path,
-                    "meta_json": meta_json,
-                }
-                self._query(query_template, params)
-                logger.info(f"STOW-RS: metadata indexed for {local_path}")
-            except Exception as exc:
-                logger.error(
-                    f"STOW-RS: metadata INSERT failed for {local_path}: {exc}"
-                )
 
     # ------------------------------------------------------------------
     # Series pre-warming (critical for WADO-URI without prior QIDO-RS)
