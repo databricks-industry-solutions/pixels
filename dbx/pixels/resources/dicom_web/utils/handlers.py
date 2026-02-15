@@ -24,9 +24,10 @@ Authorization is controlled by the ``DICOMWEB_USE_USER_AUTH`` env var:
 See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 """
 
-import concurrent.futures
+import asyncio
 import json
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -689,12 +690,6 @@ if _stow_volume_path_env:
     if len(_vol_parts) >= 4 and _vol_parts[0] == "Volumes":
         _stow_volume_uc = f"{_vol_parts[1]}.{_vol_parts[2]}.{_vol_parts[3]}"
 
-# ── Background thread pool for fire-and-forget tracking + job trigger ──────
-_stow_bg_pool = concurrent.futures.ThreadPoolExecutor(
-    max_workers=2, thread_name_prefix="stow-bg",
-)
-
-
 def _write_stow_records(
     sql_client: DatabricksSQLClient,
     token: str | None,
@@ -703,8 +698,8 @@ def _write_stow_records(
     """
     INSERT tracking rows into ``stow_operations``.
 
-    Runs in the background pool so the handler can return immediately.
-    Uses parameterized queries via :func:`build_stow_insert_query`.
+    Called synchronously — the row must exist before the Spark job is
+    triggered.  Uses parameterized queries via :func:`build_stow_insert_query`.
     """
     if not _stow_table or not records:
         return
@@ -769,16 +764,33 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
     return _stow_job_id
 
 
-def _trigger_stow_job(token: str) -> None:
+_STOW_POLL_INTERVAL = 5       # seconds between polls
+_STOW_POLL_TIMEOUT = 1800     # 30 min max wait
+_TERMINAL_STATES = {"TERMINATED", "INTERNAL_ERROR", "SKIPPED"}
+
+
+def _trigger_stow_job(token: str) -> dict:
     """
-    Trigger the STOW processing Spark job with **run coalescing**.
+    Trigger the STOW processing Spark job and **wait for it to finish**.
 
     * 0 active runs → trigger (starts immediately)
     * 1 active run  → trigger (queues behind the running one)
     * 2+ active     → skip  (running + queued already covers it)
 
-    The job is looked up by name: ``<DATABRICKS_APP_NAME>_stow_processor``.
-    Silently skips if the app name is not set or the job doesn't exist.
+    After triggering, polls ``GET /api/2.1/jobs/runs/get`` every
+    :data:`_STOW_POLL_INTERVAL` seconds until the run reaches a
+    terminal state (``TERMINATED``, ``INTERNAL_ERROR``, ``SKIPPED``)
+    or :data:`_STOW_POLL_TIMEOUT` is exceeded.
+
+    Returns:
+        A status dict, e.g.::
+
+            {"action": "succeeded", "job_id": 123, "run_id": 456, ...}
+            {"action": "failed",    "job_id": 123, "run_id": 456, "error": "..."}
+            {"action": "timeout",   "job_id": 123, "run_id": 456, "last_state": "RUNNING"}
+            {"action": "already_processing", "job_id": 123, ...}
+            {"action": "skipped",   "reason": "..."}
+            {"action": "error",     "detail": "..."}
     """
     host = (
         os.environ.get("DATABRICKS_HOST", "")
@@ -787,7 +799,7 @@ def _trigger_stow_job(token: str) -> None:
         .rstrip("/")
     )
     if not host:
-        return
+        return {"action": "skipped", "reason": "DATABRICKS_HOST not configured"}
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -796,7 +808,7 @@ def _trigger_stow_job(token: str) -> None:
 
     job_id = _resolve_stow_job_id(host, headers)
     if not job_id:
-        return
+        return {"action": "skipped", "reason": "stow_processor job not found"}
 
     try:
         # ── Check active runs ─────────────────────────────────────────
@@ -811,25 +823,37 @@ def _trigger_stow_job(token: str) -> None:
         active_count = len(active_runs)
 
         if active_count >= 2:
+            run_states = [
+                {
+                    "run_id": r.get("run_id"),
+                    "life_cycle_state": r.get("state", {}).get("life_cycle_state"),
+                }
+                for r in active_runs[:2]
+            ]
             logger.info(
                 f"STOW-RS: job {job_id} already has {active_count} active runs "
                 f"(running + queued) — skipping trigger"
             )
-            return
+            return {
+                "action": "already_processing",
+                "job_id": job_id,
+                "active_runs": active_count,
+                "runs": run_states,
+            }
 
-        # ── Fire run-now with notebook_params ─────────────────────────
+        # ── Fire run-now with job_parameters ─────────────────────────
         run_now_url = f"https://{host}/api/2.1/jobs/run-now"
         run_payload: dict = {"job_id": job_id}
 
-        # Pass catalog_table and volume so the notebook knows where
-        # to read stow_operations and where to write catalog entries.
+        # The job is defined with JobParameterDefinition (new-style),
+        # so we must use "job_parameters" — not legacy "notebook_params".
         if _stow_catalog_table or _stow_volume_uc:
-            nb_params: dict[str, str] = {}
+            job_params: dict[str, str] = {}
             if _stow_catalog_table:
-                nb_params["catalog_table"] = _stow_catalog_table
+                job_params["catalog_table"] = _stow_catalog_table
             if _stow_volume_uc:
-                nb_params["volume"] = _stow_volume_uc
-            run_payload["notebook_params"] = nb_params
+                job_params["volume"] = _stow_volume_uc
+            run_payload["job_parameters"] = job_params
 
         resp = _requests.post(
             run_now_url,
@@ -837,28 +861,103 @@ def _trigger_stow_job(token: str) -> None:
             json=run_payload,
             timeout=10,
         )
-        if resp.ok:
-            run_id = resp.json().get("run_id", "?")
-            action = "triggered" if active_count == 0 else "queued"
-            logger.info(f"STOW-RS: {action} job {job_id}, run_id={run_id}")
-        else:
-            logger.warning(
-                f"STOW-RS: job trigger failed (HTTP {resp.status_code}): "
-                f"{resp.text[:300]}"
+        if not resp.ok:
+            detail = f"HTTP {resp.status_code}: {resp.text[:300]}"
+            logger.warning(f"STOW-RS: job trigger failed — {detail}")
+            return {"action": "error", "job_id": job_id, "detail": detail}
+
+        run_id = resp.json().get("run_id")
+        action = "triggered" if active_count == 0 else "queued"
+        logger.info(f"STOW-RS: {action} job {job_id}, run_id={run_id} — waiting for completion")
+
+        # ── Poll until terminal state ─────────────────────────────────
+        get_url = f"https://{host}/api/2.1/jobs/runs/get"
+        start = time.monotonic()
+        life_cycle_state = "PENDING"
+
+        while time.monotonic() - start < _STOW_POLL_TIMEOUT:
+            time.sleep(_STOW_POLL_INTERVAL)
+
+            try:
+                get_resp = _requests.get(
+                    get_url,
+                    headers=headers,
+                    params={"run_id": run_id},
+                    timeout=10,
+                )
+            except Exception as poll_exc:
+                logger.debug(f"STOW-RS: poll error (will retry): {poll_exc}")
+                continue
+
+            if not get_resp.ok:
+                logger.debug(
+                    f"STOW-RS: poll HTTP {get_resp.status_code} (will retry)"
+                )
+                continue
+
+            run_json = get_resp.json()
+            state_obj = run_json.get("state", {})
+            life_cycle_state = state_obj.get("life_cycle_state", "UNKNOWN")
+
+            if life_cycle_state not in _TERMINAL_STATES:
+                elapsed = int(time.monotonic() - start)
+                logger.debug(
+                    f"STOW-RS: run {run_id} state={life_cycle_state} "
+                    f"({elapsed}s elapsed)"
+                )
+                continue
+
+            # ── Terminal — build final result ─────────────────────────
+            result_state = state_obj.get("result_state", "")
+            state_message = state_obj.get("state_message", "")
+            elapsed = round(time.monotonic() - start, 1)
+
+            if result_state == "SUCCESS":
+                logger.info(
+                    f"STOW-RS: run {run_id} succeeded in {elapsed}s"
+                )
+                return {
+                    "action": "succeeded",
+                    "job_id": job_id,
+                    "run_id": run_id,
+                    "life_cycle_state": life_cycle_state,
+                    "result_state": result_state,
+                    "elapsed_seconds": elapsed,
+                }
+
+            # FAILED / TIMEDOUT / CANCELED / INTERNAL_ERROR / SKIPPED
+            error_msg = state_message or result_state or life_cycle_state
+            logger.error(
+                f"STOW-RS: run {run_id} ended with "
+                f"{life_cycle_state}/{result_state} in {elapsed}s: "
+                f"{state_message}"
             )
+            return {
+                "action": "failed",
+                "job_id": job_id,
+                "run_id": run_id,
+                "life_cycle_state": life_cycle_state,
+                "result_state": result_state,
+                "error": error_msg,
+                "elapsed_seconds": elapsed,
+            }
+
+        # ── Timeout ───────────────────────────────────────────────────
+        elapsed = round(time.monotonic() - start, 1)
+        logger.warning(
+            f"STOW-RS: run {run_id} still {life_cycle_state} after "
+            f"{elapsed}s — returning timeout"
+        )
+        return {
+            "action": "timeout",
+            "job_id": job_id,
+            "run_id": run_id,
+            "last_state": life_cycle_state,
+            "elapsed_seconds": elapsed,
+        }
     except Exception as exc:
         logger.error(f"STOW-RS: job trigger error: {exc}")
-
-
-def _stow_background_tasks(
-    sql_client: DatabricksSQLClient,
-    token: str | None,
-    records: list[dict],
-) -> None:
-    """Combined background task: write tracking records + trigger job."""
-    _write_stow_records(sql_client, token, records)
-    if token:
-        _trigger_stow_job(token)
+        return {"action": "error", "detail": str(exc)}
 
 
 async def dicomweb_stow_studies(
@@ -874,14 +973,17 @@ async def dicomweb_stow_studies(
 
     Memory usage is **O(chunk_size)** regardless of request size.
 
-    The handler is deliberately **paper-thin**:
+    **Synchronous end-to-end flow** — the response is only sent after
+    the Spark processing job has finished (succeeded or failed):
 
     1. Streams the entire multipart body as-is to a temp file on Volumes
-       (``<stow_base>/<uuid>.mpr``).
-    2. Inserts **one** tracking row into the ``stow_operations`` Delta
-       table (background) and triggers the Spark job.
+       (``<stow_base>/<date>/<uuid>.mpr``).
+    2. Inserts **one** tracking row into ``stow_operations`` (synchronous).
+    3. Triggers the serverless Spark job and **polls until completion**.
+       The poll runs in a background thread (``asyncio.to_thread``) so
+       the event loop remains responsive for other requests.
 
-    The serverless Spark job (``<app_name>_stow_processor``) then:
+    The Spark job (``<app_name>_stow_processor``) then:
 
     * Opens the temp file.
     * Parses the multipart body, splits into individual DICOMs.
@@ -891,9 +993,9 @@ async def dicomweb_stow_studies(
     * MERGEs the status back to ``stow_operations``.
 
     Returns:
-        202 Accepted — body streamed to landing zone successfully.
+        200 OK — Spark job completed successfully, DICOMs registered.
         400 Bad Request — invalid Content-Type.
-        500 Internal Server Error — upload failed.
+        500 Internal Server Error — upload or processing failed.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -965,26 +1067,40 @@ async def dicomweb_stow_studies(
         "user_agent": user_agent,
     }
 
-    # ── Fire-and-forget: tracking INSERT + Spark job trigger ───────────
+    # ── Synchronous INSERT (must complete before job trigger) ───────────
     sql_client = _get_sql_client()
-    _stow_bg_pool.submit(
-        _stow_background_tasks, sql_client, token, [record],
-    )
+    _write_stow_records(sql_client, token, [record])
 
-    # ── Minimal receipt ────────────────────────────────────────────────
+    # ── Trigger Spark job & wait for completion ──────────────────────
+    #    Runs in a thread so the async event loop stays responsive
+    #    for other requests while this one waits.
+    if token:
+        job_status = await asyncio.to_thread(_trigger_stow_job, token)
+    else:
+        job_status = {"action": "skipped", "reason": "no auth token"}
+
+    # ── Build receipt & choose HTTP status ────────────────────────────
+    job_action = job_status.get("action", "?")
+    succeeded = job_action == "succeeded"
+
     receipt = {
         "file_id": file_id,
         "path": dest_path,
         "size": file_size,
-        "status": "accepted",
+        "status": "succeeded" if succeeded else job_action,
         "content_type": content_type,
         "study_constraint": study_instance_uid,
+        "job": job_status,
     }
 
-    logger.info(f"STOW-RS complete: {file_id} accepted ({file_size} bytes)")
+    http_status = 200 if succeeded else 500
+    logger.info(
+        f"STOW-RS complete: {file_id} ({file_size} bytes), "
+        f"job={job_action}, HTTP {http_status}"
+    )
     return Response(
         content=json.dumps(receipt, indent=2),
-        status_code=202,
+        status_code=http_status,
         media_type="application/json",
     )
 

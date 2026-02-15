@@ -131,14 +131,9 @@ class StowProcessor:
         self.logger.info(f"Catalog table: {catalog_table}")
         self.logger.info(f"Checkpoint location: {checkpoint_location}")
 
-        self.source_table = source_table
-        self.catalog_table = catalog_table
-        self.volume = volume
-        self.catalog = Catalog(self.spark, table=catalog_table, volume=volume)
-
         # Derive the Volumes base path for saving individual DICOMs.
         # volume = "catalog.schema.vol_name" → "/Volumes/catalog/schema/vol_name"
-        self._volume_base = f"/Volumes/{volume.replace('.', '/')}"
+        volume_base = f"/Volumes/{volume.replace('.', '/')}"
 
         # Read stream — only new inserts with status = 'pending'.
         # skipChangeCommits prevents our own MERGE writes from looping back.
@@ -147,17 +142,26 @@ class StowProcessor:
             .option("readChangeFeed", "true")
             .option("skipChangeCommits", "true")
             .option("maxFilesPerTrigger", max_files_per_trigger)
-            .table(self.source_table)
+            .table(source_table)
             .filter(fn.col("_change_type") == "insert")
             .filter(fn.col("status") == "pending")
+        )
+
+        # Build a Spark-Connect-safe foreachBatch callback.
+        # The closure captures ONLY plain strings — no SparkSession,
+        # no Catalog, no self.  Everything Spark-dependent is
+        # reconstructed inside using batch_df.sparkSession.
+        batch_fn = _make_batch_handler(
+            source_table=source_table,
+            catalog_table=catalog_table,
+            volume=volume,
+            volume_base=volume_base,
         )
 
         # Write stream with foreachBatch for MERGE operation
         query = (
             stream_df.writeStream
-            .foreachBatch(
-                lambda batch_df, batch_id: self._merge_results(batch_df, batch_id)
-            )
+            .foreachBatch(batch_fn)
             .option("checkpointLocation", checkpoint_location)
             .trigger(
                 processingTime=trigger_processing_time,
@@ -169,29 +173,32 @@ class StowProcessor:
         self.logger.info(f"Streaming query started with ID: {query.id}")
         return query
 
-    # -----------------------------------------------------------------
-    # foreachBatch callback
-    # -----------------------------------------------------------------
 
-    def _merge_results(self, batch_df: DataFrame, batch_id: int) -> None:
-        """
-        Process a single micro-batch of pending STOW operations.
+# ---------------------------------------------------------------------------
+# foreachBatch callback
+# ---------------------------------------------------------------------------
 
-        1. Apply ``stow_split_udf`` to split multipart bundles →
-           individual DICOMs + metadata.
-        2. Explode results, build catalog DataFrame, append to catalog.
-        3. MERGE status back to ``stow_operations``.
+def _make_batch_handler(
+    source_table: str,
+    catalog_table: str,
+    volume: str,
+    volume_base: str,
+):
+    """
+    Return a ``foreachBatch`` callback that captures only plain strings.
 
-        Args:
-            batch_df: Micro-batch DataFrame (from CDF stream).
-            batch_id: Spark-assigned batch identifier.
-        """
+    Spark Connect serialises the callback and all its free variables.
+    ``SparkSession``, ``Catalog``, and any object that holds a session
+    cannot be pickled — so we pass only primitive config here and
+    reconstruct everything inside using ``batch_df.sparkSession``.
+    """
+
+    def _process_batch(batch_df: DataFrame, batch_id: int) -> None:
         if batch_df.isEmpty():
             return
 
-        self.logger.info(f"Batch {batch_id}: processing STOW bundles")
-
-        volume_base = self._volume_base
+        _logger = LoggerProvider("StowProcessor")
+        _logger.info(f"Batch {batch_id}: processing STOW bundles")
 
         # ── 1. Split bundles into individual DICOMs ───────────────────
         split_df = batch_df.withColumn(
@@ -251,12 +258,15 @@ class StowProcessor:
                 "path_tags", "is_anon", "meta",
             )
 
-            self.catalog.save(catalog_df, mode="append")
+            # Reconstruct Catalog from batch_df.sparkSession (not from self)
+            catalog = Catalog(
+                batch_df.sparkSession, table=catalog_table, volume=volume,
+            )
+            catalog.save(catalog_df, mode="append")
 
-            self.logger.info(f"Batch {batch_id}: saved to {self.catalog_table}")
+            _logger.info(f"Batch {batch_id}: saved to {catalog_table}")
 
             # ── 3. MERGE status back to stow_operations ──────────────
-            # Aggregate per file_id: if any part failed → 'failed', else 'completed'
             status_df = (
                 exploded_df
                 .groupBy("file_id")
@@ -287,7 +297,7 @@ class StowProcessor:
             from delta.tables import DeltaTable
 
             delta_table = DeltaTable.forName(
-                batch_df.sparkSession, self.source_table,
+                batch_df.sparkSession, source_table,
             )
 
             (
@@ -306,12 +316,14 @@ class StowProcessor:
                 .execute()
             )
 
-            self.logger.info(
+            _logger.info(
                 f"Batch {batch_id}: MERGE complete — "
-                f"statuses updated in {self.source_table}"
+                f"statuses updated in {source_table}"
             )
         finally:
             exploded_df.unpersist()
+
+    return _process_batch
 
 
 # ---------------------------------------------------------------------------
