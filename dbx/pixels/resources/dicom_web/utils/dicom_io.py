@@ -234,7 +234,9 @@ def upload_file(
     # ── Create SDK client (reused across retries) ─────────────────────
     # Config picks up DATABRICKS_HOST from the environment; we override
     # just the token so it works for both App auth and OBO auth.
-    sdk_cfg = SdkConfig(token=token)
+    # auth_type="pat" prevents a conflict with OAuth client credentials
+    # that may also be present in the environment (CLIENT_ID / SECRET).
+    sdk_cfg = SdkConfig(token=token, auth_type="pat")
     client = WorkspaceClient(config=sdk_cfg)
 
     last_exc: BaseException | None = None
