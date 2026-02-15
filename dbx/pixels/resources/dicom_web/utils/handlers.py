@@ -29,10 +29,12 @@ import os
 import tempfile
 import uuid
 from collections.abc import AsyncIterator
+from urllib.parse import parse_qs, urlparse
 
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTasks
 
 from dbx.pixels.lakebase import LakebaseUtils, RLS_ENABLED
 from dbx.pixels.logging import LoggerProvider
@@ -776,73 +778,23 @@ async def _parse_multipart_streaming(
     return parts, total_bytes
 
 
-def _build_stow_response(
-    result: dict,
-    base_url: str,
-    study_instance_uid: str | None = None,
-) -> dict:
+
+def _extract_study_uid_from_referer(request: Request) -> str | None:
     """
-    Build the STOW-RS response dataset (DICOM JSON format).
+    Extract ``StudyInstanceUIDs`` from the ``Referer`` header.
 
-    The response contains:
+    OHIF encodes the study UID in the viewer URL, e.g.::
 
-    * ``00081190`` — **RetrieveURL** (base WADO-RS URL for the study)
-    * ``00081199`` — **ReferencedSOPSequence** (successfully stored instances)
-    * ``00081198`` — **FailedSOPSequence** (rejected instances with failure reasons)
+        https://…/ohif/monai-label?StudyInstanceUIDs=1.2.826…
 
-    See DICOM PS3.18 §10.5.1 (Store Instances Response).
+    This gives us the study UID without parsing the DICOM body.
     """
-    response: dict = {}
-
-    # ReferencedSOPSequence
-    if result["referenced"]:
-        ref_items = []
-        for ref in result["referenced"]:
-            item: dict = {
-                # ReferencedSOPClassUID
-                "00081150": {"vr": "UI", "Value": [ref["sop_class_uid"]]},
-                # ReferencedSOPInstanceUID
-                "00081155": {"vr": "UI", "Value": [ref["sop_instance_uid"]]},
-            }
-            # Per-instance RetrieveURL
-            study_uid = ref.get("study_instance_uid", study_instance_uid or "")
-            if study_uid and base_url:
-                item["00081190"] = {
-                    "vr": "UR",
-                    "Value": [f"{base_url}/studies/{study_uid}"],
-                }
-            ref_items.append(item)
-        response["00081199"] = {"vr": "SQ", "Value": ref_items}
-
-    # FailedSOPSequence
-    if result["failed"]:
-        fail_items = []
-        for fail in result["failed"]:
-            item = {
-                # ReferencedSOPClassUID
-                "00081150": {"vr": "UI", "Value": [fail.get("sop_class_uid", "")]},
-                # ReferencedSOPInstanceUID
-                "00081155": {"vr": "UI", "Value": [fail.get("sop_instance_uid", "")]},
-                # FailureReason
-                "00081197": {"vr": "US", "Value": [int(fail.get("failure_reason", "0110"), 16)]},
-            }
-            fail_items.append(item)
-        response["00081198"] = {"vr": "SQ", "Value": fail_items}
-
-    # Top-level RetrieveURL (study level)
-    if result["referenced"] and base_url:
-        # Use the first successfully stored instance's study UID
-        first_study_uid = (
-            study_instance_uid
-            or result["referenced"][0].get("study_instance_uid", "")
-        )
-        if first_study_uid:
-            response["00081190"] = {
-                "vr": "UR",
-                "Value": [f"{base_url}/studies/{first_study_uid}"],
-            }
-
-    return response
+    referer = request.headers.get("referer", "")
+    if not referer:
+        return None
+    parsed = urlparse(referer)
+    uids = parse_qs(parsed.query).get("StudyInstanceUIDs", [])
+    return uids[0] if uids else None
 
 
 @timing_decorator
@@ -851,27 +803,22 @@ async def dicomweb_stow_store(
     study_instance_uid: str | None = None,
 ) -> Response:
     """
-    STOW-RS: store DICOM instances (**streaming pipeline**).
+    STOW-RS: store DICOM instances (**non-blocking proxy pipeline**).
 
     Accepts ``POST /api/dicomweb/studies`` (any study) or
     ``POST /api/dicomweb/studies/{study}`` (specific study).
 
-    Request body must be ``multipart/related; type="application/dicom"``
-    containing one or more DICOM Part-10 instances.
+    **Design — instant response, background upload:**
 
-    The request body is **never fully buffered in memory**.  Instead it
-    is parsed incrementally via ``request.stream()`` and each DICOM part
-    is written to a ``SpooledTemporaryFile`` (in-RAM for ≤ 5 MB, on-disk
-    for larger files).  This keeps peak heap usage at a few MB even for
-    175 MB+ uploads.
+    1. *Synchronous (< 1 s):* stream-parse the multipart body into temp
+       files, resolve the ``StudyInstanceUID`` from the URL path or the
+       ``Referer`` header, and return **200** immediately.
+    2. *Background (per DICOM part):* ``httpx.PUT`` the temp file to
+       the Databricks Volumes Files API (proxy-style, no SDK), then
+       parse the DICOM header from the temp file to extract metadata,
+       insert the catalog row, warm caches, and close the temp file.
 
-    Returns:
-        * **200 OK** — all instances stored successfully.
-        * **409 Conflict** — partial success (some stored, some failed).
-        * **400 Bad Request** — invalid request body.
-
-    Response body is ``application/dicom+json`` containing the
-    ``ReferencedSOPSequence`` and ``FailedSOPSequence``.
+    The caller (OHIF) is **never blocked** on the Volume upload.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -899,37 +846,59 @@ async def dicomweb_stow_store(
 
     logger.info(
         f"STOW-RS: received {total_bytes} bytes (streamed), "
-        f"Content-Type: {content_type}, "
-        f"study_constraint: {study_instance_uid or '(any)'}"
+        f"{len(part_files)} part(s), "
+        f"Content-Type: {content_type}"
     )
-    logger.info(f"STOW-RS: parsed {len(part_files)} DICOM part(s)")
 
-    # ── Store via wrapper (files are seeked to 0) ─────────────────
-    try:
-        wrapper = get_dicomweb_wrapper(request)
-        result = wrapper.store_instances(part_files, study_instance_uid)
-    finally:
-        # Always close temp files (releases disk / memory)
+    # ── Resolve StudyInstanceUID (URL path > Referer header) ──────
+    study_uid = study_instance_uid or _extract_study_uid_from_referer(request)
+    if not study_uid:
         for f in part_files:
             try:
                 f.close()
             except Exception:
                 pass
+        raise HTTPException(
+            status_code=400,
+            detail="StudyInstanceUID not found in URL path or Referer header",
+        )
 
-    # Build response
+    # ── Build per-part destination paths and schedule background ──
+    wrapper = get_dicomweb_wrapper(request)
+    volume_base = wrapper.stow_volume_base()
+
+    tasks = BackgroundTasks()
+    for part_file in part_files:
+        file_uuid = str(uuid.uuid4())
+        file_rel = f"stow-rs/{study_uid}/{file_uuid}.dcm"
+        volume_path = f"{volume_base}/{file_rel}"
+        tasks.add_task(
+            wrapper.commit_instance,
+            {
+                "part_file": part_file,
+                "volume_path": volume_path,
+                "file_rel": file_rel,
+            },
+        )
+
+    # ── Return immediately — upload happens in background ─────────
     base_url = str(request.base_url).rstrip("/") + "/api/dicomweb"
-    response_body = _build_stow_response(result, base_url, study_instance_uid)
+    response_body = {
+        # Top-level RetrieveURL (study level)
+        "00081190": {
+            "vr": "UR",
+            "Value": [f"{base_url}/studies/{study_uid}"],
+        },
+    }
 
-    # HTTP status: 200 if all succeeded, 409 if partial failure
-    if result["failed"] and result["referenced"]:
-        status_code = 409  # Conflict — partial success
-    elif result["failed"]:
-        status_code = 409  # All failed
-    else:
-        status_code = 200  # All succeeded
+    logger.info(
+        f"STOW-RS: returning 200 — "
+        f"{len(part_files)} instance(s) uploading in background"
+    )
 
     return Response(
         content=json.dumps(response_body, indent=2),
         media_type="application/dicom+json",
-        status_code=status_code,
+        status_code=200,
+        background=tasks,
     )
