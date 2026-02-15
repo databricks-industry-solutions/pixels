@@ -10,11 +10,12 @@ CREATE TABLE IF NOT EXISTS {UC_SCHEMA}.stow_operations (
   user_agent       STRING               COMMENT 'User-Agent header of the uploading client',
   status           STRING    NOT NULL   COMMENT 'Processing state: pending -> completed | failed',
   processed_at     TIMESTAMP            COMMENT 'Timestamp when the Spark job finished processing this bundle',
+  output_paths     ARRAY<STRING>        COMMENT 'Paths to individual DICOM files extracted from the multipart bundle (populated by Phase 1 split)',
   error_message    STRING               COMMENT 'Error details if processing failed'
 )
 USING delta
 CLUSTER BY (file_id)
-COMMENT 'Tracks every STOW-RS upload (one row per multipart request) for auditing and as the input queue for the incremental Spark ingestion job. The Spark job splits the bundle, extracts DICOMs, saves them individually, and registers metadata in the catalog.'
+COMMENT 'Tracks every STOW-RS upload (one row per multipart request). Phase 1 splits bundles and populates output_paths. Phase 2 extracts DICOM metadata via DicomMetaExtractor and saves to the catalog.'
 TBLPROPERTIES (
   'delta.enableChangeDataFeed' = 'true',
   'delta.enableDeletionVectors' = 'true',

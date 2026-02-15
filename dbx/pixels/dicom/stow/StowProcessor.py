@@ -1,9 +1,4 @@
-import json
-import os
-import time
 import traceback
-import uuid
-from datetime import datetime
 from typing import Dict, List
 
 import pyspark.sql.functions as fn
@@ -31,7 +26,6 @@ _SPLIT_RESULT_SCHEMA = ArrayType(
         [
             StructField("output_path", StringType(), False),
             StructField("file_size", LongType(), False),
-            StructField("meta_json", StringType(), True),
             StructField("status", StringType(), False),
             StructField("error_message", StringType(), True),
         ]
@@ -41,102 +35,89 @@ _SPLIT_RESULT_SCHEMA = ArrayType(
 
 class StowProcessor:
     """
-    Orchestrates STOW-RS file ingestion using Delta table streaming.
+    Orchestrates STOW-RS file ingestion in two independent phases,
+    each driven by its own CDF stream on ``stow_operations``.
 
-    Processing pipeline (per micro-batch):
+    **Phase 1 — Split** (``split_bundles``):
 
-    1. Reads pending uploads from the ``stow_operations`` Delta table
-       (CDF — new inserts with ``status = 'pending'``).
-    2. Applies ``stow_split_udf`` to each row — the UDF:
+    Reads pending uploads (CDF inserts, ``status='pending'``), applies
+    ``stow_split_udf`` to split multipart bundles into individual DICOM
+    files on Volumes, and MERGEs the status +
+    ``output_paths`` back to ``stow_operations``.
 
-       a. Opens the temp multipart bundle from ``/Volumes/…``.
-       b. Parses the ``multipart/related`` body into individual parts.
-       c. Saves each DICOM part to its final location on Volumes.
-       d. Extracts DICOM metadata via ``pydicom.dcmread()``.
-       e. Returns an array of ``(output_path, file_size, meta_json,
-          status, error_message)`` structs.
+    **Phase 2 — Extract Metadata** (``extract_metadata``):
 
-    3. Explodes the array, builds catalog-compatible rows using
-       ``Catalog._with_path_meta()``, and appends to the catalog table.
-    4. MERGEs back to ``stow_operations`` to set
-       ``status = 'completed'`` (or ``'failed'``).
+    Reads completed entries (CDF ``update_postimage``,
+    ``status='completed'``), explodes ``output_paths``, applies
+    ``DicomMetaExtractor`` to extract DICOM metadata via ``pydicom``,
+    and saves the results to the catalog table.
 
-    Example::
+    Each phase is designed to run as a separate Databricks job task so
+    the handler can return extracted file paths to the client as soon
+    as Phase 1 finishes, while Phase 2 continues in the background.
 
+    Example — two-task job::
+
+        # Task 1 (stow_split notebook)
         processor = StowProcessor(spark=spark)
-
-        query = processor.process_from_table(
-            source_table='catalog.schema.stow_operations',
-            catalog_table='catalog.schema.object_catalog',
-            volume='catalog.schema.pixels_volume',
-            checkpoint_location='/Volumes/.../stow_checkpoints/',
-            trigger_available_now=True,
+        processor.split_bundles(
+            source_table='cat.schema.stow_operations',
+            volume='cat.schema.pixels_volume',
+            checkpoint_location='/Volumes/.../stow/_checkpoints/split',
         )
 
-        query.awaitTermination()
+        # Task 2 (stow_meta_extract notebook, depends on Task 1)
+        processor = StowProcessor(spark=spark)
+        processor.extract_metadata(
+            source_table='cat.schema.stow_operations',
+            catalog_table='cat.schema.object_catalog',
+            volume='cat.schema.pixels_volume',
+            checkpoint_location='/Volumes/.../stow/_checkpoints/meta',
+        )
     """
 
     def __init__(self, spark):
         """
-        Initialize the StowProcessor for streaming processing.
-
         Args:
-            spark: SparkSession for streaming operations.
+            spark: Active SparkSession.
         """
         if not spark:
             raise ValueError("Spark session is required for STOW processing")
 
         self.spark = spark
         self.logger = LoggerProvider("StowProcessor")
-        self.logger.info("StowProcessor initialized for streaming processing")
+        self.logger.info("StowProcessor initialized")
 
-    def process_from_table(
+    # -----------------------------------------------------------------
+    # Phase 1 — Split multipart bundles
+    # -----------------------------------------------------------------
+
+    def split_bundles(
         self,
         source_table: str,
-        catalog_table: str,
         volume: str,
         checkpoint_location: str,
-        trigger_processing_time: str = None,
-        trigger_available_now: bool = None,
         max_files_per_trigger: int = 200,
     ):
         """
-        Process STOW-RS uploads from the ``stow_operations`` Delta table
-        using Structured Streaming.
+        Phase 1: split multipart bundles into individual DICOMs.
 
-        Reads pending rows via CDF, splits multipart bundles into
-        individual DICOMs, registers paths + metadata in the catalog
-        table, and MERGEs the status back to ``stow_operations``.
+        * Reads ``stow_operations`` CDF (new inserts, ``status='pending'``).
+        * Applies ``stow_split_udf`` — splits on multipart boundary,
+          saves each part as ``<volume>/stow/<uuid>.dcm``.
+        * MERGEs ``status='completed'``, ``output_paths=[…]`` back.
+        * Uses ``trigger(availableNow=True)`` — drains and stops.
 
         Args:
-            source_table: Fully-qualified ``stow_operations`` table name
-                (``catalog.schema.stow_operations``).
-            catalog_table: Fully-qualified catalog table name
-                (``catalog.schema.object_catalog``).
-            volume: Unity Catalog volume name
-                (``catalog.schema.volume_name``).
-            checkpoint_location: Path for streaming checkpoints.
-            trigger_processing_time: How often to trigger processing
-                (e.g. ``"10 seconds"``).  Mutually exclusive with
-                *trigger_available_now*.
-            trigger_available_now: If ``True``, drain all pending rows
-                and stop.  Mutually exclusive with
-                *trigger_processing_time*.
-            max_files_per_trigger: Maximum files per micro-batch.
-
-        Returns:
-            StreamingQuery object.
+            source_table: ``catalog.schema.stow_operations``.
+            volume: UC volume (``catalog.schema.volume_name``).
+            checkpoint_location: Checkpoint path for this stream.
+            max_files_per_trigger: Max files per micro-batch.
         """
-        self.logger.info(f"Starting STOW ingestion from table: {source_table}")
-        self.logger.info(f"Catalog table: {catalog_table}")
-        self.logger.info(f"Checkpoint location: {checkpoint_location}")
-
-        # Derive the Volumes base path for saving individual DICOMs.
-        # volume = "catalog.schema.vol_name" → "/Volumes/catalog/schema/vol_name"
         volume_base = f"/Volumes/{volume.replace('.', '/')}"
 
-        # Read stream — only new inserts with status = 'pending'.
-        # skipChangeCommits prevents our own MERGE writes from looping back.
+        self.logger.info(f"Phase 1 (split): reading from {source_table}")
+
         stream_df = (
             self.spark.readStream.format("delta")
             .option("readChangeFeed", "true")
@@ -145,185 +126,232 @@ class StowProcessor:
             .table(source_table)
             .filter(fn.col("_change_type") == "insert")
             .filter(fn.col("status") == "pending")
+            .withColumn("parts", stow_split_udf(
+                fn.col("volume_path"),
+                fn.col("content_type"),
+                fn.lit(volume_base))
+            )
         )
 
-        # Build a Spark-Connect-safe foreachBatch callback.
-        # The closure captures ONLY plain strings — no SparkSession,
-        # no Catalog, no self.  Everything Spark-dependent is
-        # reconstructed inside using batch_df.sparkSession.
-        batch_fn = _make_batch_handler(
-            source_table=source_table,
-            catalog_table=catalog_table,
-            volume=volume,
-            volume_base=volume_base,
-        )
-
-        # Write stream with foreachBatch for MERGE operation
         query = (
             stream_df.writeStream
-            .foreachBatch(batch_fn)
+            .foreachBatch(_make_split_handler(source_table))
             .option("checkpointLocation", checkpoint_location)
-            .trigger(
-                processingTime=trigger_processing_time,
-                availableNow=trigger_available_now,
-            )
+            .trigger(availableNow=True)
             .start()
         )
 
-        self.logger.info(f"Streaming query started with ID: {query.id}")
-        return query
+        query.awaitTermination()
+        self.logger.info("Phase 1 complete: bundles split")
+
+    # -----------------------------------------------------------------
+    # Phase 2 — Extract DICOM metadata
+    # -----------------------------------------------------------------
+
+    def extract_metadata(
+        self,
+        source_table: str,
+        catalog_table: str,
+        volume: str,
+        checkpoint_location: str,
+        max_files_per_trigger: int = 200,
+    ):
+        """
+        Phase 2: extract DICOM metadata from individual files.
+
+        * Reads ``stow_operations`` CDF (``update_postimage`` with
+          ``status='completed'``) — these are the rows updated by
+          Phase 1.
+        * Explodes ``output_paths``, applies ``DicomMetaExtractor``
+          (``pydicom.dcmread``), saves to the catalog table.
+        * Uses ``trigger(availableNow=True)`` — drains and stops.
+
+        Args:
+            source_table: ``catalog.schema.stow_operations``.
+            catalog_table: ``catalog.schema.object_catalog``.
+            volume: UC volume (``catalog.schema.volume_name``).
+            checkpoint_location: Checkpoint path for this stream.
+            max_files_per_trigger: Max files per micro-batch.
+        """
+        self.logger.info(f"Phase 2 (meta): reading from {source_table}")
+
+        stream_df = (
+            self.spark.readStream.format("delta")
+            .option("readChangeFeed", "true")
+            .option("startingVersion", "0")
+            .option("maxFilesPerTrigger", max_files_per_trigger)
+            .table(source_table)
+            .filter(fn.col("_change_type") == "update_postimage")
+            .filter(fn.col("status") == "completed")
+        )
+
+        query = (
+            stream_df.writeStream
+            .foreachBatch(_make_meta_handler(catalog_table, volume))
+            .option("checkpointLocation", checkpoint_location)
+            .trigger(availableNow=True)
+            .start()
+        )
+
+        query.awaitTermination()
+        self.logger.info("Phase 2 complete: metadata extracted and saved")
 
 
 # ---------------------------------------------------------------------------
-# foreachBatch callback
+# Phase 1: foreachBatch — split bundles, save files, MERGE status + paths
 # ---------------------------------------------------------------------------
 
-def _make_batch_handler(
-    source_table: str,
-    catalog_table: str,
-    volume: str,
-    volume_base: str,
-):
+def _make_split_handler(source_table: str):
     """
-    Return a ``foreachBatch`` callback that captures only plain strings.
+    Return a Spark-Connect-safe ``foreachBatch`` callback for Phase 1.
 
-    Spark Connect serialises the callback and all its free variables.
-    ``SparkSession``, ``Catalog``, and any object that holds a session
-    cannot be pickled — so we pass only primitive config here and
-    reconstruct everything inside using ``batch_df.sparkSession``.
+    Captures only plain strings — no SparkSession or Catalog.
     """
 
-    def _process_batch(batch_df: DataFrame, batch_id: int) -> None:
+    def _process_split_batch(batch_df: DataFrame, batch_id: int) -> None:
         if batch_df.isEmpty():
             return
 
-        _logger = LoggerProvider("StowProcessor")
-        _logger.info(f"Batch {batch_id}: processing STOW bundles")
+        _logger = LoggerProvider("StowProcessor.Split")
+        _logger.info(f"Batch {batch_id}: splitting STOW bundles")
 
-        # ── 1. Split bundles into individual DICOMs ───────────────────
-        split_df = batch_df.withColumn(
-            "parts",
-            stow_split_udf(
-                fn.col("volume_path"),
-                fn.col("content_type"),
-                fn.lit(volume_base),
-            ),
-        )
-
-        # Explode the parts array — one row per extracted DICOM.
-
+        # Explode parts — one row per extracted file
         exploded_df = (
-            split_df
+            batch_df
             .select("file_id", fn.explode("parts").alias("part"))
             .select(
                 "file_id",
-                fn.col("part.output_path").alias("path"),
-                fn.col("part.file_size").alias("length"),
-                fn.col("part.meta_json").alias("meta"),
+                fn.col("part.output_path").alias("output_path"),
+                fn.col("part.file_size").alias("file_size"),
                 fn.col("part.status").alias("part_status"),
                 fn.col("part.error_message").alias("part_error"),
             )
         )
 
-        try:
-            # ── 2. Register successful parts in the catalog ──────────
-            success_df = exploded_df.filter(fn.col("part_status") == "SUCCESS")
-
-            catalog_df = (
-                success_df
-                .withColumn("modificationTime", fn.current_timestamp())
-                .withColumn("original_path", fn.col("path"))
-            )
-
-            catalog_df = Catalog._with_path_meta(catalog_df)
-            catalog_df = catalog_df.withColumn("is_anon", fn.lit(False))
-
-            # Parse meta JSON string to VARIANT (matching catalog schema)
-            catalog_df = catalog_df.withColumn(
-                "meta",
-                fn.when(
-                    fn.col("meta").isNotNull(),
-                    fn.expr("parse_json(meta)"),
-                ).otherwise(fn.lit(None)),
-            )
-
-            # Select only catalog-compatible columns
-            catalog_df = catalog_df.select(
-                "path", "modificationTime", "length", "original_path",
-                "relative_path", "local_path", "extension", "file_type",
-                "path_tags", "is_anon", "meta",
-            )
-
-            # Reconstruct Catalog from batch_df.sparkSession (not from self)
-            catalog = Catalog(
-                batch_df.sparkSession, table=catalog_table, volume=volume,
-            )
-            catalog.save(catalog_df, mode="append")
-
-            _logger.info(f"Batch {batch_id}: saved to {catalog_table}")
-
-            # ── 3. MERGE status back to stow_operations ──────────────
-            status_df = (
-                exploded_df
-                .groupBy("file_id")
-                .agg(
-                    fn.count("*").alias("parts_count"),
-                    fn.sum(
-                        fn.when(fn.col("part_status") == "FAILED", 1).otherwise(0)
-                    ).alias("fail_count"),
-                    fn.first(
-                        fn.when(
-                            fn.col("part_error").isNotNull(), fn.col("part_error")
-                        )
-                    ).alias("first_error"),
-                )
-                .withColumn(
-                    "final_status",
-                    fn.when(fn.col("fail_count") > 0, fn.lit("failed"))
-                    .otherwise(fn.lit("completed")),
-                )
-                .withColumn(
-                    "error_message",
+        # Aggregate per file_id: collect successful paths, determine status
+        status_df = (
+            exploded_df
+            .groupBy("file_id")
+            .agg(
+                fn.collect_list(
                     fn.when(
-                        fn.col("fail_count") > 0, fn.col("first_error")
-                    ).otherwise(fn.lit(None).cast("string")),
-                )
+                        fn.col("part_status") == "SUCCESS",
+                        fn.col("output_path"),
+                    )
+                ).alias("output_paths"),
+                fn.sum(
+                    fn.when(fn.col("part_status") == "FAILED", 1).otherwise(0)
+                ).alias("fail_count"),
+                fn.first(
+                    fn.when(
+                        fn.col("part_error").isNotNull(), fn.col("part_error")
+                    )
+                ).alias("first_error"),
             )
-
-            from delta.tables import DeltaTable
-
-            delta_table = DeltaTable.forName(
-                batch_df.sparkSession, source_table,
+            .withColumn(
+                "final_status",
+                fn.when(fn.col("fail_count") > 0, fn.lit("failed"))
+                .otherwise(fn.lit("completed")),
             )
-
-            (
-                delta_table.alias("trg")
-                .merge(
-                    status_df.alias("src"),
-                    "trg.file_id = src.file_id",
-                )
-                .whenMatchedUpdate(
-                    set={
-                        "status": fn.col("src.final_status"),
-                        "processed_at": fn.current_timestamp(),
-                        "error_message": fn.col("src.error_message"),
-                    }
-                )
-                .execute()
+            .withColumn(
+                "error_message",
+                fn.when(fn.col("fail_count") > 0, fn.col("first_error"))
+                .otherwise(fn.lit(None).cast("string")),
             )
+        )
 
-            _logger.info(
-                f"Batch {batch_id}: MERGE complete — "
-                f"statuses updated in {source_table}"
+        from delta.tables import DeltaTable
+
+        delta_table = DeltaTable.forName(batch_df.sparkSession, source_table)
+
+        (
+            delta_table.alias("trg")
+            .merge(status_df.alias("src"), "trg.file_id = src.file_id")
+            .whenMatchedUpdate(
+                set={
+                    "status": fn.col("src.final_status"),
+                    "processed_at": fn.current_timestamp(),
+                    "output_paths": fn.col("src.output_paths"),
+                    "error_message": fn.col("src.error_message"),
+                }
             )
-        finally:
-            exploded_df.unpersist()
+            .execute()
+        )
 
-    return _process_batch
+        _logger.info(f"Batch {batch_id}: MERGE complete")
+
+    return _process_split_batch
 
 
 # ---------------------------------------------------------------------------
-# UDF — split multipart bundle → individual DICOMs + metadata
+# Phase 2: foreachBatch — extract metadata via DicomMetaExtractor
+# ---------------------------------------------------------------------------
+
+def _make_meta_handler(catalog_table: str, volume: str):
+    """
+    Return a Spark-Connect-safe ``foreachBatch`` callback for Phase 2.
+
+    Captures only plain strings — no SparkSession or Catalog.
+    """
+
+    def _process_meta_batch(batch_df: DataFrame, batch_id: int) -> None:
+        if batch_df.isEmpty():
+            return
+
+        _logger = LoggerProvider("StowProcessor.Meta")
+        _logger.info(f"Batch {batch_id}: extracting DICOM metadata")
+
+        spark = batch_df.sparkSession
+
+        # Explode output_paths — one row per individual DICOM file
+        files_df = (
+            batch_df
+            .filter(fn.col("output_paths").isNotNull())
+            .filter(fn.size("output_paths") > 0)
+            .select(fn.explode("output_paths").alias("path"))
+            .withColumn("modificationTime", fn.current_timestamp())
+            .withColumn("length", fn.lit(0).cast("bigint"))
+            .withColumn("original_path", fn.col("path"))
+        )
+
+        if files_df.isEmpty():
+            return
+
+        # Add path-derived columns (local_path, extension, file_type, …)
+        files_df = Catalog._with_path_meta(files_df)
+
+        # Apply DicomMetaExtractor — runs pydicom.dcmread on each file
+        from dbx.pixels.dicom import DicomMetaExtractor
+
+        catalog = Catalog(spark, table=catalog_table, volume=volume)
+        catalog._anon = False  # Volume paths — no anonymous access needed
+        extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
+        files_df = extractor.transform(files_df)
+
+        # Extract file_size from meta VARIANT to set the length column
+        files_df = files_df.withColumn(
+            "length",
+            fn.coalesce(
+                fn.expr("meta:file_size::bigint"),
+                fn.lit(0).cast("bigint"),
+            ),
+        )
+
+        # Select catalog-compatible columns
+        catalog_df = files_df.select(
+            "path", "modificationTime", "length", "original_path",
+            "relative_path", "local_path", "extension", "file_type",
+            "path_tags", "is_anon", "meta",
+        )
+
+        catalog.save(catalog_df, mode="append")
+        _logger.info(f"Batch {batch_id}: metadata saved to catalog")
+
+    return _process_meta_batch
+
+
+# ---------------------------------------------------------------------------
+# UDF — split multipart bundle → individual DICOMs (no pydicom)
 # ---------------------------------------------------------------------------
 
 
@@ -337,30 +365,30 @@ def stow_split_udf(
     Split a multipart/related temp file into individual DICOM files.
 
     This UDF runs on Spark workers where ``/Volumes/…`` is FUSE-mounted.
-    It:
+    It **only splits and saves** — no pydicom processing.  Metadata
+    extraction happens in Phase 2 via ``DicomMetaExtractor``.
 
     1. Reads the temp bundle file from ``volume_path``.
     2. Extracts the ``boundary`` from ``content_type``.
     3. Splits the multipart body on the boundary.
-    4. For each part, saves the raw bytes as ``<volume_base>/stow/<uuid>.dcm``.
-    5. Attempts to extract DICOM metadata via ``pydicom.dcmread()``
-       (best-effort — non-DICOM parts get ``meta_json = None``).
+    4. For each part, saves the raw bytes as
+       ``<volume_base>/stow/<uuid>.dcm``.
 
     Args:
-        volume_path: Path to the temp multipart file (``/Volumes/…/<id>.mpr``).
-        content_type: Full Content-Type header value including the boundary
-            (e.g. ``multipart/related; type=application/dicom; boundary=abc``).
+        volume_path: Path to the temp multipart file
+            (``/Volumes/…/<id>.mpr``).
+        content_type: Full Content-Type header value including the
+            boundary (e.g.
+            ``multipart/related; type=application/dicom; boundary=abc``).
         volume_base: Base volume path for saving individual DICOMs
             (e.g. ``/Volumes/catalog/schema/volume``).
 
     Returns:
-        List of dicts with ``output_path``, ``file_size``, ``meta_json``,
+        List of dicts with ``output_path``, ``file_size``,
         ``status``, ``error_message``.
     """
-    import json as _json
     import os as _os
     import uuid as _uuid
-    from io import BytesIO as _BytesIO
 
     results = []
 
@@ -375,7 +403,6 @@ def stow_split_udf(
             return [{
                 "output_path": "",
                 "file_size": 0,
-                "meta_json": None,
                 "status": "FAILED",
                 "error_message": "No boundary found in content_type",
             }]
@@ -418,23 +445,9 @@ def stow_split_udf(
             with open(output_path, "wb") as out:
                 out.write(body_data)
 
-            # ── Extract DICOM metadata (best-effort) ──────────────────
-            meta_json = None
-            try:
-                from pydicom import dcmread
-                from dbx.pixels.dicom.dicom_utils import extract_metadata
-
-                ds = dcmread(_BytesIO(body_data), stop_before_pixels=True, force=True)
-                meta = extract_metadata(ds, deep=False)
-                meta["file_size"] = len(body_data)
-                meta_json = _json.dumps(meta, allow_nan=False)
-            except Exception:
-                pass  # not a valid DICOM or can't parse — meta stays None
-
             results.append({
                 "output_path": f"dbfs:{output_path}",
                 "file_size": len(body_data),
-                "meta_json": meta_json,
                 "status": "SUCCESS",
                 "error_message": None,
             })
@@ -443,7 +456,6 @@ def stow_split_udf(
         results.append({
             "output_path": "",
             "file_size": 0,
-            "meta_json": None,
             "status": "FAILED",
             "error_message": str(e) + "\n" + traceback.format_exc(),
         })
