@@ -26,15 +26,12 @@ See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 
 import json
 import os
-import tempfile
 import uuid
 from collections.abc import AsyncIterator
-from urllib.parse import parse_qs, urlparse
 
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from starlette.background import BackgroundTasks
 
 from dbx.pixels.lakebase import LakebaseUtils, RLS_ENABLED
 from dbx.pixels.logging import LoggerProvider
@@ -171,12 +168,25 @@ def _app_token_provider() -> str:
 
     The SDK handles caching and automatic refresh — calling this is
     near-zero cost when the token is still valid.
+
+    If the header factory returns ``None`` (transient OAuth refresh
+    failure), the ``Config`` is recreated on the next call so a fresh
+    authentication flow can succeed.
     """
     global _app_cfg, _app_header_factory
     if _app_cfg is None:
         _app_cfg = Config()
         _app_header_factory = _app_cfg.authenticate()
     headers = _app_header_factory() if callable(_app_header_factory) else _app_header_factory
+    if headers is None:
+        # Token refresh returned None — reset so next call re-authenticates
+        logger.warning("SDK header factory returned None — resetting Config for re-auth")
+        _app_cfg = None
+        _app_header_factory = None
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication temporarily unavailable — please retry",
+        )
     auth = headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         return auth[7:]
@@ -577,6 +587,231 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
 
 
 # ---------------------------------------------------------------------------
+# STOW-RS handler
+# ---------------------------------------------------------------------------
+
+
+async def dicomweb_stow_studies(
+    request: Request,
+    study_instance_uid: str | None = None,
+) -> Response:
+    """
+    POST /api/dicomweb/studies — STOW-RS store DICOM instances.
+
+    Accepts a ``multipart/related`` request body where each part is a
+    raw DICOM Part 10 file (``Content-Type: application/dicom``).
+
+    Two URL forms per the DICOMweb spec:
+
+    * ``POST /studies`` — store to any study
+    * ``POST /studies/{study}`` — constrain all parts to one study UID
+
+    **Pipeline** (mirrors enterprise PACS "fire-and-forget"):
+
+    1. Parse the multipart body into individual DICOM binary blobs.
+    2. Upload each blob to Databricks Volumes (the "landing zone").
+    3. Return a DICOMweb-compliant JSON response with per-instance status.
+    4. Index metadata into the SQL catalog table **in the background**.
+
+    The client gets a response as soon as all files are safely stored in
+    Volumes.  Metadata indexing runs asynchronously so the study becomes
+    searchable via QIDO-RS within seconds.
+
+    Returns:
+        200 OK — all instances stored successfully.
+        202 Accepted — partial success (some instances failed).
+        400 Bad Request — invalid Content-Type or no parts found.
+    """
+    content_type = request.headers.get("content-type", "")
+
+    # ── Validate Content-Type ──────────────────────────────────────────
+    if "multipart/related" not in content_type.lower():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "STOW-RS requires Content-Type: multipart/related; "
+                f"got '{content_type}'"
+            ),
+        )
+
+    # ── Extract boundary ───────────────────────────────────────────────
+    boundary = _extract_boundary(content_type)
+    if not boundary:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing or invalid boundary in Content-Type header",
+        )
+
+    # ── Read and parse multipart body ──────────────────────────────────
+    body = await request.body()
+    logger.info(
+        f"STOW-RS: received {len(body)} bytes, "
+        f"study_constraint={study_instance_uid or 'none'}"
+    )
+
+    parts = _parse_multipart_related(body, boundary)
+    if not parts:
+        raise HTTPException(
+            status_code=400,
+            detail="No DICOM parts found in the multipart body",
+        )
+
+    logger.info(f"STOW-RS: parsed {len(parts)} part(s)")
+
+    # ── Delegate to wrapper ────────────────────────────────────────────
+    wrapper = get_dicomweb_wrapper(request)
+    result = wrapper.store_instances(parts, study_instance_uid)
+
+    # ── Build DICOMweb response ────────────────────────────────────────
+    response_json = _build_stow_response_json(request, result)
+    status_code = 200 if not result["failed"] else 202
+
+    return Response(
+        content=json.dumps(response_json, indent=2),
+        status_code=status_code,
+        media_type="application/dicom+json",
+    )
+
+
+# ---------------------------------------------------------------------------
+# STOW-RS helpers — multipart parsing + response building
+# ---------------------------------------------------------------------------
+
+
+def _extract_boundary(content_type: str) -> str | None:
+    """Extract the ``boundary`` parameter from a Content-Type header."""
+    for part in content_type.split(";"):
+        part = part.strip()
+        if part.lower().startswith("boundary="):
+            boundary = part.split("=", 1)[1].strip().strip('"')
+            return boundary
+    return None
+
+
+def _parse_multipart_related(
+    body: bytes, boundary: str,
+) -> list[tuple[bytes, str]]:
+    """
+    Parse a ``multipart/related`` body into ``(content, content_type)`` parts.
+
+    Each DICOM Part 10 file is returned as raw bytes alongside its
+    declared Content-Type.  Binary-safe — splits on the boundary
+    delimiter bytes, not text.
+    """
+    delimiter = f"--{boundary}".encode()
+
+    parts: list[tuple[bytes, str]] = []
+    segments = body.split(delimiter)
+
+    for segment in segments:
+        # Skip preamble (before first boundary) and epilogue (after closing --)
+        if not segment or segment.strip() in (b"", b"--", b"--\r\n"):
+            continue
+
+        # Remove leading \r\n after the boundary line
+        if segment.startswith(b"\r\n"):
+            segment = segment[2:]
+
+        # Find the header / body separator
+        sep = segment.find(b"\r\n\r\n")
+        if sep == -1:
+            continue
+
+        headers_raw = segment[:sep].decode("utf-8", errors="replace")
+        body_data = segment[sep + 4:]
+
+        # Remove trailing \r\n (before next boundary)
+        if body_data.endswith(b"\r\n"):
+            body_data = body_data[:-2]
+
+        # Parse Content-Type from part headers
+        ct = "application/dicom"
+        for line in headers_raw.split("\r\n"):
+            if line.lower().startswith("content-type:"):
+                ct = line.split(":", 1)[1].strip()
+
+        if body_data:
+            parts.append((body_data, ct))
+
+    return parts
+
+
+def _build_stow_response_json(request: Request, result: dict) -> dict:
+    """
+    Build a DICOMweb-compliant STOW-RS JSON response.
+
+    Tags used (per DICOM PS3.18 §10.5):
+
+    * ``00081190`` — RetrieveURL
+    * ``00081199`` — ReferencedSOPSequence (successful instances)
+    * ``00081198`` — FailedSOPSequence (failed instances)
+    * ``00081150`` — ReferencedSOPClassUID
+    * ``00081155`` — ReferencedSOPInstanceUID
+    * ``00081197`` — FailureReason
+    """
+    base_url = str(request.base_url).rstrip("/")
+    dicomweb_root = f"{base_url}/api/dicomweb"
+
+    response: dict = {}
+
+    # ── Successful instances ───────────────────────────────────────────
+    if result["stored"]:
+        referenced_sop_seq = []
+        for inst in result["stored"]:
+            retrieve_url = (
+                f"{dicomweb_root}/studies/{inst['study_instance_uid']}"
+                f"/series/{inst['series_instance_uid']}"
+                f"/instances/{inst['sop_instance_uid']}"
+            )
+            item = {
+                "00081150": {"vr": "UI", "Value": [inst["sop_class_uid"]]},
+                "00081155": {"vr": "UI", "Value": [inst["sop_instance_uid"]]},
+                "00081190": {"vr": "UR", "Value": [retrieve_url]},
+            }
+            referenced_sop_seq.append(item)
+
+        # Study-level RetrieveURL (use first stored instance's study)
+        first_study = result["stored"][0]["study_instance_uid"]
+        response["00081190"] = {
+            "vr": "UR",
+            "Value": [f"{dicomweb_root}/studies/{first_study}"],
+        }
+        response["00081199"] = {
+            "vr": "SQ",
+            "Value": referenced_sop_seq,
+        }
+
+    # ── Failed instances ───────────────────────────────────────────────
+    if result["failed"]:
+        failed_sop_seq = []
+        for inst in result["failed"]:
+            item: dict = {}
+            if inst.get("sop_class_uid"):
+                item["00081150"] = {
+                    "vr": "UI",
+                    "Value": [inst["sop_class_uid"]],
+                }
+            if inst.get("sop_instance_uid"):
+                item["00081155"] = {
+                    "vr": "UI",
+                    "Value": [inst["sop_instance_uid"]],
+                }
+            # FailureReason: 0110 hex = 272 decimal (Processing failure)
+            item["00081197"] = {
+                "vr": "US",
+                "Value": [int(inst.get("status", "0110"), 16)],
+            }
+            failed_sop_seq.append(item)
+
+        response["00081198"] = {
+            "vr": "SQ",
+            "Value": failed_sop_seq,
+        }
+
+    return response
+
+
+# ---------------------------------------------------------------------------
 # Path resolution handler
 # ---------------------------------------------------------------------------
 
@@ -617,288 +852,4 @@ async def dicomweb_resolve_paths(request: Request) -> Response:
     return Response(
         content=json.dumps({"paths": paths}, indent=2),
         media_type="application/json",
-    )
-
-
-# ---------------------------------------------------------------------------
-# STOW-RS handler
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Streaming multipart/related parser
-# ---------------------------------------------------------------------------
-# Small parts (≤ _SPILL_THRESHOLD) stay in RAM; larger ones spill to a
-# temporary file on disk transparently via ``SpooledTemporaryFile``.
-# This keeps peak heap usage at ~2 × _SPILL_THRESHOLD regardless of
-# how many or how large the DICOM instances are.
-
-_SPILL_THRESHOLD = 5 * 1024 * 1024  # 5 MB — spill to disk above this
-
-
-def _extract_boundary(content_type: str) -> str:
-    """Extract the MIME boundary string from a ``Content-Type`` header.
-
-    Raises:
-        HTTPException 400: If the boundary parameter is missing.
-    """
-    for segment in content_type.split(";"):
-        segment = segment.strip()
-        if segment.lower().startswith("boundary="):
-            return segment.split("=", 1)[1].strip().strip('"')
-    raise HTTPException(
-        status_code=400,
-        detail="Missing boundary in multipart/related Content-Type",
-    )
-
-
-async def _parse_multipart_streaming(
-    body_stream: AsyncIterator[bytes],
-    boundary: str,
-) -> tuple[list[tempfile.SpooledTemporaryFile], int]:
-    """
-    Stream-parse a ``multipart/related`` request body.
-
-    Reads chunks from *body_stream* (``request.stream()``), detects
-    MIME boundary markers incrementally, and writes each part's raw
-    binary content to its own ``SpooledTemporaryFile``.
-
-    * Parts ≤ 5 MB stay entirely in RAM (fast path for small DICOMs).
-    * Larger parts spill to a temporary file on disk, so a 175 MB
-      instance only occupies ~1 MB of heap during parsing.
-
-    Args:
-        body_stream: Async iterator of raw request body chunks
-            (from ``request.stream()``).
-        boundary: The MIME boundary string (without ``--`` prefix).
-
-    Returns:
-        ``(part_files, total_bytes_received)`` — a list of open
-        ``SpooledTemporaryFile`` objects seeked to position 0, and
-        the total number of bytes read from the stream.
-        **Caller must close every file.**
-
-    Raises:
-        HTTPException 400: If no DICOM parts are found.
-    """
-    # The interior/closing boundary in the wire format is always preceded
-    # by CRLF.  The *first* boundary has no leading CRLF.
-    first_delim = f"--{boundary}".encode()
-    delim = b"\r\n" + first_delim  # interior boundary marker
-    delim_len = len(delim)
-
-    parts: list[tempfile.SpooledTemporaryFile] = []
-    buf = bytearray()
-    total_bytes = 0
-
-    # Parser state: "preamble" → "headers" → "body" → "headers" → …
-    state = "preamble"
-    current: tempfile.SpooledTemporaryFile | None = None
-
-    async for chunk in body_stream:
-        total_bytes += len(chunk)
-        buf.extend(chunk)
-
-        # Process as much of the buffer as possible in each iteration.
-        while True:
-            # ── Skip everything before the first boundary ─────────
-            if state == "preamble":
-                idx = buf.find(first_delim)
-                if idx == -1:
-                    # Keep tail in case boundary spans chunks
-                    if len(buf) > len(first_delim):
-                        del buf[: len(buf) - len(first_delim)]
-                    break
-                del buf[: idx + len(first_delim)]
-                # After the boundary: \r\n → next part, -- → closing
-                if len(buf) < 2:
-                    break  # need more data
-                if buf[:2] == b"--":
-                    state = "done"
-                    break
-                if buf[:2] == b"\r\n":
-                    del buf[:2]
-                state = "headers"
-                continue
-
-            # ── Parse (and discard) per-part MIME headers ─────────
-            if state == "headers":
-                idx = buf.find(b"\r\n\r\n")
-                if idx == -1:
-                    break  # need more data
-                del buf[: idx + 4]
-                current = tempfile.SpooledTemporaryFile(
-                    max_size=_SPILL_THRESHOLD,
-                )
-                parts.append(current)
-                state = "body"
-                continue
-
-            # ── Stream body bytes to the current temp file ────────
-            if state == "body":
-                idx = buf.find(delim)
-                if idx != -1:
-                    # Write everything before the boundary
-                    if current is not None and idx > 0:
-                        current.write(bytes(buf[:idx]))
-                    if current is not None:
-                        current.seek(0)
-                    # Consume boundary
-                    del buf[: idx + delim_len]
-                    # Check closing vs. next part
-                    if len(buf) >= 2 and buf[:2] == b"--":
-                        state = "done"
-                        break
-                    if len(buf) >= 2 and buf[:2] == b"\r\n":
-                        del buf[:2]
-                    state = "headers"
-                    current = None
-                    continue
-
-                # No boundary yet — flush safe prefix (keep tail
-                # long enough that a split boundary is not missed).
-                safe = len(buf) - delim_len
-                if safe > 0 and current is not None:
-                    current.write(bytes(buf[:safe]))
-                    del buf[:safe]
-                break  # need more data
-
-            break  # state == "done"
-
-    # Flush any trailing bytes in the buffer to the last part
-    if state == "body" and current is not None and buf:
-        current.write(bytes(buf))
-        current.seek(0)
-
-    if not parts:
-        raise HTTPException(
-            status_code=400,
-            detail="No DICOM parts found in multipart/related body",
-        )
-
-    return parts, total_bytes
-
-
-
-def _extract_study_uid_from_referer(request: Request) -> str | None:
-    """
-    Extract ``StudyInstanceUIDs`` from the ``Referer`` header.
-
-    OHIF encodes the study UID in the viewer URL, e.g.::
-
-        https://…/ohif/monai-label?StudyInstanceUIDs=1.2.826…
-
-    This gives us the study UID without parsing the DICOM body.
-    """
-    referer = request.headers.get("referer", "")
-    if not referer:
-        return None
-    parsed = urlparse(referer)
-    uids = parse_qs(parsed.query).get("StudyInstanceUIDs", [])
-    return uids[0] if uids else None
-
-
-@timing_decorator
-async def dicomweb_stow_store(
-    request: Request,
-    study_instance_uid: str | None = None,
-) -> Response:
-    """
-    STOW-RS: store DICOM instances (**non-blocking proxy pipeline**).
-
-    Accepts ``POST /api/dicomweb/studies`` (any study) or
-    ``POST /api/dicomweb/studies/{study}`` (specific study).
-
-    **Design — instant response, background upload:**
-
-    1. *Synchronous (< 1 s):* stream-parse the multipart body into temp
-       files, resolve the ``StudyInstanceUID`` from the URL path or the
-       ``Referer`` header, and return **200** immediately.
-    2. *Background (per DICOM part):* ``httpx.PUT`` the temp file to
-       the Databricks Volumes Files API (proxy-style, no SDK), then
-       parse the DICOM header from the temp file to extract metadata,
-       insert the catalog row, warm caches, and close the temp file.
-
-    The caller (OHIF) is **never blocked** on the Volume upload.
-    """
-    content_type = request.headers.get("content-type", "")
-
-    # Validate Content-Type
-    ct_lower = content_type.lower()
-    if "multipart/related" not in ct_lower:
-        raise HTTPException(
-            status_code=415,
-            detail=(
-                f"Unsupported Content-Type: '{content_type}'. "
-                "STOW-RS requires multipart/related; type=\"application/dicom\""
-            ),
-        )
-
-    # Extract boundary (validates presence)
-    boundary = _extract_boundary(content_type)
-
-    # ── Stream-parse multipart body into temp files ───────────────
-    part_files, total_bytes = await _parse_multipart_streaming(
-        request.stream(), boundary,
-    )
-
-    if total_bytes == 0:
-        raise HTTPException(status_code=400, detail="Empty request body")
-
-    logger.info(
-        f"STOW-RS: received {total_bytes} bytes (streamed), "
-        f"{len(part_files)} part(s), "
-        f"Content-Type: {content_type}"
-    )
-
-    # ── Resolve StudyInstanceUID (URL path > Referer header) ──────
-    study_uid = study_instance_uid or _extract_study_uid_from_referer(request)
-    if not study_uid:
-        for f in part_files:
-            try:
-                f.close()
-            except Exception:
-                pass
-        raise HTTPException(
-            status_code=400,
-            detail="StudyInstanceUID not found in URL path or Referer header",
-        )
-
-    # ── Build per-part destination paths and schedule background ──
-    wrapper = get_dicomweb_wrapper(request)
-    volume_base = wrapper.stow_volume_base()
-
-    tasks = BackgroundTasks()
-    for part_file in part_files:
-        file_uuid = str(uuid.uuid4())
-        file_rel = f"stow-rs/{study_uid}/{file_uuid}.dcm"
-        volume_path = f"{volume_base}/{file_rel}"
-        tasks.add_task(
-            wrapper.commit_instance,
-            {
-                "part_file": part_file,
-                "volume_path": volume_path,
-                "file_rel": file_rel,
-            },
-        )
-
-    # ── Return immediately — upload happens in background ─────────
-    base_url = str(request.base_url).rstrip("/") + "/api/dicomweb"
-    response_body = {
-        # Top-level RetrieveURL (study level)
-        "00081190": {
-            "vr": "UR",
-            "Value": [f"{base_url}/studies/{study_uid}"],
-        },
-    }
-
-    logger.info(
-        f"STOW-RS: returning 200 — "
-        f"{len(part_files)} instance(s) uploading in background"
-    )
-
-    return Response(
-        content=json.dumps(response_body, indent=2),
-        media_type="application/dicom+json",
-        status_code=200,
-        background=tasks,
     )

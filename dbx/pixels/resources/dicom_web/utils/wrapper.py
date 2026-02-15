@@ -21,8 +21,6 @@ from collections.abc import Iterator
 from io import BytesIO
 from typing import Any, BinaryIO, Dict, List
 import pydicom
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.config import Config as SdkConfig
 from fastapi import HTTPException
 
 from dbx.pixels.databricks_file import DatabricksFile
@@ -36,6 +34,7 @@ from .dicom_io import (
     get_file_metadata,
     get_file_part,
     stream_file,
+    upload_file,
 )
 from .dicom_tags import format_dicomweb_response
 from .queries import (
@@ -362,176 +361,6 @@ class DICOMwebDatabricksWrapper:
         return paths
 
     # ------------------------------------------------------------------
-    # STOW-RS — store instances
-    # ------------------------------------------------------------------
-
-    # ── STOW-RS upload constants ────────────────────────────────────────
-    _STOW_MAX_RETRIES = 4
-    _STOW_BACKOFF_BASE = 2.0
-
-    def stow_volume_base(self) -> str:
-        """Public accessor for the STOW-RS volume base path."""
-        return self._stow_volume_base()
-
-    def commit_instance(self, inst: Dict[str, Any]) -> None:
-        """
-        **Background task:** upload to Volume → parse DICOM → catalog insert → cache.
-
-        Designed to run as a Starlette ``BackgroundTask`` after the HTTP
-        response has been returned to the caller.
-
-        The upload is performed via a direct ``httpx.PUT`` to the
-        Databricks Files API (proxy-style, no SDK dependency), matching
-        the pattern used by the legacy lakehouse app.
-
-        After the file lands on the Volume the DICOM header is parsed
-        from the *local* temp file (no extra round-trip), metadata is
-        extracted, the catalog row is inserted, and caches are warmed.
-
-        Args:
-            inst: Dict with keys ``part_file`` (seekable ``BinaryIO``),
-                ``volume_path`` (full ``/Volumes/…`` destination),
-                and ``file_rel`` (relative path for catalog).
-        """
-        part_file: BinaryIO = inst["part_file"]
-        volume_path: str = inst["volume_path"]
-        file_rel: str = inst["file_rel"]
-
-        try:
-            # ── 1. Measure size ──────────────────────────────────────
-            part_file.seek(0, 2)
-            part_size = part_file.tell()
-            size_mb = part_size / (1024 ** 2)
-
-            # ── 2. Upload to Volume via Databricks SDK ──────────────
-            token = self._token
-            sdk_cfg = SdkConfig(token=token, auth_type="pat")
-            sdk_client = WorkspaceClient(config=sdk_cfg)
-
-            last_exc: BaseException | None = None
-            for attempt in range(1, self._STOW_MAX_RETRIES + 1):
-                try:
-                    part_file.seek(0)
-                    sdk_client.files.upload(
-                        volume_path, part_file, overwrite=True,
-                    )
-                    logger.info(
-                        f"STOW-RS upload: {volume_path} "
-                        f"({size_mb:.1f} MB, attempt {attempt})"
-                    )
-                    break  # success
-                except Exception as exc:
-                    last_exc = exc
-                    # Don't retry deterministic 4xx errors
-                    status = getattr(exc, "status_code", None)
-                    if status and 400 <= status < 500 and status not in (408, 429):
-                        raise
-                    if attempt < self._STOW_MAX_RETRIES:
-                        wait = self._STOW_BACKOFF_BASE ** attempt
-                        logger.warning(
-                            f"STOW-RS upload attempt {attempt}/"
-                            f"{self._STOW_MAX_RETRIES} failed for "
-                            f"{volume_path} ({size_mb:.1f} MB): {exc} "
-                            f"— retrying in {wait:.0f}s"
-                        )
-                        time.sleep(wait)
-                    else:
-                        raise last_exc  # type: ignore[misc]
-
-            # ── 3. Parse DICOM metadata from temp file ───────────────
-            part_file.seek(0)
-            ds = pydicom.dcmread(part_file, stop_before_pixels=True)
-
-            sop_instance_uid = str(getattr(ds, "SOPInstanceUID", ""))
-            study_uid = str(getattr(ds, "StudyInstanceUID", ""))
-            series_uid = str(getattr(ds, "SeriesInstanceUID", ""))
-
-            meta_dict = ds.to_json_dict()
-            if hasattr(ds, "file_meta"):
-                meta_dict.update(ds.file_meta.to_json_dict())
-            meta_dict.pop("7FE00010", None)  # strip PixelData tag
-            meta_json = json.dumps(meta_dict)
-
-            logger.info(
-                f"STOW-RS meta_json size: {len(meta_json)} bytes for {sop_instance_uid} ({volume_path})"
-            )
-
-            num_frames = int(getattr(ds, "NumberOfFrames", 1))
-
-            # ── 4. Warm caches (fast, in-memory first) ───────────────
-            instance_path_cache.put(
-                sop_instance_uid, self._table,
-                {"path": volume_path, "num_frames": num_frames},
-                user_groups=self._user_groups,
-            )
-            if self._lb:
-                try:
-                    self._lb.insert_instance_paths_batch(
-                        [{
-                            "sop_instance_uid": sop_instance_uid,
-                            "study_instance_uid": study_uid,
-                            "series_instance_uid": series_uid,
-                            "local_path": volume_path,
-                            "num_frames": num_frames,
-                            "uc_table_name": self._table,
-                        }],
-                        allowed_groups=self._user_groups,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        f"STOW-RS: Lakebase cache warm failed (non-fatal): {exc}"
-                    )
-
-            # ── 5. Insert catalog row (last — slowest) ───────────────
-            insert_query, _ = build_insert_instance_query(self._table)
-            params = {
-                "pixels_table": self._table,
-                "path": f"dbfs:{volume_path}",
-                "length": part_size,
-                "relative_path": file_rel,
-                "local_path": volume_path,
-                "meta_json": meta_json,
-            }
-            self._query(insert_query, params)
-
-            logger.info(
-                f"STOW-RS commit: {sop_instance_uid} → {volume_path}"
-            )
-
-        except Exception as exc:
-            logger.error(
-                f"STOW-RS commit FAILED for {volume_path}: {exc}",
-                exc_info=True,
-            )
-        finally:
-            try:
-                part_file.close()
-            except Exception:
-                pass
-
-    def _stow_volume_base(self) -> str:
-        """
-        Derive the Volumes base path for STOW-RS file uploads.
-
-        Resolution order:
-
-        1. ``DATABRICKS_STOW_VOLUME_PATH`` env var (explicit override).
-        2. Derived from ``pixels_table`` — ``/Volumes/{catalog}/{schema}/pixels_volume``.
-        """
-        explicit = os.getenv("DATABRICKS_STOW_VOLUME_PATH")
-        if explicit:
-            return explicit.rstrip("/")
-
-        parts = self._table.split(".")
-        if len(parts) != 3:
-            raise HTTPException(
-                status_code=500,
-                detail="Cannot derive STOW volume path from pixels_table "
-                       f"'{self._table}'. Set DATABRICKS_STOW_VOLUME_PATH.",
-            )
-        return f"/Volumes/{parts[0]}/{parts[1]}/pixels_volume"
-
-    # ------------------------------------------------------------------
     # WADO-RS — metadata / instance retrieval
     # ------------------------------------------------------------------
 
@@ -674,6 +503,160 @@ class DICOMwebDatabricksWrapper:
                 yield content
 
         return generate(), transfer_syntax_uid
+
+    # ------------------------------------------------------------------
+    # STOW-RS — store instances (fire-and-forget metadata indexing)
+    # ------------------------------------------------------------------
+
+    @timing_decorator
+    def store_instances(
+        self,
+        dicom_parts: list[tuple[bytes, str]],
+        study_instance_uid: str | None = None,
+    ) -> dict:
+        """
+        STOW-RS: Store DICOM instances with fire-and-forget metadata indexing.
+
+        Mirrors how enterprise PACS systems achieve near-instant availability:
+
+        1. **Parse** — extract UIDs from each DICOM header (no pixel decode).
+        2. **Upload** — write raw bytes to Volumes (the "landing zone").
+        3. **Respond** — return per-instance status to the client immediately.
+        4. **Index** — insert metadata rows into the SQL catalog table
+           *in the background* so the study becomes searchable (QIDO-RS)
+           within seconds.
+
+        Args:
+            dicom_parts: ``(raw_bytes, content_type)`` tuples parsed from
+                the ``multipart/related`` request body.
+            study_instance_uid: Optional study UID constraint.  When set
+                (``POST /studies/{study}``), every part's Study Instance UID
+                must match or the part is rejected.
+
+        Returns:
+            ``{"stored": [...], "failed": [...]}`` with per-instance status.
+        """
+        stow_base = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
+        if not stow_base:
+            raise HTTPException(
+                status_code=500,
+                detail="DATABRICKS_STOW_VOLUME_PATH not configured",
+            )
+
+        stored: list[dict] = []
+        failed: list[dict] = []
+        bg_tasks: list[tuple] = []  # deferred metadata insertions
+
+        for raw_bytes, content_type in dicom_parts:
+            sop_uid_str = "unknown"
+            try:
+                # ── 1. Parse DICOM header (fast — no pixel decode) ──────
+                ds = pydicom.dcmread(BytesIO(raw_bytes), stop_before_pixels=True)
+
+                study_uid = str(ds.StudyInstanceUID)
+                series_uid = str(ds.SeriesInstanceUID)
+                sop_uid_str = str(ds.SOPInstanceUID)
+                sop_class_uid = str(getattr(ds, "SOPClassUID", ""))
+
+                # Validate study constraint
+                if study_instance_uid and study_uid != study_instance_uid:
+                    failed.append({
+                        "sop_class_uid": sop_class_uid,
+                        "sop_instance_uid": sop_uid_str,
+                        "failure_reason": (
+                            f"Study UID mismatch: expected "
+                            f"{study_instance_uid}, got {study_uid}"
+                        ),
+                        "status": "0110",
+                    })
+                    continue
+
+                # ── 2. Upload to Volumes (synchronous — critical path) ──
+                dest_path = (
+                    f"{stow_base}/{study_uid}/{series_uid}/{sop_uid_str}.dcm"
+                )
+                db_file = DatabricksFile.from_full_path(dest_path)
+                upload_file(self._token, db_file, raw_bytes)
+
+                logger.info(
+                    f"STOW-RS: uploaded {sop_uid_str} "
+                    f"({len(raw_bytes)} bytes) → {dest_path}"
+                )
+
+                # ── 3. Prepare metadata for background INSERT ───────────
+                # Remove pixel data and overlay data before converting to dict
+                if "PixelData" in ds:
+                    del ds.PixelData
+                if (0x6000, 0x3000) in ds:
+                    del ds[(0x6000, 0x3000)]
+                meta_dict = ds.to_json_dict()
+                meta_dict.update(ds.file_meta.to_json_dict())
+                meta_json = json.dumps(meta_dict)
+
+                bg_tasks.append((
+                    db_file.dbfs_path,      # path
+                    len(raw_bytes),          # length
+                    db_file.full_path,       # local_path
+                    db_file.file_path,       # relative_path
+                    meta_json,               # meta_json
+                ))
+
+                stored.append({
+                    "sop_class_uid": sop_class_uid,
+                    "sop_instance_uid": sop_uid_str,
+                    "study_instance_uid": study_uid,
+                    "series_instance_uid": series_uid,
+                })
+
+            except Exception as exc:
+                logger.error(f"STOW-RS: failed to store {sop_uid_str}: {exc}")
+                failed.append({
+                    "sop_instance_uid": sop_uid_str,
+                    "failure_reason": str(exc),
+                    "status": "0110",
+                })
+
+        # ── 4. Fire-and-forget metadata indexing ────────────────────────
+        if bg_tasks:
+            file_prefetcher._pool.submit(self._insert_metadata_batch, bg_tasks)
+            logger.info(
+                f"STOW-RS: {len(bg_tasks)} metadata INSERT(s) "
+                f"queued for background indexing"
+            )
+
+        logger.info(
+            f"STOW-RS complete: {len(stored)} stored, {len(failed)} failed"
+        )
+        return {"stored": stored, "failed": failed}
+
+    def _insert_metadata_batch(
+        self,
+        tasks: list[tuple[str, int, str, str, str]],
+    ) -> None:
+        """
+        Background task: insert metadata rows into the SQL catalog table.
+
+        Runs on the prefetcher's thread pool *after* the HTTP response has
+        been sent to the client.  Each tuple contains
+        ``(path, length, local_path, relative_path, meta_json)``.
+        """
+        query_template, _ = build_insert_instance_query(self._table)
+        for path, length, local_path, relative_path, meta_json in tasks:
+            try:
+                params = {
+                    "pixels_table": self._table,
+                    "path": path,
+                    "length": length,
+                    "local_path": local_path,
+                    "relative_path": relative_path,
+                    "meta_json": meta_json,
+                }
+                self._query(query_template, params)
+                logger.info(f"STOW-RS: metadata indexed for {local_path}")
+            except Exception as exc:
+                logger.error(
+                    f"STOW-RS: metadata INSERT failed for {local_path}: {exc}"
+                )
 
     # ------------------------------------------------------------------
     # Series pre-warming (critical for WADO-URI without prior QIDO-RS)
