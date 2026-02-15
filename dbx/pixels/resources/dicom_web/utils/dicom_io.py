@@ -25,6 +25,8 @@ from typing import BinaryIO
 import psutil
 import pydicom
 import requests
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config as SdkConfig
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -179,24 +181,8 @@ def stream_file(
 # ---------------------------------------------------------------------------
 # Upload constants
 # ---------------------------------------------------------------------------
-_UPLOAD_MAX_RETRIES = 4          # application-level retries (on top of urllib3)
+_UPLOAD_MAX_RETRIES = 4          # application-level retries (on top of SDK)
 _UPLOAD_BACKOFF_BASE = 2.0       # exponential backoff: 2s, 4s, 8s, …
-_UPLOAD_CONNECT_TIMEOUT = 30     # seconds to establish TCP+TLS connection
-_UPLOAD_MIN_READ_TIMEOUT = 60    # minimum seconds for body transfer
-_UPLOAD_BYTES_PER_SEC = 5 * 1024 ** 2   # 5 MB/s conservative throughput
-_UPLOAD_CHUNK_SIZE = 1024 * 1024         # 1 MB chunks for streaming PUT
-
-
-def _chunked_body(data: bytes, chunk_size: int = _UPLOAD_CHUNK_SIZE) -> Iterator[bytes]:
-    """Yield *data* in fixed-size chunks for a streaming PUT.
-
-    Using a generator lets ``requests`` / ``urllib3`` feed the socket in
-    controlled pieces rather than handing the entire buffer to the OS at
-    once.  On each retry the caller must create a **fresh** generator
-    because generators are single-use.
-    """
-    for offset in range(0, len(data), chunk_size):
-        yield data[offset : offset + chunk_size]
 
 
 def upload_file(
@@ -206,89 +192,74 @@ def upload_file(
     data_length: int | None = None,
 ) -> None:
     """
-    Upload (PUT) a file to Databricks Volumes via the Files API.
+    Upload a file to Databricks Volumes via the **Databricks SDK**.
 
-    Uses the persistent ``_session`` to benefit from connection pooling.
-    The body is **streamed** so that ``urllib3`` feeds the socket
-    incrementally instead of pushing the entire buffer at once:
+    Uses ``WorkspaceClient.files.upload()`` which leverages ``httpx``
+    internally — providing better SSL / TLS handling, built-in retries,
+    and streaming upload support compared to raw ``requests.put()``.
 
-    * **bytes** — streamed via a 1 MB chunk generator.
-    * **BinaryIO** (file / ``SpooledTemporaryFile``) — ``requests``
-      reads directly in 8 KiB blocks; the file is ``seek(0)``'d on
-      each retry attempt.
-
-    Includes **application-level retries** with exponential backoff so
-    that transient SSL / connection errors on large files (≥ 100 MB) are
-    tolerated without failing the STOW-RS operation.
-
-    The read timeout is scaled by file size to accommodate slow links.
+    An **application-level retry loop** with exponential backoff wraps
+    the SDK call to handle transient errors (SSL drops, 5xx gateway
+    errors) that the SDK's own retry may not cover.
 
     Args:
         token: Databricks bearer token.
         db_file: Target file descriptor (destination path).
-        data: Raw file bytes **or** a seekable file-like object.
-        data_length: Required when *data* is a ``BinaryIO``.
-            Ignored when *data* is ``bytes`` (``len()`` is used).
+        data: Raw file bytes **or** a seekable file-like object
+            (e.g. ``SpooledTemporaryFile``).
+        data_length: Optional — used only for logging when *data*
+            is a ``BinaryIO``.  Ignored when *data* is ``bytes``.
 
     Raises:
-        RuntimeError: If the upload fails after all retries (non-2xx response).
-        requests.exceptions.ConnectionError: If all retries are exhausted
-            due to connection / SSL errors.
+        Exception: The last exception from the retry loop if all
+            attempts are exhausted.
     """
-    # ── Resolve size ──────────────────────────────────────────────────
+    # ── Resolve size (for logging) ────────────────────────────────────
     if isinstance(data, bytes):
         size = len(data)
-    elif data_length is not None:
-        size = data_length
+        upload_data: BinaryIO = BytesIO(data)
     else:
-        pos = data.tell()
-        data.seek(0, 2)
-        size = data.tell()
-        data.seek(pos)
-
-    headers = _auth_headers(token)
-    headers["Content-Type"] = "application/octet-stream"
-    headers["Content-Length"] = str(size)
-
-    # Scale read timeout by file size (at least 60 s; ~5 MB/s assumed).
-    read_timeout = max(
-        _UPLOAD_MIN_READ_TIMEOUT,
-        int(size / _UPLOAD_BYTES_PER_SEC) + 30,
-    )
-    timeout = (_UPLOAD_CONNECT_TIMEOUT, read_timeout)
+        if data_length is not None:
+            size = data_length
+        else:
+            pos = data.tell()
+            data.seek(0, 2)
+            size = data.tell()
+            data.seek(pos)
+        upload_data = data
 
     size_mb = size / (1024 ** 2)
-    is_bytes = isinstance(data, bytes)
+    volume_path = db_file.full_path  # e.g. /Volumes/catalog/schema/vol/…
+
+    # ── Create SDK client (reused across retries) ─────────────────────
+    # Config picks up DATABRICKS_HOST from the environment; we override
+    # just the token so it works for both App auth and OBO auth.
+    sdk_cfg = SdkConfig(token=token)
+    client = WorkspaceClient(config=sdk_cfg)
+
     last_exc: BaseException | None = None
 
     for attempt in range(1, _UPLOAD_MAX_RETRIES + 1):
         try:
-            if is_bytes:
-                body = _chunked_body(data)
-            else:
-                data.seek(0)  # rewind for each attempt
-                body = data
-
-            response = _session.put(
-                db_file.to_api_url(),
-                headers=headers,
-                data=body,
-                timeout=timeout,
-            )
-            if response.status_code not in (200, 201, 204):
-                raise RuntimeError(
-                    f"Failed to upload {db_file.file_path} "
-                    f"(HTTP {response.status_code}): {response.text}"
-                )
+            upload_data.seek(0)
+            client.files.upload(volume_path, upload_data, overwrite=True)
             logger.info(
                 f"Uploaded {db_file.file_path} "
-                f"({size_mb:.1f} MB, attempt {attempt})"
+                f"({size_mb:.1f} MB, attempt {attempt}) [SDK]"
             )
             return
 
-        except (requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout) as exc:
+        except Exception as exc:
             last_exc = exc
+            # Don't retry on deterministic client errors (4xx)
+            status = getattr(exc, "status_code", None)
+            if status is not None and 400 <= status < 500 and status not in (408, 429):
+                logger.error(
+                    f"Upload failed for {db_file.file_path} "
+                    f"({size_mb:.1f} MB): HTTP {status} — not retriable"
+                )
+                raise
+
             if attempt < _UPLOAD_MAX_RETRIES:
                 wait = _UPLOAD_BACKOFF_BASE ** attempt
                 logger.warning(
