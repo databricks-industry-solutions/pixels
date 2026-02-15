@@ -2,7 +2,6 @@
 FastAPI endpoint handlers for DICOMweb QIDO-RS / WADO-RS / WADO-URI / STOW-RS.
 
 These thin handler functions are imported by ``app.py`` and wired to routes.
-They create a ``DICOMwebDatabricksWrapper`` per request and delegate to it.
 
 Supported services:
 
@@ -14,11 +13,13 @@ Supported services:
 
 Authorization is controlled by the ``DICOMWEB_USE_USER_AUTH`` env var:
 
-* **false** (default) — App authorization.  SQL queries use the service
-  principal credentials managed by the Databricks SDK ``Config``.
-* **true** — User (OBO) authorization.  The ``X-Forwarded-Access-Token``
-  header is forwarded to the SQL Connector so every query runs with the
-  end-user's Unity Catalog permissions.
+* **false** (default) — App authorization.  A **singleton**
+  ``DICOMwebDatabricksWrapper`` is created at module load time and
+  reused across all requests.  The bearer token auto-refreshes via
+  the Databricks SDK ``Config``.
+* **true** — User (OBO) authorization.  A **per-request** wrapper is
+  created because the token, user groups, and ``pixels_table`` may
+  differ between users.
 
 See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 """
@@ -132,47 +133,53 @@ def _get_sql_client() -> DatabricksSQLClient:
 # Token resolution — same approach for both SQL and file operations
 # ---------------------------------------------------------------------------
 
-def _resolve_token(request: Request) -> str:
+def _resolve_user_token(request: Request) -> str:
     """
-    Resolve a bearer token from the **same** auth source used for SQL.
+    Extract the user's forwarded access token (OBO mode only).
 
-    * **User auth (OBO)** — ``X-Forwarded-Access-Token`` forwarded by the
-      Databricks Apps proxy.
-    * **App auth** — token derived from the SDK ``Config().authenticate()``
-      (service principal credentials).
-
-    Both SQL queries and file-API byte-range reads share this single token.
+    Raises:
+        HTTPException 401: if the header is missing.
     """
-    if USE_USER_AUTH:
-        token = request.headers.get("X-Forwarded-Access-Token")
-        if not token:
-            raise HTTPException(
-                status_code=401,
-                detail="User authorization (OBO) is enabled but no "
-                       "X-Forwarded-Access-Token header was found",
-            )
-        return token
-
-    # App auth — derive a bearer token from the SDK Config
-    # (same credentials_provider the SQL Connector uses internally)
-    #
-    # cfg.authenticate() returns a HeaderFactory (callable).
-    # Calling that factory returns {"Authorization": "Bearer <token>"}.
-    try:
-        cfg = Config()
-        header_factory = cfg.authenticate()
-        # HeaderFactory is Callable[[], Dict[str, str]]
-        headers = header_factory() if callable(header_factory) else header_factory
-        auth = headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
-            return auth[7:]
-        raise ValueError("SDK Config did not produce a Bearer token")
-    except Exception as exc:
-        logger.error(f"App-auth token resolution failed: {exc}")
+    token = request.headers.get("X-Forwarded-Access-Token")
+    if not token:
         raise HTTPException(
-            status_code=500,
-            detail=f"Could not derive app authorization token from SDK Config: {exc}",
+            status_code=401,
+            detail="User authorization (OBO) is enabled but no "
+                   "X-Forwarded-Access-Token header was found",
         )
+    return token
+
+
+# ---------------------------------------------------------------------------
+# App-auth token provider (service principal — singleton, auto-refreshed)
+# ---------------------------------------------------------------------------
+# The SDK ``Config`` caches and auto-refreshes the bearer token internally.
+# We keep one ``Config`` instance and call its header factory on each access
+# so the wrapper always gets a valid, non-expired token.
+
+_app_cfg: Config | None = None
+_app_header_factory = None
+
+
+def _app_token_provider() -> str:
+    """
+    Return a current bearer token from the Databricks SDK ``Config``.
+
+    The SDK handles caching and automatic refresh — calling this is
+    near-zero cost when the token is still valid.
+    """
+    global _app_cfg, _app_header_factory
+    if _app_cfg is None:
+        _app_cfg = Config()
+        _app_header_factory = _app_cfg.authenticate()
+    headers = _app_header_factory() if callable(_app_header_factory) else _app_header_factory
+    auth = headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return auth[7:]
+    raise HTTPException(
+        status_code=500,
+        detail="SDK Config did not produce a Bearer token",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -220,13 +227,49 @@ def _resolve_user_groups(request: Request) -> list[str] | None:
 
 
 # ---------------------------------------------------------------------------
-# Wrapper factory
+# Wrapper factory — singleton (app auth) or per-request (OBO)
 # ---------------------------------------------------------------------------
 
-def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> DICOMwebDatabricksWrapper:
-    """Create a ``DICOMwebDatabricksWrapper`` from the incoming request context."""
+_app_wrapper: DICOMwebDatabricksWrapper | None = None
+
+
+def _get_app_wrapper() -> DICOMwebDatabricksWrapper:
+    """
+    Return the module-level singleton wrapper for app-auth (service principal).
+
+    Created lazily on first call; reused for every subsequent request.
+    The ``token_provider`` ensures the bearer token auto-refreshes via
+    the Databricks SDK without recreating the wrapper.
+    """
+    global _app_wrapper
+    if _app_wrapper is not None:
+        return _app_wrapper
+
     sql_client = _get_sql_client()
-    token = _resolve_token(request)
+    pixels_table = os.getenv("DATABRICKS_PIXELS_TABLE")
+    if not pixels_table:
+        raise HTTPException(status_code=500, detail="DATABRICKS_PIXELS_TABLE not configured")
+
+    _app_wrapper = DICOMwebDatabricksWrapper(
+        sql_client=sql_client,
+        token_provider=_app_token_provider,
+        pixels_table=pixels_table,
+        lb_utils=lb_utils,
+        user_groups=None,
+    )
+    logger.info("App-auth singleton DICOMwebDatabricksWrapper created")
+    return _app_wrapper
+
+
+def _build_obo_wrapper(request: Request, pixels_table: str | None = None) -> DICOMwebDatabricksWrapper:
+    """
+    Build a per-request wrapper for OBO (user auth) mode.
+
+    Each request carries a different user token, group memberships,
+    and potentially a different ``pixels_table`` (via cookie).
+    """
+    sql_client = _get_sql_client()
+    token = _resolve_user_token(request)
     user_groups = _resolve_user_groups(request)
 
     if not pixels_table:
@@ -241,6 +284,18 @@ def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> D
         lb_utils=lb_utils,
         user_groups=user_groups,
     )
+
+
+def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> DICOMwebDatabricksWrapper:
+    """
+    Return the appropriate ``DICOMwebDatabricksWrapper``.
+
+    * **App auth** — returns the module-level singleton (token auto-refreshes).
+    * **User auth (OBO)** — returns a fresh per-request wrapper.
+    """
+    if USE_USER_AUTH:
+        return _build_obo_wrapper(request, pixels_table)
+    return _get_app_wrapper()
 
 
 # ---------------------------------------------------------------------------

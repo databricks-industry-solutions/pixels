@@ -71,23 +71,33 @@ class DICOMwebDatabricksWrapper:
 
     Frame retrieval uses a 3-tier PACS-style cache for sub-second latency
     after the initial file indexing.
+
+    **Singleton vs per-request lifecycle:**
+
+    * **App auth (service principal)** — a single instance is created at
+      module load time and reused across all requests.  The bearer token
+      is resolved lazily via a ``token_provider`` callable so it
+      auto-refreshes transparently (the Databricks SDK handles caching
+      and renewal internally).
+    * **User auth (OBO)** — a new instance is created per request because
+      the token, user groups, and potentially the ``pixels_table``
+      (cookie) differ between users.
     """
 
     def __init__(
         self,
         sql_client: DatabricksSQLClient,
-        token: str,
-        pixels_table: str,
+        token: str | None = None,
+        pixels_table: str = "",
         lb_utils=None,
         user_groups: list[str] | None = None,
+        token_provider: "callable | None" = None,
     ):
         """
         Args:
             sql_client: Shared SQL client (handles auth internally).
-            token: Bearer token resolved from the **same** auth source
-                used for SQL — ``X-Forwarded-Access-Token`` in OBO mode,
-                or SDK ``Config().authenticate()`` in app-auth mode.
-                Used for both SQL (OBO) and file-API byte-range reads.
+            token: Static bearer token (used in OBO / per-request mode).
+                Ignored when *token_provider* is set.
             pixels_table: Fully-qualified ``catalog.schema.table`` name.
             lb_utils: Optional ``LakebaseUtils`` singleton for persistent
                 tier-2 caching (frame offsets + instance paths).
@@ -95,12 +105,25 @@ class DICOMwebDatabricksWrapper:
                 Used for RLS enforcement in Lakebase queries and for
                 user-scoped in-memory cache keys.  ``None`` in app-auth
                 mode (no per-user filtering).
+            token_provider: Zero-arg callable that returns a fresh bearer
+                token string.  When set, ``token`` is ignored and the
+                provider is called on every ``_token`` access.  This
+                enables the singleton wrapper to always use a valid,
+                auto-refreshed token from the Databricks SDK.
         """
         self._sql = sql_client
-        self._token = token
+        self._token_provider = token_provider
+        self._static_token = token or ""
         self._table = validate_table_name(pixels_table)
         self._lb = lb_utils
         self._user_groups = user_groups
+
+    @property
+    def _token(self) -> str:
+        """Return a current bearer token, auto-refreshed when using a provider."""
+        if self._token_provider is not None:
+            return self._token_provider()
+        return self._static_token
 
     # -- helper: run parameterized SQL ------------------------------------
 
