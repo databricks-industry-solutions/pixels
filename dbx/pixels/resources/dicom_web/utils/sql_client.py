@@ -100,6 +100,7 @@ class DatabricksSQLClient:
                 server_hostname=self._host,
                 http_path=self._http_path,
                 credentials_provider=lambda: self._cfg.authenticate,
+                use_cloud_fetch=False,
             )
             logger.info("App-auth SQL connection established")
         return self._app_conn
@@ -110,6 +111,7 @@ class DatabricksSQLClient:
             server_hostname=self._host,
             http_path=self._http_path,
             access_token=user_token,
+            use_cloud_fetch=False,
         )
 
     # -- public API --------------------------------------------------------
