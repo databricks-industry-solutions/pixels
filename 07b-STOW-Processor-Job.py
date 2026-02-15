@@ -1,19 +1,23 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ### Create STOW-RS Processor Job
+# MAGIC ### Create STOW-RS Processor Job (Two-Phase)
 # MAGIC
-# MAGIC Creates a **serverless performance-optimized** Spark job that processes STOW-RS uploads.
+# MAGIC Creates a **serverless performance-optimized** Spark job that processes
+# MAGIC STOW-RS uploads in two phases:
 # MAGIC
-# MAGIC The DICOMweb app streams each STOW-RS request to a temp file on Volumes
-# MAGIC and inserts a tracking row into `stow_operations`.  This job reads new
-# MAGIC rows via Change Data Feed, splits multipart bundles, extracts DICOMs,
-# MAGIC and registers them in the catalog.
+# MAGIC | Task | Notebook | Purpose |
+# MAGIC |---|---|---|
+# MAGIC | `stow_split` | `workflow/stow_split` | Phase 1 — split multipart bundles → individual DICOMs, MERGE `output_paths` back |
+# MAGIC | `stow_meta_extract` | `workflow/stow_meta_extract` | Phase 2 — `DicomMetaExtractor` → save to catalog (depends on Phase 1) |
+# MAGIC
+# MAGIC The DICOMweb handler returns to the client **as soon as Phase 1 completes**
+# MAGIC (with the extracted file paths), while Phase 2 continues in the background.
 # MAGIC
 # MAGIC **Run this after** `07-OHIF-Lakehouse-App` has deployed the DICOMweb app.
 # MAGIC
 # MAGIC What this notebook does:
 # MAGIC 1. Creates the `stow_operations` Delta table (if not exists)
-# MAGIC 2. Creates the `<app_name>_stow_processor` job (if not exists)
+# MAGIC 2. Creates the `<app_name>_stow_processor` job with two tasks (if not exists)
 # MAGIC 3. Grants the app's service principal access to the STOW table and job
 
 # COMMAND ----------
@@ -61,22 +65,24 @@ volume_path = f"/Volumes/{_vol_parts[0]}/{_vol_parts[1]}/{_vol_parts[2]}"
 # Job name follows the convention used by the handler's _resolve_stow_job_id()
 job_name = f"{app_name}_stow_processor"
 
-# Notebook path — derive from the current notebook's workspace location
+# Notebook paths — derive from the current notebook's workspace location
 _notebook_path = (
     dbutils.notebook.entry_point
     .getDbutils().notebook().getContext()
     .notebookPath().get()
 )
 _base_path = _notebook_path.rsplit("/", 1)[0]
-stow_notebook_path = f"{_base_path}/workflow/stow_ingest"
+stow_split_notebook = f"{_base_path}/workflow/stow_split"
+stow_meta_notebook = f"{_base_path}/workflow/stow_meta_extract"
 
-print(f"App name            : {app_name}")
-print(f"Job name            : {job_name}")
-print(f"Catalog table       : {table}")
-print(f"STOW tracking table : {stow_table}")
-print(f"Volume              : {volume}")
-print(f"Volume path         : {volume_path}")
-print(f"Notebook path       : {stow_notebook_path}")
+print(f"App name              : {app_name}")
+print(f"Job name              : {job_name}")
+print(f"Catalog table         : {table}")
+print(f"STOW tracking table   : {stow_table}")
+print(f"Volume                : {volume}")
+print(f"Volume path           : {volume_path}")
+print(f"Phase 1 notebook      : {stow_split_notebook}")
+print(f"Phase 2 notebook      : {stow_meta_notebook}")
 
 # COMMAND ----------
 
@@ -105,17 +111,23 @@ print(f"✓ Table {stow_table} ready")
 # MAGIC %md
 # MAGIC # Create Serverless Performance-Optimized Job (if not exists)
 # MAGIC
-# MAGIC The job:
-# MAGIC - Runs `workflow/stow_ingest` (a thin notebook that calls `StowProcessor`)
+# MAGIC The job has **two tasks**:
+# MAGIC
+# MAGIC | Task key | Notebook | Dependency |
+# MAGIC |---|---|---|
+# MAGIC | `stow_split` | `workflow/stow_split` | — |
+# MAGIC | `stow_meta_extract` | `workflow/stow_meta_extract` | `stow_split` |
+# MAGIC
 # MAGIC - Uses **serverless performance-optimized** compute (`disable_auto_optimization=False`)
 # MAGIC - Allows `max_concurrent_runs = 2` (1 running + 1 queued) for run coalescing
 # MAGIC - Default parameters match the widgets — the DICOMweb handler overrides
-# MAGIC   them via `notebook_params` in `run-now`
+# MAGIC   them via `job_parameters` in `run-now`
 
 # COMMAND ----------
 
 from databricks.sdk.service.jobs import (
     Task,
+    TaskDependency,
     NotebookTask,
     Source,
     JobEnvironment,
@@ -134,15 +146,27 @@ else:
     created = w.jobs.create(
         name=job_name,
         tasks=[
+            # Phase 1 — split multipart bundles → individual DICOMs
             Task(
-                task_key="stow_ingest",
+                task_key="stow_split",
                 notebook_task=NotebookTask(
-                    notebook_path=stow_notebook_path,
+                    notebook_path=stow_split_notebook,
                     source=Source.WORKSPACE,
                 ),
                 environment_key="default",
                 disable_auto_optimization=False,  # serverless performance-optimized
-            )
+            ),
+            # Phase 2 — extract DICOM metadata → save to catalog
+            Task(
+                task_key="stow_meta_extract",
+                notebook_task=NotebookTask(
+                    notebook_path=stow_meta_notebook,
+                    source=Source.WORKSPACE,
+                ),
+                depends_on=[TaskDependency(task_key="stow_split")],
+                environment_key="default",
+                disable_auto_optimization=False,  # serverless performance-optimized
+            ),
         ],
         environments=[
             JobEnvironment(
@@ -155,7 +179,7 @@ else:
                 ),
             )
         ],
-        max_concurrent_runs=1,
+        max_concurrent_runs=2,
         tags={"app": app_name, "purpose": "stow_processor"},
         parameters=[
             JobParameterDefinition(name="catalog_table", default=table),
@@ -164,8 +188,9 @@ else:
     )
     job_id = created.job_id
     print(f"✓ Created job '{job_name}' (job_id: {job_id})")
-    print(f"  Notebook : {stow_notebook_path}")
-    print(f"  Compute  : serverless performance-optimized")
+    print(f"  Task 1 (split)   : {stow_split_notebook}")
+    print(f"  Task 2 (meta)    : {stow_meta_notebook}")
+    print(f"  Compute          : serverless performance-optimized")
 
 # COMMAND ----------
 
@@ -218,11 +243,12 @@ print(f"✓ Granted CAN_MANAGE_RUN on job {job_id} to SP {service_principal_id}"
 # MAGIC
 # MAGIC 1. **DICOMweb app** streams uploads → temp file on Volumes + tracking row in `stow_operations`
 # MAGIC 2. **App triggers** `run-now` on `<app_name>_stow_processor` (with run coalescing)
-# MAGIC 3. **This job** reads new rows via CDF, splits bundles, extracts DICOMs, registers in catalog
+# MAGIC 3. **Task 1 (split)** reads new pending rows via CDF, splits multipart bundles, saves individual DICOMs, MERGEs `output_paths` back → **handler returns paths to client**
+# MAGIC 4. **Task 2 (meta)** reads completed rows via CDF, applies `DicomMetaExtractor`, saves metadata to catalog
 # MAGIC
 # MAGIC To test manually:
 # MAGIC ```
-# MAGIC w.jobs.run_now(job_id=<JOB_ID>, notebook_params={"catalog_table": "<table>", "volume": "<volume>"})
+# MAGIC w.jobs.run_now(job_id=<JOB_ID>, job_parameters={"catalog_table": "<table>", "volume": "<volume>"})
 # MAGIC ```
 
 # COMMAND ----------
@@ -232,4 +258,5 @@ print(f"   Job name : {job_name}")
 print(f"   Job ID   : {job_id}")
 print(f"   Table    : {stow_table}")
 print(f"   App SP   : {service_principal_id}")
+
 
