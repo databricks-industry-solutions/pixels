@@ -184,12 +184,14 @@ class DicomAnonymizerExtractor(Transformer):
                     return {"meta": json.dumps(meta_js), "path": "dbfs:" + anonymized_file_path}
             except Exception as err:
                 except_str = {
-                    "meta": json.dumps({
-                        "udf": "dicom_meta_anonym_udf",
-                        "error": str(err),
-                        "args": str(err.args),
-                        "path": str(path),
-                    }),
+                    "meta": json.dumps(
+                        {
+                            "udf": "dicom_meta_anonym_udf",
+                            "error": str(err),
+                            "args": str(err.args),
+                            "path": str(path),
+                        }
+                    ),
                     "path": "dbfs:" + str(path),
                 }
                 return except_str
