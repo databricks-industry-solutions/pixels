@@ -642,13 +642,16 @@ class LakebaseUtils:
 
     def retrieve_instance_path(
         self,
+        study_instance_uid: str,
+        series_instance_uid: str,
         sop_instance_uid: str,
         uc_table_name: str,
         table: str = INSTANCE_PATHS_TABLE,
         user_groups: list[str] | None = None,
     ) -> dict | None:
         """
-        Look up a single instance path by SOP Instance UID and UC table name.
+        Look up a single instance path by the full DICOM UID hierarchy
+        (Study / Series / SOP Instance UID) and UC table name.
 
         When RLS is enabled the query runs inside a transaction with
         ``SET LOCAL app.user_groups`` so that only rows the user is
@@ -660,10 +663,16 @@ class LakebaseUtils:
         """
         query = sql.SQL(
             "SELECT local_path, num_frames, study_instance_uid, series_instance_uid "
-            "FROM {} WHERE sop_instance_uid = %s AND uc_table_name = %s"
+            "FROM {} "
+            "WHERE sop_instance_uid = %s "
+            "AND study_instance_uid = %s "
+            "AND series_instance_uid = %s "
+            "AND uc_table_name = %s"
         ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
-            query, (sop_instance_uid, uc_table_name), user_groups=user_groups,
+            query,
+            (sop_instance_uid, study_instance_uid, series_instance_uid, uc_table_name),
+            user_groups=user_groups,
         )
         if not results:
             return None
@@ -749,7 +758,8 @@ class LakebaseUtils:
                 "INSERT INTO {table} (sop_instance_uid, study_instance_uid, "
                 "series_instance_uid, local_path, num_frames, uc_table_name, "
                 "allowed_groups) VALUES %s "
-                "ON CONFLICT (sop_instance_uid, uc_table_name) DO UPDATE SET "
+                "ON CONFLICT (sop_instance_uid, study_instance_uid, "
+                "series_instance_uid, uc_table_name) DO UPDATE SET "
                 "allowed_groups = ARRAY("
                 "  SELECT DISTINCT unnest("
                 "    {table}.allowed_groups || EXCLUDED.allowed_groups"

@@ -842,6 +842,7 @@ class DICOMwebDatabricksWrapper:
             try:
                 t0 = time.time()
                 lb_info = self._lb.retrieve_instance_path(
+                    study_instance_uid, series_instance_uid,
                     sop_instance_uid, self._table,
                     user_groups=self._user_groups,
                 )
