@@ -246,6 +246,9 @@ lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.dicom_frames TO "{
 lb_utils.execute_query(f'GRANT SELECT, INSERT ON {_lb_schema}.instance_paths TO "{role.name}"')
 lb_utils.execute_query(f'GRANT USAGE ON SCHEMA {_lb_schema} TO "{role.name}"')
 
+# Index for fast Study Instance UID lookups on the Reverse-ETL-synced table
+lb_utils.execute_query(f'CREATE INDEX IF NOT EXISTS idx_instance_paths_study ON {_lb_schema}.instance_paths (study_instance_uid)')
+
 # UC grants
 w.grants.update(
     full_name=_uc_catalog,
