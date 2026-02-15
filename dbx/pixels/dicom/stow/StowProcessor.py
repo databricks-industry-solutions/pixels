@@ -211,9 +211,6 @@ def _make_batch_handler(
         )
 
         # Explode the parts array — one row per extracted DICOM.
-        # Persist so the UDF result is computed once and reused by both
-        # the catalog save (step 2) and the status MERGE (step 3).
-        from pyspark import StorageLevel
 
         exploded_df = (
             split_df
@@ -226,7 +223,6 @@ def _make_batch_handler(
                 fn.col("part.status").alias("part_status"),
                 fn.col("part.error_message").alias("part_error"),
             )
-            .persist(StorageLevel.MEMORY_AND_DISK)
         )
 
         try:
