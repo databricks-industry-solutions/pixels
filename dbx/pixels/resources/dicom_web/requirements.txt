@@ -1,8 +1,7 @@
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@features/dicom_web_integration
 databricks-sql-connector>=3.0.0
 databricks-sdk
 requests-toolbelt
 zstd
 psycopg2-binary
 psutil>=5.9.0
-pyspark==4.0.1

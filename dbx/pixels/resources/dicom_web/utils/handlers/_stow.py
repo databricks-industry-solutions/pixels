@@ -217,8 +217,8 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
 # Fire Spark job (non-blocking)
 # ---------------------------------------------------------------------------
 
-_STOW_TABLE_POLL_INTERVAL = 3     # seconds between stow_operations polls
-_STOW_TABLE_POLL_TIMEOUT = 600    # 10 min max wait for Phase 1
+_STOW_TABLE_POLL_INTERVAL = 30     # seconds between stow_operations polls
+_STOW_TABLE_POLL_TIMEOUT = 5 * 60    # mins max wait for Phase 1
 
 
 def _fire_stow_job(token: str) -> dict:

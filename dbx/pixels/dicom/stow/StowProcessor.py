@@ -209,9 +209,6 @@ def _make_split_handler(source_table: str):
     """
 
     def _process_split_batch(batch_df: DataFrame, batch_id: int) -> None:
-        if batch_df.isEmpty():
-            return
-
         _logger = LoggerProvider("StowProcessor.Split")
         _logger.info(f"Batch {batch_id}: splitting STOW bundles")
 
@@ -295,9 +292,6 @@ def _make_meta_handler(catalog_table: str, volume: str):
     """
 
     def _process_meta_batch(batch_df: DataFrame, batch_id: int) -> None:
-        if batch_df.isEmpty():
-            return
-
         _logger = LoggerProvider("StowProcessor.Meta")
         _logger.info(f"Batch {batch_id}: extracting DICOM metadata")
 
@@ -313,9 +307,6 @@ def _make_meta_handler(catalog_table: str, volume: str):
             .withColumn("length", fn.lit(0).cast("bigint"))
             .withColumn("original_path", fn.col("path"))
         )
-
-        if files_df.isEmpty():
-            return
 
         # Add path-derived columns (local_path, extension, file_type, …)
         files_df = Catalog._with_path_meta(files_df)
@@ -387,6 +378,7 @@ def stow_split_udf(
         List of dicts with ``output_path``, ``file_size``,
         ``status``, ``error_message``.
     """
+    import mmap as _mmap
     import os as _os
     import uuid as _uuid
 
@@ -407,50 +399,74 @@ def stow_split_udf(
                 "error_message": "No boundary found in content_type",
             }]
 
-        # ── Read the temp multipart bundle ────────────────────────────
-        with open(volume_path, "rb") as f:
-            body = f.read()
-
-        # ── Parse multipart body ──────────────────────────────────────
+        # ── Parse multipart bundle using mmap (memory-efficient) ──────
         delimiter = f"--{boundary}".encode()
-        segments = body.split(delimiter)
+        delim_len = len(delimiter)
 
         stow_dir = f"{volume_base}/stow"
         _os.makedirs(stow_dir, exist_ok=True)
 
-        for segment in segments:
-            # Skip preamble / epilogue
-            if not segment or segment.strip() in (b"", b"--", b"--\r\n"):
-                continue
+        _WRITE_CHUNK = 8 * 1024 * 1024  # 8 MB
 
-            if segment.startswith(b"\r\n"):
-                segment = segment[2:]
+        with open(volume_path, "rb") as f:
+            with _mmap.mmap(f.fileno(), 0, access=_mmap.ACCESS_READ) as mm:
+                file_size = mm.size()
+                seg_start = mm.find(delimiter)
 
-            # Header / body separator
-            sep = segment.find(b"\r\n\r\n")
-            if sep == -1:
-                continue
+                while seg_start != -1:
+                    content_start = seg_start + delim_len
 
-            body_data = segment[sep + 4:]
-            if body_data.endswith(b"\r\n"):
-                body_data = body_data[:-2]
+                    # Closing delimiter "--boundary--" marks end of message
+                    if (content_start + 2 <= file_size
+                            and mm[content_start:content_start + 2] == b"--"):
+                        break
 
-            if not body_data:
-                continue
+                    next_delim = mm.find(delimiter, content_start)
+                    seg_end = next_delim if next_delim != -1 else file_size
 
-            # ── Save individual DICOM file ────────────────────────────
-            part_id = _uuid.uuid4().hex
-            output_path = f"{stow_dir}/{part_id}.dcm"
+                    # Skip leading CRLF after delimiter line
+                    if (content_start + 2 <= seg_end
+                            and mm[content_start:content_start + 2] == b"\r\n"):
+                        content_start += 2
 
-            with open(output_path, "wb") as out:
-                out.write(body_data)
+                    # Header / body separator
+                    hdr_end = mm.find(b"\r\n\r\n", content_start, seg_end)
+                    if hdr_end == -1:
+                        seg_start = next_delim
+                        continue
 
-            results.append({
-                "output_path": f"dbfs:{output_path}",
-                "file_size": len(body_data),
-                "status": "SUCCESS",
-                "error_message": None,
-            })
+                    body_start = hdr_end + 4
+                    body_end = seg_end
+
+                    # Trim trailing CRLF before next delimiter
+                    if (body_end >= body_start + 2
+                            and mm[body_end - 2:body_end] == b"\r\n"):
+                        body_end -= 2
+
+                    body_len = body_end - body_start
+                    if body_len <= 0:
+                        seg_start = next_delim
+                        continue
+
+                    # ── Save individual DICOM file (chunked write) ────
+                    part_id = _uuid.uuid4().hex
+                    output_path = f"{stow_dir}/{part_id}.dcm"
+
+                    with open(output_path, "wb") as out:
+                        offset = body_start
+                        while offset < body_end:
+                            end = min(offset + _WRITE_CHUNK, body_end)
+                            out.write(mm[offset:end])
+                            offset = end
+
+                    results.append({
+                        "output_path": f"dbfs:{output_path}",
+                        "file_size": body_len,
+                        "status": "SUCCESS",
+                        "error_message": None,
+                    })
+
+                    seg_start = next_delim
 
     except Exception as e:
         results.append({

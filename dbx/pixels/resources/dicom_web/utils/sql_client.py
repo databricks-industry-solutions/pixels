@@ -31,8 +31,6 @@ from fastapi import HTTPException
 
 from dbx.pixels.logging import LoggerProvider
 
-from . import timing_decorator
-
 logger = LoggerProvider("DICOMweb.SQL")
 
 # ---------------------------------------------------------------------------
@@ -116,7 +114,6 @@ class DatabricksSQLClient:
 
     # -- public API --------------------------------------------------------
 
-    @timing_decorator
     def execute(
         self,
         query: str,
