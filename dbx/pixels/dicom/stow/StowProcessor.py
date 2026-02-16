@@ -180,9 +180,16 @@ class StowProcessor:
             checkpoint_location: Checkpoint path for this stream.
             max_files_per_trigger: Max files per micro-batch.
         """
+        from dbx.pixels.dicom import DicomMetaExtractor
+
+        catalog = Catalog(self.spark, table=catalog_table, volume=volume)
+        catalog.catalog(path=catalog._volume_path, streaming=True, streamCheckpointBasePath=f"{catalog._volume_path}/_checkpoints/stow_extract-{catalog_table}/")
+        
+        extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
+
         self.logger.info(f"Phase 2 (meta): reading from {source_table}")
 
-        stream_df = (
+        df = (
             self.spark.readStream.format("delta")
             .option("readChangeFeed", "true")
             .option("startingVersion", "0")
@@ -193,17 +200,32 @@ class StowProcessor:
                 (fn.col("_change_type") == "update_postimage")
                 | (fn.col("_change_type") == "insert")
             )
+            .filter(fn.col("output_paths").isNotNull())
+            .filter(fn.size("output_paths") > 0)
+            .select(fn.explode("output_paths").alias("path"))
+            .withColumn("modificationTime", fn.current_timestamp())
+            .withColumn("length", fn.lit(0).cast("bigint"))
+            .withColumn("original_path", fn.col("path"))
         )
 
-        query = (
-            stream_df.writeStream
-            .foreachBatch(_make_meta_handler(catalog_table, volume))
-            .option("checkpointLocation", checkpoint_location)
-            .trigger(availableNow=True)
-            .start()
+        # Add path-derived columns (local_path, extension, file_type, …)
+        df = Catalog._with_path_meta(df)
+        df = extractor.transform(df)
+
+        # Extract file_size from meta VARIANT to set the length column
+        df = df.withColumn(
+            "length",
+            fn.coalesce(
+                fn.expr("meta:file_size::bigint"),
+                fn.lit(0).cast("bigint"),
+            ),
+        ).select(
+            "path", "modificationTime", "length", "original_path",
+            "relative_path", "local_path", "extension", "file_type",
+            "path_tags", "is_anon", "meta",
         )
 
-        query.awaitTermination()
+        catalog.save(df, mode="append")
         self.logger.info("Phase 2 complete: metadata extracted and saved")
 
 
@@ -288,68 +310,6 @@ def _make_split_handler(source_table: str):
         _logger.info(f"Batch {batch_id}: MERGE complete")
 
     return _process_split_batch
-
-
-# ---------------------------------------------------------------------------
-# Phase 2: foreachBatch — extract metadata via DicomMetaExtractor
-# ---------------------------------------------------------------------------
-
-def _make_meta_handler(catalog_table: str, volume: str):
-    """
-    Return a Spark-Connect-safe ``foreachBatch`` callback for Phase 2.
-
-    Captures only plain strings — no SparkSession or Catalog.
-    """
-
-    def _process_meta_batch(batch_df: DataFrame, batch_id: int) -> None:
-        _logger = LoggerProvider("StowProcessor.Meta")
-        _logger.info(f"Batch {batch_id}: extracting DICOM metadata")
-
-        spark = batch_df.sparkSession
-
-        # Explode output_paths — one row per individual DICOM file
-        files_df = (
-            batch_df
-            .filter(fn.col("output_paths").isNotNull())
-            .filter(fn.size("output_paths") > 0)
-            .select(fn.explode("output_paths").alias("path"))
-            .withColumn("modificationTime", fn.current_timestamp())
-            .withColumn("length", fn.lit(0).cast("bigint"))
-            .withColumn("original_path", fn.col("path"))
-        )
-
-        # Add path-derived columns (local_path, extension, file_type, …)
-        files_df = Catalog._with_path_meta(files_df)
-
-        # Apply DicomMetaExtractor — runs pydicom.dcmread on each file
-        from dbx.pixels.dicom import DicomMetaExtractor
-
-        catalog = Catalog(spark, table=catalog_table, volume=volume)
-        catalog._anon = False  # Volume paths — no anonymous access needed
-        extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
-        files_df = extractor.transform(files_df)
-
-        # Extract file_size from meta VARIANT to set the length column
-        files_df = files_df.withColumn(
-            "length",
-            fn.coalesce(
-                fn.expr("meta:file_size::bigint"),
-                fn.lit(0).cast("bigint"),
-            ),
-        )
-
-        # Select catalog-compatible columns
-        catalog_df = files_df.select(
-            "path", "modificationTime", "length", "original_path",
-            "relative_path", "local_path", "extension", "file_type",
-            "path_tags", "is_anon", "meta",
-        )
-
-        catalog.save(catalog_df, mode="append")
-        _logger.info(f"Batch {batch_id}: metadata saved to catalog")
-
-    return _process_meta_batch
-
 
 # ---------------------------------------------------------------------------
 # UDF — split multipart bundle → individual DICOMs (no pydicom)
