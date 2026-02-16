@@ -451,7 +451,8 @@ def build_stow_insert_completed_query(
             f"(%(file_id_{i})s, %(volume_path_{i})s, %(file_size_{i})s, "
             f"%(upload_ts_{i})s, %(study_{i})s, %(ct_{i})s, %(ip_{i})s, "
             f"%(email_{i})s, %(ua_{i})s, "
-            f"'completed', current_timestamp(), NULL, %(output_paths_{i})s)"
+            f"'completed', current_timestamp(), NULL, "
+            f"from_json(%(output_paths_{i})s, 'ARRAY<STRING>'))"
         )
 
     query = f"""
