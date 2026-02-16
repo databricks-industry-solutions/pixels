@@ -405,3 +405,61 @@ def build_stow_poll_query(
     WHERE file_id = %(file_id)s
     """
     return query, {"stow_table": stow_table, "file_id": file_id}
+
+
+def build_stow_insert_completed_query(
+    stow_table: str,
+    records: list[dict],
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a parameterized multi-row INSERT for the ``stow_operations`` table
+    with ``status='completed'`` and ``output_paths`` pre-populated.
+
+    Used by the **streaming split** path where the handler splits the
+    multipart body in-process and writes individual DICOM files directly
+    to Volumes — no Spark Phase 1 needed.  The row is inserted as
+    ``completed`` so that Phase 2 (metadata extraction) can pick it up
+    immediately via CDF.
+
+    Each *record* dict must contain the same fields as
+    :func:`build_stow_insert_query` plus:
+
+    * ``output_paths`` — JSON array string of individual DICOM file
+      paths (e.g. ``'["/Volumes/.../stow/1.2.3/1.2.4/1.2.5.dcm"]'``).
+
+    Returns:
+        ``(query, params)`` tuple.
+    """
+    validate_table_name(stow_table)
+
+    sql_params: dict[str, Any] = {"stow_table": stow_table}
+    value_clauses: list[str] = []
+
+    for i, r in enumerate(records):
+        sql_params[f"file_id_{i}"] = r["file_id"]
+        sql_params[f"volume_path_{i}"] = r.get("volume_path")
+        sql_params[f"file_size_{i}"] = r["file_size"]
+        sql_params[f"upload_ts_{i}"] = r["upload_timestamp"]
+        sql_params[f"study_{i}"] = r.get("study_constraint")
+        sql_params[f"ct_{i}"] = r.get("content_type", "application/dicom")
+        sql_params[f"ip_{i}"] = r.get("client_ip")
+        sql_params[f"email_{i}"] = r.get("user_email")
+        sql_params[f"ua_{i}"] = r.get("user_agent")
+        sql_params[f"output_paths_{i}"] = r.get("output_paths")
+
+        value_clauses.append(
+            f"(%(file_id_{i})s, %(volume_path_{i})s, %(file_size_{i})s, "
+            f"%(upload_ts_{i})s, %(study_{i})s, %(ct_{i})s, %(ip_{i})s, "
+            f"%(email_{i})s, %(ua_{i})s, "
+            f"'completed', current_timestamp(), NULL, %(output_paths_{i})s)"
+        )
+
+    query = f"""
+    INSERT INTO IDENTIFIER(%(stow_table)s)
+        (file_id, volume_path, file_size, upload_timestamp,
+         study_constraint, content_type, client_ip,
+         user_email, user_agent,
+         status, processed_at, error_message, output_paths)
+    VALUES {', '.join(value_clauses)}
+    """
+    return query, sql_params

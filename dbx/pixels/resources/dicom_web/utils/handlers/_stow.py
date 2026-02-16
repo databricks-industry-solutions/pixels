@@ -1,19 +1,29 @@
 """
-STOW-RS handler — lightweight stream-to-Volumes proxy with early return.
+STOW-RS handler — dual-path: streaming split or legacy Spark.
 
-The server does ZERO DICOM processing.  It simply:
+**Streaming path** (default, for uploads ≤ threshold):
 
-1. Streams the multipart/related body to a single temp file on Volumes.
-2. Inserts a tracking row into ``stow_operations`` (audit + processing queue).
-3. Fires a serverless Spark job (non-blocking, run-coalesced).
-4. Polls ``stow_operations`` until Phase 1 (split) completes.
-5. Reads DICOM headers from the newly-split files, caches UID → path
-   mappings in memory (Tier 1) and Lakebase (Tier 2).
-6. Returns a JSON receipt — Phase 2 (metadata extraction) continues in
-   the background.
+1. Parses multipart boundaries on-the-fly as bytes arrive.
+2. Extracts DICOM UIDs from the first 64 KB of each part.
+3. Streams each part directly to
+   ``/stow/{StudyUID}/{SeriesUID}/{SOPUID}.dcm`` on Volumes.
+4. Inserts a tracking row into ``stow_operations`` as ``completed``
+   with ``output_paths`` pre-populated.
+5. Fires a Spark job for Phase 2 only (metadata extraction).
+6. Caches UID → path mappings directly (no header re-reads needed).
+7. Returns a JSON receipt immediately.
 
-All heavy lifting (metadata extraction, catalog INSERT, lakebase sync)
-is offloaded to the Spark job.
+**Legacy Spark path** (for uploads > threshold):
+
+1. Streams the multipart/related body to a single temp ``.mpr`` file.
+2. Inserts a tracking row (``status='pending'``).
+3. Fires a Spark job (Phase 1 split + Phase 2 metadata).
+4. Polls ``stow_operations`` until Phase 1 completes.
+5. Reads DICOM headers, caches UID → path mappings.
+6. Returns a JSON receipt.
+
+The threshold is controlled by ``STOW_STREAMING_MAX_BYTES`` (default 500 MB).
+When ``Content-Length`` is absent or ≤ threshold, the streaming path is used.
 """
 
 import asyncio
@@ -32,7 +42,12 @@ from dbx.pixels.logging import LoggerProvider
 
 from ..cache import instance_path_cache
 from ..dicom_io import async_stream_to_volumes, get_file_metadata
-from ..queries import build_stow_insert_query, build_stow_poll_query
+from ..multipart_stream import async_stream_split_to_volumes
+from ..queries import (
+    build_stow_insert_completed_query,
+    build_stow_insert_query,
+    build_stow_poll_query,
+)
 from ..sql_client import USE_USER_AUTH, DatabricksSQLClient
 from ._common import (
     app_token_provider,
@@ -43,6 +58,11 @@ from ._common import (
 )
 
 logger = LoggerProvider("DICOMweb.STOW")
+
+# Default 500 MB — uploads larger than this use the legacy Spark split path
+_STOW_STREAMING_MAX_BYTES = int(
+    os.getenv("STOW_STREAMING_MAX_BYTES", str(500 * 1024 * 1024))
+)
 
 
 # ---------------------------------------------------------------------------
@@ -91,13 +111,11 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
         )
         if resp.ok:
             data = resp.json()
-            # SCIM returns emails as a list; primary first
             emails = data.get("emails", [])
             resolved = next(
                 (e["value"] for e in emails if e.get("primary")),
                 emails[0]["value"] if emails else None,
             )
-            # Fall back to userName (often the email itself)
             resolved = resolved or data.get("userName")
             _token_email_cache[cache_key] = resolved
             return resolved
@@ -123,8 +141,6 @@ if _pixels_table_env:
         _stow_table = f"{_parts[0]}.{_parts[1]}.stow_operations"
         _stow_catalog_table = _pixels_table_env
 
-# Derive volume UC name from DATABRICKS_STOW_VOLUME_PATH
-# e.g. "/Volumes/main/pixels_solacc/pixels_volume/stow/" → "main.pixels_solacc.pixels_volume"
 _stow_volume_path_env = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "")
 if _stow_volume_path_env:
     _vol_parts = _stow_volume_path_env.strip("/").split("/")
@@ -133,7 +149,7 @@ if _stow_volume_path_env:
 
 
 # ---------------------------------------------------------------------------
-# Tracking table INSERT
+# Tracking table INSERT helpers
 # ---------------------------------------------------------------------------
 
 def _write_stow_records(
@@ -141,12 +157,7 @@ def _write_stow_records(
     token: str | None,
     records: list[dict],
 ) -> None:
-    """
-    INSERT tracking rows into ``stow_operations``.
-
-    Called synchronously — the row must exist before the Spark job is
-    triggered.  Uses parameterized queries via :func:`build_stow_insert_query`.
-    """
+    """INSERT tracking rows into ``stow_operations`` (status='pending')."""
     if not _stow_table or not records:
         return
     try:
@@ -158,6 +169,25 @@ def _write_stow_records(
         logger.info(f"STOW tracking: inserted {len(records)} record(s)")
     except Exception as exc:
         logger.error(f"STOW tracking INSERT failed: {exc}")
+
+
+def _write_stow_records_completed(
+    sql_client: DatabricksSQLClient,
+    token: str | None,
+    records: list[dict],
+) -> None:
+    """INSERT tracking rows as ``completed`` with ``output_paths`` pre-populated."""
+    if not _stow_table or not records:
+        return
+    try:
+        query, params = build_stow_insert_completed_query(_stow_table, records)
+        sql_client.execute(
+            query, parameters=params,
+            user_token=token if USE_USER_AUTH else None,
+        )
+        logger.info(f"STOW tracking: inserted {len(records)} completed record(s)")
+    except Exception as exc:
+        logger.error(f"STOW tracking INSERT (completed) failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +248,7 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
 # ---------------------------------------------------------------------------
 
 _STOW_TABLE_POLL_INTERVAL = 30     # seconds between stow_operations polls
-_STOW_TABLE_POLL_TIMEOUT = 5 * 60    # mins max wait for Phase 1
+_STOW_TABLE_POLL_TIMEOUT = 5 * 60  # max wait for Phase 1
 
 
 def _fire_stow_job(token: str) -> dict:
@@ -334,7 +364,7 @@ def _fire_stow_job(token: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Poll stow_operations table for Phase 1 completion
+# Poll stow_operations table for Phase 1 completion (legacy path only)
 # ---------------------------------------------------------------------------
 
 def _poll_stow_status(
@@ -345,21 +375,8 @@ def _poll_stow_status(
     """
     Poll the ``stow_operations`` table until Phase 1 (split) completes.
 
-    Phase 1's ``foreachBatch`` MERGEs ``status`` from ``'pending'`` to
-    ``'completed'`` (or ``'failed'``) and populates ``output_paths``.
-    This function polls the table directly — no dependency on the
-    overall job lifecycle — so the handler can return as soon as
-    the individual DICOM files are available on Volumes.
-
-    Args:
-        sql_client: Shared SQL client instance.
-        token: Bearer token (user OBO or ``None`` for app-auth).
-        file_id: The ``file_id`` inserted by the handler.
-
-    Returns:
-        A dict with ``status``, ``output_paths``, and ``error_message``.
-        ``output_paths`` is a list of individual DICOM file paths
-        (``dbfs:/Volumes/…/stow/<uuid>.dcm``).
+    Only used by the **legacy Spark path** — the streaming path skips
+    this entirely because the split is done in-process.
     """
     if not _stow_table:
         return {"status": "skipped", "output_paths": [], "error_message": "stow_table not configured"}
@@ -476,27 +493,8 @@ def _cache_stow_paths(
     """
     Read DICOM headers from newly-split files and cache UID → path mappings.
 
-    For each path in *output_paths*:
-
-    1. Byte-range read of the DICOM header (~64 KB) to extract
-       SOP / Study / Series Instance UIDs and Number of Frames.
-    2. Populate **Tier 1** (in-memory ``instance_path_cache``).
-    3. Populate **Tier 2** (Lakebase ``instance_paths``) if available.
-
-    Header reads are parallelized (thread pool, max 8 workers) so
-    total latency is dominated by the slowest single read, not the sum.
-
-    Args:
-        token: Bearer token for Volumes API access.
-        output_paths: Paths produced by Phase 1 (``dbfs:/Volumes/…``).
-        study_instance_uid: Study UID from the STOW URL (fallback if
-            the header lacks one).
-        uc_table: Fully-qualified catalog table name.
-        user_groups: User groups for RLS-scoped caching.
-
-    Returns:
-        List of successfully cached entry dicts (for inclusion in the
-        HTTP response).
+    Used by the **legacy Spark path** only — the streaming path populates
+    the cache directly from UIDs extracted during upload.
     """
     if not output_paths:
         return []
@@ -518,15 +516,56 @@ def _cache_stow_paths(
         logger.warning("STOW-RS cache: no DICOM headers could be read")
         return []
 
+    _populate_cache(results, study_instance_uid, uc_table, user_groups)
+    return results
+
+
+def _cache_streaming_results(
+    part_results: list[dict],
+    study_instance_uid: str | None,
+    uc_table: str,
+    user_groups: list[str] | None = None,
+) -> list[dict]:
+    """
+    Populate UID → path cache directly from streaming split results.
+
+    No Volumes API calls needed — UIDs were already extracted during upload.
+    """
+    entries = []
+    for r in part_results:
+        if r["status"] != "SUCCESS" or not r.get("sop_uid"):
+            continue
+        entries.append({
+            "sop_uid": r["sop_uid"],
+            "study_uid": r.get("study_uid", ""),
+            "series_uid": r.get("series_uid", ""),
+            "num_frames": r.get("num_frames", 1),
+            "path": r["output_path"],
+        })
+
+    if not entries:
+        return []
+
+    _populate_cache(entries, study_instance_uid, uc_table, user_groups)
+    return entries
+
+
+def _populate_cache(
+    entries: list[dict],
+    study_instance_uid: str | None,
+    uc_table: str,
+    user_groups: list[str] | None,
+) -> None:
+    """Shared cache population logic for both streaming and legacy paths."""
     # ── Tier 1: in-memory cache ───────────────────────────────────────
-    for r in results:
+    for r in entries:
         instance_path_cache.put(
             r["sop_uid"], uc_table,
             {"path": r["path"], "num_frames": r["num_frames"]},
             user_groups=user_groups,
         )
 
-    logger.info(f"STOW-RS cache: Tier 1 (memory) — cached {len(results)} instance path(s)")
+    logger.info(f"STOW-RS cache: Tier 1 (memory) — cached {len(entries)} instance path(s)")
 
     # ── Tier 2: Lakebase persistent cache ─────────────────────────────
     if lb_utils:
@@ -540,7 +579,7 @@ def _cache_stow_paths(
                     "num_frames": r["num_frames"],
                     "uc_table_name": uc_table,
                 }
-                for r in results
+                for r in entries
             ]
             lb_utils.insert_instance_paths_batch(
                 lb_entries, allowed_groups=user_groups,
@@ -551,11 +590,9 @@ def _cache_stow_paths(
         except Exception as exc:
             logger.warning(f"STOW-RS cache: Lakebase persist failed (non-fatal): {exc}")
 
-    return results
-
 
 # ---------------------------------------------------------------------------
-# Main STOW-RS handler
+# Main STOW-RS handler (dual-path)
 # ---------------------------------------------------------------------------
 
 async def dicomweb_stow_studies(
@@ -565,37 +602,17 @@ async def dicomweb_stow_studies(
     """
     POST /api/dicomweb/studies — STOW-RS store DICOM instances.
 
-    Accepts a ``multipart/related`` request body and **streams** the raw
-    bytes directly to a single temp file on Volumes using ``httpx`` —
-    same zero-copy pattern as the legacy ``_reverse_proxy_files``.
+    Routes to either the **streaming split** path or the **legacy Spark**
+    path based on ``Content-Length`` and the ``STOW_STREAMING_MAX_BYTES``
+    threshold.
 
-    Memory usage is **O(chunk_size)** regardless of request size.
+    **Streaming path** (≤ threshold or unknown size):
+      Parses multipart boundaries in-process, streams each DICOM part
+      directly to ``/stow/{StudyUID}/{SeriesUID}/{SOPUID}.dcm``.
+      No intermediate ``.mpr``, no Spark Phase 1, no polling.
 
-    **Early-return flow** — the response is sent as soon as the Spark
-    job's **Phase 1 (split)** completes, without waiting for the full
-    job (Phase 2 — metadata extraction) to finish:
-
-    1. Streams the entire multipart body as-is to a temp file on Volumes
-       (``<stow_base>/<date>/<uuid>.mpr``).
-    2. Inserts **one** tracking row into ``stow_operations`` with the
-       ``study_instance_uid`` from the URL (synchronous INSERT).
-    3. Fires the serverless Spark job (non-blocking).
-    4. Polls the ``stow_operations`` table until ``status`` changes from
-       ``'pending'`` — meaning Phase 1 has MERGEd ``output_paths`` back.
-    5. Reads DICOM headers from the newly-split files (parallel,
-       ~64 KB per file) to extract SOP / Series / Study UIDs.
-    6. Caches the UID → path mappings in **Tier 1** (in-memory
-       ``instance_path_cache``) and **Tier 2** (Lakebase
-       ``instance_paths``) so that subsequent WADO-RS requests hit
-       the cache immediately.
-    7. Returns the response with paths and cached UID mappings.
-       Phase 2 (metadata extraction → catalog INSERT) continues in
-       the background.
-
-    Returns:
-        200 OK — Phase 1 completed, individual DICOMs available on Volumes.
-        400 Bad Request — invalid Content-Type.
-        500 Internal Server Error — upload or Phase 1 processing failed.
+    **Legacy Spark path** (> threshold):
+      Streams the full body to a ``.mpr`` file, triggers Spark to split.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -618,19 +635,180 @@ async def dicomweb_stow_studies(
             detail="DATABRICKS_STOW_VOLUME_PATH not configured",
         )
 
-    # ── Auth token (reuse app/user resolution already in place) ────────
+    # ── Auth token ─────────────────────────────────────────────────────
     token = (
         resolve_user_token(request) if USE_USER_AUTH else app_token_provider()
     )
 
-    # ── Stream entire body to a single temp file ───────────────────────
+    # ── Choose streaming vs legacy path ────────────────────────────────
+    content_length_str = request.headers.get("content-length", "")
+    use_streaming = True
+    try:
+        body_size = int(content_length_str)
+        if body_size > _STOW_STREAMING_MAX_BYTES:
+            use_streaming = False
+            logger.info(
+                f"STOW-RS: body size {body_size} exceeds streaming threshold "
+                f"({_STOW_STREAMING_MAX_BYTES}) — using legacy Spark path"
+            )
+    except (ValueError, TypeError):
+        pass  # Unknown size — default to streaming
+
+    if use_streaming:
+        return await _handle_streaming(request, stow_base, token, content_type, study_instance_uid)
+    else:
+        return await _handle_legacy_spark(request, stow_base, token, content_type, study_instance_uid)
+
+
+# ---------------------------------------------------------------------------
+# Streaming path — in-process split, no Spark Phase 1
+# ---------------------------------------------------------------------------
+
+async def _handle_streaming(
+    request: Request,
+    stow_base: str,
+    token: str,
+    content_type: str,
+    study_instance_uid: str | None,
+) -> Response:
+    """
+    Stream-and-split: parse multipart boundaries on-the-fly, write each
+    DICOM part directly to ``/stow/{StudyUID}/{SeriesUID}/{SOPUID}.dcm``.
+    """
+    file_id = uuid.uuid4().hex
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+    logger.info(
+        f"STOW-RS [streaming]: file_id={file_id}, "
+        f"study_constraint={study_instance_uid or 'none'}"
+    )
+
+    # ── Stream-and-split to Volumes ────────────────────────────────────
+    try:
+        part_results = await async_stream_split_to_volumes(
+            token, stow_base, request.stream(), content_type,
+        )
+    except Exception as exc:
+        logger.error(
+            f"STOW-RS [streaming]: split failed for {file_id}: "
+            f"{type(exc).__name__}: {exc!r}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Streaming split failed ({type(exc).__name__}): {exc}",
+        )
+
+    succeeded = [r for r in part_results if r["status"] == "SUCCESS"]
+    failed = [r for r in part_results if r["status"] == "FAILED"]
+    total_size = sum(r.get("file_size", 0) for r in part_results)
+    output_paths = [r["output_path"] for r in succeeded]
+
+    logger.info(
+        f"STOW-RS [streaming]: {file_id} — "
+        f"{len(succeeded)} parts succeeded, {len(failed)} failed, "
+        f"{total_size} bytes total"
+    )
+
+    # ── Audit metadata ─────────────────────────────────────────────────
+    client_ip = request.client.host if request.client else None
+    user_email = _resolve_user_email(request, token)
+    user_agent = request.headers.get("User-Agent") or None
+
+    record = {
+        "file_id": file_id,
+        "volume_path": stow_base,
+        "file_size": total_size,
+        "upload_timestamp": now_iso,
+        "study_constraint": study_instance_uid,
+        "content_type": content_type,
+        "client_ip": client_ip,
+        "user_email": user_email,
+        "user_agent": user_agent,
+        "output_paths": json.dumps(output_paths),
+    }
+
+    # ── INSERT as completed (Phase 2 picks this up via CDF) ───────────
+    sql_client = get_sql_client()
+    _write_stow_records_completed(sql_client, token, [record])
+
+    # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
+    job_status: dict = {"action": "skipped", "reason": "no auth token"}
+    if token:
+        job_status = await asyncio.to_thread(_fire_stow_job, token)
+
+    job_action = job_status.get("action", "?")
+    logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
+
+    # ── Cache UID → path mappings directly (no header re-reads!) ───────
+    cached_entries: list[dict] = []
+    if succeeded and token:
+        uc_table = _stow_catalog_table or ""
+        user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
+        cached_entries = _cache_streaming_results(
+            part_results, study_instance_uid, uc_table, user_groups,
+        )
+
+    # ── Build receipt ──────────────────────────────────────────────────
+    all_succeeded = len(failed) == 0 and len(succeeded) > 0
+    receipt = {
+        "file_id": file_id,
+        "mode": "streaming",
+        "size": total_size,
+        "status": "succeeded" if all_succeeded else ("partial" if succeeded else "failed"),
+        "content_type": content_type,
+        "study_constraint": study_instance_uid,
+        "output_paths": output_paths,
+        "instances": [
+            {
+                "path": r["output_path"],
+                "size": r["file_size"],
+                "study_uid": r["study_uid"],
+                "series_uid": r["series_uid"],
+                "sop_uid": r["sop_uid"],
+                "num_frames": r["num_frames"],
+                "status": r["status"],
+            }
+            for r in part_results
+        ],
+        "cached_instances": len(cached_entries),
+        "job": job_status,
+    }
+
+    http_status = 200 if all_succeeded else (200 if succeeded else 500)
+    logger.info(
+        f"STOW-RS [streaming] complete: {file_id} ({total_size} bytes), "
+        f"{len(succeeded)}/{len(part_results)} succeeded, "
+        f"cached={len(cached_entries)}, HTTP {http_status}"
+    )
+    return Response(
+        content=json.dumps(receipt, indent=2),
+        status_code=http_status,
+        media_type="application/json",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Legacy Spark path — stream to .mpr, trigger Spark split + metadata
+# ---------------------------------------------------------------------------
+
+async def _handle_legacy_spark(
+    request: Request,
+    stow_base: str,
+    token: str,
+    content_type: str,
+    study_instance_uid: str | None,
+) -> Response:
+    """
+    Legacy path for large uploads: stream the entire multipart body to a
+    single ``.mpr`` file on Volumes, then trigger a Spark job to split it.
+    """
     file_id = uuid.uuid4().hex
     current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     dest_path = f"{stow_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     logger.info(
-        f"STOW-RS: streaming request to {dest_path}, "
+        f"STOW-RS [legacy]: streaming request to {dest_path}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
@@ -640,7 +818,7 @@ async def dicomweb_stow_studies(
         )
     except Exception as exc:
         logger.error(
-            f"STOW-RS: streaming upload failed for {file_id}: "
+            f"STOW-RS [legacy]: streaming upload failed for {file_id}: "
             f"{type(exc).__name__}: {exc!r}"
         )
         raise HTTPException(
@@ -648,7 +826,7 @@ async def dicomweb_stow_studies(
             detail=f"Upload failed ({type(exc).__name__}): {exc}",
         )
 
-    logger.info(f"STOW-RS: streamed {file_id}.mpr ({file_size} bytes)")
+    logger.info(f"STOW-RS [legacy]: streamed {file_id}.mpr ({file_size} bytes)")
 
     # ── Audit metadata ─────────────────────────────────────────────────
     client_ip = request.client.host if request.client else None
@@ -678,10 +856,9 @@ async def dicomweb_stow_studies(
         job_status = {"action": "skipped", "reason": "no auth token"}
 
     job_action = job_status.get("action", "?")
-    logger.info(f"STOW-RS: job {job_action} for file_id={file_id}")
+    logger.info(f"STOW-RS [legacy]: job {job_action} for file_id={file_id}")
 
     # ── Poll stow_operations until Phase 1 completes ──────────────────
-    #    Runs in a thread so the async event loop stays responsive.
     poll_result = await asyncio.to_thread(
         _poll_stow_status, sql_client, token, file_id,
     )
@@ -691,8 +868,6 @@ async def dicomweb_stow_studies(
     phase1_succeeded = phase1_status == "completed"
 
     # ── Cache UID → path mappings (Tier 1 + Tier 2) ───────────────────
-    #    Read DICOM headers in parallel from the newly-split files to
-    #    extract UIDs, then populate instance_path_cache + Lakebase.
     cached_entries: list[dict] = []
     if phase1_succeeded and output_paths and token:
         uc_table = _stow_catalog_table or ""
@@ -706,6 +881,7 @@ async def dicomweb_stow_studies(
     # ── Build receipt & choose HTTP status ────────────────────────────
     receipt = {
         "file_id": file_id,
+        "mode": "legacy_spark",
         "path": dest_path,
         "size": file_size,
         "status": "succeeded" if phase1_succeeded else phase1_status,
@@ -719,7 +895,7 @@ async def dicomweb_stow_studies(
 
     http_status = 200 if phase1_succeeded else 500
     logger.info(
-        f"STOW-RS complete: {file_id} ({file_size} bytes), "
+        f"STOW-RS [legacy] complete: {file_id} ({file_size} bytes), "
         f"phase1={phase1_status}, cached={len(cached_entries)}, "
         f"HTTP {http_status}"
     )

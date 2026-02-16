@@ -159,9 +159,16 @@ class StowProcessor:
         """
         Phase 2: extract DICOM metadata from individual files.
 
-        * Reads ``stow_operations`` CDF (``update_postimage`` with
-          ``status='completed'``) — these are the rows updated by
-          Phase 1.
+        * Reads ``stow_operations`` CDF with ``status='completed'``.
+        * Handles **both** ingestion paths:
+
+          - **Legacy Spark split** — rows arrive as ``update_postimage``
+            (Phase 1 MERGEs ``status`` from ``'pending'`` to
+            ``'completed'``).
+          - **Streaming split** — rows arrive as ``insert`` with
+            ``status='completed'`` already set (the handler splits
+            in-process and inserts directly as completed).
+
         * Explodes ``output_paths``, applies ``DicomMetaExtractor``
           (``pydicom.dcmread``), saves to the catalog table.
         * Uses ``trigger(availableNow=True)`` — drains and stops.
@@ -181,8 +188,11 @@ class StowProcessor:
             .option("startingVersion", "0")
             .option("maxFilesPerTrigger", max_files_per_trigger)
             .table(source_table)
-            .filter(fn.col("_change_type") == "update_postimage")
             .filter(fn.col("status") == "completed")
+            .filter(
+                (fn.col("_change_type") == "update_postimage")
+                | (fn.col("_change_type") == "insert")
+            )
         )
 
         query = (
