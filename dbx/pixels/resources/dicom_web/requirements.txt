@@ -5,3 +5,4 @@ requests-toolbelt
 zstd
 psycopg2-binary
 psutil>=5.9.0
+python-multipart
