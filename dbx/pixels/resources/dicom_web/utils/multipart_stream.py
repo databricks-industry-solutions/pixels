@@ -10,6 +10,7 @@ Memory usage is **O(header_buf + chunk_size)** per part (~128 KB typical).
 """
 
 import os
+import struct
 import uuid
 from io import BytesIO
 from typing import AsyncIterator
@@ -25,27 +26,134 @@ _HEADER_BUF_SIZE = 64 * 1024  # 64 KB — enough for virtually all DICOM headers
 # Lightweight DICOM UID extraction from raw bytes
 # ---------------------------------------------------------------------------
 
+# DICOM tag bytes (little-endian) for the UIDs we need
+_TAG_SOP_INSTANCE_UID = b"\x08\x00\x18\x00"       # (0008,0018)
+_TAG_STUDY_INSTANCE_UID = b"\x20\x00\x0D\x00"      # (0020,000D)
+_TAG_SERIES_INSTANCE_UID = b"\x20\x00\x0E\x00"     # (0020,000E)
+_TAG_NUMBER_OF_FRAMES = b"\x28\x00\x08\x00"         # (0028,0008)
+
+# Known Explicit VR codes that use a 2-byte length field (short form)
+_SHORT_VR = {
+    b"AE", b"AS", b"AT", b"CS", b"DA", b"DS", b"DT", b"FL", b"FD",
+    b"IS", b"LO", b"LT", b"PN", b"SH", b"SL", b"SS", b"ST", b"TM",
+    b"UI", b"UL", b"US",
+}
+
+
+def _scan_uid_tag(raw: bytes, tag_bytes: bytes) -> str:
+    """
+    Scan raw DICOM bytes for a specific tag and return its UID string value.
+
+    Handles both Explicit VR (``UI`` with 2-byte length) and Implicit VR
+    (4-byte length) layouts.  Only returns values that look like valid
+    DICOM UIDs (digits and dots).
+    """
+    offset = 0
+    end = len(raw)
+    while offset < end - 8:
+        idx = raw.find(tag_bytes, offset)
+        if idx == -1 or idx + 8 > end:
+            return ""
+        pos = idx + 4  # skip past the 4 tag bytes
+
+        # Try Explicit VR first: next 2 bytes are ASCII VR letters
+        vr = raw[pos:pos + 2]
+        if vr in _SHORT_VR:
+            # Explicit VR short form: VR(2) + length(2) + value
+            if pos + 4 > end:
+                return ""
+            length = struct.unpack_from("<H", raw, pos + 2)[0]
+            val_start = pos + 4
+        elif vr.isalpha() and vr.isupper():
+            # Explicit VR long form: VR(2) + 0x0000(2) + length(4) + value
+            if pos + 8 > end:
+                return ""
+            length = struct.unpack_from("<I", raw, pos + 4)[0]
+            val_start = pos + 8
+        else:
+            # Implicit VR: length(4) + value
+            if pos + 4 > end:
+                return ""
+            length = struct.unpack_from("<I", raw, pos)[0]
+            val_start = pos + 4
+
+        if length == 0 or length > 128 or val_start + length > end:
+            offset = idx + 4
+            continue
+
+        value = raw[val_start:val_start + length].rstrip(b"\x00").decode("ascii", errors="replace").strip()
+
+        # Validate: DICOM UIDs contain only digits and dots
+        if value and all(c in "0123456789." for c in value):
+            return value
+
+        offset = idx + 4
+
+    return ""
+
+
 def extract_dicom_uids(raw: bytes) -> dict[str, str | int]:
     """
     Extract Study/Series/SOP Instance UIDs from the first bytes of a DICOM part.
 
-    Uses ``pydicom.dcmread`` with ``stop_before_pixels=True`` on a BytesIO
-    buffer.  Falls back to empty strings on any parsing failure — the caller
-    uses UUID-based naming as a fallback.
+    **Strategy**: tries ``pydicom.dcmread`` first (handles all edge cases).
+    If that fails (common with truncated buffers), falls back to a
+    lightweight raw byte scan that searches for tag patterns directly
+    in the binary data — no full DICOM parsing needed.
     """
-    import pydicom
+    result: dict[str, str | int] = {
+        "study_uid": "", "series_uid": "", "sop_uid": "", "num_frames": 1,
+    }
 
+    # -- Attempt 1: pydicom (most accurate) --------------------------------
     try:
+        import pydicom
         ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True, force=True)
-        return {
-            "study_uid": str(getattr(ds, "StudyInstanceUID", "") or ""),
-            "series_uid": str(getattr(ds, "SeriesInstanceUID", "") or ""),
-            "sop_uid": str(getattr(ds, "SOPInstanceUID", "") or ""),
-            "num_frames": int(getattr(ds, "NumberOfFrames", 1) or 1),
-        }
+        study = str(getattr(ds, "StudyInstanceUID", "") or "")
+        series = str(getattr(ds, "SeriesInstanceUID", "") or "")
+        sop = str(getattr(ds, "SOPInstanceUID", "") or "")
+        nf = int(getattr(ds, "NumberOfFrames", 1) or 1)
+
+        if sop:
+            logger.debug(
+                f"pydicom extracted UIDs: SOP={sop}, Study={study}, "
+                f"Series={series}, frames={nf}"
+            )
+            return {"study_uid": study, "series_uid": series, "sop_uid": sop, "num_frames": nf}
+
+        logger.warning(
+            "pydicom parsed the buffer but found no SOPInstanceUID — "
+            "falling back to raw byte scan"
+        )
     except Exception as exc:
-        logger.debug(f"DICOM UID extraction failed: {exc}")
-        return {"study_uid": "", "series_uid": "", "sop_uid": "", "num_frames": 1}
+        logger.warning(
+            f"pydicom failed on {len(raw)}-byte buffer ({type(exc).__name__}: {exc}) "
+            f"— falling back to raw byte scan"
+        )
+
+    # -- Attempt 2: raw byte scan (resilient to truncated buffers) ---------
+    sop = _scan_uid_tag(raw, _TAG_SOP_INSTANCE_UID)
+    study = _scan_uid_tag(raw, _TAG_STUDY_INSTANCE_UID)
+    series = _scan_uid_tag(raw, _TAG_SERIES_INSTANCE_UID)
+    nf_str = _scan_uid_tag(raw, _TAG_NUMBER_OF_FRAMES)
+
+    if sop:
+        logger.info(
+            f"Raw byte scan extracted UIDs: SOP={sop}, Study={study}, "
+            f"Series={series}"
+        )
+    else:
+        logger.warning(
+            f"Both pydicom and raw scan failed to find SOPInstanceUID "
+            f"in {len(raw)}-byte buffer"
+        )
+
+    return {
+        "study_uid": study,
+        "series_uid": series,
+        "sop_uid": sop,
+        "num_frames": int(nf_str) if nf_str.isdigit() else 1,
+    }
 
 
 # ---------------------------------------------------------------------------
