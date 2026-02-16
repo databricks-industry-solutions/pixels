@@ -26,7 +26,7 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 init_env()
 
 app_name = "pixels-dicomweb"
-lakebase_instance_name = "pixels-pixels"
+lakebase_instance_name = "pixels-lakebase"
 serving_endpoint_name = "pixels-monai-uc"
 
 w = WorkspaceClient()

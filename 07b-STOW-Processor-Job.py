@@ -172,14 +172,14 @@ else:
             JobEnvironment(
                 environment_key="default",
                 spec=Environment(
-                    client="1",
+                    client="4",
                     dependencies=[
                         "databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@features/dicom_web_integration",
                     ],
                 ),
             )
         ],
-        max_concurrent_runs=2,
+        max_concurrent_runs=1,
         tags={"app": app_name, "purpose": "stow_processor"},
         parameters=[
             JobParameterDefinition(name="catalog_table", default=table),
