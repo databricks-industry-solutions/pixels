@@ -19,6 +19,7 @@ from utils.handlers import (
     dicomweb_wado_uri,
     dicomweb_stow_studies,
     dicomweb_resolve_paths,
+    dicomweb_perf_compare,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
 
@@ -119,6 +120,24 @@ def register_dicomweb_routes(app: FastAPI):
     async def resolve_paths(request: Request):
         return await dicomweb_resolve_paths(request)
 
+    # Debug: performance comparison (full stream vs progressive)
+    @app.get(
+        "/api/dicomweb/debug/perf/{study_instance_uid}/{series_instance_uid}"
+        "/{sop_instance_uid}/frames/{frame_list}",
+        tags=["Debug"],
+    )
+    def perf_compare(
+        request: Request,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        sop_instance_uid: str,
+        frame_list: str,
+    ):
+        return dicomweb_perf_compare(
+            request, study_instance_uid, series_instance_uid,
+            sop_instance_uid, frame_list,
+        )
+
     # WADO-URI (legacy query-parameter retrieval)
     @app.get("/api/dicomweb/wado", tags=["DICOMweb WADO-URI"])
     def wado_uri(request: Request):
@@ -196,54 +215,53 @@ def _dicomweb_service_root() -> dict:
 
 
 # ------------------------------------------------------------------
-# Standalone entrypoint
+# Standalone entrypoint / App definition
 # ------------------------------------------------------------------
 
+from contextlib import asynccontextmanager
+
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── startup ──
+    start_metrics_logger(interval_seconds=300)  # log every 5 minutes
+    yield
+    # ── shutdown (cleanup if needed) ──
+
+app = FastAPI(
+    title="Pixels DICOMweb Service",
+    description="DICOMweb-compliant API with OHIF viewer, MONAI, redaction, and VLM",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# ── DICOMweb standard routes ──────────────────────────────────────
+register_dicomweb_routes(app)
+
+# ── Shared common routes (OHIF, proxy, MONAI, redaction, VLM) ─────
+register_all_common_routes(app)
+
+# ── Middleware (order matters: first added = outermost) ────────────
+app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
+app.add_middleware(LoggingMiddleware)
+
+class Options200Middleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.method == "OPTIONS":
+            return Response(status_code=200)
+        return await call_next(request)
+
+app.add_middleware(Options200Middleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 if __name__ == "__main__":
-    from contextlib import asynccontextmanager
-
-    from fastapi.middleware.cors import CORSMiddleware
-    from starlette.middleware.base import BaseHTTPMiddleware
-
-    @asynccontextmanager
-    async def lifespan(app: FastAPI):
-        # ── startup ──
-        start_metrics_logger(interval_seconds=300)  # log every 5 minutes
-        yield
-        # ── shutdown (cleanup if needed) ──
-
-    app = FastAPI(
-        title="Pixels DICOMweb Service",
-        description="DICOMweb-compliant API with OHIF viewer, MONAI, redaction, and VLM",
-        version="1.0.0",
-        lifespan=lifespan,
-    )
-
-    # ── DICOMweb standard routes ──────────────────────────────────────
-    register_dicomweb_routes(app)
-
-    # ── Shared common routes (OHIF, proxy, MONAI, redaction, VLM) ─────
-    register_all_common_routes(app)
-
-    # ── Middleware (order matters: first added = outermost) ────────────
-    app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
-    app.add_middleware(LoggingMiddleware)
-
-    class Options200Middleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            if request.method == "OPTIONS":
-                return Response(status_code=200)
-            return await call_next(request)
-
-    app.add_middleware(Options200Middleware)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

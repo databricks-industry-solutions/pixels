@@ -25,10 +25,17 @@ from dbx.pixels.logging import LoggerProvider
 from . import timing_decorator
 from .cache import bot_cache, instance_path_cache
 from .dicom_io import (
+    _HEADER_EXTENDED_BYTES,
+    _HEADER_INITIAL_BYTES,
+    _PIXEL_DATA_MARKER,
+    _extract_from_extended_offset_table,
+    _fetch_bytes_range,
     compute_full_bot,
     file_prefetcher,
     get_file_metadata,
     get_file_part,
+    get_file_part_local,
+    progressive_streamer,
     stream_file,
 )
 from .dicom_tags import format_dicomweb_response
@@ -455,16 +462,24 @@ class DICOMwebDatabricksWrapper:
         frame_numbers: List[int],
     ) -> tuple[Iterator[bytes], str]:
         """
-        Retrieve specific frames using the 3-tier PACS-style BOT cache,
-        returning a **streaming** generator.
+        Retrieve specific frames using progressive streaming with
+        single-writer / multi-reader coordination.
 
-        The BOT resolution (cache lookups / computation) happens eagerly so
-        that errors surface before the first byte is sent.  Frame bytes are
-        then yielded one-by-one via byte-range HTTP reads, giving the client
-        data as soon as each frame arrives.
+        **Fast path** (BOT already cached in tier 1/2): frame byte
+        ranges are known immediately.  Frames are served from the local
+        disk cache (if available) or via remote byte-range reads.
 
-        On the first request for a series, sibling instances are pre-warmed
-        in the background (same as ``retrieve_instance``).
+        **Slow path** (cache miss): a progressive streaming worker is
+        started (or joined if already running).  For each requested
+        frame the caller:
+
+        1. Registers an inline capture slot (zero-copy from the stream).
+        2. Waits until the stream discovers the frame's offset.
+        3. Serves the frame from the capture slot, the local cache file,
+           or a remote byte-range read (in that order of preference).
+
+        On the first request for a series, sibling instances are
+        pre-warmed in the background (same as ``retrieve_instance``).
 
         Args:
             frame_numbers: 1-indexed frame numbers (per DICOMweb spec).
@@ -477,26 +492,367 @@ class DICOMwebDatabricksWrapper:
         # --- Trigger series-level pre-warming in background ───────────
         self._maybe_prime_series(study_instance_uid, series_instance_uid)
 
-        db_file, frames_by_idx, transfer_syntax_uid = self._resolve_frame_offsets(
+        # --- Resolve SOP UID → file path (3-tier) ---
+        path = self._resolve_instance_path(
             study_instance_uid, series_instance_uid, sop_instance_uid,
-            frame_numbers,
         )
-
+        db_file = DatabricksFile.from_full_path(path)
+        filename = db_file.full_path
         token = self._token
 
-        def generate() -> Iterator[bytes]:
-            for fn in frame_numbers:
-                meta = frames_by_idx[fn - 1]
+        # --- Try fast path: BOT already cached (tier 1 / 2) ---
+        fast_result = self._try_cached_frames(
+            db_file, filename, token, frame_numbers,
+        )
+        if fast_result is not None:
+            return fast_result
+
+        # --- Slow path: progressive streaming (tier 3) ---
+        return self._progressive_frame_retrieval(
+            db_file, filename, token, frame_numbers,
+        )
+
+    def _try_cached_frames(
+        self,
+        db_file: DatabricksFile,
+        filename: str,
+        token: str,
+        frame_numbers: List[int],
+    ) -> tuple[Iterator[bytes], str] | None:
+        """
+        Attempt to serve frames from the BOT cache (tier 1 / 2).
+
+        Returns ``None`` when the BOT is not cached and a progressive
+        stream is needed.
+        """
+        try:
+            # ── Tier 1: in-memory BOT cache (µs) ────────────────────
+            cached_bot = bot_cache.get(filename, self._table)
+            if cached_bot:
+                logger.info(f"BOT cache HIT ({bot_cache.stats})")
+                frames_by_idx = cached_bot.get("frames_by_idx", {})
+                if all((fn - 1) in frames_by_idx for fn in frame_numbers):
+                    tsuid = cached_bot["transfer_syntax_uid"]
+                    state = progressive_streamer.get_state(filename)
+                    return (
+                        self._generate_from_cache(
+                            db_file, token, frame_numbers, frames_by_idx, state,
+                        ),
+                        tsuid,
+                    )
+
+            # ── Tier 2: Lakebase persistent cache (ms) ──────────────
+            if self._lb:
+                logger.info(f"Checking Lakebase for {filename}")
                 t0 = time.time()
+                lb_frames = self._lb.retrieve_all_frame_ranges(
+                    filename, self._table, user_groups=self._user_groups,
+                )
+                logger.info(f"⏱️  Lakebase lookup took {time.time() - t0:.4f}s")
+
+                if lb_frames:
+                    logger.info(f"Lakebase HIT — {len(lb_frames)} frames")
+                    lb_idx = {f["frame_number"]: f for f in lb_frames}
+
+                    if all((fn - 1) in lb_idx for fn in frame_numbers):
+                        tsuid = (cached_bot or {}).get("transfer_syntax_uid")
+                        if not tsuid:
+                            meta = get_file_metadata(token, db_file)
+                            tsuid = meta.get("00020010", {}).get(
+                                "Value", ["1.2.840.10008.1.2.1"],
+                            )[0]
+
+                        bot_cache.put_from_lakebase(
+                            filename, self._table, lb_frames, tsuid,
+                        )
+                        logger.info("Promoted Lakebase → memory cache")
+                        state = progressive_streamer.get_state(filename)
+                        return (
+                            self._generate_from_cache(
+                                db_file, token, frame_numbers, lb_idx, state,
+                            ),
+                            tsuid,
+                        )
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.warning(
+                f"Cached frame lookup failed ({exc}), "
+                f"falling back to progressive streaming"
+            )
+
+        return None
+
+    def _generate_from_cache(
+        self,
+        db_file: DatabricksFile,
+        token: str,
+        frame_numbers: List[int],
+        frames_by_idx: dict,
+        state=None,
+    ) -> Iterator[bytes]:
+        """Yield frames from cached BOT, preferring local file reads."""
+        for fn in frame_numbers:
+            frame_idx = fn - 1
+            meta = frames_by_idx[frame_idx]
+            t0 = time.time()
+
+            # Prefer local disk cache → remote byte-range
+            if state is not None and state.is_complete and not state.has_error:
+                try:
+                    content = get_file_part_local(
+                        state.local_path, state.data_start, meta,
+                    )
+                    logger.info(
+                        f"⏱️  local read frame {fn}: "
+                        f"{time.time() - t0:.4f}s, {len(content)} bytes"
+                    )
+                except Exception:
+                    content = get_file_part(token, db_file, meta)
+                    logger.info(
+                        f"⏱️  get_file_part frame {fn}: "
+                        f"{time.time() - t0:.4f}s, {len(content)} bytes"
+                    )
+            else:
                 content = get_file_part(token, db_file, meta)
                 logger.info(
                     f"⏱️  get_file_part frame {fn}: "
                     f"{time.time() - t0:.4f}s, {len(content)} bytes"
                 )
-                content = DICOMwebDatabricksWrapper._strip_item_header(content, fn)
+
+            content = DICOMwebDatabricksWrapper._strip_item_header(content, fn)
+            yield content
+
+    def _progressive_frame_retrieval(
+        self,
+        db_file: DatabricksFile,
+        filename: str,
+        token: str,
+        frame_numbers: List[int],
+    ) -> tuple[Iterator[bytes], str]:
+        """
+        Serve frames via progressive streaming (tier 3 — cache miss).
+
+        Fetches the DICOM header, checks for Extended Offset Table, and
+        falls back to the progressive streamer for compressed files
+        without EOT.
+        """
+        from io import BytesIO
+        import pydicom
+
+        logger.info(f"Progressive frame retrieval for {filename}")
+
+        # ── Download header ──────────────────────────────────────────
+        raw = _fetch_bytes_range(token, db_file, 0, _HEADER_INITIAL_BYTES)
+        pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+        if pixel_data_pos == -1 and len(raw) >= _HEADER_INITIAL_BYTES:
+            raw = _fetch_bytes_range(token, db_file, 0, _HEADER_EXTENDED_BYTES)
+            pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+
+        ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+        transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)
+        is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
+        number_of_frames = int(ds.get("NumberOfFrames", 1))
+
+        if not is_compressed:
+            # Uncompressed: analytical BOT (existing fast path)
+            return self._uncompressed_frames(
+                db_file, token, ds, pixel_data_pos,
+                number_of_frames, transfer_syntax_uid, frame_numbers, filename,
+            )
+
+        # ── Compressed: try Extended Offset Table first ──────────────
+        eot_frames = _extract_from_extended_offset_table(
+            ds, raw, pixel_data_pos, number_of_frames,
+        )
+        if eot_frames is not None:
+            logger.info(
+                f"BOT from Extended Offset Table: {len(eot_frames)} frames "
+                f"(zero additional I/O)"
+            )
+            bot_data = {
+                "transfer_syntax_uid": transfer_syntax_uid,
+                "frames": eot_frames,
+                "pixel_data_pos": pixel_data_pos,
+                "num_frames": number_of_frames,
+                "captured_frame_data": {},
+            }
+            bot_cache.put(filename, self._table, bot_data)
+            self._persist_bot_to_lakebase(filename, eot_frames)
+
+            frames_by_idx = {f["frame_number"]: f for f in eot_frames}
+            return (
+                self._generate_from_cache(
+                    db_file, token, frame_numbers, frames_by_idx,
+                ),
+                transfer_syntax_uid,
+            )
+
+        # ── Compressed: progressive streaming ─────────────────────────
+        state = progressive_streamer.get_or_start_stream(
+            filename, token, db_file, pixel_data_pos,
+            number_of_frames, raw, transfer_syntax_uid,
+        )
+
+        # Register inline capture for requested frames
+        capture_slots: dict[int, Any] = {}
+        for fn in frame_numbers:
+            frame_idx = fn - 1
+            slot = state.register_capture(frame_idx)
+            if slot is not None:
+                capture_slots[frame_idx] = slot
+
+        def generate() -> Iterator[bytes]:
+            for fn in frame_numbers:
+                frame_idx = fn - 1
+                t0 = time.time()
+
+                # Wait for this frame's offset to be discovered
+                frame_meta = state.wait_for_frame(frame_idx, timeout=120.0)
+                if frame_meta is None:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Frame {fn} not found in stream",
+                    )
+
+                # Try inline capture first (zero extra I/O)
+                slot = capture_slots.get(frame_idx)
+                if slot is not None:
+                    slot.ready.wait(timeout=120.0)
+                    if slot.data is not None:
+                        logger.info(
+                            f"⏱️  frame {fn} from inline capture: "
+                            f"{time.time() - t0:.4f}s, "
+                            f"{len(slot.data)} bytes"
+                        )
+                        yield slot.data
+                        continue
+
+                # Try local cache file
+                if os.path.exists(state.local_path):
+                    try:
+                        content = get_file_part_local(
+                            state.local_path, state.data_start, frame_meta,
+                        )
+                        logger.info(
+                            f"⏱️  local read frame {fn}: "
+                            f"{time.time() - t0:.4f}s, "
+                            f"{len(content)} bytes"
+                        )
+                        content = DICOMwebDatabricksWrapper._strip_item_header(
+                            content, fn,
+                        )
+                        yield content
+                        continue
+                    except Exception as exc:
+                        logger.warning(
+                            f"Local cache read failed for frame {fn}: {exc}"
+                        )
+
+                # Fallback: remote byte-range read
+                content = get_file_part(token, db_file, frame_meta)
+                logger.info(
+                    f"⏱️  get_file_part frame {fn}: "
+                    f"{time.time() - t0:.4f}s, "
+                    f"{len(content)} bytes"
+                )
+                content = DICOMwebDatabricksWrapper._strip_item_header(
+                    content, fn,
+                )
                 yield content
 
+            # After all frames served, cache the full BOT if stream is done
+            if state.is_complete and not state.has_error:
+                self._cache_progressive_bot(
+                    filename, state, transfer_syntax_uid,
+                    pixel_data_pos, number_of_frames,
+                )
+
         return generate(), transfer_syntax_uid
+
+    def _uncompressed_frames(
+        self,
+        db_file: DatabricksFile,
+        token: str,
+        ds,
+        pixel_data_pos: int,
+        number_of_frames: int,
+        transfer_syntax_uid: str,
+        frame_numbers: List[int],
+        filename: str,
+    ) -> tuple[Iterator[bytes], str]:
+        """Analytical BOT for uncompressed files — zero extra I/O."""
+        item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
+        frames: list[dict] = []
+        for idx in range(number_of_frames):
+            offset = (idx * item_length) + 12
+            frames.append({
+                "frame_number": idx,
+                "frame_size": item_length,
+                "start_pos": pixel_data_pos + offset,
+                "end_pos": pixel_data_pos + offset + item_length - 1,
+                "pixel_data_pos": pixel_data_pos,
+            })
+
+        bot_data = {
+            "transfer_syntax_uid": transfer_syntax_uid,
+            "frames": frames,
+            "pixel_data_pos": pixel_data_pos,
+            "num_frames": number_of_frames,
+            "captured_frame_data": {},
+        }
+        bot_cache.put(filename, self._table, bot_data)
+        self._persist_bot_to_lakebase(filename, frames)
+
+        frames_by_idx = {f["frame_number"]: f for f in frames}
+        return (
+            self._generate_from_cache(
+                db_file, token, frame_numbers, frames_by_idx,
+            ),
+            transfer_syntax_uid,
+        )
+
+    def _cache_progressive_bot(
+        self,
+        filename: str,
+        state,
+        transfer_syntax_uid: str,
+        pixel_data_pos: int,
+        number_of_frames: int,
+    ) -> None:
+        """Promote a completed progressive stream's BOT to the cache tiers."""
+        try:
+            frames = [
+                state.frames[i] for i in sorted(state.frames.keys())
+            ]
+            bot_data = {
+                "transfer_syntax_uid": transfer_syntax_uid,
+                "frames": frames,
+                "pixel_data_pos": pixel_data_pos,
+                "num_frames": number_of_frames,
+                "captured_frame_data": {},
+            }
+            bot_cache.put(filename, self._table, bot_data)
+            self._persist_bot_to_lakebase(filename, frames)
+            logger.info(
+                f"Promoted progressive BOT to cache: "
+                f"{len(frames)} frames for {filename}"
+            )
+        except Exception as exc:
+            logger.warning(f"Failed to cache progressive BOT: {exc}")
+
+    def _persist_bot_to_lakebase(self, filename: str, frames: list[dict]) -> None:
+        """Persist frame ranges to Lakebase (tier 2)."""
+        if self._lb:
+            try:
+                t0 = time.time()
+                self._lb.insert_frame_ranges(
+                    filename, frames, self._table,
+                    allowed_groups=self._user_groups,
+                )
+                logger.info(f"⏱️  Lakebase persist took {time.time() - t0:.4f}s")
+            except Exception as exc:
+                logger.warning(f"Lakebase persist failed (non-fatal): {exc}")
 
     # ------------------------------------------------------------------
     # Series pre-warming (critical for WADO-URI without prior QIDO-RS)
@@ -751,7 +1107,7 @@ class DICOMwebDatabricksWrapper:
         series_instance_uid: str,
         sop_instance_uid: str,
         frame_numbers: List[int],
-    ) -> tuple[DatabricksFile, dict, str]:
+    ) -> tuple[DatabricksFile, dict, str, dict[int, bytes]]:
         """
         Resolve frame byte-offsets from the 3-tier PACS cache.
 
@@ -759,8 +1115,14 @@ class DICOMwebDatabricksWrapper:
         2. Lakebase persistent   (ms)
         3. Full BOT computation  (s) — only on first access
 
+        When the BOT is computed via the streaming scan (tier 3), the
+        requested frames are captured inline so they can be served
+        without a separate byte-range read.
+
         Returns:
-            ``(db_file, frames_by_idx, transfer_syntax_uid)``
+            ``(db_file, frames_by_idx, transfer_syntax_uid, captured_data)``
+            where *captured_data* maps 0-indexed frame numbers to raw
+            pixel bytes (empty dict when frames were not captured).
 
         Raises:
             HTTPException: If the instance or requested frames are not found.
@@ -773,6 +1135,7 @@ class DICOMwebDatabricksWrapper:
         db_file = DatabricksFile.from_full_path(path)
         filename = db_file.full_path
         token = self._token
+        no_captured: dict[int, bytes] = {}
 
         try:
             # --- TIER 1: in-memory BOT cache (µs) ---
@@ -781,7 +1144,7 @@ class DICOMwebDatabricksWrapper:
                 logger.info(f"BOT cache HIT ({bot_cache.stats})")
                 frames_by_idx = cached_bot.get("frames_by_idx", {})
                 if all((fn - 1) in frames_by_idx for fn in frame_numbers):
-                    return db_file, frames_by_idx, cached_bot["transfer_syntax_uid"]
+                    return db_file, frames_by_idx, cached_bot["transfer_syntax_uid"], no_captured
 
             # --- TIER 2: Lakebase persistent cache (ms) ---
             if self._lb:
@@ -804,12 +1167,17 @@ class DICOMwebDatabricksWrapper:
 
                         bot_cache.put_from_lakebase(filename, self._table, lb_frames, tsuid)
                         logger.info("Promoted Lakebase → memory cache")
-                        return db_file, lb_idx, tsuid
+                        return db_file, lb_idx, tsuid, no_captured
 
             # --- TIER 3: compute full BOT (one-time cost per file) ---
+            # Pass the requested frame indices so the streaming scanner
+            # can capture them inline (avoids a second byte-range read).
+            capture_set = {fn - 1 for fn in frame_numbers}
             logger.info(f"Cache MISS — computing full BOT for {filename}")
             t0 = time.time()
-            bot_data = compute_full_bot(token, db_file)
+            bot_data = compute_full_bot(
+                token, db_file, capture_frames=capture_set,
+            )
             logger.info(
                 f"⏱️  compute_full_bot took {time.time() - t0:.4f}s — "
                 f"{len(bot_data['frames'])} frames, tsuid={bot_data['transfer_syntax_uid']}"
@@ -839,7 +1207,8 @@ class DICOMwebDatabricksWrapper:
                         ),
                     )
 
-            return db_file, frames_by_idx, bot_data["transfer_syntax_uid"]
+            captured = bot_data.get("captured_frame_data", {})
+            return db_file, frames_by_idx, bot_data["transfer_syntax_uid"], captured
 
         except HTTPException:
             raise

@@ -268,6 +268,159 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
 
 
 # ---------------------------------------------------------------------------
+# Performance comparison: full stream vs progressive
+# ---------------------------------------------------------------------------
+
+@timing_decorator
+def dicomweb_perf_compare(
+    request: Request,
+    study_instance_uid: str,
+    series_instance_uid: str,
+    sop_instance_uid: str,
+    frame_list: str,
+) -> Response:
+    """GET /api/dicomweb/debug/perf/…/frames/{frameList}
+
+    Compare time-to-first-byte (TTFB) and total delivery time between:
+
+    A) **Full stream** — stream the entire file, then extract frames
+    B) **Progressive** — progressive streaming with per-frame delivery
+
+    Returns a JSON report with timing for each approach.  Useful for
+    benchmarking without a browser.
+    """
+    import json
+    import time as _time
+
+    from ..dicom_io import (
+        _HEADER_EXTENDED_BYTES,
+        _HEADER_INITIAL_BYTES,
+        _PIXEL_DATA_MARKER,
+        _fetch_bytes_range,
+        compute_full_bot,
+        get_file_part,
+        stream_file,
+    )
+    from ..cache import bot_cache
+
+    wrapper = get_dicomweb_wrapper(request)
+
+    try:
+        frame_numbers = [int(f.strip()) for f in frame_list.split(",")]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid frame list format")
+
+    logger.info(
+        f"PERF COMPARE: frames={frame_numbers}, instance={sop_instance_uid}"
+    )
+
+    # ── Resolve path (shared) ────────────────────────────────────────
+    path = wrapper._resolve_instance_path(
+        study_instance_uid, series_instance_uid, sop_instance_uid,
+    )
+    from dbx.pixels.databricks_file import DatabricksFile
+    db_file = DatabricksFile.from_full_path(path)
+    filename = db_file.full_path
+    token = wrapper._token
+
+    results: dict = {
+        "file": filename,
+        "frame_numbers": frame_numbers,
+    }
+
+    # ── Approach A: Full file stream + extract ────────────────────────
+    try:
+        t_start = _time.time()
+        t_ttfb = None
+
+        raw = _fetch_bytes_range(token, db_file)
+        pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+
+        from io import BytesIO
+        import pydicom
+        ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+        transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)
+
+        bot_data = compute_full_bot(token, db_file)
+        frames_by_idx = {
+            f["frame_number"]: f for f in bot_data.get("frames", [])
+        }
+
+        frame_sizes_a = []
+        for fn in frame_numbers:
+            fidx = fn - 1
+            meta = frames_by_idx.get(fidx)
+            if meta:
+                content = get_file_part(token, db_file, meta)
+                if t_ttfb is None:
+                    t_ttfb = _time.time() - t_start
+                frame_sizes_a.append(len(content))
+
+        t_total = _time.time() - t_start
+
+        results["full_stream"] = {
+            "ttfb_s": round(t_ttfb or t_total, 4),
+            "total_s": round(t_total, 4),
+            "frame_sizes": frame_sizes_a,
+        }
+    except Exception as exc:
+        results["full_stream"] = {"error": str(exc)}
+
+    # ── Clear caches so progressive starts fresh ─────────────────────
+    bot_cache._cache.pop(bot_cache._key(filename, wrapper._table), None)
+
+    # ── Approach B: Progressive streaming ────────────────────────────
+    try:
+        from ..dicom_io import progressive_streamer
+
+        # Remove any existing stream state for a clean comparison
+        with progressive_streamer._lock:
+            progressive_streamer._states.pop(filename, None)
+
+        t_start = _time.time()
+        t_ttfb = None
+
+        frame_stream, tsuid = wrapper.retrieve_instance_frames(
+            study_instance_uid, series_instance_uid,
+            sop_instance_uid, frame_numbers,
+        )
+
+        frame_sizes_b = []
+        for frame_data in frame_stream:
+            if t_ttfb is None:
+                t_ttfb = _time.time() - t_start
+            frame_sizes_b.append(len(frame_data))
+
+        t_total = _time.time() - t_start
+
+        results["progressive"] = {
+            "ttfb_s": round(t_ttfb or t_total, 4),
+            "total_s": round(t_total, 4),
+            "frame_sizes": frame_sizes_b,
+        }
+    except Exception as exc:
+        results["progressive"] = {"error": str(exc)}
+
+    # ── Summary ──────────────────────────────────────────────────────
+    if "ttfb_s" in results.get("full_stream", {}) and "ttfb_s" in results.get("progressive", {}):
+        fs = results["full_stream"]
+        pr = results["progressive"]
+        ttfb_speedup = fs["ttfb_s"] / max(pr["ttfb_s"], 0.0001)
+        total_speedup = fs["total_s"] / max(pr["total_s"], 0.0001)
+        results["comparison"] = {
+            "ttfb_speedup": f"{ttfb_speedup:.1f}x",
+            "total_speedup": f"{total_speedup:.1f}x",
+            "ttfb_delta_s": round(fs["ttfb_s"] - pr["ttfb_s"], 4),
+            "total_delta_s": round(fs["total_s"] - pr["total_s"], 4),
+        }
+
+    return Response(
+        content=json.dumps(results, indent=2),
+        media_type="application/json",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Path resolution handler
 # ---------------------------------------------------------------------------
 

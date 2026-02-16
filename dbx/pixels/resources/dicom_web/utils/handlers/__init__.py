@@ -20,6 +20,7 @@ from ._wado import (
     dicomweb_wado_instance_frames,
     dicomweb_wado_uri,
     dicomweb_resolve_paths,
+    dicomweb_perf_compare,
 )
 from ._stow import dicomweb_stow_studies
 
@@ -37,4 +38,6 @@ __all__ = [
     "dicomweb_stow_studies",
     # Path resolution
     "dicomweb_resolve_paths",
+    # Debug / performance
+    "dicomweb_perf_compare",
 ]
