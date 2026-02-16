@@ -13,7 +13,11 @@ metrics      — System and application metrics (CPU, RAM, caches)
 queries      — QIDO-RS SQL query builders (parameterized)
 sql_client   — Databricks SQL Connector with App / User (OBO) auth
 wrapper      — ``DICOMwebDatabricksWrapper`` service class
-handlers     — FastAPI endpoint handlers and wrapper factory
+handlers     — FastAPI endpoint handlers (QIDO / WADO / STOW / resolve)
+  _common    — Shared singletons, authentication, wrapper factory
+  _qido      — QIDO-RS handlers
+  _wado      — WADO-RS, WADO-URI, path resolution handlers
+  _stow      — STOW-RS handler with early return and cache pre-warming
 """
 
 import time

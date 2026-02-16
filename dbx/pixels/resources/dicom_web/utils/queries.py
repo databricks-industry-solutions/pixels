@@ -380,3 +380,28 @@ def build_stow_insert_query(
     VALUES {', '.join(value_clauses)}
     """
     return query, sql_params
+
+
+def build_stow_poll_query(
+    stow_table: str,
+    file_id: str,
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a parameterized SELECT to poll ``stow_operations`` for Phase 1 completion.
+
+    Phase 1 (split) MERGEs ``status``, ``output_paths``, and ``error_message``
+    once it finishes processing a bundle.  The handler polls this query until
+    ``status`` is no longer ``'pending'``.
+
+    Returns:
+        ``(query, params)`` tuple.  The result set has columns:
+        ``status``, ``output_paths``, ``error_message``.
+    """
+    validate_table_name(stow_table)
+
+    query = """
+    SELECT status, output_paths, error_message
+    FROM IDENTIFIER(%(stow_table)s)
+    WHERE file_id = %(file_id)s
+    """
+    return query, {"stow_table": stow_table, "file_id": file_id}
