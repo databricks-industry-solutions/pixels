@@ -27,6 +27,8 @@ from dbx.pixels.logging import LoggerProvider
 
 from ..sql_client import USE_USER_AUTH, DatabricksSQLClient
 from ..wrapper import DICOMwebDatabricksWrapper
+from ..sql_client import validate_table_name
+
 
 logger = LoggerProvider("DICOMweb.Handlers")
 
@@ -234,7 +236,7 @@ def resolve_user_groups(request: Request) -> list[str] | None:
 _app_wrapper: DICOMwebDatabricksWrapper | None = None
 
 
-def _get_app_wrapper() -> DICOMwebDatabricksWrapper:
+def _get_app_wrapper(pixels_table: str) -> DICOMwebDatabricksWrapper:
     """
     Return the module-level singleton wrapper for app-auth (service principal).
 
@@ -244,13 +246,10 @@ def _get_app_wrapper() -> DICOMwebDatabricksWrapper:
     """
     global _app_wrapper
     if _app_wrapper is not None:
+        _app_wrapper._table = pixels_table
         return _app_wrapper
 
     sql_client = get_sql_client()
-    pixels_table = os.getenv("DATABRICKS_PIXELS_TABLE")
-    if not pixels_table:
-        raise HTTPException(status_code=500, detail="DATABRICKS_PIXELS_TABLE not configured")
-
     _app_wrapper = DICOMwebDatabricksWrapper(
         sql_client=sql_client,
         token_provider=app_token_provider,
@@ -287,13 +286,20 @@ def _build_obo_wrapper(request: Request, pixels_table: str | None = None) -> DIC
     )
 
 
-def get_dicomweb_wrapper(request: Request, pixels_table: str | None = None) -> DICOMwebDatabricksWrapper:
+def get_dicomweb_wrapper(request: Request) -> DICOMwebDatabricksWrapper:
     """
     Return the appropriate ``DICOMwebDatabricksWrapper``.
 
     * **App auth** — returns the module-level singleton (token auto-refreshes).
     * **User auth (OBO)** — returns a fresh per-request wrapper.
     """
+    pixels_table = request.cookies.get("pixels_table") or os.getenv("DATABRICKS_PIXELS_TABLE") 
+    
+    if not pixels_table:
+        raise HTTPException(status_code=500, detail="DATABRICKS_PIXELS_TABLE not configured")
+    
+    validate_table_name(pixels_table)
+    
     if USE_USER_AUTH:
         return _build_obo_wrapper(request, pixels_table)
-    return _get_app_wrapper()
+    return _get_app_wrapper(pixels_table)
