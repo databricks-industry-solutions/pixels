@@ -31,6 +31,8 @@ from .dicom_io import (
     _extract_from_extended_offset_table,
     _fetch_bytes_range,
     _find_pixel_data_pos,
+    _pixel_data_header_size,
+    _uncompressed_frame_length,
     compute_full_bot,
     file_prefetcher,
     get_file_metadata,
@@ -660,6 +662,7 @@ class DICOMwebDatabricksWrapper:
             return self._uncompressed_frames(
                 db_file, token, ds, pixel_data_pos,
                 number_of_frames, transfer_syntax_uid, frame_numbers, filename,
+                raw,
             )
 
         # ── Compressed: try Extended Offset Table first ──────────────
@@ -781,12 +784,14 @@ class DICOMwebDatabricksWrapper:
         transfer_syntax_uid: str,
         frame_numbers: List[int],
         filename: str,
+        raw: bytes = b"",
     ) -> tuple[Iterator[bytes], str]:
         """Analytical BOT for uncompressed files — zero extra I/O."""
-        item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
+        item_length = _uncompressed_frame_length(ds)
+        header_size = _pixel_data_header_size(raw, pixel_data_pos) if raw else 12
         frames: list[dict] = []
         for idx in range(number_of_frames):
-            offset = (idx * item_length) + 12
+            offset = (idx * item_length) + header_size
             frames.append({
                 "frame_number": idx,
                 "frame_size": item_length,

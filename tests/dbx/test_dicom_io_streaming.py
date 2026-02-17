@@ -36,6 +36,8 @@ from dbx.pixels.resources.dicom_web.utils.dicom_io import (
     _extract_from_extended_offset_table,
     _find_data_start,
     _find_pixel_data_pos,
+    _pixel_data_header_size,
+    _uncompressed_frame_length,
 )
 
 
@@ -623,3 +625,85 @@ class TestFindPixelDataPos:
         assert robust == naive, (
             f"{filename}: robust={robust} != naive={naive}"
         )
+
+
+# ---------------------------------------------------------------------------
+# _pixel_data_header_size / _uncompressed_frame_length tests
+# ---------------------------------------------------------------------------
+
+class TestUncompressedFrameHelpers:
+    """
+    Verify that ``_pixel_data_header_size`` and ``_uncompressed_frame_length``
+    correctly handle:
+
+    * **Implicit VR** files (header = 8 bytes, not 12)
+    * **Colour images** with ``SamplesPerPixel > 1`` (e.g. RGB)
+    """
+
+    @staticmethod
+    def _verify_frame_data(filename: str):
+        """
+        End-to-end check: use the two helpers to locate the first frame
+        and compare the bytes with pydicom's ``pixel_array.tobytes()``.
+        """
+        fpath = pydicom.data.get_testdata_file(filename)
+        with open(fpath, "rb") as f:
+            raw = f.read()
+
+        ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+        if ds.file_meta.TransferSyntaxUID.is_compressed:
+            pytest.skip(f"{filename} is compressed")
+
+        pdp = _find_pixel_data_pos(raw)
+        header = _pixel_data_header_size(raw, pdp)
+        frame_len = _uncompressed_frame_length(ds)
+
+        our_pixels = raw[pdp + header : pdp + header + frame_len]
+
+        ds_full = pydicom.dcmread(fpath)
+        expected = ds_full.pixel_array.tobytes()
+
+        assert our_pixels == expected, (
+            f"{filename}: first 16 bytes: ours={our_pixels[:16].hex()} "
+            f"expected={expected[:16].hex()}"
+        )
+        return header, frame_len
+
+    def test_implicit_vr_header_is_8(self):
+        """MR_small_implicit.dcm uses Implicit VR — header must be 8."""
+        header, _ = self._verify_frame_data("MR_small_implicit.dcm")
+        assert header == 8
+
+    def test_explicit_vr_header_is_12(self):
+        """CT_small.dcm uses Explicit VR — header must be 12."""
+        header, _ = self._verify_frame_data("CT_small.dcm")
+        assert header == 12
+
+    def test_rgb_samples_per_pixel(self):
+        """SC_rgb.dcm has SamplesPerPixel=3 — frame length must include it."""
+        fpath = pydicom.data.get_testdata_file("SC_rgb.dcm")
+        ds = pydicom.dcmread(fpath, stop_before_pixels=True)
+
+        spp = int(getattr(ds, "SamplesPerPixel", 1))
+        assert spp == 3, f"Expected SamplesPerPixel=3, got {spp}"
+
+        frame_len = _uncompressed_frame_length(ds)
+        expected = ds.Rows * ds.Columns * (ds.BitsAllocated // 8) * spp
+        assert frame_len == expected
+
+    def test_rgb_pixel_data_matches_pydicom(self):
+        """End-to-end: RGB pixel data from our offset matches pydicom."""
+        self._verify_frame_data("SC_rgb.dcm")
+
+    @pytest.mark.parametrize(
+        "filename",
+        [
+            "CT_small.dcm",
+            "MR_small.dcm",
+            "MR_small_implicit.dcm",
+            "SC_rgb.dcm",
+        ],
+    )
+    def test_frame_data_matches_pydicom(self, filename):
+        """Parametrized end-to-end pixel data comparison."""
+        self._verify_frame_data(filename)

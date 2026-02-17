@@ -1388,6 +1388,37 @@ _HEADER_INITIAL_BYTES = 64 * 1024
 _HEADER_EXTENDED_BYTES = 2 * 1024 * 1024
 
 
+def _pixel_data_header_size(raw: bytes, pixel_data_pos: int) -> int:
+    """
+    Return the byte length of the Pixel Data element header.
+
+    For **explicit VR** with a 4-byte-length VR (OB, OW, OF, OD, UN, …)
+    the header is ``tag(4) + VR(2) + reserved(2) + length(4) = 12``.
+    For **implicit VR** the header is ``tag(4) + length(4) = 8``.
+
+    The caller must pass the raw file bytes and the position of the
+    ``(7FE0,0010)`` tag so the function can inspect the bytes that
+    follow it.
+    """
+    if pixel_data_pos + 8 > len(raw):
+        return 12  # safe default (explicit VR)
+
+    vr = raw[pixel_data_pos + 4 : pixel_data_pos + 6]
+    if vr.isalpha():
+        return 12  # explicit VR — tag(4) + VR(2) + reserved(2) + len(4)
+    return 8       # implicit VR — tag(4) + len(4)
+
+
+def _uncompressed_frame_length(ds) -> int:
+    """
+    Return the byte length of a single uncompressed frame.
+
+    Accounts for ``SamplesPerPixel`` (> 1 for colour images like RGB).
+    """
+    samples_per_pixel = int(getattr(ds, "SamplesPerPixel", 1))
+    return ds.Rows * ds.Columns * (ds.BitsAllocated // 8) * samples_per_pixel
+
+
 def _find_pixel_data_pos(raw: bytes) -> int:
     """
     Locate the **top-level** Pixel Data tag ``(7FE0,0010)`` in *raw*.
@@ -1541,9 +1572,10 @@ def compute_full_bot(
 
     if not is_compressed:
         # ── Uncompressed: analytical BOT — zero additional I/O ──────────
-        item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
+        item_length = _uncompressed_frame_length(ds)
+        header_size = _pixel_data_header_size(raw, pixel_data_pos)
         for idx in range(number_of_frames):
-            offset = (idx * item_length) + 12
+            offset = (idx * item_length) + header_size
             frames.append({
                 "frame_number": idx,
                 "frame_size": item_length,
