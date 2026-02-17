@@ -209,32 +209,55 @@ class BufferedStreamReader:
 # Byte-range file access (buffered — for frames / small reads)
 # ---------------------------------------------------------------------------
 
+def _fetch_bytes_range(
+    token: str,
+    db_file: DatabricksFile,
+    start: int = 0,
+    end: int | None = None,
+) -> bytes:
+    """Fetch a byte range from Volumes using the pooled _session."""
+    headers = _auth_headers(token)
+    if end is not None:
+        headers["Range"] = f"bytes={start}-{end - 1}"
+    resp = _session.get(db_file.to_api_url(), headers=headers)
+    if resp.status_code not in (200, 206):
+        raise RuntimeError(f"HTTP {resp.status_code} fetching {db_file.file_path}")
+    return resp.content
+
+
 def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None) -> bytes:
     """
-    Retrieve a specific byte range from a file in Databricks Volumes.
-
-    Uses the persistent session so that consecutive calls (e.g. fetching
-    427 instances in a series) reuse the same TCP+TLS connection.
-
-    Args:
-        token: Databricks authentication token.
-        db_file: Target file in a Unity Catalog volume.
-        frame: Optional dict with ``start_pos`` / ``end_pos`` for a byte-range read.
-
-    Returns:
-        Raw bytes of the requested range (or whole file if *frame* is ``None``).
+    Retrieve a specific byte range or set of fragments from Databricks Volumes.
     """
-    headers = _auth_headers(token)
-    if frame is not None:
-        headers["Range"] = f"bytes={frame['start_pos']}-{frame['end_pos']}"
+    if frame is not None and "fragments" in frame:
+        joined = b""
+        for frag in frame["fragments"]:
+            raw = _fetch_bytes_range(token, db_file, frag["start"], frag["start"] + frag["length"])
+            joined += raw
+        return joined
 
-    response = _session.get(db_file.to_api_url(), headers=headers)
-    if response.status_code not in (200, 206):
-        raise RuntimeError(
-            f"Failed to retrieve file part from {db_file.file_path} "
-            f"(HTTP {response.status_code})"
-        )
-    return response.content
+    if frame is not None:
+        return _fetch_bytes_range(token, db_file, frame["start_pos"], frame["end_pos"] + 1)
+    return _fetch_bytes_range(token, db_file)
+
+
+def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
+    """
+    Read frame pixel bytes from a local cache file, joining fragments if needed.
+    """
+    if "fragments" in frame:
+        joined = b""
+        with open(local_path, "rb") as f:
+            for frag in frame["fragments"]:
+                local_offset = frag["start"] - data_start
+                f.seek(local_offset)
+                joined += f.read(frag["length"])
+        return joined
+
+    local_offset = frame["start_pos"] - data_start
+    with open(local_path, "rb") as f:
+        f.seek(local_offset)
+        return f.read(frame["frame_size"])
 
 
 # ---------------------------------------------------------------------------
@@ -856,56 +879,48 @@ class ProgressiveFileStreamer:
             )
 
             frame_idx = 0
-            while frame_idx < number_of_frames:
+            # 1. Consume BOT
+            tag_bytes = reader.read_exact(8)
+            if tag_bytes[:4] != _ITEM_TAG:
+                 raise ValueError(f"Progressive stream: expected BOT Item at {reader.position-8}")
+            bot_length = struct.unpack("<I", tag_bytes[4:8])[0]
+            bot_data = reader.read_exact(bot_length)
+            bot_offsets = []
+            if bot_length > 0 and (bot_length % 4 == 0):
+                bot_offsets = list(struct.unpack(f"<{bot_length//4}I", bot_data))
+            
+            first_frag_tag_pos = reader.position
+            fragments = []
+
+            # 2. Collect ALL fragments until end or seq delim
+            while True:
                 try:
                     tag_bytes = reader.read_exact(8)
                 except EOFError:
-                    logger.warning(
-                        f"Progressive stream: EOF after {frame_idx} frames "
-                        f"(expected {number_of_frames})"
-                    )
                     break
-
                 tag = tag_bytes[:4]
                 if tag == _SEQ_DELIM_TAG:
                     break
                 if tag != _ITEM_TAG:
-                    logger.warning(
-                        f"Progressive stream: unexpected tag "
-                        f"0x{tag.hex()} at position {reader.position - 8}"
-                    )
+                    logger.warning(f"Unexpected tag 0x{tag.hex()} during stream at {reader.position-8}")
                     break
+                
+                length = struct.unpack("<I", tag_bytes[4:8])[0]
+                start_pos = reader.position
+                fragments.append({"start": start_pos, "length": length})
+                
+                # Check if we need to capture any frames that might be in this fragment
+                # Since we don't know the grouping yet, this is tricky. 
+                # For now, we'll just write EVERYTHING to the tee_fh (which is already happening).
+                reader.skip(length)
 
-                item_length = struct.unpack("<I", tag_bytes[4:8])[0]
-                frame_data_start = reader.position
-
-                frame_meta = {
-                    "frame_number": frame_idx,
-                    "frame_size": item_length,
-                    "start_pos": frame_data_start,
-                    "end_pos": frame_data_start + item_length - 1,
-                    "pixel_data_pos": pixel_data_pos,
-                }
-
-                # Check if a caller registered inline capture
-                should_capture = False
-                with state._condition:
-                    slot = state._capture_slots.get(frame_idx)
-                    if slot is not None and not slot.ready.is_set():
-                        should_capture = True
-
-                if should_capture:
-                    frame_data = reader.read_exact(item_length)
-                    state.publish_frame(frame_idx, frame_meta, frame_data)
-                    logger.debug(
-                        f"Progressive stream: captured frame {frame_idx} "
-                        f"inline ({item_length} bytes)"
-                    )
-                else:
-                    reader.skip(item_length)
-                    state.publish_frame(frame_idx, frame_meta)
-
-                frame_idx += 1
+            # 3. Group and publish
+            frames_list = _group_fragments(
+                fragments, number_of_frames, bot_offsets,
+                first_frag_tag_pos, pixel_data_pos
+            )
+            for f in frames_list:
+                state.publish_frame(f["frame_number"], f)
 
             reader.close()
             if tee_fh:
@@ -1010,50 +1025,37 @@ _ITEM_TAG = b"\xfe\xff\x00\xe0"
 _SEQ_DELIM_TAG = b"\xfe\xff\xdd\xe0"
 
 
-def _find_data_start(header_raw: bytes, pixel_data_pos: int) -> int:
+def _find_bot_item(header_raw: bytes, pixel_data_pos: int) -> tuple[int, int]:
     """
-    Locate the byte position of the **first data Item** after the BOT.
+    Locate the byte position and length of the BOT Item (FFFE,E000).
 
-    DICOM encapsulated pixel data layout::
-
-        pixel_data_pos  →  [Pixel Data Tag (7FE0,0010)] [VR+Length or Length]
-                           [BOT Item (FFFE,E000)] [BOT length] [BOT data…]
-        data_start      →  [First data Item (FFFE,E000)] …
-
-    The search for the BOT Item tag starts a few bytes after
-    ``pixel_data_pos`` (past the Pixel Data tag itself) and tolerates
-    both explicit-VR and implicit-VR encodings.
-
-    Raises ``ValueError`` if the BOT Item cannot be located within the
-    downloaded header bytes.
+    Returns:
+        (bot_item_pos, bot_item_length) where bot_item_pos is the
+        absolute position of the 8-byte Item header.
     """
-    # Skip the 4-byte pixel data tag; the BOT Item tag is within the next
-    # ~12 bytes (depending on VR encoding).
     search_start = pixel_data_pos + 4
-    search_end = min(pixel_data_pos + 100, len(header_raw))
+    search_end = min(pixel_data_pos + 128, len(header_raw))
 
     if search_end <= search_start:
-        raise ValueError(
-            "Header bytes insufficient to search for BOT Item tag"
-        )
+        raise ValueError("Insufficient header bytes to find BOT")
 
     search_area = header_raw[search_start:search_end]
-    bot_item_rel = search_area.find(_ITEM_TAG)
-    if bot_item_rel == -1:
-        raise ValueError(
-            "Cannot locate BOT Item tag after pixel data marker"
-        )
+    rel_pos = search_area.find(_ITEM_TAG)
+    if rel_pos == -1:
+        raise ValueError("Cannot locate BOT Item tag")
 
-    bot_item_pos = search_start + bot_item_rel
-    if bot_item_pos + 8 > len(header_raw):
-        raise ValueError(
-            "Header bytes insufficient to read BOT Item length"
-        )
+    item_pos = search_start + rel_pos
+    if item_pos + 8 > len(header_raw):
+        raise ValueError("Insufficient header bytes to read BOT length")
 
-    bot_item_length = struct.unpack(
-        "<I", header_raw[bot_item_pos + 4 : bot_item_pos + 8],
-    )[0]
-    return bot_item_pos + 8 + bot_item_length
+    length = struct.unpack("<I", header_raw[item_pos + 4 : item_pos + 8])[0]
+    return item_pos, length
+
+
+def _find_data_start(header_raw: bytes, pixel_data_pos: int) -> int:
+    """Legacy helper: returns first byte after the BOT payload."""
+    pos, length = _find_bot_item(header_raw, pixel_data_pos)
+    return pos + 8 + length
 
 
 def _extract_from_extended_offset_table(
@@ -1239,122 +1241,138 @@ def _compute_bot_via_stream(
     header_raw: bytes,
     capture_frames: set[int] | None = None,
 ) -> tuple[list[dict], dict[int, bytes]]:
-    """
-    Build the complete frame offset table by **streaming** from the file.
-
-    Instead of downloading the entire file into a ``BytesIO`` buffer,
-    this function opens a ranged HTTP stream starting at
-    ``data_start`` (first byte after the BOT Item) and sequentially
-    reads each Item's 8-byte header to record its position and length.
-    Frame pixel data is consumed from the stream but **not stored** —
-    keeping memory at O(num_frames × ~50 B) regardless of file size.
-
-    When *capture_frames* is provided, the pixel data of those specific
-    frames is buffered and returned alongside the offset table. This
-    lets the caller serve the requested frames immediately without a
-    second byte-range fetch, saving one HTTP round-trip per frame on
-    the first (cache-miss) request.
-
-    The returned frame list has the same structure as the other BOT
-    helpers, so the 3-tier cache can store it without changes.
-
-    Args:
-        token: Databricks bearer token.
-        db_file: Target file in a Unity Catalog volume.
-        pixel_data_pos: Byte position of the ``(7FE0,0010)`` tag.
-        number_of_frames: Expected number of frames.
-        header_raw: Already-downloaded header bytes (used to locate
-            the BOT Item and compute *data_start*).
-        capture_frames: Optional set of **0-indexed** frame numbers
-            whose pixel data should be captured during the scan.
-
-    Returns:
-        ``(frames_list, captured_data)`` where *captured_data* maps
-        0-indexed frame numbers to their raw pixel bytes (without
-        the 8-byte Item header).
-
-    Raises:
-        ValueError: If the BOT Item cannot be located.
-        EOFError: If the stream ends before all frames are found.
-        RuntimeError: If the HTTP request fails.
-    """
-    data_start = _find_data_start(header_raw, pixel_data_pos)
+    """Build the complete frame offset table by streaming from the file."""
+    bot_item_pos, bot_item_length = _find_bot_item(header_raw, pixel_data_pos)
 
     headers = _auth_headers(token)
-    headers["Range"] = f"bytes={data_start}-"
+    headers["Range"] = f"bytes={bot_item_pos}-"
     response = _session.get(db_file.to_api_url(), headers=headers, stream=True)
 
     if response.status_code not in (200, 206):
         body = response.text[:500]
         response.close()
-        raise RuntimeError(
-            f"Streaming BOT: HTTP {response.status_code} for "
-            f"{db_file.file_path}: {body}"
-        )
+        raise RuntimeError(f"Streaming BOT: HTTP {response.status_code} for {db_file.file_path}: {body}")
 
-    reader = BufferedStreamReader(
-        response, chunk_size=256 * 1024, start_position=data_start,
-    )
-    frames: list[dict] = []
-    captured: dict[int, bytes] = {}
-    capture_set = capture_frames or set()
+    reader = BufferedStreamReader(response, chunk_size=256 * 1024, start_position=bot_item_pos)
+    fragments = []
 
     try:
-        frame_idx = 0
-        while frame_idx < number_of_frames:
-            tag_bytes = reader.read_exact(8)
-            tag = tag_bytes[:4]
+        # 1. Consume BOT Item header and data
+        reader.read_exact(8)  # skip BOT tag + length
+        bot_data = reader.read_exact(bot_item_length)
+        bot_offsets = []
+        if bot_item_length > 0 and (bot_item_length % 4 == 0):
+            bot_offsets = list(struct.unpack(f"<{bot_item_length//4}I", bot_data))
 
+        first_frag_tag_pos = bot_item_pos + 8 + bot_item_length
+
+        # 2. Collect ALL fragments until Sequence Delimiter
+        while True:
+            try:
+                tag_bytes = reader.read_exact(8)
+            except EOFError:
+                break
+            tag = tag_bytes[:4]
             if tag == _SEQ_DELIM_TAG:
-                logger.info(
-                    f"Streaming BOT: hit Sequence Delimitation after "
-                    f"{frame_idx} frames"
-                )
+                break
+            if tag != _ITEM_TAG:
+                # Some files might have garbage or multiple sequence delimiters
+                logger.warning(f"Unexpected tag 0x{tag.hex()} during BOT scan at {reader.position-8}")
                 break
 
-            if tag != _ITEM_TAG:
-                raise ValueError(
-                    f"Streaming BOT: expected Item tag at position "
-                    f"{reader.position - 8}, got 0x{tag.hex()}"
-                )
+            length = struct.unpack("<I", tag_bytes[4:8])[0]
+            start_pos = reader.position
+            fragments.append({"start": start_pos, "length": length})
+            reader.skip(length)
 
-            item_length = struct.unpack("<I", tag_bytes[4:8])[0]
-            frame_data_start = reader.position
-
-            frames.append({
-                "frame_number": frame_idx,
-                "frame_size": item_length,
-                "start_pos": frame_data_start,
-                "end_pos": frame_data_start + item_length - 1,
-                "pixel_data_pos": pixel_data_pos,
-            })
-
-            if frame_idx in capture_set:
-                captured[frame_idx] = reader.read_exact(item_length)
-                logger.debug(
-                    f"Streaming BOT: captured frame {frame_idx} inline "
-                    f"({item_length} bytes)"
-                )
-            else:
-                reader.skip(item_length)
-
-            frame_idx += 1
+        # 3. Group fragments into frames
+        frames = _group_fragments(
+            fragments, number_of_frames, bot_offsets, 
+            first_frag_tag_pos, pixel_data_pos,
+        )
     finally:
         reader.close()
 
-    if len(frames) < number_of_frames:
-        logger.warning(
-            f"Streaming BOT: expected {number_of_frames} frames, "
-            f"found {len(frames)}"
-        )
+    return frames, {}
 
-    if captured:
-        logger.info(
-            f"Streaming BOT: captured {len(captured)} frames inline "
-            f"(saved {len(captured)} byte-range reads)"
-        )
 
-    return frames, captured
+def _group_fragments(
+    fragments: list[dict], 
+    num_frames: int, 
+    bot_offsets: list[int],
+    first_frag_tag_pos: int,
+    pixel_data_pos: int
+) -> list[dict]:
+    """Group raw DICOM items into frames."""
+    if not fragments:
+        return []
+
+    # Case A: Single frame — all fragments belong to it
+    if num_frames == 1:
+        start = fragments[0]["start"]
+        end = fragments[-1]["start"] + fragments[-1]["length"] - 1
+        return [{
+            "frame_number": 0,
+            "frame_size": sum(f["length"] for f in fragments),
+            "start_pos": start,
+            "end_pos": end,
+            "pixel_data_pos": pixel_data_pos,
+            "fragments": fragments
+        }]
+
+    # Case B: Multiple frames with BOT
+    # Note: bot_offsets[i] is the relative position of the ITEM TAG of the 1st fragment of frame i
+    if bot_offsets and len(bot_offsets) == num_frames:
+        frames = []
+        frag_idx = 0
+        for i in range(num_frames):
+            target_abs_tag_pos = first_frag_tag_pos + bot_offsets[i]
+            
+            # Collect fragments starting from target_abs_tag_pos
+            # until we hit the next offset or end of fragments.
+            current_frame_frags = []
+            
+            # Skip any fragments before this offset (shouldn't happen if BOT is correct)
+            while frag_idx < len(fragments) and (fragments[frag_idx]["start"] - 8) < target_abs_tag_pos:
+                frag_idx += 1
+            
+            # Determine the boundary of the next frame
+            if i + 1 < num_frames:
+                next_frame_tag_pos = first_frag_tag_pos + bot_offsets[i+1]
+            else:
+                next_frame_tag_pos = 1e18 # Effectively infinity for DICOM files
+            
+            while frag_idx < len(fragments) and (fragments[frag_idx]["start"] - 8) < next_frame_tag_pos:
+                current_frame_frags.append(fragments[frag_idx])
+                frag_idx += 1
+            
+            if current_frame_frags:
+                start = current_frame_frags[0]["start"]
+                end = current_frame_frags[-1]["start"] + current_frame_frags[-1]["length"] - 1
+                frames.append({
+                    "frame_number": i,
+                    "frame_size": sum(f["length"] for f in current_frame_frags),
+                    "start_pos": start,
+                    "end_pos": end,
+                    "pixel_data_pos": pixel_data_pos,
+                    "fragments": current_frame_frags
+                })
+        if len(frames) == num_frames:
+            return frames
+
+    # Fallback/Case C: Assume 1 fragment per frame
+    frames = []
+    for i in range(min(num_frames, len(fragments))):
+        f = fragments[i]
+        frames.append({
+            "frame_number": i,
+            "frame_size": f["length"],
+            "start_pos": f["start"],
+            "end_pos": f["start"] + f["length"] - 1,
+            "pixel_data_pos": pixel_data_pos,
+            "fragments": [f]
+        })
+    return frames
 
 
 # ---------------------------------------------------------------------------
@@ -1370,26 +1388,7 @@ _HEADER_INITIAL_BYTES = 64 * 1024
 _HEADER_EXTENDED_BYTES = 2 * 1024 * 1024
 
 
-def _fetch_bytes_range(
-    token: str,
-    db_file: DatabricksFile,
-    start: int = 0,
-    end: int | None = None,
-) -> bytes:
-    """
-    Fetch a byte range from Volumes using the **pooled** ``_session``.
 
-    If *end* is ``None`` the entire file is returned (no Range header).
-    """
-    headers = _auth_headers(token)
-    if end is not None:
-        headers["Range"] = f"bytes={start}-{end - 1}"
-    resp = _session.get(db_file.to_api_url(), headers=headers)
-    if resp.status_code not in (200, 206):
-        raise RuntimeError(
-            f"HTTP {resp.status_code} fetching {db_file.file_path}"
-        )
-    return resp.content
 
 
 def compute_full_bot(
