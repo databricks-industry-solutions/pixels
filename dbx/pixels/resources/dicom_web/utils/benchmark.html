@@ -322,20 +322,39 @@
             align-items: center;
         }
 
-        /* Scalability note */
-        .scalability-note {
-            background: rgba(108, 92, 231, 0.08);
-            border: 1px solid rgba(108, 92, 231, 0.2);
+        .discovery-item {
+            padding: 0.75rem 1rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 1rem 1.25rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-top: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .scalability-note strong {
-            color: var(--text);
+        .discovery-item:hover {
+            border-color: var(--accent);
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .discovery-item .main {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .discovery-item .sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .discovery-item .tag {
+            font-size: 0.7rem;
+            background: var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-muted);
         }
     </style>
 </head>
@@ -357,26 +376,51 @@
                 <label>Iterations per test</label>
                 <input type="number" id="iterations" value="3" min="1" max="20" />
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display:none">
                 <label>Total Frames (auto-detected)</label>
-                <input type="number" id="totalFrames" value="1" min="1" readonly style="opacity:0.7" />
+                <input type="number" id="totalFrames" value="1" min="1" readonly />
             </div>
-            <div class="form-group full-width">
-                <label>Test Instance (leave blank = auto-discover via QIDO)</label>
-                <div class="form-grid" style="margin-top:0.25rem;">
-                    <input type="text" id="studyUid" placeholder="Study Instance UID" />
-                    <input type="text" id="seriesUid" placeholder="Series Instance UID" />
-                    <input type="text" id="instanceUid" placeholder="SOP Instance UID" class="full-width" />
-                </div>
+
+            <div class="form-group full-width" id="selection-summary"
+                style="padding: 1rem; background: var(--surface2); border-radius: 8px; border: 1px dashed var(--border); display:none;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">SELECTED TARGET</div>
+                <div id="target-display" style="font-family: monospace; font-size: 0.85rem;"></div>
+                <div id="frame-display" style="font-size: 0.8rem; color: var(--accent); margin-top: 0.25rem;"></div>
+            </div>
+
+            <div class="form-group full-width hidden">
+                <input type="text" id="studyUid" />
+                <input type="text" id="seriesUid" />
+                <input type="text" id="instanceUid" />
             </div>
         </div>
         <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
-            <button class="btn" id="btnRun" onclick="runBenchmark()">▶ Run Benchmark</button>
-            <button class="btn btn-sm" id="btnDiscover" onclick="discoverInstance()">🔍 Discover Instance</button>
-            <span id="status-text"></span>
+            <button class="btn btn-sm" id="btnBrowse" onclick="toggleDiscovery()">📂 Browse Catalog</button>
+            <button class="btn" id="btnRun" onclick="runBenchmark()" disabled>▶ Run Benchmark</button>
+            <span id="status-text">Select an instance to start</span>
         </div>
         <div class="progress-bar">
             <div class="fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- ── Discovery Browser ── -->
+    <div class="card hidden" id="discoveryCard">
+        <div class="section-header">
+            <h2><span class="dot dot-blue"></span> Discover Test Instance</h2>
+            <button class="btn btn-sm" onclick="toggleDiscovery()">✕ Close</button>
+        </div>
+        <div id="discovery-path"
+            style="margin: 1rem 0; font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 0.5rem; align-items: center;">
+            <span style="cursor:pointer; color:var(--accent)" onclick="loadStudies()">Studies</span>
+            <span class="path-sep hidden">/</span>
+            <span id="path-study" class="hidden" style="cursor:pointer; color:var(--accent)"></span>
+            <span class="path-sep hidden">/</span>
+            <span id="path-series" class="hidden"></span>
+        </div>
+        <div id="discovery-list"
+            style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+            <!-- Fetched items go here -->
         </div>
     </div>
 
@@ -460,56 +504,163 @@
             return url.replace(/\/$/, '');
         }
 
-        // ── Discover test instance via QIDO ──
-        async function discoverInstance() {
+        // ── Discovery Browser Logic ──
+        function toggleDiscovery() {
+            const card = document.getElementById('discoveryCard');
+            card.classList.toggle('hidden');
+            if (!card.classList.contains('hidden')) {
+                loadStudies();
+            }
+        }
+
+        async function loadStudies() {
             const base = getBaseUrl();
-            setStatus('Discovering test data via QIDO-RS...');
-            log('Discovering study...');
+            const list = document.getElementById('discovery-list');
+            list.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted)">Loading studies...</div>';
+
+            // Reset path
+            document.querySelectorAll('.path-sep, #path-study, #path-series').forEach(el => el.classList.add('hidden'));
 
             try {
-                // Find a study
-                let resp = await fetch(`${base}/studies?limit=1`);
-                if (!resp.ok) throw new Error(`Studies query failed: ${resp.status}`);
-                let studies = await resp.json();
-                if (!studies.length) throw new Error('No studies found');
-                const studyUid = studies[0]['0020000D']?.Value?.[0];
-                log(`Found study: ${studyUid}`, 'log-ok');
+                const resp = await fetch(`${base}/studies?limit=15`);
+                const studies = await resp.json();
+                list.innerHTML = '';
 
-                // Find a series
-                resp = await fetch(`${base}/studies/${studyUid}/series?limit=1`);
-                if (!resp.ok) throw new Error(`Series query failed: ${resp.status}`);
-                let series = await resp.json();
-                if (!series.length) throw new Error('No series found');
-                const seriesUid = series[0]['0020000E']?.Value?.[0];
-                log(`Found series: ${seriesUid}`, 'log-ok');
-
-                // Find an instance
-                resp = await fetch(`${base}/studies/${studyUid}/series/${seriesUid}/instances?limit=5`);
-                if (!resp.ok) throw new Error(`Instances query failed: ${resp.status}`);
-                let instances = await resp.json();
-                if (!instances.length) throw new Error('No instances found');
-
-                // Pick the instance with the most frames for a more interesting test
-                let best = instances[0];
-                let bestFrames = parseInt(best['00280008']?.Value?.[0] || '1');
-                for (const inst of instances) {
-                    const nf = parseInt(inst['00280008']?.Value?.[0] || '1');
-                    if (nf > bestFrames) { best = inst; bestFrames = nf; }
+                if (!studies.length) {
+                    list.innerHTML = '<div style="padding:2rem; text-align:center">No studies found in catalog.</div>';
+                    return;
                 }
 
-                const instanceUid = best['00080018']?.Value?.[0];
-                detectedFrames = bestFrames;
-                log(`Found instance: ${instanceUid} (${bestFrames} frames)`, 'log-ok');
+                studies.forEach(s => {
+                    const uid = s['0020000D']?.Value?.[0];
+                    const desc = s['00081030']?.Value?.[0] || 'No Description';
+                    const date = s['00080020']?.Value?.[0] || '';
+                    const modality = s['00080060']?.Value?.[0] || '??';
 
-                document.getElementById('studyUid').value = studyUid;
-                document.getElementById('seriesUid').value = seriesUid;
-                document.getElementById('instanceUid').value = instanceUid;
-                document.getElementById('totalFrames').value = bestFrames;
-                setStatus(`Ready — ${bestFrames} frame(s) will be benchmarked`);
+                    const item = document.createElement('div');
+                    item.className = 'discovery-item';
+                    item.onclick = () => loadSeries(uid, desc);
+                    item.innerHTML = `
+                        <div>
+                            <div class="main">${desc}</div>
+                            <div class="sub">${uid.slice(-16)}...</div>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center">
+                            <span class="tag">${date}</span>
+                            <span class="tag" style="color:var(--accent)">${modality}</span>
+                            <span>→</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
             } catch (e) {
-                log(`Discovery failed: ${e.message}`, 'log-err');
-                setStatus('Discovery failed — enter UIDs manually');
+                list.innerHTML = `<div style="padding:2rem; color:var(--red)">Error: ${e.message}</div>`;
             }
+        }
+
+        async function loadSeries(studyUid, studyDesc) {
+            const base = getBaseUrl();
+            const list = document.getElementById('discovery-list');
+            list.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted)">Loading series...</div>';
+
+            // Update path
+            document.getElementById('path-study').innerText = studyDesc.slice(0, 20) + (studyDesc.length > 20 ? '...' : '');
+            document.getElementById('path-study').onclick = () => loadStudies();
+            document.querySelectorAll('.path-sep:nth-of-type(1), #path-study').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('.path-sep:nth-of-type(2), #path-series').forEach(el => el.classList.add('hidden'));
+
+            try {
+                const resp = await fetch(`${base}/studies/${studyUid}/series`);
+                const series = await resp.json();
+                list.innerHTML = '';
+
+                series.forEach(s => {
+                    const uid = s['0020000E']?.Value?.[0];
+                    const desc = s['0008103e']?.Value?.[0] || 'No Description';
+                    const modality = s['00080060']?.Value?.[0] || '??';
+                    const instances = s['00201209']?.Value?.[0] || '?';
+
+                    const item = document.createElement('div');
+                    item.className = 'discovery-item';
+                    item.onclick = () => loadInstances(studyUid, uid, desc);
+                    item.innerHTML = `
+                        <div>
+                            <div class="main">${desc}</div>
+                            <div class="sub">${uid.slice(-16)}...</div>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center">
+                            <span class="tag">${modality}</span>
+                            <span class="tag">${instances} items</span>
+                            <span>→</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                list.innerHTML = `<div style="padding:2rem; color:var(--red)">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function loadInstances(studyUid, seriesUid, seriesDesc) {
+            const base = getBaseUrl();
+            const list = document.getElementById('discovery-list');
+            list.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted)">Loading instances...</div>';
+
+            // Update path
+            document.getElementById('path-series').innerText = seriesDesc.slice(0, 20) + (seriesDesc.length > 20 ? '...' : '');
+            document.querySelectorAll('.path-sep, #path-series').forEach(el => el.classList.remove('hidden'));
+
+            try {
+                const resp = await fetch(`${base}/studies/${studyUid}/series/${seriesUid}/instances`);
+                const instances = await resp.json();
+                list.innerHTML = '';
+
+                instances.forEach(ins => {
+                    const uid = ins['00080018']?.Value?.[0];
+                    const frames = ins['00280008']?.Value?.[0] || '1';
+                    const rows = ins['00280010']?.Value?.[0] || '?';
+                    const cols = ins['00280011']?.Value?.[0] || '?';
+
+                    const item = document.createElement('div');
+                    item.className = 'discovery-item';
+                    item.onclick = () => selectInstance(studyUid, seriesUid, uid, frames);
+                    item.innerHTML = `
+                        <div>
+                            <div class="main">Instance ${uid.slice(-8)}</div>
+                            <div class="sub">${uid.slice(-24)}</div>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; align-items:center">
+                            <span class="tag">${rows}x${cols}</span>
+                            <span class="tag" style="color:var(--accent)">${frames} frames</span>
+                            <span style="color:var(--green); font-weight:bold">SELECT</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (e) {
+                list.innerHTML = `<div style="padding:2rem; color:var(--red)">Error: ${e.message}</div>`;
+            }
+        }
+
+        function selectInstance(study, series, instance, frames) {
+            document.getElementById('studyUid').value = study;
+            document.getElementById('seriesUid').value = series;
+            document.getElementById('instanceUid').value = instance;
+            document.getElementById('totalFrames').value = frames;
+
+            // Show summary
+            document.getElementById('target-display').innerText = `Instance: ...${instance.slice(-12)}`;
+            document.getElementById('frame-display').innerText = `Detected ${frames} frames`;
+            document.getElementById('selection-summary').style.display = 'block';
+
+            document.getElementById('btnRun').disabled = false;
+            document.getElementById('discoveryCard').classList.add('hidden');
+            setStatus('Instance selected. Ready to run.');
+            log(`Target selected: ${instance}`, 'log-ok');
+
+            // Reset results
+            document.getElementById('resultsCard').classList.add('hidden');
+            document.getElementById('detailCard').classList.add('hidden');
         }
 
         // ── Benchmark WADO-RS (one request per frame, matching OHIF behavior) ──
@@ -593,13 +744,10 @@
             const study = document.getElementById('studyUid').value.trim();
             const series = document.getElementById('seriesUid').value.trim();
             const instance = document.getElementById('instanceUid').value.trim();
-            const numFrames = parseInt(document.getElementById('totalFrames').value) || detectedFrames || 1;
-            // Build full frame list: "1,2,3,...,N" - No longer needed for WADO-RS
-            // const frames = Array.from({ length: numFrames }, (_, i) => i + 1).join(',');
             const iterations = parseInt(document.getElementById('iterations').value) || 3;
 
             if (!study || !series || !instance) {
-                log('Missing UIDs — run Discover first or enter them manually', 'log-err');
+                log('Missing UIDs — run Discovery first', 'log-err');
                 setStatus('Error: missing UIDs');
                 return;
             }
@@ -610,12 +758,30 @@
             document.getElementById('detailBody').innerHTML = '';
             setProgress(0);
 
+            log(`\n━━━ Target: ${instance.slice(-12)} ━━━`);
+            setStatus('Detecting frame count...');
+
+            let numFrames = 1;
+            try {
+                // Fetch series metadata to find our instance's frame count
+                const metaResp = await fetch(`${base}/studies/${study}/series/${series}/metadata`);
+                if (!metaResp.ok) throw new Error(`Metadata fetch failed: ${metaResp.status}`);
+                const metaList = await metaResp.json();
+                const instMeta = metaList.find(m => m['00080018']?.Value?.[0] === instance);
+                if (instMeta) {
+                    numFrames = parseInt(instMeta['00280008']?.Value?.[0] || '1');
+                }
+                log(`Detected ${numFrames} frames for target instance`, 'log-ok');
+            } catch (e) {
+                log(`Auto-detection failed: ${e.message}. Defaulting to 1.`, 'log-warn');
+                numFrames = 1;
+            }
+            document.getElementById('totalFrames').value = numFrames;
+
             const totalTests = iterations * 2;
             let completed = 0;
 
-            log(`\n━━━ Starting benchmark: ${iterations} iterations, ${numFrames} frames (all) ━━━`);
-            log(`Instance: ${instance}`);
-            log(`Frames: ${numFrames}`); // Updated to reflect numFrames directly
+            log(`Starting benchmark: ${iterations} iterations`);
 
             const rsResults = [];
             const uriResults = [];
