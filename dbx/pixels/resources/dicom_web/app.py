@@ -20,6 +20,7 @@ from utils.handlers import (
     dicomweb_stow_studies,
     dicomweb_resolve_paths,
     dicomweb_perf_compare,
+    dicomweb_prime_series,
 )
 from utils.metrics import collect_metrics, start_metrics_logger
 
@@ -119,6 +120,11 @@ def register_dicomweb_routes(app: FastAPI):
     @app.post("/api/dicomweb/resolve_paths", tags=["DICOMweb Path Resolution"])
     async def resolve_paths(request: Request):
         return await dicomweb_resolve_paths(request)
+
+    # Series priming (cache warm-up: paths + prefetch + BOT)
+    @app.post("/api/dicomweb/prime", tags=["DICOMweb Cache Priming"])
+    async def prime_series(request: Request):
+        return await dicomweb_prime_series(request)
 
     # Debug: performance comparison (full stream vs progressive)
     @app.get(
@@ -226,6 +232,16 @@ def _dicomweb_service_root() -> dict:
                 ],
                 "supported_content_types": ["application/dicom"],
                 "optional_params": ["frameNumber", "transferSyntax"],
+            },
+            "Prime": {
+                "description": "Pre-warm all caches for a series (paths, prefetch, BOT)",
+                "endpoints": [
+                    "POST /api/dicomweb/prime",
+                ],
+                "notes": [
+                    "Resolves all instance paths, schedules file prefetch, and computes BOT for every instance.",
+                    "After priming, all WADO-RS frame requests hit the fast cache path (µs lookups).",
+                ],
             },
         },
         "documentation": "https://www.dicomstandard.org/using/dicomweb",

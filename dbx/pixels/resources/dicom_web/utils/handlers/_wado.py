@@ -1,24 +1,30 @@
 """
-WADO-RS / WADO-URI / Path-resolution handlers.
+WADO-RS / WADO-URI / Path-resolution / Prime handlers.
 
 * GET  /api/dicomweb/studies/{study}/series/{series}/metadata
 * GET  /api/dicomweb/studies/{study}/series/{series}/instances/{instance}
 * GET  /api/dicomweb/studies/{…}/instances/{instance}/frames/{frameList}
 * GET  /api/dicomweb/wado?requestType=WADO&studyUID=…&objectUID=…
 * POST /api/dicomweb/resolve_paths
+* POST /api/dicomweb/prime
 """
 
+import concurrent.futures
 import json
+import time
 import uuid
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 
+from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.logging import LoggerProvider
 
 from .. import timing_decorator
+from ..cache import bot_cache, instance_path_cache
+from ..dicom_io import compute_full_bot, file_prefetcher
 from ..dicom_tags import TRANSFER_SYNTAX_TO_MIME
-from ._common import get_dicomweb_wrapper
+from ._common import get_dicomweb_wrapper, lb_utils
 
 logger = LoggerProvider("DICOMweb.WADO")
 
@@ -461,5 +467,185 @@ async def dicomweb_resolve_paths(request: Request) -> Response:
 
     return Response(
         content=json.dumps({"paths": paths}, indent=2),
+        media_type="application/json",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Series priming — prefetch + BOT computation for all instances
+# ---------------------------------------------------------------------------
+
+def _compute_and_cache_bot(
+    token: str,
+    local_path: str,
+    sop_uid: str,
+    uc_table: str,
+    user_groups: list[str] | None,
+) -> dict:
+    """
+    Compute the full BOT for a single instance, cache in tier 1 + tier 2.
+
+    Returns a summary dict for the response payload.
+    """
+    db_file = DatabricksFile.from_full_path(local_path)
+    filename = db_file.full_path
+
+    # Skip if already cached in tier 1
+    cached = bot_cache.get(filename, uc_table)
+    if cached:
+        return {
+            "sopInstanceUID": sop_uid,
+            "status": "already_cached",
+            "num_frames": cached.get("num_frames", len(cached.get("frames", []))),
+        }
+
+    try:
+        t0 = time.time()
+        bot_data = compute_full_bot(token, db_file)
+        elapsed = time.time() - t0
+
+        bot_cache.put(filename, uc_table, bot_data)
+
+        # Persist to Lakebase (tier 2)
+        frames = bot_data.get("frames", [])
+        if lb_utils and frames:
+            try:
+                lb_utils.insert_frame_ranges(
+                    filename, frames, uc_table,
+                    allowed_groups=user_groups,
+                )
+            except Exception as exc:
+                logger.warning(f"Prime: Lakebase persist failed for {sop_uid}: {exc}")
+
+        return {
+            "sopInstanceUID": sop_uid,
+            "status": "computed",
+            "num_frames": bot_data.get("num_frames", len(frames)),
+            "elapsed_s": round(elapsed, 3),
+        }
+    except Exception as exc:
+        logger.warning(f"Prime: BOT computation failed for {sop_uid}: {exc}")
+        return {
+            "sopInstanceUID": sop_uid,
+            "status": "error",
+            "error": str(exc),
+        }
+
+
+@timing_decorator
+async def dicomweb_prime_series(request: Request) -> Response:
+    """POST /api/dicomweb/prime — pre-warm all caches for a series.
+
+    Performs the full priming pipeline for every instance in a series:
+
+    1. **Path resolution** — resolves SOP Instance UID → file path for all
+       instances (populates ``instance_path_cache`` tier 1 + Lakebase tier 2).
+    2. **File prefetching** — schedules background downloads from Volumes
+       so that subsequent WADO-RS instance retrieval is instant.
+    3. **BOT computation** — computes the Basic Offset Table (frame byte
+       ranges) for every instance and caches the result in
+       ``bot_cache`` (tier 1) + Lakebase (tier 2).  This is the expensive
+       step that normally happens lazily on the first frame request.
+
+    After priming, all subsequent WADO-RS frame requests for the series
+    hit the fast path (µs cache lookups + byte-range reads).
+
+    Request body (JSON)::
+
+        {
+            "studyInstanceUID": "1.2.840.113619...",
+            "seriesInstanceUID": "1.2.840.113619..."
+        }
+
+    Response body (JSON)::
+
+        {
+            "studyInstanceUID": "...",
+            "seriesInstanceUID": "...",
+            "instances_resolved": 150,
+            "prefetch_scheduled": 42,
+            "bot_results": [ ... per-instance summary ... ],
+            "summary": {
+                "already_cached": 10,
+                "computed": 130,
+                "errors": 10,
+                "total_elapsed_s": 12.34
+            }
+        }
+    """
+    body = await request.json()
+
+    study_uid = body.get("studyInstanceUID")
+    series_uid = body.get("seriesInstanceUID")
+
+    if not study_uid or not series_uid:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'studyInstanceUID' and 'seriesInstanceUID' are required",
+        )
+
+    t_start = time.time()
+    wrapper = get_dicomweb_wrapper(request)
+    token = wrapper._token
+    uc_table = wrapper._table
+    user_groups = wrapper._user_groups
+
+    # ── Step 1: Resolve all instance paths ────────────────────────────
+    logger.info(
+        f"Prime: resolving paths for study={study_uid}, series={series_uid}"
+    )
+    paths = wrapper.resolve_instance_paths(study_uid, series_uid)
+    logger.info(f"Prime: resolved {len(paths)} instance paths")
+
+    # ── Step 2: Schedule file prefetching ─────────────────────────────
+    prefetch_paths = list(paths.values())
+    n_prefetch = file_prefetcher.schedule(token, prefetch_paths)
+    logger.info(f"Prime: {n_prefetch} new prefetch downloads scheduled")
+
+    # ── Step 3: Compute BOT for every instance (concurrent) ───────────
+    max_workers = min(8, len(paths))
+    bot_results: list[dict] = []
+
+    if max_workers > 0:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(
+                    _compute_and_cache_bot,
+                    token, local_path, sop_uid, uc_table, user_groups,
+                ): sop_uid
+                for sop_uid, local_path in paths.items()
+            }
+            for future in concurrent.futures.as_completed(futures):
+                bot_results.append(future.result())
+
+    total_elapsed = time.time() - t_start
+
+    # ── Build summary ─────────────────────────────────────────────────
+    already_cached = sum(1 for r in bot_results if r["status"] == "already_cached")
+    computed = sum(1 for r in bot_results if r["status"] == "computed")
+    errors = sum(1 for r in bot_results if r["status"] == "error")
+
+    logger.info(
+        f"Prime complete: {len(paths)} instances, "
+        f"{already_cached} cached, {computed} computed, {errors} errors, "
+        f"{total_elapsed:.2f}s total"
+    )
+
+    result = {
+        "studyInstanceUID": study_uid,
+        "seriesInstanceUID": series_uid,
+        "instances_resolved": len(paths),
+        "prefetch_scheduled": n_prefetch,
+        "bot_results": bot_results,
+        "summary": {
+            "already_cached": already_cached,
+            "computed": computed,
+            "errors": errors,
+            "total_elapsed_s": round(total_elapsed, 3),
+        },
+    }
+
+    return Response(
+        content=json.dumps(result, indent=2),
         media_type="application/json",
     )
