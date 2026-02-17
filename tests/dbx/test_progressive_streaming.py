@@ -27,7 +27,7 @@ from dbx.pixels.resources.dicom_web.utils.dicom_io import (
     _FileStreamState,
     _ITEM_TAG,
     _SEQ_DELIM_TAG,
-    _find_data_start,
+    _find_bot_item,
     get_file_part_local,
 )
 
@@ -333,8 +333,8 @@ class TestProgressiveFileStreamer:
         f1 = b"B" * 75
         f2 = b"C" * 100
         raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[f0, f1, f2])
-        data_start = _find_data_start(raw, pixel_data_pos)
-        stream_data = raw[data_start:]
+        bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+        stream_data = raw[bot_pos:]
 
         mock_response = MagicMock()
         mock_response.status_code = 206
@@ -401,8 +401,8 @@ class TestProgressiveFileStreamer:
         f0 = b"A" * 30
         f1 = b"B" * 40
         raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[f0, f1])
-        data_start = _find_data_start(raw, pixel_data_pos)
-        stream_data = raw[data_start:]
+        bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+        stream_data = raw[bot_pos:]
 
         mock_response = MagicMock()
         mock_response.status_code = 206
@@ -431,28 +431,26 @@ class TestProgressiveFileStreamer:
                     transfer_syntax_uid="1.2.840.10008.1.2.4.70",
                 )
 
-            # Register capture for frame 1 (should be registered before worker reaches it)
-            # Note: there's a race condition here but the worker is in a thread
-            # and the stream data is small so it may complete fast.
-            # For the test, register immediately and check the slot.
-            slot = state.register_capture(1)
+                # Register capture for frame 1 (should be registered before
+                # the worker reaches it). Keep mock alive so the background
+                # thread can use it.
+                slot = state.register_capture(1)
 
-            if slot is not None:
-                # Wait for the slot to be filled or the stream to complete
-                slot.ready.wait(timeout=5.0)
-                if slot.data is not None:
-                    assert slot.data == f1
+                if slot is not None:
+                    slot.ready.wait(timeout=5.0)
+                    if slot.data is not None:
+                        assert slot.data == f1
 
-            # Either way, the frame metadata should be available
-            meta = state.wait_for_frame(1, timeout=5.0)
-            assert meta is not None
-            assert meta["frame_size"] == 40
+                # Either way, the frame metadata should be available
+                meta = state.wait_for_frame(1, timeout=5.0)
+                assert meta is not None
+                assert meta["frame_size"] == 40
 
     def test_deduplication(self):
         """Second call to get_or_start_stream returns the same state."""
         raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[b"X" * 10])
-        data_start = _find_data_start(raw, pixel_data_pos)
-        stream_data = raw[data_start:]
+        bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+        stream_data = raw[bot_pos:]
 
         mock_response = MagicMock()
         mock_response.status_code = 206
@@ -498,8 +496,8 @@ class TestProgressiveFileStreamer:
         """Multiple threads wait for different frames from the same stream."""
         frames_data = [bytes([i]) * (50 + i * 10) for i in range(5)]
         raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=frames_data)
-        data_start = _find_data_start(raw, pixel_data_pos)
-        stream_data = raw[data_start:]
+        bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+        stream_data = raw[bot_pos:]
 
         mock_response = MagicMock()
         mock_response.status_code = 206
@@ -531,15 +529,15 @@ class TestProgressiveFileStreamer:
                     transfer_syntax_uid="1.2.840.10008.1.2.4.70",
                 )
 
-            def wait_for(idx):
-                meta = state.wait_for_frame(idx, timeout=5.0)
-                results[idx] = meta
+                def wait_for(idx):
+                    meta = state.wait_for_frame(idx, timeout=5.0)
+                    results[idx] = meta
 
-            threads = [threading.Thread(target=wait_for, args=(i,)) for i in range(5)]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join(timeout=10.0)
+                threads = [threading.Thread(target=wait_for, args=(i,)) for i in range(5)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(timeout=10.0)
 
             assert len(results) == 5
             for i in range(5):

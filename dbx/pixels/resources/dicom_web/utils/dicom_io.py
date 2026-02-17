@@ -821,7 +821,8 @@ class ProgressiveFileStreamer:
                     return existing
                 del self._states[filename]
 
-            data_start = _find_data_start(header_raw, pixel_data_pos)
+            bot_pos, _ = _find_bot_item(header_raw, pixel_data_pos)
+            data_start = bot_pos
 
             cache_name = hashlib.sha256(filename.encode()).hexdigest()[:32] + ".pixeldata"
             local_path = os.path.join(self._cache_dir, cache_name)
