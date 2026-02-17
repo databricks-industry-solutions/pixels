@@ -5,6 +5,7 @@ import time
 
 from common.abstractmodel import DBModel
 from common.utils import series_to_nifti
+from common.writers import label_to_dicom_seg
 from mlflow.entities import SpanType
 
 logger = logging.getLogger(__name__)
@@ -57,16 +58,21 @@ class DBBundlesModel(DBModel):
     
     @mlflow.trace(span_type="MONAI")
     def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
-        nifti_path, image_info = series_to_nifti(datastore, series_uid)
+        series_dir = datastore.get_image_uri(series_uid)
 
         result = self.app.infer(request={'model': self.model_name, 'image': series_uid, 'largest_cc': False, 'device': torch_device, 'result_extension': file_ext, 'result_dtype': 'uint16', 'result_compress': False, 'restore_label_idx': False})
 
-        self.logger.warning(f"Inference completed on image: {nifti_path}")
+        self.logger.warning(f"Inference completed on image: {series_uid}")
 
-        suffixes = [".nii", ".nii.gz", ".nrrd"]
-        dicom_path = [nifti_path.replace(suffix, "") for suffix in suffixes if nifti_path.endswith(suffix)][0]
         nifti_seg_path = result.get("file") if result.get("file") else result.get("label")
-        return dicom_path, nifti_path, nifti_seg_path, image_info
+        
+        out_seg_path = label_to_dicom_seg(
+            series_dir,
+            nifti_seg_path,
+            label_info=self.label_dict,
+            series_description="Segmentation")
+
+        return series_dir, out_seg_path
     
     def security_path_check(self, file_path):
         if not file_path.startswith("/tmp/") or ".." in file_path:

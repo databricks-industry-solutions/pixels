@@ -41,7 +41,7 @@ meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
 # save your work for SQL access
 catalog.save(meta_df)                                       # 06
 ```
-You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.py) which does:
+You'll find this example in [01-dcm-demo](https://github.com/databricks-industry-solutions/pixels/blob/main/01-dcm-demo.ipynb) which does:
 
 ---
 ## Architecture

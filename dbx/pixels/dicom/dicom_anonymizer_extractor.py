@@ -4,7 +4,7 @@ import re
 
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, lit, replace, udf
+from pyspark.sql.functions import col, expr, lit, replace, udf
 
 from dbx.pixels.dicom.dicom_utils import (
     anonymize_metadata,
@@ -63,6 +63,7 @@ class DicomAnonymizerExtractor(Transformer):
         keep_tags: tuple = ("StudyDate", "StudyTime", "SeriesDate"),
         anonymization_base_path: str = None,
         save_anonymized_dicom: bool = True,
+        useVariant=True,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
@@ -93,6 +94,7 @@ class DicomAnonymizerExtractor(Transformer):
             self.anonymization_base_path = catalog._anonymization_base_path
 
         self.save_anonymized_dicom = save_anonymized_dicom
+        self.useVariant = useVariant
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -182,18 +184,20 @@ class DicomAnonymizerExtractor(Transformer):
                     return {"meta": json.dumps(meta_js), "path": "dbfs:" + anonymized_file_path}
             except Exception as err:
                 except_str = {
-                    "meta": {
-                        "udf": "dicom_meta_anonym_udf",
-                        "error": str(err),
-                        "args": str(err.args),
-                        "path": path,
-                    },
-                    "path": "dbfs:" + path,
+                    "meta": json.dumps(
+                        {
+                            "udf": "dicom_meta_anonym_udf",
+                            "error": str(err),
+                            "args": str(err.args),
+                            "path": str(path),
+                        }
+                    ),
+                    "path": "dbfs:" + str(path),
                 }
                 return except_str
 
         self.check_input_type(df.schema)
-        return (
+        df = (
             df.withColumn("is_anon", lit(self.catalog.is_anon()))
             .withColumn("anonym_res", dicom_meta_anonym_udf(col(self.inputCol), col("is_anon")))
             .withColumn("path", col("anonym_res.path"))
@@ -204,3 +208,8 @@ class DicomAnonymizerExtractor(Transformer):
             .withColumn("meta", col("anonym_res.meta"))
             .drop("anonym_res")
         )
+
+        if self.useVariant:
+            df = df.withColumn("meta", expr("parse_json(meta)"))
+
+        return df

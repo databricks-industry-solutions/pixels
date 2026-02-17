@@ -18,8 +18,8 @@
 
 # MAGIC %pip install -r bundles/requirements.txt
 # MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
-# MAGIC %pip install monai==1.4.0 pytorch-ignite --no-deps
-# MAGIC %pip install databricks-sdk==0.56 --upgrade
+# MAGIC %pip install monai==1.5.2 pytorch-ignite --no-deps
+# MAGIC %pip install databricks-sdk==0.84 --upgrade
 
 # COMMAND ----------
 
@@ -240,24 +240,22 @@ import mlflow
 
 # Save the function as a model
 with mlflow.start_run():
-    mlflow.pyfunc.log_model (
-        "DBBundlesModel",
+    logged_model_info = mlflow.pyfunc.log_model (
+        name="DBBundlesModel",
         python_model=DBBundlesModel(),
         conda_env="./bundles/conda.yaml",
         signature=signature,
+        input_example=input_examples[4],
         code_paths=["./bundles", "./common", "./lib"],
         artifacts={
             "monailabel-0.8.5": "./artifacts/monailabel-0.8.5-py3-none-any.whl",
             "itkimage2segimage": "./artifacts/itkimage2segimage"
         }
     )
-    run_id = mlflow.active_run().info.run_id
-    print(run_id)
 
 # COMMAND ----------
 
-model_uri = "runs:/{}/DBBundlesModel".format(run_id)
-latest_model = mlflow.register_model(model_uri, model_uc_name)
+latest_model = mlflow.register_model(logged_model_info.model_uri, model_uc_name)
 
 # COMMAND ----------
 
@@ -417,7 +415,7 @@ df = spark.table(table)
 
 df_monai = MonaiLabelBundlesTransformer(table=table, destDir=os.environ["DEST_DIR"], endpointName=serving_endpoint_name, exportMetrics=True).transform(df)
 
-display(df_monai.filter('series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
+display(df_monai.filter('series_uid::STRING = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
 
 # Test performance using noop
 #df_monai.repartition(4).write.format("noop").mode("overwrite").save()
@@ -459,7 +457,7 @@ display(df_monai)
 # MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
 # MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
 # MAGIC with ct as (
-# MAGIC   select distinct(meta:['0020000E'].Value[0]) as series_uid
+# MAGIC   select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
 # MAGIC   from ${table}
 # MAGIC   where meta:['00080008'] like '%AXIAL%'
 # MAGIC )

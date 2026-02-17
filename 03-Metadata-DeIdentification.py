@@ -78,7 +78,7 @@ from dbx.pixels import Catalog
 from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 
 catalog = Catalog(spark, table=table+"_anonym", volume=volume)
-catalog_df = catalog.catalog(path=path, extractZip=False)
+catalog_df = catalog.catalog(path=path, extractZip=True)
 
 metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak).transform(catalog_df)
 

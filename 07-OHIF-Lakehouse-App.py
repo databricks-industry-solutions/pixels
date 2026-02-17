@@ -122,10 +122,6 @@ else:
 
   app = App(app_name, default_source_code_path=lha_path, user_api_scopes=["sql","files.files"], resources=resources)
   app_created = w.apps.create_and_wait(app)
-  app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=lha_path))
-
-  print(app_deploy.status.message)
-  print(app_created.url)
 
 # COMMAND ----------
 
@@ -194,3 +190,10 @@ w.grants.update(full_name=volume,
 )
 
 print("PERMISSIONS GRANTED")
+
+# COMMAND ----------
+
+app_deploy = w.apps.deploy_and_wait(app_name, AppDeployment(source_code_path=lha_path))
+
+print(app_deploy.status.message)
+print(app_created.url)
