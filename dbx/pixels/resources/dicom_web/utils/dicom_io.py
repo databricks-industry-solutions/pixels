@@ -915,10 +915,31 @@ class ProgressiveFileStreamer:
                 reader.skip(length)
 
             # 3. Group and publish
+            if not fragments:
+                raise RuntimeError(
+                    f"Progressive stream collected 0 fragments for "
+                    f"{db_file.file_path} "
+                    f"(pixel_data_pos={pixel_data_pos}, "
+                    f"data_start={data_start}, "
+                    f"expected_frames={number_of_frames}). "
+                    f"The pixel data offset may be incorrect — check for "
+                    f"multiple (7FE0,0010) tags."
+                )
+
             frames_list = _group_fragments(
                 fragments, number_of_frames, bot_offsets,
                 first_frag_tag_pos, pixel_data_pos
             )
+
+            if not frames_list:
+                raise RuntimeError(
+                    f"Progressive stream found {len(fragments)} fragments "
+                    f"but _group_fragments returned 0 frames for "
+                    f"{db_file.file_path} "
+                    f"(num_frames={number_of_frames}, "
+                    f"bot_offsets={bot_offsets[:5]})"
+                )
+
             for f in frames_list:
                 state.publish_frame(f["frame_number"], f)
 
@@ -930,7 +951,8 @@ class ProgressiveFileStreamer:
             state.mark_complete()
             logger.info(
                 f"Progressive stream complete for {db_file.file_path}: "
-                f"{frame_idx} frames, local cache at {state.local_path}"
+                f"{len(frames_list)} frames from {len(fragments)} fragments, "
+                f"local cache at {state.local_path}"
             )
 
         except Exception as exc:

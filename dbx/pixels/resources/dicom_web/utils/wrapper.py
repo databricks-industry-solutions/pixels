@@ -716,7 +716,11 @@ class DICOMwebDatabricksWrapper:
                 if frame_meta is None:
                     raise HTTPException(
                         status_code=404,
-                        detail=f"Frame {fn} not found in stream",
+                        detail=(
+                            f"Frame {fn} not found in stream "
+                            f"({state.num_frames_found} frames discovered, "
+                            f"pixel_data_pos={pixel_data_pos})"
+                        ),
                     )
 
                 # Try inline capture first (zero extra I/O)
