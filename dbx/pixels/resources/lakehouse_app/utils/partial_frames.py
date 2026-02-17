@@ -213,9 +213,16 @@ def pixel_frames_from_dcm_metadata_file(
                     f, number_of_frames, pixel_data_pos, frame_limit, start_pos, frame_index
                 )
         else:
-            item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8)
+            samples_per_pixel = int(getattr(ds, "SamplesPerPixel", 1))
+            item_length = (
+                ds.Rows * ds.Columns * (ds.BitsAllocated // 8) * samples_per_pixel
+            )
+            # Explicit VR: tag(4) + VR(2) + reserved(2) + len(4) = 12
+            # Implicit VR: tag(4) + len(4) = 8
+            vr_bytes = raw_header[pixel_data_pos + 4 : pixel_data_pos + 6]
+            header_size = 12 if vr_bytes.isalpha() else 8
             for idx in range(number_of_frames):
-                offset = (idx * item_length) + 12
+                offset = (idx * item_length) + header_size
                 frames.append({
                     "frame_number": idx,
                     "frame_size": item_length,
