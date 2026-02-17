@@ -167,7 +167,7 @@ def register_dicomweb_routes(app: FastAPI):
     @app.get("/api/dicomweb/benchmark", tags=["Debug"])
     def benchmark_page():
         import pathlib
-        html_path = pathlib.Path(__file__).parent / "utils" / "benchmark.html"
+        html_path = pathlib.Path(__file__).parent / "pages" / "benchmark.html"
         with open(html_path, "r") as f:
             html = f.read()
         return Response(content=html, media_type="text/html")
@@ -176,7 +176,7 @@ def register_dicomweb_routes(app: FastAPI):
     @app.get("/api/dicomweb/dashboard", tags=["Monitoring"])
     def metrics_dashboard():
         import pathlib
-        html_path = pathlib.Path(__file__).parent / "utils" / "dashboard.html"
+        html_path = pathlib.Path(__file__).parent / "pages" / "dashboard.html"
         with open(html_path, "r") as f:
             html = f.read()
         return Response(content=html, media_type="text/html")
