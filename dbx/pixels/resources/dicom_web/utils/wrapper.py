@@ -30,6 +30,7 @@ from .dicom_io import (
     _PIXEL_DATA_MARKER,
     _extract_from_extended_offset_table,
     _fetch_bytes_range,
+    _find_pixel_data_pos,
     compute_full_bot,
     file_prefetcher,
     get_file_metadata,
@@ -644,10 +645,10 @@ class DICOMwebDatabricksWrapper:
 
         # ── Download header ──────────────────────────────────────────
         raw = _fetch_bytes_range(token, db_file, 0, _HEADER_INITIAL_BYTES)
-        pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+        pixel_data_pos = _find_pixel_data_pos(raw)
         if pixel_data_pos == -1 and len(raw) >= _HEADER_INITIAL_BYTES:
             raw = _fetch_bytes_range(token, db_file, 0, _HEADER_EXTENDED_BYTES)
-            pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+            pixel_data_pos = _find_pixel_data_pos(raw)
 
         ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
         transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)

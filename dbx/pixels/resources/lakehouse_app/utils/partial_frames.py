@@ -170,11 +170,22 @@ def pixel_frames_from_dcm_metadata_file(
 
     with fsspec.open(db_file.to_api_url(), "rb", client_kwargs=client_kwargs) as f:
         ds = pydicom.dcmread(f, stop_before_pixels=True)
+        # pydicom stops at the top-level Pixel Data tag; capture that
+        # position so we skip any nested (7FE0,0010) tags (e.g. inside
+        # Icon Image Sequence) when searching for the real pixel data.
+        metadata_end = f.tell()
         is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
         number_of_frames = ds.get("NumberOfFrames", 1)
 
         f.seek(0)
-        pixel_data_pos = f.read(1_000_000).find(pixel_data_marker)
+        raw_header = f.read(1_000_000)
+        # Search from near where pydicom stopped (allow small look-back
+        # since pydicom may have consumed part of the 4-byte tag).
+        search_from = max(0, metadata_end - 8)
+        pixel_data_pos = raw_header.find(pixel_data_marker, search_from)
+        if pixel_data_pos == -1:
+            # Fallback: single-tag case or very small header
+            pixel_data_pos = raw_header.find(pixel_data_marker)
 
         if last_indexed_frame != 0 and last_indexed_start_pos != 0:
             start_pos = last_indexed_start_pos - 100

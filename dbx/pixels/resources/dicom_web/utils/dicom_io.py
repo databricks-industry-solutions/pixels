@@ -1388,6 +1388,89 @@ _HEADER_INITIAL_BYTES = 64 * 1024
 _HEADER_EXTENDED_BYTES = 2 * 1024 * 1024
 
 
+def _find_pixel_data_pos(raw: bytes) -> int:
+    """
+    Locate the **top-level** Pixel Data tag ``(7FE0,0010)`` in *raw*.
+
+    Some DICOM files contain more than one ``(7FE0,0010)`` tag — for
+    example one nested inside an Icon Image Sequence and a second one
+    at the dataset root for the actual pixel data.  A naïve ``find()``
+    returns the first (nested) occurrence, producing incorrect byte
+    offsets for every downstream frame calculation.
+
+    **Algorithm**
+
+    1. Collect every occurrence of the 4-byte marker.
+    2. If there is exactly one, return it immediately (common fast path).
+    3. If there are several, use ``pydicom.dcmread(stop_before_pixels=True)``
+       to parse the DICOM structure.  pydicom handles sequences correctly
+       and stops at the top-level pixel data boundary.  We then pick the
+       first marker occurrence at or after that boundary.
+    4. If pydicom parsing fails, fall back to the **last** occurrence
+       (the top-level tag always has the highest offset because
+       ``(7FE0,0010)`` is the highest standard group/element).
+
+    Returns:
+        Byte offset of the top-level tag, or ``-1`` if no marker was
+        found (caller should extend the download range).
+    """
+    # ── Collect all occurrences ───────────────────────────────────────
+    positions: list[int] = []
+    search_from = 0
+    while True:
+        pos = raw.find(_PIXEL_DATA_MARKER, search_from)
+        if pos == -1:
+            break
+        positions.append(pos)
+        search_from = pos + 4
+
+    if not positions:
+        return -1
+
+    if len(positions) == 1:
+        return positions[0]
+
+    # ── Multiple tags detected — resolve via pydicom ──────────────────
+    logger.warning(
+        f"Found {len(positions)} Pixel Data (7FE0,0010) tags at "
+        f"offsets {positions}; resolving the top-level one via pydicom"
+    )
+
+    try:
+        bio = BytesIO(raw)
+        pydicom.dcmread(bio, stop_before_pixels=True, force=True)
+        metadata_end = bio.tell()
+
+        # pydicom may have consumed up to 4 bytes of the tag before
+        # recognising it as pixel data and stopping.  Allow a small
+        # look-back so the search window covers the tag start.
+        search_start = max(0, metadata_end - 8)
+        for p in positions:
+            if p >= search_start:
+                logger.info(
+                    f"Top-level Pixel Data tag at offset {p} "
+                    f"(pydicom metadata_end={metadata_end})"
+                )
+                return p
+
+        # Every found position is *before* where pydicom says metadata
+        # ends → they are all nested inside sequences.  The real
+        # top-level tag must be beyond our current download range.
+        logger.warning(
+            f"All {len(positions)} Pixel Data tags appear nested "
+            f"(all before metadata_end={metadata_end}); real pixel "
+            f"data may be beyond the downloaded range"
+        )
+        return -1
+
+    except Exception as exc:
+        logger.warning(
+            f"pydicom parse failed during multi-tag resolution "
+            f"({exc}); falling back to last occurrence"
+        )
+        return positions[-1]
+
+
 
 
 
@@ -1440,12 +1523,12 @@ def compute_full_bot(
     """
     # ── Step 1: Download header portion (covers metadata + pixel data tag) ──
     raw = _fetch_bytes_range(token, db_file, 0, _HEADER_INITIAL_BYTES)
-    pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+    pixel_data_pos = _find_pixel_data_pos(raw)
 
     if pixel_data_pos == -1 and len(raw) >= _HEADER_INITIAL_BYTES:
         # Very large header (rare) — extend the range.
         raw = _fetch_bytes_range(token, db_file, 0, _HEADER_EXTENDED_BYTES)
-        pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+        pixel_data_pos = _find_pixel_data_pos(raw)
 
     # ── Step 2: Parse DICOM metadata from the downloaded bytes ──
     ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
@@ -1502,7 +1585,7 @@ def compute_full_bot(
         if not frames:
             logger.info("Using full-file download fallback for BOT")
             raw = _fetch_bytes_range(token, db_file)
-            pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+            pixel_data_pos = _find_pixel_data_pos(raw)
 
             f = BytesIO(raw)
             try:

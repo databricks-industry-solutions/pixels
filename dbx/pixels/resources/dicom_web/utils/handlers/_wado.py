@@ -297,6 +297,7 @@ def dicomweb_perf_compare(
         _HEADER_INITIAL_BYTES,
         _PIXEL_DATA_MARKER,
         _fetch_bytes_range,
+        _find_pixel_data_pos,
         compute_full_bot,
         get_file_part,
         stream_file,
@@ -334,7 +335,7 @@ def dicomweb_perf_compare(
         t_ttfb = None
 
         raw = _fetch_bytes_range(token, db_file)
-        pixel_data_pos = raw.find(_PIXEL_DATA_MARKER)
+        pixel_data_pos = _find_pixel_data_pos(raw)
 
         from io import BytesIO
         import pydicom
