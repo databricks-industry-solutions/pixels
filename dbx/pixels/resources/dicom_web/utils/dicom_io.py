@@ -300,7 +300,7 @@ def stream_file(
         )
 
     content_length = response.headers.get("Content-Length")
-    logger.info(
+    logger.debug(
         f"Streaming {db_file.file_path} "
         f"(Content-Length: {content_length or 'unknown'}, chunk={chunk_size})"
     )
@@ -472,7 +472,7 @@ class FilePrefetcher:
         self._memory_skipped: int = 0     # downloads skipped due to budget
         self._files_skipped_too_large: int = 0  # downloads skipped (file too big)
 
-        logger.info(
+        logger.debug(
             f"Prefetcher initialised: enabled={self._enabled}, "
             f"workers={self._max_workers} "
             f"(of {cpu_count} cores), memory budget="
@@ -781,7 +781,7 @@ class ProgressiveFileStreamer:
         )
         self._max_cache_bytes = max_cache_bytes or self._DEFAULT_MAX_CACHE_BYTES
         os.makedirs(self._cache_dir, exist_ok=True)
-        logger.info(
+        logger.debug(
             f"ProgressiveFileStreamer: cache_dir={self._cache_dir}, "
             f"max_cache={self._max_cache_bytes / (1024**3):.1f} GB"
         )
@@ -836,7 +836,7 @@ class ProgressiveFileStreamer:
             state, token, db_file, pixel_data_pos,
             number_of_frames, data_start,
         )
-        logger.info(
+        logger.debug(
             f"Progressive stream started for {db_file.file_path} "
             f"(data_start={data_start}, expected_frames={number_of_frames})"
         )
@@ -951,9 +951,8 @@ class ProgressiveFileStreamer:
 
             state.mark_complete()
             logger.info(
-                f"Progressive stream complete for {db_file.file_path}: "
-                f"{len(frames_list)} frames from {len(fragments)} fragments, "
-                f"local cache at {state.local_path}"
+                f"Progressive stream complete: "
+                f"{len(frames_list)} frames indexed for {db_file.file_path}"
             )
 
         except Exception as exc:
@@ -1501,7 +1500,7 @@ def _find_pixel_data_pos(raw: bytes) -> int:
         search_start = max(0, metadata_end - 8)
         for p in positions:
             if p >= search_start:
-                logger.info(
+                logger.debug(
                     f"Top-level Pixel Data tag at offset {p} "
                     f"(pydicom metadata_end={metadata_end})"
                 )
@@ -1614,7 +1613,7 @@ def compute_full_bot(
             ds, raw, pixel_data_pos, number_of_frames,
         )
         if frames is not None:
-            logger.info(
+            logger.debug(
                 f"BOT from Extended Offset Table: {len(frames)} frames "
                 f"(zero additional I/O)"
             )
@@ -1626,7 +1625,7 @@ def compute_full_bot(
                     number_of_frames, raw,
                     capture_frames=capture_frames,
                 )
-                logger.info(
+                logger.debug(
                     f"BOT from streaming scan: {len(frames)} frames"
                 )
             except Exception as stream_exc:
@@ -1638,7 +1637,7 @@ def compute_full_bot(
 
         # Strategy 3: Full file download (legacy fallback) ───────────────
         if not frames:
-            logger.info("Using full-file download fallback for BOT")
+            logger.debug("Using full-file download fallback for BOT")
             raw = _fetch_bytes_range(token, db_file)
             pixel_data_pos = _find_pixel_data_pos(raw)
 
@@ -1668,7 +1667,7 @@ def compute_full_bot(
                     )
                     if last:
                         frames.append(last)
-                        logger.info(
+                        logger.debug(
                             f"BOT: recovered last frame "
                             f"{last['frame_number']}"
                         )
@@ -1683,11 +1682,7 @@ def compute_full_bot(
                     number_of_frames, pixel_data_pos, 0,
                 )
 
-    logger.info(
-        f"BOT computed for {db_file.file_path}: {len(frames)} frames, "
-        f"transfer_syntax={transfer_syntax_uid}, "
-        f"pixel_data_pos={pixel_data_pos}"
-    )
+    logger.info(f"BOT computed: {len(frames)} frames for {db_file.file_path}")
 
     return {
         "transfer_syntax_uid": transfer_syntax_uid,

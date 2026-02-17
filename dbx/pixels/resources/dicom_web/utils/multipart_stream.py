@@ -138,7 +138,7 @@ def extract_dicom_uids(raw: bytes) -> dict[str, str | int]:
     nf_str = _scan_uid_tag(raw, _TAG_NUMBER_OF_FRAMES)
 
     if sop:
-        logger.info(
+        logger.debug(
             f"Raw byte scan extracted UIDs: SOP={sop}, Study={study}, "
             f"Series={series}"
         )

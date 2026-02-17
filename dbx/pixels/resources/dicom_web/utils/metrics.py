@@ -89,8 +89,8 @@ def _log_metrics_summary():
         c = m["caches"]
         p = m["prefetcher"]
 
-        logger.info(
-            f"📊  CPU: {s['cpu_percent_process']:.1f}% proc / "
+        logger.debug(
+            f"CPU: {s['cpu_percent_process']:.1f}% proc / "
             f"{s['cpu_percent_system']:.1f}% sys | "
             f"RAM: {s['memory_rss_mb']} MB "
             f"(sys {s['system_memory_used_percent']}%) | "
@@ -100,7 +100,7 @@ def _log_metrics_summary():
             f"({c['bot_cache']['hit_rate']} hit) | "
             f"Path$: {c['instance_path_cache']['entries']} entries "
             f"({c['instance_path_cache']['hit_rate']} hit) | "
-            f"Prefetch: {p['done']}✓ / {p['pending']}⏳ "
+            f"Prefetch: {p['done']} / {p['pending']} pending "
             f"mem {p['memory_used_mb']}/{p['memory_budget_mb']} MB"
         )
     except Exception as exc:

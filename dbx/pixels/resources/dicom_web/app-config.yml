@@ -17,4 +17,5 @@ env:
     value: "{STOW_VOLUME_PATH}"
   - name: "PIXELS_PREFETCH_ENABLED"
     value: "false"
-
+  - name: "DB_PIXELS_LOG_LEVEL"
+    value: "INFO"
