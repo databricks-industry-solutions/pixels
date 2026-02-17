@@ -17,7 +17,10 @@ Authorization is controlled by the ``DICOMWEB_USE_USER_AUTH`` env var:
 See: https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth
 """
 
+import base64
+import json
 import os
+import time
 
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request
@@ -151,6 +154,35 @@ _app_cfg: Config | None = None
 _app_header_factory = None
 
 
+def _is_token_expiring(token: str, buffer_sec: int = 300) -> bool:
+    """
+    Check if a JWT is expired or expiring within *buffer_sec*.
+    
+    Decodes the unverified payload (middle part) to read the 'exp' claim.
+    Returns True if the token is invalid, expired, or closing to expiry.
+    """
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return True  # Not a valid JWT format -> force refresh
+        
+        # Padding for base64 decoding
+        payload_b64 = parts[1]
+        padding = "=" * (4 - (len(payload_b64) % 4))
+        payload_json = base64.urlsafe_b64decode(payload_b64 + padding)
+        claims = json.loads(payload_json)
+        
+        exp = claims.get("exp")
+        if not exp:
+            return True  # No expiry -> assume it might be old/invalid
+            
+        # Check against current time + buffer
+        return time.time() + buffer_sec >= exp
+    except Exception as exc:
+        logger.warning(f"Token expiration check failed: {exc}")
+        return True  # Fail safe -> force refresh
+
+
 def app_token_provider() -> str:
     """
     Return a current bearer token from the Databricks SDK ``Config``.
@@ -163,26 +195,46 @@ def app_token_provider() -> str:
     authentication flow can succeed.
     """
     global _app_cfg, _app_header_factory
+    
+    # 1. Initialize if needed
     if _app_cfg is None:
         _app_cfg = Config()
         _app_header_factory = _app_cfg.authenticate()
+    
+    # 2. Get current headers/token
     headers = _app_header_factory() if callable(_app_header_factory) else _app_header_factory
+    
     if headers is None:
         # Token refresh returned None — reset so next call re-authenticates
         logger.warning("SDK header factory returned None — resetting Config for re-auth")
         _app_cfg = None
         _app_header_factory = None
+        # Use recursion to try again immediately (once)
+        # Note: We don't want infinite recursion, but Config() usually succeeds reliably
+        # or raises error if env vars are missing.
+        # For safety, just raise 503 and let next request retry.
         raise HTTPException(
             status_code=503,
             detail="Authentication temporarily unavailable — please retry",
         )
+
     auth = headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        return auth[7:]
-    raise HTTPException(
-        status_code=500,
-        detail="SDK Config did not produce a Bearer token",
-    )
+    if not auth.startswith("Bearer "):
+        raise HTTPException(
+            status_code=500,
+            detail="SDK Config did not produce a Bearer token",
+        )
+
+    token = auth[7:]
+
+    # 3. Check for expiration (SDK might cache a stale token)
+    if _is_token_expiring(token):
+        logger.warning("Cached App token is expiring or invalid — forcing refresh")
+        _app_cfg = None  # Force re-init on next recursive call
+        _app_header_factory = None
+        return app_token_provider()
+
+    return token
 
 
 # ---------------------------------------------------------------------------
