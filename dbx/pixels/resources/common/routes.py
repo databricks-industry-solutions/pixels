@@ -14,6 +14,7 @@ Each group also has its own ``register_*_routes(app)`` for granular use.
 
 import asyncio
 import base64
+import hashlib
 import json
 import os
 import re
@@ -181,21 +182,29 @@ def register_monai_routes(app: FastAPI):
         to_send["pixels_table"] = get_pixels_table(request)
         log({"inputs": {"input": {"infer": to_send}}}, request, "debug")
 
+        # Build a composite cache key from the image path *and* the full
+        # inference parameters so that label / model / config changes
+        # invalidate stale cached results.
+        image_key = q_params["image"]
+        params_hash = hashlib.sha256(
+            json.dumps(to_send, sort_keys=True).encode()
+        ).hexdigest()[:16]
+        cache_key = f"{image_key}:{params_hash}"
+
         try:
-            image_key = q_params["image"]
             should_run_inference = False
             pending_event = None
 
             async with _cache_segmentations_lock:
-                if image_key not in _cache_segmentations:
+                if cache_key not in _cache_segmentations:
                     pending_event = asyncio.Event()
-                    _cache_segmentations[image_key] = {"pending": pending_event}
+                    _cache_segmentations[cache_key] = {"pending": pending_event}
                     should_run_inference = True
-                elif "pending" in _cache_segmentations[image_key]:
-                    pending_event = _cache_segmentations[image_key]["pending"]
+                elif "pending" in _cache_segmentations[cache_key]:
+                    pending_event = _cache_segmentations[cache_key]["pending"]
                 else:
-                    file_path = _cache_segmentations[image_key]["file_path"]
-                    params = _cache_segmentations[image_key]["params"]
+                    file_path = _cache_segmentations[cache_key]["file_path"]
+                    params = _cache_segmentations[cache_key]["params"]
 
             if should_run_inference:
                 try:
@@ -212,21 +221,21 @@ def register_monai_routes(app: FastAPI):
                     params = res_json["params"]
 
                     async with _cache_segmentations_lock:
-                        _cache_segmentations[image_key] = {
+                        _cache_segmentations[cache_key] = {
                             "file_path": file_path,
                             "params": params,
                         }
                     pending_event.set()
                 except Exception:
                     async with _cache_segmentations_lock:
-                        _cache_segmentations.pop(image_key, None)
+                        _cache_segmentations.pop(cache_key, None)
                     pending_event.set()
                     raise
             elif pending_event is not None:
                 await pending_event.wait()
                 async with _cache_segmentations_lock:
-                    entry = _cache_segmentations.get(image_key, {})
-                    if "pending" in entry or image_key not in _cache_segmentations:
+                    entry = _cache_segmentations.get(cache_key, {})
+                    if "pending" in entry or cache_key not in _cache_segmentations:
                         raise Exception("Inference failed in another request")
                     file_path = entry["file_path"]
                     params = entry["params"]
@@ -253,9 +262,9 @@ def register_monai_routes(app: FastAPI):
         except Exception as e:
             log(e, request, "error")
             async with _cache_segmentations_lock:
-                entry = _cache_segmentations.get(q_params["image"], {})
-                if "pending" not in entry and q_params["image"] in _cache_segmentations:
-                    del _cache_segmentations[q_params["image"]]
+                entry = _cache_segmentations.get(cache_key, {})
+                if "pending" not in entry and cache_key in _cache_segmentations:
+                    del _cache_segmentations[cache_key]
             return Response(
                 content=json.dumps({"message": f"Error querying model: {e}"}),
                 media_type="application/json",
