@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WADO-RS vs WADO-URI Performance Benchmark</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242834;
+            --border: #2e3345;
+            --text: #e4e7ef;
+            --text-muted: #8b92a8;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108, 92, 231, 0.25);
+            --green: #00b894;
+            --red: #e17055;
+            --yellow: #fdcb6e;
+            --blue: #74b9ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2 .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-green {
+            background: var(--green);
+        }
+
+        .dot-blue {
+            background: var(--blue);
+        }
+
+        .dot-yellow {
+            background: var(--yellow);
+        }
+
+        /* Config form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.65rem 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .btn-sm:hover {
+            background: var(--border);
+        }
+
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        #status-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+        }
+
+        /* Results table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        tbody td {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        .val-good {
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .val-bad {
+            color: var(--red);
+            font-weight: 600;
+        }
+
+        .val-neutral {
+            color: var(--text);
+        }
+
+        .winner-badge {
+            display: inline-block;
+            background: rgba(0, 184, 148, 0.15);
+            color: var(--green);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        /* Metric cards */
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-card {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-card .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-card .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        .metric-card .detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Log */
+        #log {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            max-height: 300px;
+            overflow-y: auto;
+            color: var(--text-muted);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .log-entry {
+            padding: 1px 0;
+        }
+
+        .log-time {
+            color: var(--accent);
+        }
+
+        .log-ok {
+            color: var(--green);
+        }
+
+        .log-err {
+            color: var(--red);
+        }
+
+        .log-warn {
+            color: var(--yellow);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Scalability note */
+        .scalability-note {
+            background: rgba(108, 92, 231, 0.08);
+            border: 1px solid rgba(108, 92, 231, 0.2);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-top: 1rem;
+        }
+
+        .scalability-note strong {
+            color: var(--text);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>⚡ WADO-RS vs WADO-URI Benchmark</h1>
+    <p class="subtitle">Measure time-to-first-frame, complete load time, and transfer sizes for DICOMweb retrieval
+        protocols</p>
+
+    <!-- ── Configuration ── -->
+    <div class="card">
+        <h2><span class="dot dot-blue"></span> Configuration</h2>
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label>DICOMweb Base URL</label>
+                <input type="text" id="baseUrl" placeholder="e.g. https://your-app.databricks.app/api/dicomweb" />
+            </div>
+            <div class="form-group">
+                <label>Iterations per test</label>
+                <input type="number" id="iterations" value="3" min="1" max="20" />
+            </div>
+            <div class="form-group">
+                <label>Total Frames (auto-detected)</label>
+                <input type="number" id="totalFrames" value="1" min="1" readonly style="opacity:0.7" />
+            </div>
+            <div class="form-group full-width">
+                <label>Test Instance (leave blank = auto-discover via QIDO)</label>
+                <div class="form-grid" style="margin-top:0.25rem;">
+                    <input type="text" id="studyUid" placeholder="Study Instance UID" />
+                    <input type="text" id="seriesUid" placeholder="Series Instance UID" />
+                    <input type="text" id="instanceUid" placeholder="SOP Instance UID" class="full-width" />
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center;">
+            <button class="btn" id="btnRun" onclick="runBenchmark()">▶ Run Benchmark</button>
+            <button class="btn btn-sm" id="btnDiscover" onclick="discoverInstance()">🔍 Discover Instance</button>
+            <span id="status-text"></span>
+        </div>
+        <div class="progress-bar">
+            <div class="fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <!-- ── Results ── -->
+    <div class="card hidden" id="resultsCard">
+        <div class="section-header">
+            <h2><span class="dot dot-green"></span> Results</h2>
+            <button class="btn btn-sm" onclick="exportResults()">📋 Copy JSON</button>
+        </div>
+
+        <!-- Summary metrics -->
+        <div class="metric-grid" id="summaryMetrics"></div>
+
+        <!-- Comparison table -->
+        <div style="margin-top:1.5rem; overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>WADO-RS (frames)</th>
+                        <th>WADO-URI (instance → frame)</th>
+                        <th>Diff</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Scalability projection -->
+        <div class="scalability-note" id="scalabilityNote"></div>
+    </div>
+
+    <!-- ── Per-iteration detail ── -->
+    <div class="card hidden" id="detailCard">
+        <h2><span class="dot dot-yellow"></span> Per-Iteration Detail</h2>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Protocol</th>
+                        <th>TTFF (ms)</th>
+                        <th>Total (ms)</th>
+                        <th>Size (KB)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="detailBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Log ── -->
+    <div class="card">
+        <h2><span class="dot dot-yellow"></span> Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // ── Globals ──
+        let allResults = [];
+        let detectedFrames = 1;
+
+        function log(msg, cls = '') {
+            const el = document.getElementById('log');
+            const t = new Date().toLocaleTimeString();
+            el.innerHTML += `<div class="log-entry"><span class="log-time">[${t}]</span> <span class="${cls}">${msg}</span></div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function setStatus(msg) { document.getElementById('status-text').textContent = msg; }
+        function setProgress(pct) { document.getElementById('progressFill').style.width = pct + '%'; }
+
+        function getBaseUrl() {
+            let url = document.getElementById('baseUrl').value.trim();
+            if (!url) {
+                // Auto-detect from current page
+                url = window.location.origin + '/api/dicomweb';
+                document.getElementById('baseUrl').value = url;
+            }
+            return url.replace(/\/$/, '');
+        }
+
+        // ── Discover test instance via QIDO ──
+        async function discoverInstance() {
+            const base = getBaseUrl();
+            setStatus('Discovering test data via QIDO-RS...');
+            log('Discovering study...');
+
+            try {
+                // Find a study
+                let resp = await fetch(`${base}/studies?limit=1`);
+                if (!resp.ok) throw new Error(`Studies query failed: ${resp.status}`);
+                let studies = await resp.json();
+                if (!studies.length) throw new Error('No studies found');
+                const studyUid = studies[0]['0020000D']?.Value?.[0];
+                log(`Found study: ${studyUid}`, 'log-ok');
+
+                // Find a series
+                resp = await fetch(`${base}/studies/${studyUid}/series?limit=1`);
+                if (!resp.ok) throw new Error(`Series query failed: ${resp.status}`);
+                let series = await resp.json();
+                if (!series.length) throw new Error('No series found');
+                const seriesUid = series[0]['0020000E']?.Value?.[0];
+                log(`Found series: ${seriesUid}`, 'log-ok');
+
+                // Find an instance
+                resp = await fetch(`${base}/studies/${studyUid}/series/${seriesUid}/instances?limit=5`);
+                if (!resp.ok) throw new Error(`Instances query failed: ${resp.status}`);
+                let instances = await resp.json();
+                if (!instances.length) throw new Error('No instances found');
+
+                // Pick the instance with the most frames for a more interesting test
+                let best = instances[0];
+                let bestFrames = parseInt(best['00280008']?.Value?.[0] || '1');
+                for (const inst of instances) {
+                    const nf = parseInt(inst['00280008']?.Value?.[0] || '1');
+                    if (nf > bestFrames) { best = inst; bestFrames = nf; }
+                }
+
+                const instanceUid = best['00080018']?.Value?.[0];
+                detectedFrames = bestFrames;
+                log(`Found instance: ${instanceUid} (${bestFrames} frames)`, 'log-ok');
+
+                document.getElementById('studyUid').value = studyUid;
+                document.getElementById('seriesUid').value = seriesUid;
+                document.getElementById('instanceUid').value = instanceUid;
+                document.getElementById('totalFrames').value = bestFrames;
+                setStatus(`Ready — ${bestFrames} frame(s) will be benchmarked`);
+            } catch (e) {
+                log(`Discovery failed: ${e.message}`, 'log-err');
+                setStatus('Discovery failed — enter UIDs manually');
+            }
+        }
+
+        // ── Benchmark WADO-RS (one request per frame, matching OHIF behavior) ──
+        async function benchWadoRS(base, study, series, instance, numFrames) {
+            const t0 = performance.now();
+            let ttff = null; // time until first frame fully received
+            let totalBytes = 0;
+
+            for (let f = 1; f <= numFrames; f++) {
+                const url = `${base}/studies/${study}/series/${series}/instances/${instance}/frames/${f}`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`WADO-RS frame ${f}: ${resp.status}`);
+
+                const reader = resp.body.getReader();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    totalBytes += value.byteLength;
+                }
+
+                // TTFF = when the first frame response is fully received
+                if (f === 1) {
+                    ttff = performance.now() - t0;
+                }
+            }
+
+            const totalTime = performance.now() - t0;
+            return { ttff: ttff || totalTime, totalTime, totalBytes, protocol: 'WADO-RS', numFrames };
+        }
+
+        // ── Benchmark WADO-URI ──
+        // WADO-URI for frame retrieval: the viewer must either:
+        //   A) Download the entire instance first, then extract frames client-side
+        //   B) Use frameNumber param if the server supports it (ours does)
+        // For "time to first frame" in WADO-URI mode, we measure the full instance download
+        // because the viewer cannot display anything until the full file arrives.
+        async function benchWadoURI(base, study, series, instance, numFrames) {
+            // In a real WADO-URI viewer (like OHIF in wadouri mode), the entire DICOM file
+            // is downloaded first, then frames are extracted client-side from the ArrayBuffer.
+            // The "time to first frame" = time to download the entire file.
+            // const framesList = frames.split(',').map(f => f.trim()); // No longer needed
+
+            // If server supports frameNumber param, test that path too
+            // But the key metric is: time until the viewer can display Frame 1
+            // In wadouri mode, that's when the entire file download completes.
+
+            // Step 1: Download full instance (this is what OHIF does in wadouri mode)
+            const instanceUrl = `${base}/wado?requestType=WADO&studyUID=${study}&seriesUID=${series}&objectUID=${instance}&contentType=application/dicom`;
+            const t0 = performance.now();
+            let totalBytes = 0;
+            let ttff = null;
+
+            const resp = await fetch(instanceUrl);
+            if (!resp.ok) throw new Error(`WADO-URI ${resp.status}`);
+
+            const reader = resp.body.getReader();
+            let firstChunk = true;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                totalBytes += value.byteLength;
+                if (firstChunk) {
+                    // Note: this is TTFB, not TTFF. In wadouri mode, the first frame
+                    // can only be rendered after the ENTIRE file is downloaded and parsed.
+                    firstChunk = false;
+                }
+            }
+
+            // In WADO-URI mode, time-to-first-frame = total download time
+            // because the viewer needs the entire file to parse and render any frame
+            const totalTime = performance.now() - t0;
+            ttff = totalTime; // This is the critical difference vs WADO-RS
+
+            return { ttff, totalTime, totalBytes, protocol: 'WADO-URI', numFrames: 'all (file)' };
+        }
+
+        // ── Main benchmark runner ──
+        async function runBenchmark() {
+            const base = getBaseUrl();
+            const study = document.getElementById('studyUid').value.trim();
+            const series = document.getElementById('seriesUid').value.trim();
+            const instance = document.getElementById('instanceUid').value.trim();
+            const numFrames = parseInt(document.getElementById('totalFrames').value) || detectedFrames || 1;
+            // Build full frame list: "1,2,3,...,N" - No longer needed for WADO-RS
+            // const frames = Array.from({ length: numFrames }, (_, i) => i + 1).join(',');
+            const iterations = parseInt(document.getElementById('iterations').value) || 3;
+
+            if (!study || !series || !instance) {
+                log('Missing UIDs — run Discover first or enter them manually', 'log-err');
+                setStatus('Error: missing UIDs');
+                return;
+            }
+
+            const btn = document.getElementById('btnRun');
+            btn.disabled = true;
+            allResults = [];
+            document.getElementById('detailBody').innerHTML = '';
+            setProgress(0);
+
+            const totalTests = iterations * 2;
+            let completed = 0;
+
+            log(`\n━━━ Starting benchmark: ${iterations} iterations, ${numFrames} frames (all) ━━━`);
+            log(`Instance: ${instance}`);
+            log(`Frames: ${numFrames}`); // Updated to reflect numFrames directly
+
+            const rsResults = [];
+            const uriResults = [];
+
+            for (let i = 0; i < iterations; i++) {
+                setStatus(`Iteration ${i + 1}/${iterations} — WADO-RS...`);
+                try {
+                    const rs = await benchWadoRS(base, study, series, instance, numFrames);
+                    rsResults.push(rs);
+                    addDetailRow(i + 1, rs);
+                    log(`WADO-RS  #${i + 1}: TTFF=${rs.ttff.toFixed(1)}ms, Total=${rs.totalTime.toFixed(1)}ms, ${(rs.totalBytes / 1024).toFixed(1)}KB (${numFrames} frame reqs)`, 'log-ok');
+                } catch (e) {
+                    log(`WADO-RS  #${i + 1}: ERROR — ${e.message}`, 'log-err');
+                    addDetailRow(i + 1, { protocol: 'WADO-RS', ttff: NaN, totalTime: NaN, totalBytes: 0, numFrames: numFrames }, e.message);
+                }
+                completed++;
+                setProgress((completed / totalTests) * 100);
+
+                // Small delay to let the server breathe
+                await new Promise(r => setTimeout(r, 200));
+
+                setStatus(`Iteration ${i + 1}/${iterations} — WADO-URI...`);
+                try {
+                    const uri = await benchWadoURI(base, study, series, instance, numFrames);
+                    uriResults.push(uri);
+                    addDetailRow(i + 1, uri);
+                    log(`WADO-URI #${i + 1}: TTFF=${uri.ttff.toFixed(1)}ms, Total=${uri.totalTime.toFixed(1)}ms, ${(uri.totalBytes / 1024).toFixed(1)}KB (1 file req)`, 'log-ok');
+                } catch (e) {
+                    log(`WADO-URI #${i + 1}: ERROR — ${e.message}`, 'log-err');
+                    addDetailRow(i + 1, { protocol: 'WADO-URI', ttff: NaN, totalTime: NaN, totalBytes: 0, numFrames: 'all (file)' }, e.message);
+                }
+                completed++;
+                setProgress((completed / totalTests) * 100);
+
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            // ── Compute summary ──
+            allResults = { rs: rsResults, uri: uriResults, config: { study, series, instance, numFrames, iterations } };
+            showResults(rsResults, uriResults);
+            setStatus('Benchmark complete');
+            setProgress(100);
+            btn.disabled = false;
+            log('━━━ Benchmark complete ━━━\n', 'log-ok');
+        }
+
+        function median(arr) {
+            if (!arr.length) return NaN;
+            const s = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(s.length / 2);
+            return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+        }
+
+        function showResults(rsArr, uriArr) {
+            if (!rsArr.length || !uriArr.length) return;
+
+            document.getElementById('resultsCard').classList.remove('hidden');
+            document.getElementById('detailCard').classList.remove('hidden');
+
+            const rsTtff = rsArr.map(r => r.ttff);
+            const rsTotal = rsArr.map(r => r.totalTime);
+            const rsBytes = rsArr.map(r => r.totalBytes);
+
+            const uriTtff = uriArr.map(r => r.ttff);
+            const uriTotal = uriArr.map(r => r.totalTime);
+            const uriBytes = uriArr.map(r => r.totalBytes);
+
+            const metrics = [
+                {
+                    label: 'Time to First Frame (median)',
+                    rs: median(rsTtff), uri: median(uriTtff), unit: 'ms', lower: true
+                },
+                {
+                    label: 'Time to First Frame (min)',
+                    rs: Math.min(...rsTtff), uri: Math.min(...uriTtff), unit: 'ms', lower: true
+                },
+                {
+                    label: 'Total Load Time (median)',
+                    rs: median(rsTotal), uri: median(uriTotal), unit: 'ms', lower: true
+                },
+                {
+                    label: 'Total Load Time (min)',
+                    rs: Math.min(...rsTotal), uri: Math.min(...uriTotal), unit: 'ms', lower: true
+                },
+                {
+                    label: 'Transfer Size (avg)',
+                    rs: rsBytes.reduce((a, b) => a + b, 0) / rsBytes.length,
+                    uri: uriBytes.reduce((a, b) => a + b, 0) / uriBytes.length,
+                    unit: 'KB', divisor: 1024, lower: true
+                },
+            ];
+
+            // Summary metric cards
+            const summaryEl = document.getElementById('summaryMetrics');
+            const ttffRs = median(rsTtff);
+            const ttffUri = median(uriTtff);
+            const ttffWinner = ttffRs < ttffUri ? 'WADO-RS' : 'WADO-URI';
+            const ttffSpeedup = ttffRs < ttffUri ? (ttffUri / ttffRs).toFixed(1) : (ttffRs / ttffUri).toFixed(1);
+
+            const totalRs = median(rsTotal);
+            const totalUri = median(uriTotal);
+
+            const avgBytesRs = rsBytes.reduce((a, b) => a + b, 0) / rsBytes.length;
+            const avgBytesUri = uriBytes.reduce((a, b) => a + b, 0) / uriBytes.length;
+            const bandwidthSaved = ((1 - avgBytesRs / avgBytesUri) * 100);
+
+            summaryEl.innerHTML = `
+    <div class="metric-card">
+      <div class="label">First Frame Winner</div>
+      <div class="value" style="color:var(--green)">${ttffWinner}</div>
+      <div class="detail">${ttffSpeedup}× faster</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">WADO-RS TTFF (median)</div>
+      <div class="value">${ttffRs.toFixed(0)}<span style="font-size:0.8rem;color:var(--text-muted)">ms</span></div>
+      <div class="detail">Streams frame immediately</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">WADO-URI TTFF (median)</div>
+      <div class="value">${ttffUri.toFixed(0)}<span style="font-size:0.8rem;color:var(--text-muted)">ms</span></div>
+      <div class="detail">Must download entire file</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Bandwidth Difference</div>
+      <div class="value" style="color:${bandwidthSaved > 0 ? 'var(--green)' : 'var(--red)'}">${Math.abs(bandwidthSaved).toFixed(0)}%</div>
+      <div class="detail">${bandwidthSaved > 0 ? 'RS saves' : 'URI saves'} bandwidth for frames</div>
+    </div>
+  `;
+
+            // Comparison table
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            for (const m of metrics) {
+                const rsVal = m.divisor ? m.rs / m.divisor : m.rs;
+                const uriVal = m.divisor ? m.uri / m.divisor : m.uri;
+                const diff = uriVal - rsVal;
+                const rsWins = m.lower ? rsVal < uriVal : rsVal > uriVal;
+                const uriWins = !rsWins;
+
+                tbody.innerHTML += `<tr>
+      <td>${m.label}</td>
+      <td class="${rsWins ? 'val-good' : 'val-neutral'}">${rsVal.toFixed(1)} ${m.unit}${rsWins ? '<span class="winner-badge">WINNER</span>' : ''}</td>
+      <td class="${uriWins ? 'val-good' : 'val-neutral'}">${uriVal.toFixed(1)} ${m.unit}${uriWins ? '<span class="winner-badge">WINNER</span>' : ''}</td>
+      <td>${diff > 0 ? '+' : ''}${diff.toFixed(1)} ${m.unit}</td>
+    </tr>`;
+            }
+
+            // Scalability note
+            const note = document.getElementById('scalabilityNote');
+            const rsPerSec = 1000 / totalRs;
+            const uriPerSec = 1000 / totalUri;
+            note.innerHTML = `
+    <strong>📊 Scalability Projection (100 concurrent users)</strong><br/>
+    <strong>WADO-RS:</strong> Each frame request transfers ~${(avgBytesRs / 1024).toFixed(0)} KB.
+    At ${rsPerSec.toFixed(1)} req/s throughput, the server must handle ~${(100 * rsPerSec).toFixed(0)} frame-req/s
+    and ~${(100 * avgBytesRs / 1024 / 1024).toFixed(1)} MB/s bandwidth.<br/>
+    <strong>WADO-URI:</strong> Each instance download transfers ~${(avgBytesUri / 1024).toFixed(0)} KB.
+    At ${uriPerSec.toFixed(1)} req/s throughput, the server must handle ~${(100 * uriPerSec).toFixed(0)} inst-req/s
+    and ~${(100 * avgBytesUri / 1024 / 1024).toFixed(1)} MB/s bandwidth.<br/><br/>
+    <strong>Key insight:</strong> WADO-RS sends only the requested frames (${(avgBytesRs / 1024).toFixed(0)} KB/req),
+    while WADO-URI sends the entire DICOM file (${(avgBytesUri / 1024).toFixed(0)} KB/req).
+    ${bandwidthSaved > 0
+                    ? `At 100 users, WADO-RS saves ~${(100 * (avgBytesUri - avgBytesRs) / 1024 / 1024).toFixed(1)} MB/s bandwidth.`
+                    : `Transfer sizes are comparable for single-frame files.`}
+    For multi-frame files, WADO-RS is critical for memory — the server and client only handle one frame at a time instead of the entire file.
+  `;
+        }
+
+        function addDetailRow(iter, result, error) {
+            const tbody = document.getElementById('detailBody');
+            const status = error ? `<span class="val-bad">❌ ${error}</span>` : '<span class="val-good">✅ OK</span>';
+            tbody.innerHTML += `<tr>
+    <td>${iter}</td>
+    <td>${result.protocol}</td>
+    <td>${isNaN(result.ttff) ? '—' : result.ttff.toFixed(1)}</td>
+    <td>${isNaN(result.totalTime) ? '—' : result.totalTime.toFixed(1)}</td>
+    <td>${(result.totalBytes / 1024).toFixed(1)}</td>
+    <td>${status}</td>
+  </tr>`;
+        }
+
+        function exportResults() {
+            const json = JSON.stringify(allResults, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                log('Results copied to clipboard', 'log-ok');
+            });
+        }
+
+        // Auto-fill base URL on load
+        window.addEventListener('load', () => {
+            if (!document.getElementById('baseUrl').value) {
+                document.getElementById('baseUrl').value = window.location.origin + '/api/dicomweb';
+            }
+        });
+    </script>
+</body>
+
+</html>

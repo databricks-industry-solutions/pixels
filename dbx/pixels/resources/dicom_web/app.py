@@ -163,6 +163,15 @@ def register_dicomweb_routes(app: FastAPI):
     def dicomweb_root():
         return _dicomweb_service_root()
 
+    # Benchmark page (WADO-RS vs WADO-URI comparison)
+    @app.get("/api/dicomweb/benchmark", tags=["Debug"])
+    def benchmark_page():
+        import pathlib
+        html_path = pathlib.Path(__file__).parent / "utils" / "benchmark.html"
+        with open(html_path, "r") as f:
+            html = f.read()
+        return Response(content=html, media_type="text/html")
+
 
 def _dicomweb_service_root() -> dict:
     """Service capability document returned at the DICOMweb root."""

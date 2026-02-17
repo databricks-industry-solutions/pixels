@@ -183,6 +183,9 @@ def _is_token_expiring(token: str, buffer_sec: int = 300) -> bool:
         return True  # Fail safe -> force refresh
 
 
+_app_refreshing = False  # Guard against infinite recursion
+
+
 def app_token_provider() -> str:
     """
     Return a current bearer token from the Databricks SDK ``Config``.
@@ -194,7 +197,7 @@ def app_token_provider() -> str:
     failure), the ``Config`` is recreated on the next call so a fresh
     authentication flow can succeed.
     """
-    global _app_cfg, _app_header_factory
+    global _app_cfg, _app_header_factory, _app_refreshing
     
     # 1. Initialize if needed
     if _app_cfg is None:
@@ -209,10 +212,6 @@ def app_token_provider() -> str:
         logger.warning("SDK header factory returned None — resetting Config for re-auth")
         _app_cfg = None
         _app_header_factory = None
-        # Use recursion to try again immediately (once)
-        # Note: We don't want infinite recursion, but Config() usually succeeds reliably
-        # or raises error if env vars are missing.
-        # For safety, just raise 503 and let next request retry.
         raise HTTPException(
             status_code=503,
             detail="Authentication temporarily unavailable — please retry",
@@ -228,11 +227,22 @@ def app_token_provider() -> str:
     token = auth[7:]
 
     # 3. Check for expiration (SDK might cache a stale token)
-    if _is_token_expiring(token):
-        logger.warning("Cached App token is expiring or invalid — forcing refresh")
-        _app_cfg = None  # Force re-init on next recursive call
+    #    Only attempt ONE refresh to avoid infinite recursion when
+    #    the SDK keeps returning the same short-lived / unparseable token.
+    if _is_token_expiring(token) and not _app_refreshing:
+        logger.warning("Cached App token is expiring or invalid — forcing refresh (once)")
+        _app_cfg = None
         _app_header_factory = None
-        return app_token_provider()
+        _app_refreshing = True
+        try:
+            return app_token_provider()
+        finally:
+            _app_refreshing = False
+    elif _is_token_expiring(token) and _app_refreshing:
+        logger.warning(
+            "Token still expiring after refresh — returning it anyway "
+            "(SDK may have returned a short-lived token)"
+        )
 
     return token
 
