@@ -83,7 +83,7 @@ def dicomweb_wado_instance_frames(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid frame list format")
 
-    logger.info(
+    logger.debug(
         f"Frame request: study={study_instance_uid}, series={series_instance_uid}, "
         f"instance={sop_instance_uid}, frames={frame_numbers}"
     )
@@ -101,7 +101,7 @@ def dicomweb_wado_instance_frames(
         def multipart_generator():
             """Yield multipart parts as each frame arrives from Volumes."""
             for idx, frame_data in enumerate(frame_stream):
-                logger.info(
+                logger.debug(
                     f"Frame {idx + 1}: {len(frame_data)} bytes, "
                     f"first 4 bytes: {frame_data[:4].hex() if len(frame_data) >= 4 else 'N/A'}"
                 )
