@@ -6,11 +6,17 @@ from datetime import datetime, timedelta
 
 import psycopg2
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.database import (
-    DatabaseInstance,
-    DatabaseInstanceRole,
-    DatabaseInstanceRoleIdentityType,
-    DatabaseInstanceState,
+from databricks.sdk.service.postgres import (
+    Branch,
+    Endpoint,
+    EndpointSpec,
+    EndpointStatusState,
+    EndpointType,
+    Project,
+    ProjectSpec,
+    Role,
+    RoleIdentityType,
+    RoleRoleSpec,
 )
 from psycopg2 import sql
 from psycopg2.extras import execute_values
@@ -181,6 +187,9 @@ class LakebaseUtils:
         min_connections: int = DEFAULT_MIN_CONNECTIONS,
         max_connections: int = DEFAULT_MAX_CONNECTIONS,
         uc_table_name: str | None = None,
+        min_cu: float = 0.5,
+        max_cu: float = 2.0,
+        branch_name: str = "main",
     ):
         """
         Initialize Lakebase utilities.
@@ -234,9 +243,17 @@ class LakebaseUtils:
 
         self.instance_name = instance_name
         self.capacity = capacity
+        self.min_cu = min_cu
+        self.max_cu = max_cu
+        self.branch_name = branch_name
         self.min_connections = min_connections
         self.max_connections = max_connections
         self.workspace_client = WorkspaceClient()
+
+        # Build resource names
+        self.project_resource_name = f"projects/{self.instance_name}"
+        self.branch_resource_name = f"{self.project_resource_name}/branches/{self.branch_name}"
+        self.endpoint_resource_name = f"{self.branch_resource_name}/endpoints/{self.instance_name}"
 
         if user is None:
             self.user = self.workspace_client.current_user.me().user_name
@@ -254,58 +271,95 @@ class LakebaseUtils:
         self.connection = self.get_connection()
 
     def get_or_create_db_instance(self, create_instance):
-        instances = list(self.workspace_client.database.list_database_instances() or [])
-        db_exists = any(inst.name == self.instance_name for inst in instances)
-
-        instance = None
-
-        if db_exists:
-            logger.info(f"Lakebase instance '{self.instance_name}' already exists.")
-            instance = next(inst for inst in instances if inst.name == self.instance_name)
-        else:
+        """
+        Get or create the Lakehouse environment (Project, Branch, and Endpoint).
+        """
+        # 1. Ensure Project exists
+        try:
+            project = self.workspace_client.postgres.get_project(self.project_resource_name)
+            logger.info(f"Lakebase project '{self.instance_name}' exists.")
+        except Exception:
             if create_instance:
-                logger.info(f"Creating Lakebase instance '{self.instance_name}'")
-                instance = self.workspace_client.database.create_database_instance(
-                    DatabaseInstance(name=self.instance_name, capacity=self.capacity)
-                )
-                logger.info(f"Created Lakebase instance: {instance.name}")
+                logger.info(f"Creating Lakebase project '{self.instance_name}'")
+                project = self.workspace_client.postgres.create_project(
+                    project_id=self.instance_name, project=Project(spec=ProjectSpec())
+                ).result()
             else:
-                raise Exception(f"Lakebase instance '{self.instance_name}' does not exist")
+                raise Exception(f"Lakebase project '{self.instance_name}' does not exist")
 
-        while instance.state == DatabaseInstanceState.STARTING:
-            instance = self.workspace_client.database.get_database_instance(name=self.instance_name)
-            logger.info(f"Waiting for instance to be ready: {instance.state}")
+        # 2. Ensure Branch exists
+        try:
+            branch = self.workspace_client.postgres.get_branch(self.branch_resource_name)
+            logger.info(f"Lakebase branch '{self.branch_name}' exists.")
+        except Exception:
+            if create_instance:
+                logger.info(f"Creating Lakebase branch '{self.branch_name}'")
+                branch = self.workspace_client.postgres.create_branch(
+                    parent=self.project_resource_name,
+                    branch_id=self.branch_name,
+                    branch=Branch(),
+                ).result()
+            else:
+                raise Exception(f"Lakebase branch '{self.branch_name}' does not exist")
+
+        # 3. Ensure Endpoint exists
+        try:
+            endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
+            logger.info(f"Lakebase endpoint '{self.instance_name}' exists.")
+        except Exception:
+            if create_instance:
+                logger.info(f"Creating Lakebase endpoint '{self.instance_name}' with autoscale ({self.min_cu}-{self.max_cu} CU)")
+                endpoint = self.workspace_client.postgres.create_endpoint(
+                    parent=self.branch_resource_name,
+                    endpoint_id=self.instance_name,
+                    endpoint=Endpoint(
+                        spec=EndpointSpec(
+                            endpoint_type=EndpointType.ENDPOINT_TYPE_READ_WRITE,
+                            autoscaling_limit_min_cu=self.min_cu,
+                            autoscaling_limit_max_cu=self.max_cu,
+                        )
+                    ),
+                ).result()
+            else:
+                raise Exception(f"Lakebase endpoint '{self.instance_name}' does not exist")
+
+        # Wait for endpoint to be ready (RUNNING or SUSPENDED)
+        while endpoint.status.current_state not in [
+            EndpointStatusState.ACTIVE,
+            EndpointStatusState.IDLE,
+        ]:
+            endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
+            logger.info(f"Waiting for endpoint to be ready: {endpoint.status.current_state}")
             time.sleep(30)
 
-        logger.info(f"Connection endpoint: {instance.read_write_dns}")
-
-        return instance
+        logger.info(f"Connection endpoint: {endpoint.status.hosts.host}")
+        return endpoint
 
     def get_or_create_sp_role(self, sp_client_id):
-        role = DatabaseInstanceRole(
-            name=sp_client_id, identity_type=DatabaseInstanceRoleIdentityType.SERVICE_PRINCIPAL
-        )
+        roles = list(self.workspace_client.postgres.list_roles(self.branch_resource_name) or [])
+        existing_role = next((r for r in roles if sp_client_id in r.name), None)
 
-        db_roles = list(
-            self.workspace_client.database.list_database_instance_roles(self.instance_name) or []
-        )
-        db_roles_found = [dbrole for dbrole in db_roles if dbrole.name == sp_client_id]
-
-        if len(db_roles_found) > 0:
-            db_role = db_roles_found[0]
+        if existing_role:
             logger.info(
-                f"Role for service principal {sp_client_id} already exists in instance {self.instance_name}"
+                f"Role for service principal {sp_client_id} already exists in branch {self.branch_name}"
             )
+            return existing_role
         else:
             # Create the database instance role for the service principal
-            db_role = self.workspace_client.database.create_database_instance_role(
-                instance_name=self.instance_name, database_instance_role=role
-            )
             logger.info(
-                f"Created role for service principal {sp_client_id} in instance {self.instance_name}"
+                f"Creating role for service principal {sp_client_id} in branch {self.branch_name}"
             )
-
-        return db_role
+            db_role = self.workspace_client.postgres.create_role(
+                parent=self.branch_resource_name,
+                role_id=sp_client_id,
+                role=Role(
+                    spec=RoleRoleSpec(
+                        identity_type=RoleIdentityType.SERVICE_PRINCIPAL,
+                        postgres_role=sp_client_id,
+                    )
+                ),
+            ).result()
+            return db_role
 
     def _generate_credential(self):
         """
@@ -315,10 +369,10 @@ class LakebaseUtils:
         Returns:
             dict: Dictionary with 'password' key containing the new token
         """
-        cred = self.workspace_client.database.generate_database_credential(
-            request_id=str(uuid.uuid4()), instance_names=[self.instance_name]
+        cred = self.workspace_client.postgres.generate_database_credential(
+            endpoint=self.endpoint_resource_name
         )
-        logger.info(f"Generated new database credential for instance '{self.instance_name}'")
+        logger.info(f"Generated new database credential for endpoint '{self.instance_name}'")
         return {"password": cred.token}
 
     def _ensure_database_exists(self):
@@ -332,7 +386,7 @@ class LakebaseUtils:
         if self.database == DEFAULT_LAKEBASE_DATABASE:
             return  # default database always exists
 
-        host = self.instance.read_write_dns
+        host = self.instance.status.hosts.host
         cred = self._generate_credential()
 
         conn = psycopg2.connect(
@@ -369,7 +423,7 @@ class LakebaseUtils:
         Returns:
             RefreshableThreadedConnectionPool: A connection pool with auto-refresh capability
         """
-        host = self.instance.read_write_dns
+        host = self.instance.status.hosts.host
 
         # Generate initial credentials
         initial_cred = self._generate_credential()

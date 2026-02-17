@@ -13,4 +13,4 @@ dicognito==0.17.0
 ff3==1.0.2
 typing_extensions>=4.7.1
 psycopg[binary,pool]
-databricks-sdk==0.60.0
+databricks-sdk==0.88.0
