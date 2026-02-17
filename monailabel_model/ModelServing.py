@@ -415,7 +415,7 @@ df = spark.table(table)
 
 df_monai = MonaiLabelBundlesTransformer(table=table, destDir=os.environ["DEST_DIR"], endpointName=serving_endpoint_name, exportMetrics=True).transform(df)
 
-display(df_monai.filter('series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
+display(df_monai.filter('series_uid::STRING = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
 
 # Test performance using noop
 #df_monai.repartition(4).write.format("noop").mode("overwrite").save()
@@ -457,7 +457,7 @@ display(df_monai)
 # MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
 # MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
 # MAGIC with ct as (
-# MAGIC   select distinct(meta:['0020000E'].Value[0]) as series_uid
+# MAGIC   select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
 # MAGIC   from ${table}
 # MAGIC   where meta:['00080008'] like '%AXIAL%'
 # MAGIC )
