@@ -8,6 +8,7 @@ import psycopg2
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.postgres import (
     Branch,
+    BranchSpec,
     Endpoint,
     EndpointSpec,
     EndpointStatusState,
@@ -297,8 +298,9 @@ class LakebaseUtils:
                 branch = self.workspace_client.postgres.create_branch(
                     parent=self.project_resource_name,
                     branch_id=self.branch_name,
-                    branch=Branch(),
-                ).result()
+                    branch=Branch(spec=BranchSpec(no_expiry=True)),
+
+                )
             else:
                 raise Exception(f"Lakebase branch '{self.branch_name}' does not exist")
 
@@ -319,7 +321,7 @@ class LakebaseUtils:
                             autoscaling_limit_max_cu=self.max_cu,
                         )
                     ),
-                ).result()
+                )
             else:
                 raise Exception(f"Lakebase endpoint '{self.instance_name}' does not exist")
 
