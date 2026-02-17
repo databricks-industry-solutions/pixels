@@ -172,6 +172,15 @@ def register_dicomweb_routes(app: FastAPI):
             html = f.read()
         return Response(content=html, media_type="text/html")
 
+    # Metrics Dashboard
+    @app.get("/api/dicomweb/dashboard", tags=["Monitoring"])
+    def metrics_dashboard():
+        import pathlib
+        html_path = pathlib.Path(__file__).parent / "utils" / "dashboard.html"
+        with open(html_path, "r") as f:
+            html = f.read()
+        return Response(content=html, media_type="text/html")
+
 
 def _dicomweb_service_root() -> dict:
     """Service capability document returned at the DICOMweb root."""
