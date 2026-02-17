@@ -160,7 +160,7 @@ class Catalog:
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
-        zipRepartition: int = 128,
+        zipRepartition: int = None,
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -179,7 +179,7 @@ class Catalog:
         - maxUnzippedRecordsPerFile (int, optional): The maximum number of records per file when unzipping. Defaults to 102400.
         - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
         - detectFileType (bool, optional): Whether to detect file types. Defaults to False.
-        - zipRepartition (int, optional): The number of partitions for repartitioning zip files. Defaults to 128
+        - zipRepartition (int, optional): The number of partitions for repartitioning zip files. Defaults to None
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -224,9 +224,11 @@ class Catalog:
             if extractZip:
                 logger.info("Started unzip process")
 
+                if zipRepartition is not None:
+                    df = df.repartition(zipRepartition)
+
                 unzip_stream = (
-                    df.repartition(zipRepartition)
-                    .withColumn(
+                    df.withColumn(
                         "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                     )
                     .writeStream.format("delta")
@@ -261,7 +263,10 @@ class Catalog:
             if extractZip:
                 logger.info("Started unzip process")
 
-                df.repartition(zipRepartition).withColumn(
+                if zipRepartition is not None:
+                    df = df.repartition(zipRepartition)
+
+                df.withColumn(
                     "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 

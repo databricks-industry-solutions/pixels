@@ -79,9 +79,10 @@ class InferClass:
         self.patch_size = patch_size
 
         ckpt_name = parser.get_parsed_content("infer")["ckpt_name"]
-        output_path = parser.get_parsed_content("infer")["output_path"]
-        if not os.path.exists(output_path):
-            os.makedirs(output_path, exist_ok=True)
+
+        self.output_base_path = parser.get_parsed_content("infer")["output_path"]
+        if not os.path.exists(self.output_base_path):
+            os.makedirs(self.output_base_path, exist_ok=True)
 
         CONFIG["handlers"]["file"]["filename"] = parser.get_parsed_content("infer")[
             "log_output_file"
@@ -124,7 +125,7 @@ class InferClass:
                 keys="pred",
                 meta_keys="pred_meta_dict",
                 output_ext=self.file_ext,
-                output_dir=output_path,
+                output_dir=self.output_base_path,
                 output_postfix="seg",
                 resample=False,
                 data_root_dir=None,
@@ -162,6 +163,8 @@ class InferClass:
         prompt_class=None,
         save_mask=False,
         point_start=0,
+        label_info=None,
+        **override
     ):
         """Infer a single image_file. If save_mask is true, save the argmax prediction to disk. If false,
         do not save and return the probability maps (usually used by autorunner emsembler). point_start is
@@ -170,8 +173,15 @@ class InferClass:
         """
 
         self.model.eval()
+
+        if not os.path.exists(override['output_dir']):
+            os.makedirs(override['output_dir'], exist_ok=True)
+
         if not isinstance(image_file, dict):
+            _image_path = image_file
             image_file = {"image": image_file}
+        else:
+            _image_path = image_file.get("image", "")
         if self.batch_data is not None:
             batch_data = self.batch_data
         else:
@@ -253,8 +263,32 @@ class InferClass:
                 batch_data = [
                     self.post_transforms(i) for i in decollate_batch(batch_data)
                 ]
+
+                save_transform = transforms.Compose([transforms.SaveImaged(
+                    keys="pred",
+                    meta_keys="pred_meta_dict",
+                    output_ext=self.file_ext,
+                    output_dir=override['output_dir'],
+                    output_postfix="seg",
+                    resample=False,
+                    data_root_dir=None,
+                    print_log=False,
+                    savepath_in_metadict=True
+                )])
+
                 if save_mask:
-                    batch_data = [self.save_transforms(i) for i in batch_data]
+                    series_dir = (
+                        _image_path
+                        if os.path.isdir(_image_path)
+                        else os.path.dirname(_image_path)
+                    )
+                    for item in batch_data:
+                        pred = item["pred"]
+                        if hasattr(pred, "meta"):
+                            pred.meta["series_dir"] = series_dir
+                            if label_info is not None:
+                                pred.meta["label_info"] = label_info
+                    batch_data = [save_transform(i) for i in batch_data]
 
                 finished = True
             except RuntimeError as e:
@@ -268,11 +302,14 @@ class InferClass:
         return batch_data[0]["pred"]
 
     @torch.no_grad()
-    def infer_everything(self, image_file, label_prompt=EVERYTHING_PROMPT, rank=0):
+    def infer_everything(self, image_file, label_prompt=EVERYTHING_PROMPT, rank=0, label_info=None):
         self.model.eval()
         device = f"cuda:{rank}"
         if not isinstance(image_file, dict):
+            _image_path = image_file
             image_file = {"image": image_file}
+        else:
+            _image_path = image_file.get("image", "")
         batch_data = self.infer_transforms(image_file)
         batch_data["label_prompt"] = label_prompt
         batch_data = list_data_collate([batch_data])
@@ -302,6 +339,18 @@ class InferClass:
                 batch_data = [
                     self.post_transforms(i) for i in decollate_batch(batch_data)
                 ]
+                # Inject DICOM SEG metadata for HighDicomSegWriter
+                series_dir = (
+                    _image_path
+                    if os.path.isdir(_image_path)
+                    else os.path.dirname(_image_path)
+                )
+                for item in batch_data:
+                    pred = item["pred"]
+                    if hasattr(pred, "meta"):
+                        pred.meta["series_dir"] = series_dir
+                        if label_info is not None:
+                            pred.meta["label_info"] = label_info
                 batch_data = [self.save_transforms(i) for i in batch_data]
                 finished = True
             except RuntimeError as e:
