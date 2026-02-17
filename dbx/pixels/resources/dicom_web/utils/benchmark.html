@@ -373,8 +373,12 @@
                 <input type="text" id="baseUrl" placeholder="e.g. https://your-app.databricks.app/api/dicomweb" />
             </div>
             <div class="form-group">
-                <label>Iterations per test</label>
+                <label>Iterations</label>
                 <input type="number" id="iterations" value="3" min="1" max="20" />
+            </div>
+            <div class="form-group">
+                <label>Concurrent Users</label>
+                <input type="number" id="concurrency" value="1" min="1" max="10" />
             </div>
             <div class="form-group" style="display:none">
                 <label>Total Frames (auto-detected)</label>
@@ -745,6 +749,7 @@
             const series = document.getElementById('seriesUid').value.trim();
             const instance = document.getElementById('instanceUid').value.trim();
             const iterations = parseInt(document.getElementById('iterations').value) || 3;
+            const concurrency = parseInt(document.getElementById('concurrency').value) || 1;
 
             if (!study || !series || !instance) {
                 log('Missing UIDs — run Discovery first', 'log-err');
@@ -763,7 +768,6 @@
 
             let numFrames = 1;
             try {
-                // Fetch series metadata to find our instance's frame count
                 const metaResp = await fetch(`${base}/studies/${study}/series/${series}/metadata`);
                 if (!metaResp.ok) throw new Error(`Metadata fetch failed: ${metaResp.status}`);
                 const metaList = await metaResp.json();
@@ -778,50 +782,68 @@
             }
             document.getElementById('totalFrames').value = numFrames;
 
-            const totalTests = iterations * 2;
+            const totalTests = iterations * concurrency * 2;
             let completed = 0;
 
-            log(`Starting benchmark: ${iterations} iterations`);
+            log(`Starting benchmark: ${iterations} iterations x ${concurrency} users`);
 
             const rsResults = [];
             const uriResults = [];
 
-            for (let i = 0; i < iterations; i++) {
-                setStatus(`Iteration ${i + 1}/${iterations} — WADO-RS...`);
-                try {
-                    const rs = await benchWadoRS(base, study, series, instance, numFrames);
-                    rsResults.push(rs);
-                    addDetailRow(i + 1, rs);
-                    log(`WADO-RS  #${i + 1}: TTFF=${rs.ttff.toFixed(1)}ms, Total=${rs.totalTime.toFixed(1)}ms, ${(rs.totalBytes / 1024).toFixed(1)}KB (${numFrames} frame reqs)`, 'log-ok');
-                } catch (e) {
-                    log(`WADO-RS  #${i + 1}: ERROR — ${e.message}`, 'log-err');
-                    addDetailRow(i + 1, { protocol: 'WADO-RS', ttff: NaN, totalTime: NaN, totalBytes: 0, numFrames: numFrames }, e.message);
+            const runSet = async (protocol) => {
+                const tasks = [];
+                for (let c = 0; c < concurrency; c++) {
+                    tasks.push((async (userId) => {
+                        for (let i = 0; i < iterations; i++) {
+                            setStatus(`User ${userId + 1} | Iteration ${i + 1} — ${protocol}...`);
+                            try {
+                                const result = (protocol === 'WADO-RS')
+                                    ? await benchWadoRS(base, study, series, instance, numFrames)
+                                    : await benchWadoURI(base, study, series, instance, numFrames);
+
+                                if (protocol === 'WADO-RS') rsResults.push(result);
+                                else uriResults.push(result);
+
+                                addDetailRow(`${userId + 1}.${i + 1}`, result);
+                                log(`${protocol} U${userId + 1}#${i + 1}: TTFF=${result.ttff.toFixed(1)}ms, Total=${result.totalTime.toFixed(1)}ms`, 'log-ok');
+                            } catch (e) {
+                                log(`${protocol} ERR U${userId + 1}#${i + 1}: ${e.message}`, 'log-err');
+                            }
+                            completed++;
+                            setProgress((completed / totalTests) * 100);
+                        }
+                    })(c));
                 }
-                completed++;
-                setProgress((completed / totalTests) * 100);
+                await Promise.all(tasks);
+            };
 
-                // Small delay to let the server breathe
-                await new Promise(r => setTimeout(r, 200));
+            const startTime = performance.now();
+            await runSet('WADO-RS');
+            const rsEndTime = performance.now();
 
-                setStatus(`Iteration ${i + 1}/${iterations} — WADO-URI...`);
-                try {
-                    const uri = await benchWadoURI(base, study, series, instance, numFrames);
-                    uriResults.push(uri);
-                    addDetailRow(i + 1, uri);
-                    log(`WADO-URI #${i + 1}: TTFF=${uri.ttff.toFixed(1)}ms, Total=${uri.totalTime.toFixed(1)}ms, ${(uri.totalBytes / 1024).toFixed(1)}KB (1 file req)`, 'log-ok');
-                } catch (e) {
-                    log(`WADO-URI #${i + 1}: ERROR — ${e.message}`, 'log-err');
-                    addDetailRow(i + 1, { protocol: 'WADO-URI', ttff: NaN, totalTime: NaN, totalBytes: 0, numFrames: 'all (file)' }, e.message);
+            await new Promise(r => setTimeout(r, 500)); // Cool down
+
+            const uriStartTime = performance.now();
+            await runSet('WADO-URI');
+            const uriEndTime = performance.now();
+
+            // Compute summary with throughput
+            const rsWallTime = (rsEndTime - startTime) / 1000;
+            const uriWallTime = (uriEndTime - uriStartTime) / 1000;
+            const rsTotalRequests = rsResults.reduce((a, b) => a + b.numFrames, 0);
+            const uriTotalRequests = uriResults.length; // 1 file per iteration
+
+            allResults = {
+                rs: rsResults,
+                uri: uriResults,
+                config: { study, series, instance, numFrames, iterations, concurrency },
+                throughput: {
+                    rsRps: rsTotalRequests / rsWallTime,
+                    uriRps: (uriResults.length * numFrames) / uriWallTime // Normalized to frames for comparison
                 }
-                completed++;
-                setProgress((completed / totalTests) * 100);
+            };
 
-                await new Promise(r => setTimeout(r, 200));
-            }
-
-            // ── Compute summary ──
-            allResults = { rs: rsResults, uri: uriResults, config: { study, series, instance, numFrames, iterations } };
-            showResults(rsResults, uriResults);
+            showResults(rsResults, uriResults, allResults.throughput);
             setStatus('Benchmark complete');
             setProgress(100);
             btn.disabled = false;
@@ -835,7 +857,7 @@
             return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
         }
 
-        function showResults(rsArr, uriArr) {
+        function showResults(rsArr, uriArr, throughput) {
             if (!rsArr.length || !uriArr.length) return;
 
             document.getElementById('resultsCard').classList.remove('hidden');
@@ -851,27 +873,25 @@
 
             const metrics = [
                 {
-                    label: 'Time to First Frame (median)',
+                    label: 'TTFF (median)',
                     rs: median(rsTtff), uri: median(uriTtff), unit: 'ms', lower: true
                 },
                 {
-                    label: 'Time to First Frame (min)',
+                    label: 'TTFF (min)',
                     rs: Math.min(...rsTtff), uri: Math.min(...uriTtff), unit: 'ms', lower: true
                 },
                 {
-                    label: 'Total Load Time (median)',
+                    label: 'Total Time (median)',
                     rs: median(rsTotal), uri: median(uriTotal), unit: 'ms', lower: true
                 },
                 {
-                    label: 'Total Load Time (min)',
+                    label: 'Total Time (min)',
                     rs: Math.min(...rsTotal), uri: Math.min(...uriTotal), unit: 'ms', lower: true
                 },
                 {
-                    label: 'Transfer Size (avg)',
-                    rs: rsBytes.reduce((a, b) => a + b, 0) / rsBytes.length,
-                    uri: uriBytes.reduce((a, b) => a + b, 0) / uriBytes.length,
-                    unit: 'KB', divisor: 1024, lower: true
-                },
+                    label: 'Throughput',
+                    rs: throughput.rsRps, uri: throughput.uriRps, unit: 'fps', lower: false
+                }
             ];
 
             // Summary metric cards
@@ -881,33 +901,30 @@
             const ttffWinner = ttffRs < ttffUri ? 'WADO-RS' : 'WADO-URI';
             const ttffSpeedup = ttffRs < ttffUri ? (ttffUri / ttffRs).toFixed(1) : (ttffRs / ttffUri).toFixed(1);
 
-            const totalRs = median(rsTotal);
-            const totalUri = median(uriTotal);
-
-            const avgBytesRs = rsBytes.reduce((a, b) => a + b, 0) / rsBytes.length;
-            const avgBytesUri = uriBytes.reduce((a, b) => a + b, 0) / uriBytes.length;
-            const bandwidthSaved = ((1 - avgBytesRs / avgBytesUri) * 100);
+            const rpsRs = throughput.rsRps;
+            const rpsUri = throughput.uriRps;
+            const rpsWinner = rpsRs > rpsUri ? 'WADO-RS' : 'WADO-URI';
 
             summaryEl.innerHTML = `
     <div class="metric-card">
-      <div class="label">First Frame Winner</div>
+      <div class="label">TTFF Winner</div>
       <div class="value" style="color:var(--green)">${ttffWinner}</div>
-      <div class="detail">${ttffSpeedup}× faster</div>
+      <div class="detail">${ttffSpeedup}× faster response</div>
     </div>
     <div class="metric-card">
-      <div class="label">WADO-RS TTFF (median)</div>
-      <div class="value">${ttffRs.toFixed(0)}<span style="font-size:0.8rem;color:var(--text-muted)">ms</span></div>
-      <div class="detail">Streams frame immediately</div>
+      <div class="label">Throughput Winner</div>
+      <div class="value" style="color:var(--accent)">${rpsWinner}</div>
+      <div class="detail">Comparing frames per second</div>
     </div>
     <div class="metric-card">
-      <div class="label">WADO-URI TTFF (median)</div>
-      <div class="value">${ttffUri.toFixed(0)}<span style="font-size:0.8rem;color:var(--text-muted)">ms</span></div>
-      <div class="detail">Must download entire file</div>
+      <div class="label">WADO-RS RPS</div>
+      <div class="value">${rpsRs.toFixed(1)}<span style="font-size:0.8rem;color:var(--text-muted)">fps</span></div>
+      <div class="detail">Individual frame requests</div>
     </div>
     <div class="metric-card">
-      <div class="label">Bandwidth Difference</div>
-      <div class="value" style="color:${bandwidthSaved > 0 ? 'var(--green)' : 'var(--red)'}">${Math.abs(bandwidthSaved).toFixed(0)}%</div>
-      <div class="detail">${bandwidthSaved > 0 ? 'RS saves' : 'URI saves'} bandwidth for frames</div>
+      <div class="label">WADO-URI RPS</div>
+      <div class="value">${rpsUri.toFixed(1)}<span style="font-size:0.8rem;color:var(--text-muted)">fps</span></div>
+      <div class="detail">Normalized full-file x frames</div>
     </div>
   `;
 
