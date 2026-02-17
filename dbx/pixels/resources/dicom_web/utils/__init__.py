@@ -37,7 +37,7 @@ def timing_decorator(func):
         try:
             result = func(*args, **kwargs)
             elapsed = time.time() - start_time
-            logger.info(f"⏱️  {func.__name__} took {elapsed:.4f}s")
+            logger.debug(f"⏱️  {func.__name__} took {elapsed:.4f}s")
             return result
         except Exception as e:
             elapsed = time.time() - start_time
