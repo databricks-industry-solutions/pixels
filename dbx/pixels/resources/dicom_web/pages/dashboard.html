@@ -314,7 +314,7 @@
 
         async function update() {
             try {
-                const res = await fetch(endpoint);
+                const res = await fetch(endpoint, { credentials: 'include' });
                 const data = await res.json();
 
                 // Timestamp

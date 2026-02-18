@@ -340,7 +340,7 @@
 
         async function update() {
             try {
-                const res = await fetch(ENDPOINT);
+                const res = await fetch(ENDPOINT, { credentials: 'include' });
                 const data = await res.json();
 
                 // -- Serving metrics --
