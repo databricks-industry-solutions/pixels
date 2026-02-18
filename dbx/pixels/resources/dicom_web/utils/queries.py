@@ -136,6 +136,34 @@ def build_study_query(
     return query, sql_params
 
 
+def build_all_series_query(
+    pixels_table: str,
+) -> tuple[str, dict[str, Any]]:
+    """Build a query returning *every* (study, series) pair in one round-trip.
+
+    Used by the bulk discovery endpoint so the priming script avoids N
+    per-study SQL queries (~800 ms each).
+    """
+    validate_table_name(pixels_table)
+    sql_params: dict[str, Any] = {"pixels_table": pixels_table}
+
+    query = """
+    SELECT
+        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
+        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
+        first(meta:['00200011'].Value[0]::String, true) as SeriesNumber,
+        first(meta:['0008103E'].Value[0]::String, true) as SeriesDescription,
+        first(meta:['00080021'].Value[0]::String, true) as SeriesDate,
+        COUNT(*) as NumberOfSeriesRelatedInstances
+    FROM IDENTIFIER(%(pixels_table)s)
+    GROUP BY
+        StudyInstanceUID, SeriesInstanceUID
+    ORDER BY StudyInstanceUID, SeriesDate DESC
+    """
+    return query, sql_params
+
+
 def build_series_query(
     pixels_table: str,
     study_instance_uid: str,

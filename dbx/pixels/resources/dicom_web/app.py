@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from utils.handlers import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
+    dicomweb_qido_all_series,
     dicomweb_qido_instances,
     dicomweb_wado_series_metadata,
     dicomweb_wado_instance,
@@ -56,6 +57,10 @@ def register_dicomweb_routes(app: FastAPI):
     @app.get("/api/dicomweb/studies", tags=["DICOMweb QIDO-RS"])
     def search_studies(request: Request):
         return dicomweb_qido_studies(request)
+
+    @app.get("/api/dicomweb/all_series", tags=["DICOMweb QIDO-RS"])
+    def search_all_series(request: Request):
+        return dicomweb_qido_all_series(request)
 
     @app.get("/api/dicomweb/studies/{study_instance_uid}/series", tags=["DICOMweb QIDO-RS"])
     def search_series(request: Request, study_instance_uid: str):
@@ -197,6 +202,7 @@ def _dicomweb_service_root() -> dict:
                 "description": "Query based on ID for DICOM Objects",
                 "endpoints": [
                     "GET /api/dicomweb/studies",
+                    "GET /api/dicomweb/all_series",
                     "GET /api/dicomweb/studies/{study}/series",
                     "GET /api/dicomweb/studies/{study}/series/{series}/instances",
                 ],

@@ -29,6 +29,14 @@ def dicomweb_qido_series(request: Request, study_instance_uid: str) -> Response:
     return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")
 
 
+@timing_decorator
+def dicomweb_qido_all_series(request: Request) -> Response:
+    """GET /api/dicomweb/all_series — bulk discover every (study, series) pair."""
+    wrapper = get_dicomweb_wrapper(request)
+    results = wrapper.search_for_all_series()
+    return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")
+
+
 def dicomweb_qido_instances(
     request: Request, study_instance_uid: str, series_instance_uid: str
 ) -> Response:

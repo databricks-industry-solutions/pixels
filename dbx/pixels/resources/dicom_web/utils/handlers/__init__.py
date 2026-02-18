@@ -12,6 +12,7 @@ _stow     — STOW-RS (instance storage with early return + caching)
 from ._qido import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
+    dicomweb_qido_all_series,
     dicomweb_qido_instances,
 )
 from ._wado import (
@@ -29,6 +30,7 @@ __all__ = [
     # QIDO-RS
     "dicomweb_qido_studies",
     "dicomweb_qido_series",
+    "dicomweb_qido_all_series",
     "dicomweb_qido_instances",
     # WADO-RS / WADO-URI
     "dicomweb_wado_series_metadata",

@@ -43,6 +43,7 @@ from .dicom_io import (
 )
 from .dicom_tags import format_dicomweb_response
 from .queries import (
+    build_all_series_query,
     build_instance_path_query,
     build_instances_query,
     build_series_instance_paths_query,
@@ -168,6 +169,20 @@ class DICOMwebDatabricksWrapper:
         ]
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS: found {len(formatted)} series")
+        return formatted
+
+    @timing_decorator
+    def search_for_all_series(self) -> List[Dict]:
+        """QIDO-RS bulk: return every (study, series) pair in a single query."""
+        logger.debug("QIDO-RS: bulk all-series discovery")
+        query, sql_params = build_all_series_query(self._table)
+        results = self._query(query, sql_params)
+        columns = [
+            "StudyInstanceUID", "SeriesInstanceUID", "Modality", "SeriesNumber",
+            "SeriesDescription", "SeriesDate", "NumberOfSeriesRelatedInstances",
+        ]
+        formatted = format_dicomweb_response(results, columns)
+        logger.info(f"QIDO-RS bulk: found {len(formatted)} series across all studies")
         return formatted
 
     def search_for_instances(
