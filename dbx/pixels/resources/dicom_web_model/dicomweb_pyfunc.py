@@ -269,7 +269,13 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     def _asgi_request(
         self, method: str, url: str, headers: dict, body: bytes,
     ) -> tuple:
-        """Send a request through the ASGI transport and return the raw response."""
+        """Send a request through the ASGI transport and return the raw response.
+
+        Handles both cases: no event loop (plain thread) and an already-
+        running loop (gunicorn/gevent workers) by dispatching to a fresh
+        thread when ``asyncio.run()`` would fail.
+        """
+        import concurrent.futures
         import httpx
 
         async def _do():
@@ -286,7 +292,17 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                 )
                 return resp.status_code, dict(resp.headers), resp.content
 
-        return asyncio.run(_do())
+        try:
+            asyncio.get_running_loop()
+            # There IS a running loop — run in a dedicated thread so
+            # asyncio.run() gets its own fresh loop.
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, _do()).result(
+                    timeout=_REQUEST_TIMEOUT,
+                )
+        except RuntimeError:
+            # No running loop — safe to call directly.
+            return asyncio.run(_do())
 
     @staticmethod
     def _decode_body(raw_b64: str, encoding: str) -> bytes:
