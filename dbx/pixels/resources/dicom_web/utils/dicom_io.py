@@ -42,10 +42,10 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("DICOMweb.IO")
 
 # ---------------------------------------------------------------------------
-# Resource budget constants (reserve 20 % for the rest of the application)
+# Resource budget constants
 # ---------------------------------------------------------------------------
 _CPU_BUDGET_RATIO = 0.80          # use at most 80 % of available cores
-_RAM_BUDGET_RATIO = 0.80          # prefetcher may cache up to 80 % of free RAM
+_RAM_BUDGET_RATIO = float(os.environ.get("PIXELS_PREFETCH_RAM_RATIO", "0.50"))
 _DISK_TOTAL_BYTES = 100 * 1024 ** 3   # 100 GB assumed disk
 _DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
 
@@ -410,13 +410,17 @@ class FilePrefetcher:
     * **CPU** — worker threads = ``floor(cpu_count × 0.80)``, so 20 % of
       cores are always free for request handling, streaming, etc.
     * **RAM** — total bytes held in the prefetch cache are bounded by
-      ``available_ram × 0.80``.  Once the budget is exhausted, new
-      ``schedule()`` calls are silently skipped and the viewer falls back
-      to streaming.
+      ``total_ram × ratio``.  The ratio defaults to 0.50 (50 % of total
+      RAM) and can be overridden with ``PIXELS_PREFETCH_RAM_RATIO``.
+      An absolute cap in MB can be set with ``PIXELS_PREFETCH_MAX_MEMORY_MB``
+      (takes precedence over the ratio).  Once the budget is exhausted,
+      new ``schedule()`` calls are silently skipped and the viewer falls
+      back to streaming.
     * **Per-file size** — files larger than *max_file_bytes* (default
-      5 MB) are **not** prefetched.  Large multi-frame DICOMs gain
-      nothing from being held in memory because their transfer time
-      dominates; streaming them directly is equally efficient.
+      10 MB, configurable via ``PIXELS_PREFETCH_MAX_FILE_MB``) are
+      **not** prefetched.  Large multi-frame DICOMs gain nothing from
+      being held in memory because their transfer time dominates;
+      streaming them directly is equally efficient.
 
     **Disabling prefetch** — set the environment variable
     ``PIXELS_PREFETCH_ENABLED=false`` to turn off background file
@@ -427,7 +431,7 @@ class FilePrefetcher:
     series path pre-warming can still run.
     """
 
-    _DEFAULT_MAX_FILE_BYTES = 5 * 1024 * 1024   # 5 MB
+    _DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024   # 10 MB
 
     def __init__(
         self,
@@ -454,17 +458,24 @@ class FilePrefetcher:
         )
 
         # ── RAM budget ──────────────────────────────────────────────
+        # Priority: constructor arg > PIXELS_PREFETCH_MAX_MEMORY_MB > ratio of total RAM
+        _env_mb = os.environ.get("PIXELS_PREFETCH_MAX_MEMORY_MB")
         if max_memory_bytes is not None:
             self._max_memory_bytes = max_memory_bytes
+        elif _env_mb is not None:
+            self._max_memory_bytes = int(float(_env_mb) * 1024 ** 2)
         else:
-            available = psutil.virtual_memory().available
-            self._max_memory_bytes = int(available * _RAM_BUDGET_RATIO) if self._enabled else 0
+            total = psutil.virtual_memory().total
+            self._max_memory_bytes = int(total * _RAM_BUDGET_RATIO) if self._enabled else 0
 
         # ── Per-file size cap ───────────────────────────────────────
-        self._max_file_bytes = (
-            max_file_bytes if max_file_bytes is not None
-            else self._DEFAULT_MAX_FILE_BYTES
-        )
+        _env_file_mb = os.environ.get("PIXELS_PREFETCH_MAX_FILE_MB")
+        if max_file_bytes is not None:
+            self._max_file_bytes = max_file_bytes
+        elif _env_file_mb is not None:
+            self._max_file_bytes = int(float(_env_file_mb) * 1024 ** 2)
+        else:
+            self._max_file_bytes = self._DEFAULT_MAX_FILE_BYTES
 
         self._futures: dict[str, concurrent.futures.Future] = {}
         self._lock = threading.Lock()
@@ -767,7 +778,7 @@ class ProgressiveFileStreamer:
     """
 
     _DEFAULT_CACHE_DIR = "/tmp/pixels_frame_cache"
-    _DEFAULT_MAX_CACHE_BYTES = 10 * 1024 ** 3  # 10 GB
+    _DEFAULT_MAX_CACHE_BYTES = 50 * 1024 ** 3  # 50 GB
 
     def __init__(
         self,
@@ -779,7 +790,13 @@ class ProgressiveFileStreamer:
         self._cache_dir = cache_dir or os.environ.get(
             "PIXELS_FRAME_CACHE_DIR", self._DEFAULT_CACHE_DIR,
         )
-        self._max_cache_bytes = max_cache_bytes or self._DEFAULT_MAX_CACHE_BYTES
+        _env_cache_gb = os.environ.get("PIXELS_FRAME_CACHE_MAX_GB")
+        if max_cache_bytes is not None:
+            self._max_cache_bytes = max_cache_bytes
+        elif _env_cache_gb is not None:
+            self._max_cache_bytes = int(float(_env_cache_gb) * 1024 ** 3)
+        else:
+            self._max_cache_bytes = self._DEFAULT_MAX_CACHE_BYTES
         os.makedirs(self._cache_dir, exist_ok=True)
         logger.debug(
             f"ProgressiveFileStreamer: cache_dir={self._cache_dir}, "

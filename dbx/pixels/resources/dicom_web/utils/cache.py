@@ -24,6 +24,7 @@ reachable *after* the instance path has been resolved through the secured
 """
 
 import hashlib
+import os
 import threading
 from collections import OrderedDict
 from typing import Optional
@@ -141,6 +142,7 @@ class BOTCache:
         total = self._hits + self._misses
         return {
             "entries": len(self._cache),
+            "max_entries": self._max_entries,
             "hits": self._hits,
             "misses": self._misses,
             "hit_rate": f"{self._hits / total * 100:.1f}%" if total > 0 else "N/A",
@@ -271,5 +273,19 @@ class InstancePathCache:
 # ---------------------------------------------------------------------------
 # Module-level singletons (shared across all requests within the process)
 # ---------------------------------------------------------------------------
-bot_cache = BOTCache(max_entries=10000)
-instance_path_cache = InstancePathCache(max_entries=50000)
+# Defaults are sized to hold ~100 k instances without eviction (~1 GB for BOT,
+# ~20 MB for paths).  Override via environment variables:
+#   PIXELS_BOT_CACHE_MAX_ENTRIES    — max BOT entries   (default 100 000)
+#   PIXELS_PATH_CACHE_MAX_ENTRIES   — max path entries  (default 100 000)
+
+_BOT_CACHE_MAX = int(os.environ.get("PIXELS_BOT_CACHE_MAX_ENTRIES", "100000"))
+_PATH_CACHE_MAX = int(os.environ.get("PIXELS_PATH_CACHE_MAX_ENTRIES", "100000"))
+
+bot_cache = BOTCache(max_entries=_BOT_CACHE_MAX)
+instance_path_cache = InstancePathCache(max_entries=_PATH_CACHE_MAX)
+
+logger.info(
+    f"Cache singletons initialised: "
+    f"BOT max_entries={_BOT_CACHE_MAX}, "
+    f"Path max_entries={_PATH_CACHE_MAX}"
+)
