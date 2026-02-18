@@ -283,12 +283,22 @@
                 </div>
                 <div class="grid-2">
                     <div class="metric">
-                        <span class="label">Done</span>
-                        <span class="value" style="color: var(--success);" id="pref-done">0</span>
+                        <span class="label">Cached</span>
+                        <span class="value" style="color: var(--success);" id="pref-cached">0</span>
                     </div>
                     <div class="metric">
                         <span class="label">Pending</span>
                         <span class="value" style="color: var(--warning);" id="pref-pending">0</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">Hits</span>
+                        <span class="value" style="color: var(--success);" id="pref-hits">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Evicted</span>
+                        <span class="value" style="color: var(--warning);" id="pref-evicted">0</span>
                     </div>
                 </div>
             </div>
@@ -342,8 +352,10 @@
                 const prefPerc = (p.memory_used_mb / p.memory_budget_mb) * 100;
                 document.getElementById('pref-mem-bar').style.width = Math.min(prefPerc, 100) + '%';
                 document.getElementById('pref-budget').innerText = `Budget: ${p.memory_budget_mb} MB`;
-                document.getElementById('pref-done').innerText = p.done;
+                document.getElementById('pref-cached').innerText = p.cached;
                 document.getElementById('pref-pending').innerText = p.pending;
+                document.getElementById('pref-hits').innerText = p.hits;
+                document.getElementById('pref-evicted').innerText = p.evicted;
 
                 // Status
                 document.getElementById('status-dot').style.background = 'var(--success)';

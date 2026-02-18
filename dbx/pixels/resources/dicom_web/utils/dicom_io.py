@@ -26,6 +26,7 @@ import os
 import struct
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Iterator
 from io import BytesIO
 
@@ -398,12 +399,20 @@ async def async_stream_to_volumes(
 
 class FilePrefetcher:
     """
-    Resource-aware background file prefetcher for Databricks Volumes.
+    Resource-aware background file prefetcher with **LRU eviction**.
 
     When a QIDO-RS query returns instance paths, the prefetcher downloads
     files **in parallel** using a thread pool.  By the time the viewer
     requests individual instances via WADO-RS, the content is already in
     memory and can be served instantly.
+
+    **LRU cache semantics**: completed downloads are held in an
+    ``OrderedDict`` ordered by last access time.  ``get()`` refreshes an
+    entry's position (most-recently-used).  When the memory budget is
+    exceeded — either after a new download completes or when new
+    ``schedule()`` calls need room — the **least-recently-used** entries
+    are evicted automatically.  This prevents unbounded memory growth when
+    files are prefetched (e.g. via priming) but never requested.
 
     Resource limits (computed once at construction):
 
@@ -413,9 +422,7 @@ class FilePrefetcher:
       ``total_ram × ratio``.  The ratio defaults to 0.50 (50 % of total
       RAM) and can be overridden with ``PIXELS_PREFETCH_RAM_RATIO``.
       An absolute cap in MB can be set with ``PIXELS_PREFETCH_MAX_MEMORY_MB``
-      (takes precedence over the ratio).  Once the budget is exhausted,
-      new ``schedule()`` calls are silently skipped and the viewer falls
-      back to streaming.
+      (takes precedence over the ratio).
     * **Per-file size** — files larger than *max_file_bytes* (default
       10 MB, configurable via ``PIXELS_PREFETCH_MAX_FILE_MB``) are
       **not** prefetched.  Large multi-frame DICOMs gain nothing from
@@ -449,8 +456,6 @@ class FilePrefetcher:
         if self._enabled:
             self._max_workers = max_workers or max(1, int(cpu_count * _CPU_BUDGET_RATIO))
         else:
-            # Minimal pool — only used for lightweight background tasks
-            # like series path pre-warming (_maybe_prime_series).
             self._max_workers = max_workers or max(1, min(2, cpu_count))
 
         self._pool = concurrent.futures.ThreadPoolExecutor(
@@ -458,7 +463,6 @@ class FilePrefetcher:
         )
 
         # ── RAM budget ──────────────────────────────────────────────
-        # Priority: constructor arg > PIXELS_PREFETCH_MAX_MEMORY_MB > ratio of total RAM
         _env_mb = os.environ.get("PIXELS_PREFETCH_MAX_MEMORY_MB")
         if max_memory_bytes is not None:
             self._max_memory_bytes = max_memory_bytes
@@ -477,11 +481,16 @@ class FilePrefetcher:
         else:
             self._max_file_bytes = self._DEFAULT_MAX_FILE_BYTES
 
-        self._futures: dict[str, concurrent.futures.Future] = {}
+        # ── LRU cache state ─────────────────────────────────────────
+        self._pending: dict[str, concurrent.futures.Future] = {}
+        self._cache: OrderedDict[str, bytes] = OrderedDict()
         self._lock = threading.Lock()
-        self._memory_used: int = 0        # bytes of completed, unconsumed results
-        self._memory_skipped: int = 0     # downloads skipped due to budget
-        self._files_skipped_too_large: int = 0  # downloads skipped (file too big)
+        self._memory_used: int = 0
+        self._memory_skipped: int = 0
+        self._files_skipped_too_large: int = 0
+        self._evicted_count: int = 0
+        self._hits: int = 0
+        self._misses: int = 0
 
         logger.debug(
             f"Prefetcher initialised: enabled={self._enabled}, "
@@ -497,13 +506,10 @@ class FilePrefetcher:
         """
         Schedule background download of files from Volumes.
 
-        Non-blocking — returns immediately.  Paths that are already
-        scheduled or completed are skipped.  New downloads are also
-        skipped when the memory budget has been reached.
-
-        When prefetching is disabled (``PIXELS_PREFETCH_ENABLED=false``),
-        returns 0 immediately — no downloads are scheduled and the
-        viewer falls back to streaming from Volumes.
+        Non-blocking — returns immediately.  Paths already in the LRU
+        cache or pending download are skipped.  When the memory budget
+        is full, LRU eviction is attempted first; if all memory is held
+        by in-flight downloads the request is skipped.
 
         Returns the number of **newly** scheduled downloads.
         """
@@ -513,14 +519,18 @@ class FilePrefetcher:
             new_count = 0
             skipped = 0
             for path in paths:
-                if path in self._futures:
+                if path in self._pending or path in self._cache:
                     continue
+                if self._memory_used >= self._max_memory_bytes:
+                    self._evict_lru_locked()
                 if self._memory_used >= self._max_memory_bytes:
                     skipped += 1
                     continue
-                self._futures[path] = self._pool.submit(
-                    self._fetch_one, token, path,
+                future = self._pool.submit(self._fetch_one, token, path)
+                future.add_done_callback(
+                    lambda f, p=path: self._on_download_complete(p, f),
                 )
+                self._pending[path] = future
                 new_count += 1
             self._memory_skipped += skipped
             if skipped:
@@ -534,27 +544,34 @@ class FilePrefetcher:
 
     def get(self, path: str, timeout: float = 5.0) -> bytes | None:
         """
-        Get prefetched file content.
+        Get prefetched file content (LRU-refreshed).
 
-        * Already downloaded → returns **instantly**.
+        * Already in cache → returns **instantly** and refreshes the
+          entry's LRU position (most-recently-used).
         * Still downloading → waits up to *timeout* seconds.
         * Not scheduled / failed → returns ``None`` (caller falls back to
           streaming from Volumes).
         * Prefetching disabled → always returns ``None``.
+
+        Unlike the old one-shot design, ``get()`` does **not** remove the
+        entry — it stays in the LRU cache until evicted by memory pressure.
         """
         if not self._enabled:
             return None
+
         with self._lock:
-            future = self._futures.pop(path, None)
+            if path in self._cache:
+                self._cache.move_to_end(path)
+                self._hits += 1
+                return self._cache[path]
+            future = self._pending.get(path)
+
         if future is None:
+            self._misses += 1
             return None
+
         try:
             content = future.result(timeout=timeout)
-            if content is None:
-                return None  # file was too large — fall back to streaming
-            with self._lock:
-                self._memory_used -= len(content)
-            return content
         except concurrent.futures.TimeoutError:
             logger.warning(f"Prefetch timeout for {path}")
             return None
@@ -562,20 +579,32 @@ class FilePrefetcher:
             logger.warning(f"Prefetch failed for {path}: {exc}")
             return None
 
+        if content is None:
+            return None
+
+        with self._lock:
+            if path in self._cache:
+                self._cache.move_to_end(path)
+                self._hits += 1
+                return self._cache[path]
+
+        return content
+
     @property
     def stats(self) -> dict:
         """Snapshot of prefetcher state (JSON-serialisable)."""
         with self._lock:
-            total = len(self._futures)
-            done = sum(1 for f in self._futures.values() if f.done())
             return {
                 "enabled": self._enabled,
-                "total": total,
-                "done": done,
-                "pending": total - done,
+                "cached": len(self._cache),
+                "pending": len(self._pending),
+                "total": len(self._cache) + len(self._pending),
                 "memory_used_mb": round(self._memory_used / (1024 ** 2), 2),
                 "memory_budget_mb": round(self._max_memory_bytes / (1024 ** 2), 2),
                 "memory_skipped": self._memory_skipped,
+                "evicted": self._evicted_count,
+                "hits": self._hits,
+                "misses": self._misses,
                 "max_file_size_mb": round(self._max_file_bytes / (1024 ** 2), 2),
                 "files_skipped_too_large": self._files_skipped_too_large,
                 "pool_workers": self._max_workers,
@@ -583,21 +612,38 @@ class FilePrefetcher:
 
     # -- internal ---------------------------------------------------------
 
+    def _on_download_complete(
+        self, path: str, future: concurrent.futures.Future,
+    ) -> None:
+        """Callback fired when a download Future resolves."""
+        try:
+            content = future.result()
+        except Exception:
+            content = None
+
+        with self._lock:
+            self._pending.pop(path, None)
+            if content is not None:
+                self._cache[path] = content
+                self._memory_used += len(content)
+                self._evict_lru_locked()
+
+    def _evict_lru_locked(self) -> None:
+        """Drop the oldest cache entries until within budget. Caller holds ``_lock``."""
+        while self._memory_used > self._max_memory_bytes and self._cache:
+            _, evicted = self._cache.popitem(last=False)
+            self._memory_used -= len(evicted)
+            self._evicted_count += 1
+
     def _fetch_one(self, token: str, path: str) -> bytes | None:
         """
         Download a single file from Volumes (runs in a worker thread).
 
         Uses ``stream=True`` so the response headers are read first
         without downloading the body.  If ``Content-Length`` exceeds the
-        per-file size cap the connection is closed immediately —
-        no bandwidth or memory is wasted on large files.
+        per-file size cap the connection is closed immediately.
 
-        BOT computation is **not** performed here — it is deferred to
-        the first frame-level request (``_resolve_frame_offsets``) so
-        that WADO-RS instance retrievals (no frames) stay lightweight.
-
-        Returns ``None`` when the file is too large (caller falls back
-        to streaming).
+        Memory accounting is handled by ``_on_download_complete``, not here.
         """
         db_file = DatabricksFile.from_full_path(path)
         headers = _auth_headers(token)
@@ -625,12 +671,8 @@ class FilePrefetcher:
             return None
 
         # ── Download body ───────────────────────────────────────────
-        content = response.content  # reads the streamed body
+        content = response.content
         response.close()
-
-        with self._lock:
-            self._memory_used += len(content)
-
         return content
 
 
