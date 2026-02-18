@@ -41,6 +41,19 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     """MLflow PyFunc wrapper around the Pixels DICOMweb FastAPI service."""
 
     # ------------------------------------------------------------------
+    # Pickle safety — prevent cloudpickle from capturing Starlette /
+    # FastAPI objects that live in MLflow's transitive import graph.
+    # Only a trivial marker is serialised; all real state is rebuilt
+    # in load_context on the serving side.
+    # ------------------------------------------------------------------
+
+    def __getstate__(self):
+        return {"_class": "DICOMwebServingModel"}
+
+    def __setstate__(self, state):
+        pass
+
+    # ------------------------------------------------------------------
     # load_context — build the ASGI app once, reuse across predictions
     # ------------------------------------------------------------------
 
