@@ -3,3 +3,7 @@ env:
     valueFrom: "serving_endpoint"
   - name: "DICOMWEB_GATEWAY_TIMEOUT"
     value: "300"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    valueFrom: "pixels_table"
+  - name: "LAKEBASE_INSTANCE_NAME"
+    valueFrom: "lakebase_instance"

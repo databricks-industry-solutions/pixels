@@ -3,3 +3,5 @@ uvicorn
 databricks-sdk
 requests
 zstd
+psycopg2-binary
+psutil

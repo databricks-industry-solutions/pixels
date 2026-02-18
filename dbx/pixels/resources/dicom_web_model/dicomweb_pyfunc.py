@@ -24,6 +24,8 @@ import json
 import logging
 import os
 import sys
+import threading
+import time
 
 import mlflow
 import zstd
@@ -31,6 +33,7 @@ import zstd
 logger = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT = float(os.getenv("DICOMWEB_PREDICT_TIMEOUT", "300"))
+_METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
 
 # Payloads smaller than this are sent as plain base64 — the zstd frame
 # header (~12 bytes) and dictionary overhead aren't worth it.
@@ -62,6 +65,12 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
         import httpx
         from fastapi import FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
+
+        # ── Request counters (thread-safe) ────────────────────────────
+        self._stats_lock = threading.Lock()
+        self._req_count = 0
+        self._req_errors = 0
+        self._req_latency_sum = 0.0
 
         # ── Make dicom_web source importable ──────────────────────────
         dicom_web_dir = context.artifacts["dicom_web_source"]
@@ -201,6 +210,9 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
         self._transport = httpx.ASGITransport(app=app)  # type: ignore[arg-type]
         logger.info("DICOMweb serving model initialised successfully")
 
+        # ── Background metrics reporter ──────────────────────────────
+        self._start_metrics_reporter()
+
     # ------------------------------------------------------------------
     # predict — route an HTTP request through the in-process ASGI app
     # ------------------------------------------------------------------
@@ -224,22 +236,37 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
             ``encoding`` (``"zstd+base64"`` | ``"base64"`` |
             ``"identity"``).
         """
-        row = self._extract_row(model_input)
+        t0 = time.monotonic()
+        is_error = False
+        try:
+            row = self._extract_row(model_input)
 
-        method = str(row.get("method", "GET")).upper()
-        path = str(row.get("path", "/"))
-        query_string = str(row.get("query_string", "") or "")
-        headers = self._parse_headers(row.get("headers", "{}"))
-        body = self._decode_body(
-            row.get("body", ""), row.get("body_encoding", ""),
-        )
+            method = str(row.get("method", "GET")).upper()
+            path = str(row.get("path", "/"))
+            query_string = str(row.get("query_string", "") or "")
+            headers = self._parse_headers(row.get("headers", "{}"))
+            body = self._decode_body(
+                row.get("body", ""), row.get("body_encoding", ""),
+            )
 
-        url = f"{path}?{query_string}" if query_string else path
+            url = f"{path}?{query_string}" if query_string else path
 
-        status_code, resp_headers, content = self._asgi_request(
-            method, url, headers, body,
-        )
-        return self._format_response(status_code, resp_headers, content)
+            status_code, resp_headers, content = self._asgi_request(
+                method, url, headers, body,
+            )
+            if status_code >= 500:
+                is_error = True
+            return self._format_response(status_code, resp_headers, content)
+        except Exception:
+            is_error = True
+            raise
+        finally:
+            elapsed = time.monotonic() - t0
+            with self._stats_lock:
+                self._req_count += 1
+                self._req_latency_sum += elapsed
+                if is_error:
+                    self._req_errors += 1
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -265,6 +292,59 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
             except (json.JSONDecodeError, TypeError):
                 return {}
         return raw if isinstance(raw, dict) else {}
+
+    def _snapshot_and_reset_stats(self) -> dict:
+        """Atomically snapshot request counters and reset them to zero."""
+        with self._stats_lock:
+            snap = {
+                "request_count": self._req_count,
+                "error_count": self._req_errors,
+                "latency_sum_s": round(self._req_latency_sum, 4),
+                "avg_latency_s": (
+                    round(self._req_latency_sum / self._req_count, 4)
+                    if self._req_count else 0
+                ),
+            }
+            self._req_count = 0
+            self._req_errors = 0
+            self._req_latency_sum = 0.0
+        return snap
+
+    def _start_metrics_reporter(self):
+        """Launch a daemon thread that writes metrics to Lakebase every N seconds."""
+
+        def _reporter():
+            # Lazy imports — only available once load_context has run
+            from utils.handlers._common import lb_utils  # noqa: F811
+            from utils.metrics import collect_metrics
+
+            if lb_utils is None:
+                logger.warning(
+                    "Lakebase not configured — metrics reporter disabled"
+                )
+                return
+
+            try:
+                lb_utils.ensure_metrics_table()
+            except Exception as exc:
+                logger.error("Failed to create metrics table: %s", exc)
+                return
+
+            logger.info(
+                "Metrics reporter started (interval=%.1fs)", _METRICS_INTERVAL
+            )
+            while True:
+                try:
+                    time.sleep(_METRICS_INTERVAL)
+                    system_metrics = collect_metrics()
+                    request_stats = self._snapshot_and_reset_stats()
+                    payload = {**system_metrics, "requests": request_stats}
+                    lb_utils.insert_metrics("serving", payload)
+                except Exception as exc:
+                    logger.error("Metrics reporter error: %s", exc)
+
+        t = threading.Thread(target=_reporter, daemon=True, name="metrics-reporter")
+        t.start()
 
     def _asgi_request(
         self, method: str, url: str, headers: dict, body: bytes,

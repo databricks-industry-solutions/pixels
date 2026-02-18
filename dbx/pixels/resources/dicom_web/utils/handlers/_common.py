@@ -82,6 +82,8 @@ if "LAKEBASE_INSTANCE_NAME" in os.environ or "DATABRICKS_PIXELS_TABLE" in os.env
                 with open(_sql_dir / sql_file) as fh:
                     ddl = fh.read().format(schema_name=_lb_schema)
                     lb_utils.execute_query(ddl)
+
+            lb_utils.ensure_metrics_table()
             logger.info(
                 f"Lakebase initialised: instance='{lb_utils.instance_name}', "
                 f"database='{lb_utils.database}', schema='{_lb_schema}'"

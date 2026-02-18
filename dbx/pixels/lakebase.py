@@ -40,6 +40,10 @@ DICOM_FRAMES_TABLE = "dicom_frames"
 INSTANCE_PATHS_TABLE = "instance_paths"
 ACCESS_RULES_TABLE = "access_rules"
 USER_GROUPS_TABLE = "user_groups"
+ENDPOINT_METRICS_TABLE = "endpoint_metrics"
+
+# Metrics rows older than this are purged on each insert.
+_METRICS_RETENTION_HOURS = 24
 
 # ---------------------------------------------------------------------------
 # Feature flag — set LAKEBASE_RLS_ENABLED=true to activate Row-Level Security
@@ -850,6 +854,102 @@ class LakebaseUtils:
         finally:
             if conn:
                 self.connection.putconn(conn)
+
+    # ------------------------------------------------------------------
+    # Endpoint metrics (time-series snapshots for /metrics dashboard)
+    # ------------------------------------------------------------------
+
+    def ensure_metrics_table(self):
+        """Create the ``endpoint_metrics`` table if it does not exist."""
+        ddl = sql.SQL(
+            "CREATE TABLE IF NOT EXISTS {} ("
+            "  source TEXT NOT NULL,"
+            "  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
+            "  metrics JSONB NOT NULL,"
+            "  PRIMARY KEY (source, recorded_at)"
+            ")"
+        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+        idx = sql.SQL(
+            "CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_source_time "
+            "ON {} (source, recorded_at DESC)"
+        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+        conn = None
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                cursor.execute(ddl)
+                cursor.execute(idx)
+                conn.commit()
+            logger.info("Ensured endpoint_metrics table exists")
+        finally:
+            if conn:
+                self.connection.putconn(conn)
+
+    def insert_metrics(self, source: str, metrics: dict):
+        """Insert a metrics snapshot and purge rows older than the retention window."""
+        import json as _json
+
+        query = sql.SQL(
+            "INSERT INTO {} (source, recorded_at, metrics) "
+            "VALUES (%s, NOW(), %s) "
+            "ON CONFLICT (source, recorded_at) DO UPDATE SET metrics = EXCLUDED.metrics"
+        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+        purge = sql.SQL(
+            "DELETE FROM {} WHERE recorded_at < NOW() - INTERVAL '%s hours'"
+        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+
+        conn = None
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                cursor.execute(query, (source, _json.dumps(metrics)))
+                cursor.execute(purge, (_METRICS_RETENTION_HOURS,))
+                conn.commit()
+        except Exception:
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+            raise
+        finally:
+            if conn:
+                self.connection.putconn(conn)
+
+    def get_latest_metrics(
+        self,
+        source: str | None = None,
+        limit: int = 60,
+    ) -> list[dict]:
+        """Return the most recent metrics rows, optionally filtered by source.
+
+        Each returned dict contains ``source``, ``recorded_at`` (ISO string),
+        and ``metrics`` (the original JSONB payload).
+        """
+        if source:
+            query = sql.SQL(
+                "SELECT source, recorded_at, metrics FROM {} "
+                "WHERE source = %s "
+                "ORDER BY recorded_at DESC LIMIT %s"
+            ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+            params = (source, limit)
+        else:
+            query = sql.SQL(
+                "SELECT source, recorded_at, metrics FROM {} "
+                "ORDER BY recorded_at DESC LIMIT %s"
+            ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+            params = (limit,)
+
+        rows = self.execute_and_fetch_query(query, params)
+        results = []
+        for row in rows:
+            m = row[2] if isinstance(row[2], dict) else {}
+            results.append({
+                "source": row[0],
+                "recorded_at": row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1]),
+                "metrics": m,
+            })
+        return results
 
     # ==================================================================
     # RLS — User group resolution

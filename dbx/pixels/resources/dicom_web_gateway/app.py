@@ -19,18 +19,24 @@ Environment variables (set in ``app.yml``)::
     DICOMWEB_GATEWAY_TIMEOUT    Per-request timeout in seconds (default 300)
 """
 
+import asyncio
 import base64
 import json
 import logging
 import os
+import threading
+import time
+from contextlib import asynccontextmanager
 
 import requests as _requests
 import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from metrics_store import get_store
 
 logger = logging.getLogger("DICOMweb.Gateway")
 
@@ -53,6 +59,45 @@ _FORWARD_HEADERS = {
     "authorization",
     "cookie",
 }
+
+_METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
+
+# ---------------------------------------------------------------------------
+# Gateway request counters (thread-safe)
+# ---------------------------------------------------------------------------
+
+_stats_lock = threading.Lock()
+_gw_req_count = 0
+_gw_req_errors = 0
+_gw_req_latency_sum = 0.0
+
+
+def _record_request(elapsed: float, is_error: bool):
+    global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
+    with _stats_lock:
+        _gw_req_count += 1
+        _gw_req_latency_sum += elapsed
+        if is_error:
+            _gw_req_errors += 1
+
+
+def _snapshot_and_reset() -> dict:
+    global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
+    with _stats_lock:
+        snap = {
+            "request_count": _gw_req_count,
+            "error_count": _gw_req_errors,
+            "latency_sum_s": round(_gw_req_latency_sum, 4),
+            "avg_latency_s": (
+                round(_gw_req_latency_sum / _gw_req_count, 4)
+                if _gw_req_count else 0
+            ),
+        }
+        _gw_req_count = 0
+        _gw_req_errors = 0
+        _gw_req_latency_sum = 0.0
+    return snap
+
 
 # ---------------------------------------------------------------------------
 # Auth — auto-refreshed via Databricks SDK Config
@@ -244,21 +289,54 @@ def _deserialize_response(result: dict) -> Response:
 
 async def _proxy(request: Request) -> Response:
     """Proxy a single DICOMweb request through the serving endpoint."""
+    t0 = time.monotonic()
+    is_error = False
     try:
         payload = await _serialize_request(request)
         result = _invoke_endpoint(payload)
-        return _deserialize_response(result)
+        resp = _deserialize_response(result)
+        if resp.status_code >= 500:
+            is_error = True
+        return resp
     except Exception as exc:
+        is_error = True
         logger.error("Gateway proxy error: %s", exc, exc_info=True)
         return JSONResponse(
             status_code=502,
             content={"error": "Gateway error", "detail": str(exc)},
         )
+    finally:
+        _record_request(time.monotonic() - t0, is_error)
+
+
+# ---------------------------------------------------------------------------
+# Background metrics reporter
+# ---------------------------------------------------------------------------
+
+async def _metrics_reporter():
+    """Flush gateway request stats to Lakebase every N seconds."""
+    store = get_store()
+    if store is None:
+        logger.warning("MetricsStore unavailable — gateway metrics reporter disabled")
+        return
+    logger.info("Gateway metrics reporter started (interval=%.1fs)", _METRICS_INTERVAL)
+    while True:
+        await asyncio.sleep(_METRICS_INTERVAL)
+        try:
+            store.insert_metrics("gateway", _snapshot_and_reset())
+        except Exception as exc:
+            logger.error("Gateway metrics reporter error: %s", exc)
 
 
 # ---------------------------------------------------------------------------
 # FastAPI application
 # ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def _lifespan(application: FastAPI):
+    task = asyncio.create_task(_metrics_reporter())
+    yield
+    task.cancel()
 
 app = FastAPI(
     title="DICOMweb Gateway",
@@ -267,6 +345,7 @@ app = FastAPI(
         "Databricks Model Serving endpoint"
     ),
     version="1.0.0",
+    lifespan=_lifespan,
 )
 
 
@@ -407,6 +486,35 @@ async def dicomweb_root():
             ],
         },
     }
+
+
+# ── Monitoring ───────────────────────────────────────────────────────────
+
+@app.get("/api/metrics", tags=["Monitoring"])
+async def metrics():
+    """Return the latest metrics from both serving and gateway (via Lakebase)."""
+    store = get_store()
+    if store is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "MetricsStore not available"},
+        )
+    rows = store.get_latest_metrics(source=None, limit=120)
+    serving = [r for r in rows if r["source"] == "serving"]
+    gateway = [r for r in rows if r["source"] == "gateway"]
+    return JSONResponse(content={
+        "serving": serving,
+        "gateway": gateway,
+    })
+
+
+@app.get("/api/dashboard", tags=["Monitoring"])
+async def dashboard():
+    """Serve the live metrics dashboard."""
+    import pathlib
+    html_path = pathlib.Path(__file__).parent / "pages" / "dashboard.html"
+    html = html_path.read_text()
+    return HTMLResponse(content=html)
 
 
 # ── Health ───────────────────────────────────────────────────────────────
