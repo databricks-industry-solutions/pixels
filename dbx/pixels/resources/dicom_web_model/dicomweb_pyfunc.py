@@ -1,0 +1,318 @@
+"""
+MLflow PyFunc model wrapping the DICOMweb FastAPI application.
+
+Deployed on a Databricks Model Serving endpoint:
+
+* **load_context** — builds a minimal FastAPI app with all DICOMweb routes
+  (QIDO-RS, WADO-RS, WADO-URI, STOW-RS) and initialises the backing
+  infrastructure (SQL client, Lakebase, caches, token provider).
+* **predict** — accepts an HTTP-request representation (method, path,
+  query_string, headers, body), routes it through the in-process ASGI
+  app via ``httpx.ASGITransport``, and returns the serialised HTTP response.
+
+Typical deployment flow::
+
+    1. Log this model with ``mlflow.pyfunc.log_model`` (see ``log_model.py``).
+    2. Register in the MLflow Model Registry.
+    3. Create a Databricks Model Serving endpoint backed by this model.
+    4. Point the *DICOMweb Gateway* Databricks App at the endpoint.
+"""
+
+import asyncio
+import base64
+import json
+import logging
+import os
+import sys
+
+import mlflow
+import zstd
+
+logger = logging.getLogger(__name__)
+
+_REQUEST_TIMEOUT = float(os.getenv("DICOMWEB_PREDICT_TIMEOUT", "300"))
+
+# Payloads smaller than this are sent as plain base64 — the zstd frame
+# header (~12 bytes) and dictionary overhead aren't worth it.
+_COMPRESS_THRESHOLD = 512
+
+
+class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
+    """MLflow PyFunc wrapper around the Pixels DICOMweb FastAPI service."""
+
+    # ------------------------------------------------------------------
+    # load_context — build the ASGI app once, reuse across predictions
+    # ------------------------------------------------------------------
+
+    def load_context(self, context):
+        """Initialise the DICOMweb FastAPI app and ASGI transport."""
+        import httpx
+        from fastapi import FastAPI, Request
+        from fastapi.middleware.cors import CORSMiddleware
+
+        # ── Make dicom_web source importable ──────────────────────────
+        dicom_web_dir = context.artifacts["dicom_web_source"]
+        if dicom_web_dir not in sys.path:
+            sys.path.insert(0, dicom_web_dir)
+        logger.info("DICOMweb source: %s", dicom_web_dir)
+
+        # Importing handlers triggers _common.py which lazily creates:
+        #   - DatabricksSQLClient singleton
+        #   - Lakebase connection (if configured)
+        #   - App-auth token provider (Databricks SDK Config)
+        from utils.handlers import (                            # noqa: E402
+            dicomweb_qido_studies,
+            dicomweb_qido_series,
+            dicomweb_qido_all_series,
+            dicomweb_qido_instances,
+            dicomweb_wado_series_metadata,
+            dicomweb_wado_instance,
+            dicomweb_wado_instance_frames,
+            dicomweb_wado_uri,
+            dicomweb_stow_studies,
+            dicomweb_resolve_paths,
+            dicomweb_prime_series,
+        )
+
+        # ── Build a minimal FastAPI app (DICOMweb routes only) ────────
+        # We intentionally skip register_all_common_routes (OHIF viewer,
+        # MONAI proxy, redaction, VLM) — those are irrelevant when the
+        # app is behind a serving endpoint.
+
+        app = FastAPI(
+            title="DICOMweb Serving Endpoint",
+            description="DICOMweb-compliant API served via MLflow Model Serving",
+            version="1.0.0",
+        )
+
+        # --- QIDO-RS --------------------------------------------------
+        @app.get("/api/dicomweb/studies", tags=["QIDO-RS"])
+        def _search_studies(request: Request):
+            return dicomweb_qido_studies(request)
+
+        @app.get("/api/dicomweb/all_series", tags=["QIDO-RS"])
+        def _search_all_series(request: Request):
+            return dicomweb_qido_all_series(request)
+
+        @app.get(
+            "/api/dicomweb/studies/{study_uid}/series",
+            tags=["QIDO-RS"],
+        )
+        def _search_series(request: Request, study_uid: str):
+            return dicomweb_qido_series(request, study_uid)
+
+        @app.get(
+            "/api/dicomweb/studies/{study_uid}/series/{series_uid}/instances",
+            tags=["QIDO-RS"],
+        )
+        def _search_instances(request: Request, study_uid: str, series_uid: str):
+            return dicomweb_qido_instances(request, study_uid, series_uid)
+
+        # --- WADO-RS ---------------------------------------------------
+        @app.get(
+            "/api/dicomweb/studies/{study_uid}/series/{series_uid}/metadata",
+            tags=["WADO-RS"],
+        )
+        def _series_metadata(request: Request, study_uid: str, series_uid: str):
+            return dicomweb_wado_series_metadata(request, study_uid, series_uid)
+
+        @app.get(
+            "/api/dicomweb/studies/{study_uid}/series/{series_uid}"
+            "/instances/{sop_uid}/frames/{frame_list}",
+            tags=["WADO-RS"],
+        )
+        def _instance_frames(
+            request: Request,
+            study_uid: str,
+            series_uid: str,
+            sop_uid: str,
+            frame_list: str,
+        ):
+            return dicomweb_wado_instance_frames(
+                request, study_uid, series_uid, sop_uid, frame_list,
+            )
+
+        @app.get(
+            "/api/dicomweb/studies/{study_uid}/series/{series_uid}"
+            "/instances/{sop_uid}",
+            tags=["WADO-RS"],
+        )
+        def _instance(
+            request: Request, study_uid: str, series_uid: str, sop_uid: str,
+        ):
+            return dicomweb_wado_instance(request, study_uid, series_uid, sop_uid)
+
+        # --- WADO-URI (legacy) -----------------------------------------
+        @app.get("/api/dicomweb/wado", tags=["WADO-URI"])
+        def _wado_uri(request: Request):
+            return dicomweb_wado_uri(request)
+
+        @app.get("/api/dicomweb", tags=["WADO-URI"])
+        def _wado_uri_base(request: Request):
+            if request.query_params.get("requestType", "").upper() == "WADO":
+                return dicomweb_wado_uri(request)
+            return {"status": "DICOMweb Serving Endpoint — healthy"}
+
+        # --- STOW-RS ---------------------------------------------------
+        @app.post("/api/dicomweb/studies/{study_uid}", tags=["STOW-RS"])
+        async def _stow_study(request: Request, study_uid: str):
+            return await dicomweb_stow_studies(request, study_uid)
+
+        @app.post("/api/dicomweb/studies", tags=["STOW-RS"])
+        async def _stow(request: Request):
+            return await dicomweb_stow_studies(request)
+
+        # --- Auxiliary -------------------------------------------------
+        @app.post("/api/dicomweb/resolve_paths", tags=["Path Resolution"])
+        async def _resolve_paths(request: Request):
+            return await dicomweb_resolve_paths(request)
+
+        @app.post("/api/dicomweb/prime", tags=["Cache Priming"])
+        async def _prime(request: Request):
+            return await dicomweb_prime_series(request)
+
+        @app.get("/api/dicomweb/", tags=["DICOMweb"])
+        def _root():
+            return {"status": "DICOMweb Serving Endpoint — healthy"}
+
+        # --- CORS (permissive — auth is on the gateway side) -----------
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        self._app = app
+        self._transport = httpx.ASGITransport(app=app)  # type: ignore[arg-type]
+        logger.info("DICOMweb serving model initialised successfully")
+
+    # ------------------------------------------------------------------
+    # predict — route an HTTP request through the in-process ASGI app
+    # ------------------------------------------------------------------
+
+    def predict(self, context, model_input, params=None):
+        """
+        Route a serialised HTTP request through the DICOMweb ASGI app.
+
+        Input columns (DataFrame / dict):
+            method         HTTP method (GET / POST)
+            path           Request path, e.g. ``/api/dicomweb/studies``
+            query_string   URL query string (``limit=10&offset=0``)
+            headers        JSON-encoded dict of HTTP headers
+            body           Base64-encoded request body (POST / PUT)
+            body_encoding  ``"zstd+base64"`` if body is zstd-compressed,
+                           empty or ``"base64"`` for plain base64
+
+        Returns:
+            JSON string with ``status_code``, ``headers``,
+            ``content_type``, ``body`` (encoded payload), and
+            ``encoding`` (``"zstd+base64"`` | ``"base64"`` |
+            ``"identity"``).
+        """
+        row = self._extract_row(model_input)
+
+        method = str(row.get("method", "GET")).upper()
+        path = str(row.get("path", "/"))
+        query_string = str(row.get("query_string", "") or "")
+        headers = self._parse_headers(row.get("headers", "{}"))
+        body = self._decode_body(
+            row.get("body", ""), row.get("body_encoding", ""),
+        )
+
+        url = f"{path}?{query_string}" if query_string else path
+
+        status_code, resp_headers, content = self._asgi_request(
+            method, url, headers, body,
+        )
+        return self._format_response(status_code, resp_headers, content)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _extract_row(model_input) -> dict:
+        """Normalise model_input (DataFrame, dict, or record) to a flat dict."""
+        if hasattr(model_input, "iloc"):
+            return model_input.iloc[0].to_dict()
+        if isinstance(model_input, dict):
+            return {
+                k: (v[0] if isinstance(v, list) and len(v) == 1 else v)
+                for k, v in model_input.items()
+            }
+        return model_input
+
+    @staticmethod
+    def _parse_headers(raw) -> dict:
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return raw if isinstance(raw, dict) else {}
+
+    def _asgi_request(
+        self, method: str, url: str, headers: dict, body: bytes,
+    ) -> tuple:
+        """Send a request through the ASGI transport and return the raw response."""
+        import httpx
+
+        async def _do():
+            async with httpx.AsyncClient(
+                transport=self._transport,
+                base_url="http://dicomweb-serving",
+                timeout=_REQUEST_TIMEOUT,
+            ) as client:
+                resp = await client.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    content=body if body else None,
+                )
+                return resp.status_code, dict(resp.headers), resp.content
+
+        return asyncio.run(_do())
+
+    @staticmethod
+    def _decode_body(raw_b64: str, encoding: str) -> bytes:
+        """Decode a request body, handling optional zstd compression."""
+        if not raw_b64:
+            return b""
+        raw = base64.b64decode(raw_b64)
+        if encoding == "zstd+base64":
+            raw = zstd.decompress(raw)
+        return raw
+
+    @staticmethod
+    def _encode_body(content: bytes) -> tuple[str, str]:
+        """
+        Encode a response body for transport.
+
+        Returns ``(encoded_string, encoding_label)``.  Bodies above
+        ``_COMPRESS_THRESHOLD`` are zstd-compressed before base64 to
+        reduce the JSON payload size (typically 2-20x for DICOM/JSON).
+        """
+        if not content:
+            return "", "identity"
+        if len(content) >= _COMPRESS_THRESHOLD:
+            compressed = zstd.compress(content)
+            return base64.b64encode(compressed).decode("ascii"), "zstd+base64"
+        return base64.b64encode(content).decode("ascii"), "base64"
+
+    @staticmethod
+    def _format_response(
+        status_code: int, headers: dict, content: bytes,
+    ) -> str:
+        content_type = headers.get("content-type", "")
+        body_encoded, encoding = DICOMwebServingModel._encode_body(content)
+
+        result: dict = {
+            "status_code": status_code,
+            "headers": headers,
+            "content_type": content_type,
+            "body": body_encoded,
+            "encoding": encoding,
+        }
+        return json.dumps(result)

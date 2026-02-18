@@ -1,0 +1,5 @@
+env:
+  - name: "DICOMWEB_SERVING_ENDPOINT"
+    valueFrom: "serving_endpoint"
+  - name: "DICOMWEB_GATEWAY_TIMEOUT"
+    value: "300"
