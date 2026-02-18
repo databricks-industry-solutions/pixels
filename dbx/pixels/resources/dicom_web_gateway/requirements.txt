@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-databricks-sdk
+databricks-sdk==0.88.0
 requests
 zstd
 psycopg2-binary
