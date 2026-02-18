@@ -526,7 +526,7 @@
             document.querySelectorAll('.path-sep, #path-study, #path-series').forEach(el => el.classList.add('hidden'));
 
             try {
-                const resp = await fetch(`${base}/studies?limit=15`);
+                const resp = await fetch(`${base}/studies?limit=15`, { credentials: 'include' });
                 const studies = await resp.json();
                 list.innerHTML = '';
 
@@ -574,7 +574,7 @@
             document.querySelectorAll('.path-sep:nth-of-type(2), #path-series').forEach(el => el.classList.add('hidden'));
 
             try {
-                const resp = await fetch(`${base}/studies/${studyUid}/series`);
+                const resp = await fetch(`${base}/studies/${studyUid}/series`, { credentials: 'include' });
                 const series = await resp.json();
                 list.innerHTML = '';
 
@@ -615,7 +615,7 @@
             document.querySelectorAll('.path-sep, #path-series').forEach(el => el.classList.remove('hidden'));
 
             try {
-                const resp = await fetch(`${base}/studies/${studyUid}/series/${seriesUid}/instances`);
+                const resp = await fetch(`${base}/studies/${studyUid}/series/${seriesUid}/instances`, { credentials: 'include' });
                 const instances = await resp.json();
                 list.innerHTML = '';
 
@@ -675,7 +675,7 @@
 
             for (let f = 1; f <= numFrames; f++) {
                 const url = `${base}/studies/${study}/series/${series}/instances/${instance}/frames/${f}`;
-                const resp = await fetch(url);
+                const resp = await fetch(url, { credentials: 'include' });
                 if (!resp.ok) throw new Error(`WADO-RS frame ${f}: ${resp.status}`);
 
                 const reader = resp.body.getReader();
@@ -717,7 +717,7 @@
             let totalBytes = 0;
             let ttff = null;
 
-            const resp = await fetch(instanceUrl);
+            const resp = await fetch(instanceUrl, { credentials: 'include' });
             if (!resp.ok) throw new Error(`WADO-URI ${resp.status}`);
 
             const reader = resp.body.getReader();
@@ -768,7 +768,7 @@
 
             let numFrames = 1;
             try {
-                const metaResp = await fetch(`${base}/studies/${study}/series/${series}/metadata`);
+                const metaResp = await fetch(`${base}/studies/${study}/series/${series}/metadata`, { credentials: 'include' });
                 if (!metaResp.ok) throw new Error(`Metadata fetch failed: ${metaResp.status}`);
                 const metaList = await metaResp.json();
                 const instMeta = metaList.find(m => m['00080018']?.Value?.[0] === instance);
