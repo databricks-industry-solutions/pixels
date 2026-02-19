@@ -527,6 +527,100 @@ class DICOMwebDatabricksWrapper:
             db_file, filename, token, frame_numbers,
         )
 
+    @timing_decorator
+    def resolve_frame_ranges(
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        sop_instance_uid: str,
+    ) -> dict:
+        """Resolve the BOT for an instance and return frame byte-range metadata.
+
+        Unlike :meth:`retrieve_instance_frames` this does **not** read any
+        pixel data -- it only returns the information needed to perform
+        direct Volumes byte-range reads.
+
+        Returns:
+            dict with ``file_path``, ``transfer_syntax_uid``, ``num_frames``,
+            and ``frames`` (list of dicts with ``frame_number``,
+            ``start_pos``, ``end_pos``, ``frame_size``, and optional
+            ``fragments``).
+        """
+        path = self._resolve_instance_path(
+            study_instance_uid, series_instance_uid, sop_instance_uid,
+        )
+        db_file = DatabricksFile.from_full_path(path)
+        filename = db_file.full_path
+        token = self._token
+
+        # ── Tier 1: in-memory BOT cache ───────────────────────────────
+        cached_bot = bot_cache.get(filename, self._table)
+        if cached_bot:
+            return self._format_frame_ranges(path, cached_bot)
+
+        # ── Tier 2: Lakebase persistent cache ─────────────────────────
+        if self._lb:
+            try:
+                lb_frames = self._lb.retrieve_all_frame_ranges(
+                    filename, self._table, user_groups=self._user_groups,
+                )
+                if lb_frames:
+                    tsuid = None
+                    try:
+                        meta = get_file_metadata(token, db_file)
+                        tsuid = meta.get("00020010", {}).get(
+                            "Value", ["1.2.840.10008.1.2.1"],
+                        )[0]
+                    except Exception:
+                        tsuid = "1.2.840.10008.1.2.1"
+                    bot_cache.put_from_lakebase(
+                        filename, self._table, lb_frames, tsuid,
+                    )
+                    return {
+                        "file_path": path,
+                        "transfer_syntax_uid": tsuid,
+                        "num_frames": len(lb_frames),
+                        "frames": lb_frames,
+                    }
+            except Exception as exc:
+                logger.warning(f"Lakebase frame range lookup failed: {exc}")
+
+        # ── Tier 3: compute the BOT ──────────────────────────────────
+        bot_data = compute_full_bot(token, db_file)
+        bot_cache.put(filename, self._table, bot_data)
+
+        if self._lb and bot_data.get("frames"):
+            try:
+                self._lb.insert_frame_ranges(
+                    filename, bot_data["frames"], self._table,
+                    allowed_groups=self._user_groups,
+                )
+            except Exception as exc:
+                logger.warning(f"Lakebase frame persist failed: {exc}")
+
+        return self._format_frame_ranges(path, bot_data)
+
+    @staticmethod
+    def _format_frame_ranges(file_path: str, bot_data: dict) -> dict:
+        """Shape BOT cache data into the response format."""
+        frames = []
+        for f in bot_data.get("frames", []):
+            entry = {
+                "frame_number": f["frame_number"],
+                "start_pos": f["start_pos"],
+                "end_pos": f["end_pos"],
+                "frame_size": f["frame_size"],
+            }
+            if "fragments" in f:
+                entry["fragments"] = f["fragments"]
+            frames.append(entry)
+        return {
+            "file_path": file_path,
+            "transfer_syntax_uid": bot_data.get("transfer_syntax_uid", ""),
+            "num_frames": bot_data.get("num_frames", len(frames)),
+            "frames": frames,
+        }
+
     def _try_cached_frames(
         self,
         db_file: DatabricksFile,

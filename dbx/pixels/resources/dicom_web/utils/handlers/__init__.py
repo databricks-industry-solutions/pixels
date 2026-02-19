@@ -21,6 +21,7 @@ from ._wado import (
     dicomweb_wado_instance_frames,
     dicomweb_wado_uri,
     dicomweb_resolve_paths,
+    dicomweb_resolve_frame_ranges,
     dicomweb_perf_compare,
     dicomweb_prime_series,
 )
@@ -39,8 +40,9 @@ __all__ = [
     "dicomweb_wado_uri",
     # STOW-RS
     "dicomweb_stow_studies",
-    # Path resolution
+    # Path / frame range resolution
     "dicomweb_resolve_paths",
+    "dicomweb_resolve_frame_ranges",
     # Debug / performance
     "dicomweb_perf_compare",
     # Priming (cache warm-up)

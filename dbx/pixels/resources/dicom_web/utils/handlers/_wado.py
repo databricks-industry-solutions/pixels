@@ -428,6 +428,59 @@ def dicomweb_perf_compare(
 
 
 # ---------------------------------------------------------------------------
+# Frame range resolution handler
+# ---------------------------------------------------------------------------
+
+@timing_decorator
+async def dicomweb_resolve_frame_ranges(request: Request) -> Response:
+    """POST /api/dicomweb/resolve_frame_ranges — resolve frame byte ranges.
+
+    Returns file path, transfer syntax, and per-frame byte offsets so
+    callers can read directly from Volumes without routing frame data
+    through a serving endpoint.
+
+    Request body (JSON)::
+
+        {
+            "studyInstanceUID": "1.2.840.113619...",
+            "seriesInstanceUID": "1.2.840.113619...",
+            "sopInstanceUID": "1.2.840.113619..."
+        }
+
+    Response body (JSON)::
+
+        {
+            "file_path": "/Volumes/catalog/schema/volume/path/to/file.dcm",
+            "transfer_syntax_uid": "1.2.840.10008.1.2.4.70",
+            "num_frames": 200,
+            "frames": [
+                {"frame_number": 0, "start_pos": 12345, "end_pos": 67890, "frame_size": 55545},
+                ...
+            ]
+        }
+    """
+    body = await request.json()
+
+    study_uid = body.get("studyInstanceUID")
+    series_uid = body.get("seriesInstanceUID")
+    sop_uid = body.get("sopInstanceUID")
+
+    if not study_uid or not series_uid or not sop_uid:
+        raise HTTPException(
+            status_code=400,
+            detail="studyInstanceUID, seriesInstanceUID, and sopInstanceUID are all required",
+        )
+
+    wrapper = get_dicomweb_wrapper(request)
+    result = wrapper.resolve_frame_ranges(study_uid, series_uid, sop_uid)
+
+    return Response(
+        content=json.dumps(result),
+        media_type="application/json",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Path resolution handler
 # ---------------------------------------------------------------------------
 
