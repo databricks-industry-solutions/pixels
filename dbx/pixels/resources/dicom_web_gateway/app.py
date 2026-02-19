@@ -21,15 +21,19 @@ Environment variables (set in ``app.yml``)::
 import asyncio
 import logging
 import os
+import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 import httpx
+import psutil
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
+from dbx.pixels.resources.dicom_web.utils.cache import bot_cache, instance_path_cache
+from dbx.pixels.resources.dicom_web.utils.dicom_io import file_prefetcher
 from dbx.pixels.resources.dicom_web.utils.handlers import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
@@ -75,6 +79,42 @@ def _record_request(elapsed: float, is_error: bool):
         _gw_req_errors += 1
 
 
+def _bytes_to_mb(b: int) -> float:
+    return round(b / (1024 * 1024), 2)
+
+
+def _collect_system_metrics() -> dict:
+    """Gather CPU, memory, thread, and network connection stats."""
+    proc = psutil.Process()
+    mem = proc.memory_info()
+    sys_mem = psutil.virtual_memory()
+    try:
+        net_conns = len(proc.net_connections())
+    except (psutil.AccessDenied, psutil.NoSuchProcess):
+        net_conns = -1
+    return {
+        "cpu_percent_process": proc.cpu_percent(interval=0.1),
+        "cpu_percent_system": psutil.cpu_percent(interval=0.1),
+        "cpu_count": os.cpu_count(),
+        "memory_rss_mb": _bytes_to_mb(mem.rss),
+        "memory_vms_mb": _bytes_to_mb(mem.vms),
+        "system_memory_total_mb": _bytes_to_mb(sys_mem.total),
+        "system_memory_available_mb": _bytes_to_mb(sys_mem.available),
+        "system_memory_used_percent": sys_mem.percent,
+        "threads_active": threading.active_count(),
+        "network_connections": net_conns,
+    }
+
+
+def _collect_cache_metrics() -> dict:
+    """Gather BOT cache, instance path cache, and prefetcher stats."""
+    return {
+        "bot_cache": bot_cache.stats,
+        "instance_path_cache": instance_path_cache.stats,
+        "prefetcher": file_prefetcher.stats,
+    }
+
+
 def _snapshot_and_reset() -> dict:
     global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
     snap = {
@@ -85,6 +125,8 @@ def _snapshot_and_reset() -> dict:
             round(_gw_req_latency_sum / _gw_req_count, 4)
             if _gw_req_count else 0
         ),
+        "system": _collect_system_metrics(),
+        "caches": _collect_cache_metrics(),
     }
     _gw_req_count = 0
     _gw_req_errors = 0
@@ -331,15 +373,19 @@ def dicomweb_root():
 
 @app.get("/api/metrics", tags=["Monitoring"])
 def metrics():
-    """Return the latest gateway metrics (via Lakebase)."""
+    """Return the latest gateway metrics (via Lakebase) plus live system snapshot."""
     store = get_store()
-    if store is None:
-        return JSONResponse(
-            status_code=503,
-            content={"error": "MetricsStore not available"},
-        )
-    rows = store.get_latest_metrics(source="gateway", limit=300)
-    return JSONResponse(content={"gateway": rows})
+    rows = []
+    if store:
+        try:
+            rows = store.get_latest_metrics(source="gateway", limit=300)
+        except Exception as exc:
+            logger.error("Metrics Lakebase read: %s", exc)
+    return JSONResponse(content={
+        "gateway": rows,
+        "system": _collect_system_metrics(),
+        "caches": _collect_cache_metrics(),
+    })
 
 
 @app.websocket("/ws/metrics")
