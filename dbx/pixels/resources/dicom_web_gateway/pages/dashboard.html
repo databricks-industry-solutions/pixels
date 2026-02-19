@@ -312,11 +312,19 @@
     </div>
 
     <footer>
-        DICOMweb Endpoint Monitoring &bull; Polling every 2s &bull; Data from Lakebase
+        DICOMweb Endpoint Monitoring &bull; Live via WebSocket &bull; Data from Lakebase
     </footer>
 
     <script>
-        const ENDPOINT = '/api/metrics';
+        const REST_ENDPOINT = '/api/metrics';
+
+        let ws = null;
+        let reconnectTimer = null;
+        let reconnectDelay = 1000;
+        const MAX_RECONNECT_DELAY = 30000;
+        let restFallback = null;
+
+        /* ── DOM helpers ─────────────────────────────────────────────── */
 
         function setText(id, val) {
             const el = document.getElementById(id);
@@ -333,91 +341,131 @@
             if (el) el.style.width = Math.min(pct, 100) + '%';
         }
 
-        function latestBySource(rows, src) {
-            const filtered = rows.filter(r => r.source === src);
-            return filtered.length ? filtered[0] : null;
-        }
-
-        async function update() {
-            try {
-                const res = await fetch(ENDPOINT, { credentials: 'include' });
-                const data = await res.json();
-
-                // -- Serving metrics --
-                const sRows = data.serving || [];
-                const sLatest = sRows.length ? sRows[0] : null;
-
-                if (sLatest) {
-                    const m = sLatest.metrics;
-                    const ts = sLatest.recorded_at;
-                    document.getElementById('timestamp').innerText = new Date(ts).toLocaleTimeString();
-
-                    // System
-                    const sys = m.system || {};
-                    setText('s-cpu', sys.cpu_percent_process || 0);
-                    setBar('s-cpu-bar', sys.cpu_percent_process || 0);
-                    setText('s-ram', sys.memory_rss_mb || 0);
-                    setText('s-threads', sys.threads_active || 0);
-                    setText('s-conns', sys.network_connections || 0);
-                    setText('s-mem-pct', sys.system_memory_used_percent || 0);
-                    setBar('s-mem-bar', sys.system_memory_used_percent || 0);
-
-                    // Caches
-                    const c = m.caches || {};
-                    const bot = c.bot_cache || {};
-                    const path = c.instance_path_cache || {};
-                    const botHit = parseFloat(String(bot.hit_rate || '0').replace('%', ''));
-                    const pathHit = parseFloat(String(path.hit_rate || '0').replace('%', ''));
-                    setText('s-bot-hit', botHit);
-                    setBar('s-bot-bar', botHit);
-                    setText('s-path-hit', pathHit);
-                    setBar('s-path-bar', pathHit);
-                    setText('s-bot-entries', bot.entries || 0);
-                    setText('s-path-entries', path.entries || 0);
-
-                    // Prefetcher
-                    const p = m.prefetcher || {};
-                    setText('s-pref-mem', p.memory_used_mb || 0);
-                    const prefPct = p.memory_budget_mb ? ((p.memory_used_mb || 0) / p.memory_budget_mb) * 100 : 0;
-                    setBar('s-pref-bar', prefPct);
-                    setText('s-pref-cached', p.cached || p.done || 0);
-                    setText('s-pref-pending', p.pending || 0);
-
-                    // Serving requests
-                    const r = m.requests || {};
-                    setText('s-rps', r.request_count || 0);
-                    setText('s-eps', r.error_count || 0);
-                    setText('s-latency', Math.round((r.avg_latency_s || 0) * 1000));
-                    setText('s-total', r.request_count || 0);
-                }
-
-                // -- Gateway metrics --
-                const gRows = data.gateway || [];
-                const gLatest = gRows.length ? gRows[0] : null;
-
-                if (gLatest) {
-                    const gm = gLatest.metrics;
-                    setText('g-rps', gm.request_count || 0);
-                    setText('g-eps', gm.error_count || 0);
-                    setText('g-latency', Math.round((gm.avg_latency_s || 0) * 1000));
-                    setText('g-total', gm.request_count || 0);
-                }
-
-                // Status
-                document.getElementById('status-dot').style.background = 'var(--success)';
-                document.getElementById('status-dot').style.boxShadow = '0 0 8px var(--success)';
-                document.getElementById('status-text').innerText = 'Connected';
-
-            } catch (err) {
-                console.error('Failed to fetch metrics:', err);
-                document.getElementById('status-dot').style.background = 'var(--error)';
-                document.getElementById('status-dot').style.boxShadow = '0 0 8px var(--error)';
-                document.getElementById('status-text').innerText = 'Disconnected';
+        function setStatus(state) {
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            if (state === 'connected') {
+                dot.style.background = 'var(--success)';
+                dot.style.boxShadow = '0 0 8px var(--success)';
+                txt.innerText = 'Connected (live)';
+            } else {
+                dot.style.background = 'var(--error)';
+                dot.style.boxShadow = '0 0 8px var(--error)';
+                txt.innerText = 'Reconnecting\u2026';
             }
         }
 
-        setInterval(update, 2000);
-        update();
+        /* ── Dashboard update (shared by WS and REST paths) ─────────── */
+
+        function updateDashboard(data) {
+            const sRows = data.serving || [];
+            const sLatest = sRows.length ? sRows[0] : null;
+
+            if (sLatest) {
+                const m = sLatest.metrics;
+                document.getElementById('timestamp').innerText =
+                    new Date(sLatest.recorded_at).toLocaleTimeString();
+
+                const sys = m.system || {};
+                setText('s-cpu', sys.cpu_percent_process || 0);
+                setBar('s-cpu-bar', sys.cpu_percent_process || 0);
+                setText('s-ram', sys.memory_rss_mb || 0);
+                setText('s-threads', sys.threads_active || 0);
+                setText('s-conns', sys.network_connections || 0);
+                setText('s-mem-pct', sys.system_memory_used_percent || 0);
+                setBar('s-mem-bar', sys.system_memory_used_percent || 0);
+
+                const c = m.caches || {};
+                const bot = c.bot_cache || {};
+                const path = c.instance_path_cache || {};
+                const botHit = parseFloat(String(bot.hit_rate || '0').replace('%', ''));
+                const pathHit = parseFloat(String(path.hit_rate || '0').replace('%', ''));
+                setText('s-bot-hit', botHit);
+                setBar('s-bot-bar', botHit);
+                setText('s-path-hit', pathHit);
+                setBar('s-path-bar', pathHit);
+                setText('s-bot-entries', bot.entries || 0);
+                setText('s-path-entries', path.entries || 0);
+
+                const p = m.prefetcher || {};
+                setText('s-pref-mem', p.memory_used_mb || 0);
+                const prefPct = p.memory_budget_mb
+                    ? ((p.memory_used_mb || 0) / p.memory_budget_mb) * 100 : 0;
+                setBar('s-pref-bar', prefPct);
+                setText('s-pref-cached', p.cached || p.done || 0);
+                setText('s-pref-pending', p.pending || 0);
+
+                const r = m.requests || {};
+                setText('s-rps', r.request_count || 0);
+                setText('s-eps', r.error_count || 0);
+                setText('s-latency', Math.round((r.avg_latency_s || 0) * 1000));
+                setText('s-total', r.request_count || 0);
+            }
+
+            const gRows = data.gateway || [];
+            const gLatest = gRows.length ? gRows[0] : null;
+
+            if (gLatest) {
+                const gm = gLatest.metrics;
+                setText('g-rps', gm.request_count || 0);
+                setText('g-eps', gm.error_count || 0);
+                setText('g-latency', Math.round((gm.avg_latency_s || 0) * 1000));
+                setText('g-total', gm.request_count || 0);
+            }
+
+            setStatus('connected');
+        }
+
+        /* ── REST fallback (used while WebSocket is reconnecting) ──── */
+
+        async function fetchRest() {
+            try {
+                const res = await fetch(REST_ENDPOINT, { credentials: 'include' });
+                updateDashboard(await res.json());
+            } catch (e) {
+                setStatus('disconnected');
+            }
+        }
+
+        /* ── WebSocket with auto-reconnect ─────────────────────────── */
+
+        function connectWebSocket() {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(proto + '//' + location.host + '/ws/metrics');
+
+            ws.onopen = function () {
+                reconnectDelay = 1000;
+                if (restFallback) { clearInterval(restFallback); restFallback = null; }
+                setStatus('connected');
+            };
+
+            ws.onmessage = function (event) {
+                updateDashboard(JSON.parse(event.data));
+            };
+
+            ws.onclose = function () {
+                setStatus('disconnected');
+                scheduleReconnect();
+            };
+
+            ws.onerror = function () {
+                ws.close();
+            };
+        }
+
+        function scheduleReconnect() {
+            if (reconnectTimer) return;
+            if (!restFallback) {
+                restFallback = setInterval(fetchRest, 3000);
+            }
+            reconnectTimer = setTimeout(function () {
+                reconnectTimer = null;
+                connectWebSocket();
+            }, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+        }
+
+        connectWebSocket();
     </script>
 </body>
 

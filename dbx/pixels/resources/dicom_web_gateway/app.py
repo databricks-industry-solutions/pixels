@@ -27,11 +27,12 @@ import os
 import threading
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 import httpx
 import zstd
 from databricks.sdk.core import Config
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -100,6 +101,25 @@ def _snapshot_and_reset() -> dict:
         _gw_req_errors = 0
         _gw_req_latency_sum = 0.0
     return snap
+
+
+# ---------------------------------------------------------------------------
+# WebSocket clients for live metrics push
+# ---------------------------------------------------------------------------
+
+_ws_clients: set[WebSocket] = set()
+
+
+async def _broadcast_metrics(data: dict):
+    """Push a metrics payload to every connected WebSocket client."""
+    stale = []
+    for client in list(_ws_clients):
+        try:
+            await client.send_json(data)
+        except Exception:
+            stale.append(client)
+    for client in stale:
+        _ws_clients.discard(client)
 
 
 # ---------------------------------------------------------------------------
@@ -324,18 +344,42 @@ async def _proxy(request: Request) -> Response:
 # ---------------------------------------------------------------------------
 
 async def _metrics_reporter():
-    """Flush gateway request stats to Lakebase every N seconds."""
+    """Flush gateway stats to Lakebase and push to WebSocket clients."""
     store = get_store()
     if store is None:
-        logger.warning("MetricsStore unavailable — gateway metrics reporter disabled")
-        return
+        logger.warning("MetricsStore unavailable — Lakebase persistence disabled")
     logger.info("Gateway metrics reporter started (interval=%.1fs)", _METRICS_INTERVAL)
     while True:
         await asyncio.sleep(_METRICS_INTERVAL)
-        try:
-            store.insert_metrics("gateway", _snapshot_and_reset())
-        except Exception as exc:
-            logger.error("Gateway metrics reporter error: %s", exc)
+        gw_snapshot = _snapshot_and_reset()
+
+        if store:
+            try:
+                store.insert_metrics("gateway", gw_snapshot)
+            except Exception as exc:
+                logger.error("Gateway metrics Lakebase write: %s", exc)
+
+        if _ws_clients:
+            payload: dict = {"serving": [], "gateway": []}
+            if store:
+                try:
+                    rows = store.get_latest_metrics(source=None, limit=120)
+                    payload["serving"] = [
+                        r for r in rows if r["source"] == "serving"
+                    ]
+                    payload["gateway"] = [
+                        r for r in rows if r["source"] == "gateway"
+                    ]
+                except Exception as exc:
+                    logger.error("Lakebase read for WS broadcast: %s", exc)
+
+            if not payload["gateway"]:
+                payload["gateway"] = [{
+                    "source": "gateway",
+                    "recorded_at": datetime.now(timezone.utc).isoformat(),
+                    "metrics": gw_snapshot,
+                }]
+            await _broadcast_metrics(payload)
 
 
 # ---------------------------------------------------------------------------
@@ -520,6 +564,20 @@ async def metrics():
         "serving": serving,
         "gateway": gateway,
     })
+
+
+@app.websocket("/ws/metrics")
+async def ws_metrics(websocket: WebSocket):
+    """Stream live metrics to the dashboard over a persistent WebSocket."""
+    await websocket.accept()
+    _ws_clients.add(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        _ws_clients.discard(websocket)
 
 
 @app.get("/api/dashboard", tags=["Monitoring"])
