@@ -214,6 +214,25 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
 
         self._app = app
         self._transport = httpx.ASGITransport(app=app)  # type: ignore[arg-type]
+
+        # A single persistent AsyncClient avoids per-request client churn.
+        self._asgi_client = httpx.AsyncClient(
+            transport=self._transport,
+            base_url="http://dicomweb-serving",
+            timeout=_REQUEST_TIMEOUT,
+        )
+
+        # Dedicated event loop on a background thread — all ASGI
+        # dispatches run here via run_coroutine_threadsafe().  This
+        # avoids the per-request loop creation that breaks anyio's
+        # CapacityLimiter borrower tracking.
+        self._loop = asyncio.new_event_loop()
+        self._loop_thread = threading.Thread(
+            target=self._loop.run_forever,
+            daemon=True,
+            name="asgi-event-loop",
+        )
+        self._loop_thread.start()
         logger.info("DICOMweb serving model initialised successfully")
 
         # ── Background metrics reporter ──────────────────────────────
@@ -351,41 +370,23 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     ) -> tuple:
         """Send a request through the ASGI transport and return the raw response.
 
-        The Databricks Model Serving environment exposes a running event
-        loop on every thread (including pool workers), which makes both
-        ``asyncio.run()`` and ``loop.run_until_complete()`` refuse to
-        start — they see the ambient loop via ``_get_running_loop()``.
-
-        We work around this by temporarily clearing the thread-local
-        running-loop flag so our private loop can execute normally.
+        The coroutine is submitted to a dedicated background event loop
+        via ``run_coroutine_threadsafe``, so the calling (predict) thread
+        simply blocks on the future.  This avoids creating/destroying an
+        event loop per request, which broke ``anyio``'s CapacityLimiter
+        borrower tracking.
         """
-        import httpx
-
         async def _do():
-            async with httpx.AsyncClient(
-                transport=self._transport,
-                base_url="http://dicomweb-serving",
-                timeout=_REQUEST_TIMEOUT,
-            ) as client:
-                resp = await client.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    content=body if body else None,
-                )
-                return resp.status_code, dict(resp.headers), resp.content
+            resp = await self._asgi_client.request(
+                method=method,
+                url=url,
+                headers=headers,
+                content=body if body else None,
+            )
+            return resp.status_code, dict(resp.headers), resp.content
 
-        # Snapshot and clear the ambient running-loop flag so
-        # run_until_complete's _check_running() doesn't reject us.
-        ambient_loop = asyncio._get_running_loop()  # may be None
-        asyncio._set_running_loop(None)
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(_do())
-        finally:
-            loop.close()
-            # Restore the original flag for the serving framework.
-            asyncio._set_running_loop(ambient_loop)
+        future = asyncio.run_coroutine_threadsafe(_do(), self._loop)
+        return future.result(timeout=_REQUEST_TIMEOUT + 5)
 
     @staticmethod
     def _decode_body(raw_b64: str, encoding: str) -> bytes:
