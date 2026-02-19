@@ -351,9 +351,10 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     ) -> tuple:
         """Send a request through the ASGI transport and return the raw response.
 
-        Handles both cases: no event loop (plain thread) and an already-
-        running loop (gunicorn/gevent workers) by dispatching to a fresh
-        thread when ``asyncio.run()`` would fail.
+        Uses an explicit ``new_event_loop`` + ``run_until_complete`` instead
+        of ``asyncio.run`` because the Model Serving environment may already
+        have a running loop on the current (or pool-worker) thread, which
+        makes ``asyncio.run`` refuse to start.
         """
         import concurrent.futures
         import httpx
@@ -372,17 +373,27 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                 )
                 return resp.status_code, dict(resp.headers), resp.content
 
+        def _run_in_fresh_loop():
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(_do())
+            finally:
+                try:
+                    loop.run_until_complete(loop.shutdown_asyncgens())
+                finally:
+                    loop.close()
+
         try:
             asyncio.get_running_loop()
-            # There IS a running loop — run in a dedicated thread so
-            # asyncio.run() gets its own fresh loop.
+            # There IS a running loop on this thread — dispatch to a
+            # dedicated thread that owns its own event loop.
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, _do()).result(
+                return pool.submit(_run_in_fresh_loop).result(
                     timeout=_REQUEST_TIMEOUT,
                 )
         except RuntimeError:
-            # No running loop — safe to call directly.
-            return asyncio.run(_do())
+            # No running loop — safe to run directly.
+            return _run_in_fresh_loop()
 
     @staticmethod
     def _decode_body(raw_b64: str, encoding: str) -> bytes:
