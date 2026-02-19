@@ -28,7 +28,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 
-import requests as _requests
+import httpx
 import zstd
 from databricks.sdk.core import Config
 from fastapi import FastAPI, Request, Response
@@ -61,6 +61,9 @@ _FORWARD_HEADERS = {
 }
 
 _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
+
+# Shared async HTTP client — created/closed in the FastAPI lifespan.
+_http_client: httpx.AsyncClient | None = None
 
 # ---------------------------------------------------------------------------
 # Gateway request counters (thread-safe)
@@ -128,23 +131,30 @@ def _get_auth() -> tuple[str, dict]:
 # Serving endpoint invocation
 # ---------------------------------------------------------------------------
 
-def _invoke_endpoint(payload: dict) -> dict:
+async def _invoke_endpoint(payload: dict) -> dict:
     """
     POST a serialised HTTP request to the DICOMweb serving endpoint.
+
+    Uses the shared ``httpx.AsyncClient`` so multiple in-flight requests
+    are truly concurrent (no event-loop blocking).
 
     Returns the parsed prediction result dict.
     """
     host, auth_headers = _get_auth()
     url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
 
-    resp = _requests.post(
+    client = _http_client
+    if client is None:
+        raise RuntimeError("HTTP client not initialised — is the app running?")
+
+    resp = await client.post(
         url,
         headers={**auth_headers, "Content-Type": "application/json"},
         json={"dataframe_records": [payload]},
         timeout=_TIMEOUT,
     )
 
-    if not resp.ok:
+    if resp.status_code >= 400:
         logger.error(
             "Serving endpoint HTTP %d: %s", resp.status_code, resp.text[:500],
         )
@@ -293,7 +303,7 @@ async def _proxy(request: Request) -> Response:
     is_error = False
     try:
         payload = await _serialize_request(request)
-        result = _invoke_endpoint(payload)
+        result = await _invoke_endpoint(payload)
         resp = _deserialize_response(result)
         if resp.status_code >= 500:
             is_error = True
@@ -334,9 +344,13 @@ async def _metrics_reporter():
 
 @asynccontextmanager
 async def _lifespan(application: FastAPI):
+    global _http_client
+    _http_client = httpx.AsyncClient(http2=True)
     task = asyncio.create_task(_metrics_reporter())
     yield
     task.cancel()
+    await _http_client.aclose()
+    _http_client = None
 
 app = FastAPI(
     title="DICOMweb Gateway",

@@ -5,3 +5,4 @@ requests
 zstd
 psycopg2-binary
 psutil
+'httpx[http2]'
