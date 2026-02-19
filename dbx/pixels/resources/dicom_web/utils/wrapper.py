@@ -251,10 +251,11 @@ class DICOMwebDatabricksWrapper:
             except Exception as exc:
                 logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
 
-        # Background prefetch — download files from Volumes in parallel ─
+        # Background prefetch + BOT preloading ─────────────────────────
         # Small files are downloaded fully so that subsequent WADO-RS
         # instance retrieval is instant (served from memory).
-        # BOT computation is deferred to the first frame-level request.
+        # BOTs are preloaded in a background thread so that subsequent
+        # WADO-RS frame requests skip the per-instance computation.
         # Skip if the series was already primed (downloads already scheduled).
         if not already_primed:
             prefetch_paths = [info["path"] for info in cache_entries.values()]
@@ -263,6 +264,14 @@ class DICOMwebDatabricksWrapper:
                 logger.debug(
                     f"Background prefetch: {n} new downloads scheduled "
                     f"({len(prefetch_paths)} instances)"
+                )
+            if cache_entries:
+                file_prefetcher._pool.submit(
+                    self._preload_series_bots, dict(cache_entries),
+                )
+                logger.debug(
+                    f"Background BOT preload scheduled for "
+                    f"{len(cache_entries)} instances"
                 )
         # ──────────────────────────────────────────────────────────────
 
@@ -565,14 +574,15 @@ class DICOMwebDatabricksWrapper:
                     filename, self._table, user_groups=self._user_groups,
                 )
                 if lb_frames:
-                    tsuid = None
-                    try:
-                        meta = get_file_metadata(token, db_file)
-                        tsuid = meta.get("00020010", {}).get(
-                            "Value", ["1.2.840.10008.1.2.1"],
-                        )[0]
-                    except Exception:
-                        tsuid = "1.2.840.10008.1.2.1"
+                    tsuid = lb_frames[0].get("transfer_syntax_uid") if lb_frames else None
+                    if not tsuid:
+                        try:
+                            meta = get_file_metadata(token, db_file)
+                            tsuid = meta.get("00020010", {}).get(
+                                "Value", ["1.2.840.10008.1.2.1"],
+                            )[0]
+                        except Exception:
+                            tsuid = "1.2.840.10008.1.2.1"
                     bot_cache.put_from_lakebase(
                         filename, self._table, lb_frames, tsuid,
                     )
@@ -593,6 +603,7 @@ class DICOMwebDatabricksWrapper:
             try:
                 self._lb.insert_frame_ranges(
                     filename, bot_data["frames"], self._table,
+                    transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                     allowed_groups=self._user_groups,
                 )
             except Exception as exc:
@@ -664,7 +675,10 @@ class DICOMwebDatabricksWrapper:
                     lb_idx = {f["frame_number"]: f for f in lb_frames}
 
                     if all((fn - 1) in lb_idx for fn in frame_numbers):
-                        tsuid = (cached_bot or {}).get("transfer_syntax_uid")
+                        tsuid = (
+                            (cached_bot or {}).get("transfer_syntax_uid")
+                            or (lb_frames[0].get("transfer_syntax_uid") if lb_frames else None)
+                        )
                         if not tsuid:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get(
@@ -788,7 +802,9 @@ class DICOMwebDatabricksWrapper:
                 "captured_frame_data": {},
             }
             bot_cache.put(filename, self._table, bot_data)
-            self._persist_bot_to_lakebase(filename, eot_frames)
+            self._persist_bot_to_lakebase(
+                filename, eot_frames, transfer_syntax_uid,
+            )
 
             frames_by_idx = {f["frame_number"]: f for f in eot_frames}
             return (
@@ -918,7 +934,7 @@ class DICOMwebDatabricksWrapper:
             "captured_frame_data": {},
         }
         bot_cache.put(filename, self._table, bot_data)
-        self._persist_bot_to_lakebase(filename, frames)
+        self._persist_bot_to_lakebase(filename, frames, transfer_syntax_uid)
 
         frames_by_idx = {f["frame_number"]: f for f in frames}
         return (
@@ -949,7 +965,9 @@ class DICOMwebDatabricksWrapper:
                 "captured_frame_data": {},
             }
             bot_cache.put(filename, self._table, bot_data)
-            self._persist_bot_to_lakebase(filename, frames)
+            self._persist_bot_to_lakebase(
+                filename, frames, transfer_syntax_uid,
+            )
             logger.debug(
                 f"Promoted progressive BOT to cache: "
                 f"{len(frames)} frames for {filename}"
@@ -957,13 +975,19 @@ class DICOMwebDatabricksWrapper:
         except Exception as exc:
             logger.warning(f"Failed to cache progressive BOT: {exc}")
 
-    def _persist_bot_to_lakebase(self, filename: str, frames: list[dict]) -> None:
+    def _persist_bot_to_lakebase(
+        self,
+        filename: str,
+        frames: list[dict],
+        transfer_syntax_uid: str | None = None,
+    ) -> None:
         """Persist frame ranges to Lakebase (tier 2)."""
         if self._lb:
             try:
                 t0 = time.time()
                 self._lb.insert_frame_ranges(
                     filename, frames, self._table,
+                    transfer_syntax_uid=transfer_syntax_uid,
                     allowed_groups=self._user_groups,
                 )
                 logger.debug(f"Lakebase persist took {time.time() - t0:.4f}s")
@@ -1113,12 +1137,145 @@ class DICOMwebDatabricksWrapper:
             paths = [info["path"] for info in cache_entries.values()]
             n_pf = file_prefetcher.schedule(self._token, paths)
             logger.debug(
-                f"Series pre-warm complete: {n_pf} prefetch tasks scheduled "
+                f"Series pre-warm: {n_pf} prefetch tasks scheduled "
                 f"({len(cache_entries)} instances total)"
             )
 
+            # ── Preload BOTs into in-memory cache ─────────────────────
+            self._preload_series_bots(cache_entries)
+
         except Exception as exc:
             logger.warning(f"Series pre-warm failed (non-fatal): {exc}")
+
+    # ------------------------------------------------------------------
+    # Series-level BOT preloading
+    # ------------------------------------------------------------------
+
+    def _preload_series_bots(
+        self,
+        cache_entries: dict[str, dict],
+    ) -> None:
+        """
+        Preload the in-memory BOT cache for all instances in a series.
+
+        Called from ``_prime_series_task`` and ``search_for_instances`` as a
+        background task.  For each instance:
+
+        1. Skip if already in tier-1 (in-memory BOT cache).
+        2. Batch-load from Lakebase (tier 2) with a single query.
+        3. Compute BOTs concurrently (tier 3) for still-missing files.
+
+        After this method completes, every WADO-RS frame request for the
+        series hits the fast path (µs cache lookup + byte-range read).
+        """
+        import concurrent.futures
+
+        token = self._token
+        uc_table = self._table
+
+        needs_bot: dict[str, str] = {}
+        for info in cache_entries.values():
+            local_path = info["path"]
+            db_file = DatabricksFile.from_full_path(local_path)
+            filename = db_file.full_path
+            if filename not in needs_bot and bot_cache.get(filename, uc_table) is None:
+                needs_bot[filename] = local_path
+
+        if not needs_bot:
+            logger.debug("BOT preload: all instances already cached")
+            return
+
+        logger.info(f"BOT preload: {len(needs_bot)} instances need BOT loading")
+
+        # ── Tier 2: batch load from Lakebase ──────────────────────────
+        loaded_from_lb: set[str] = set()
+        if self._lb:
+            try:
+                t0 = time.time()
+                lb_batch = self._lb.retrieve_frame_ranges_batch(
+                    list(needs_bot.keys()), uc_table,
+                    user_groups=self._user_groups,
+                )
+                elapsed = time.time() - t0
+                logger.debug(
+                    f"BOT preload: Lakebase batch returned data for "
+                    f"{len(lb_batch)}/{len(needs_bot)} files in {elapsed:.4f}s"
+                )
+
+                for filename, frames in lb_batch.items():
+                    tsuid = frames[0].get("transfer_syntax_uid") if frames else None
+                    if not tsuid:
+                        db_file = DatabricksFile.from_full_path(filename)
+                        try:
+                            meta = get_file_metadata(token, db_file)
+                            tsuid = meta.get("00020010", {}).get(
+                                "Value", ["1.2.840.10008.1.2.1"],
+                            )[0]
+                        except Exception:
+                            tsuid = "1.2.840.10008.1.2.1"
+                    bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
+                    loaded_from_lb.add(filename)
+            except Exception as exc:
+                logger.warning(f"BOT preload: Lakebase batch failed ({exc})")
+
+        # ── Tier 3: compute BOTs for remaining files ──────────────────
+        remaining = {
+            fn: path for fn, path in needs_bot.items()
+            if fn not in loaded_from_lb
+        }
+        if not remaining:
+            logger.info(
+                f"BOT preload complete: {len(loaded_from_lb)} loaded from Lakebase"
+            )
+            return
+
+        logger.debug(f"BOT preload: computing BOTs for {len(remaining)} files")
+        max_workers = min(8, len(remaining))
+
+        def _compute_single(filename: str, local_path: str):
+            try:
+                if bot_cache.get(filename, uc_table) is not None:
+                    return
+                db_file = DatabricksFile.from_full_path(local_path)
+                t0 = time.time()
+                bot_data = compute_full_bot(token, db_file)
+                elapsed = time.time() - t0
+
+                bot_cache.put(filename, uc_table, bot_data)
+
+                frames = bot_data.get("frames", [])
+                if self._lb and frames:
+                    try:
+                        self._lb.insert_frame_ranges(
+                            filename, frames, uc_table,
+                            transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
+                            allowed_groups=self._user_groups,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            f"BOT preload: Lakebase persist failed for {filename}: {exc}"
+                        )
+
+                logger.debug(
+                    f"BOT preload: {len(frames)} frames for "
+                    f"{filename} in {elapsed:.3f}s"
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"BOT preload: computation failed for {filename}: {exc}"
+                )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = [
+                pool.submit(_compute_single, fn, path)
+                for fn, path in remaining.items()
+            ]
+            concurrent.futures.wait(futures)
+
+        logger.info(
+            f"BOT preload complete: {len(loaded_from_lb)} from Lakebase, "
+            f"{len(remaining)} computed"
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -1276,7 +1433,10 @@ class DICOMwebDatabricksWrapper:
                     lb_idx = {f["frame_number"]: f for f in lb_frames}
 
                     if all((fn - 1) in lb_idx for fn in frame_numbers):
-                        tsuid = (cached_bot or {}).get("transfer_syntax_uid")
+                        tsuid = (
+                            (cached_bot or {}).get("transfer_syntax_uid")
+                            or (lb_frames[0].get("transfer_syntax_uid") if lb_frames else None)
+                        )
                         if not tsuid:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get("Value", ["1.2.840.10008.1.2.1"])[0]
@@ -1306,6 +1466,7 @@ class DICOMwebDatabricksWrapper:
                     t0 = time.time()
                     self._lb.insert_frame_ranges(
                         filename, bot_data["frames"], self._table,
+                        transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                         allowed_groups=self._user_groups,
                     )
                     logger.debug(f"Lakebase persist took {time.time() - t0:.4f}s")

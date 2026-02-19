@@ -615,10 +615,12 @@ class LakebaseUtils:
 
         Returns:
             List of frame metadata dicts sorted by frame number, or None if no data cached.
-            Each dict has: frame_number, start_pos, end_pos, pixel_data_pos
+            Each dict has: frame_number, start_pos, end_pos, pixel_data_pos,
+            and optionally transfer_syntax_uid (from the first row that has it).
         """
         query = sql.SQL(
-            "SELECT frame, start_pos, end_pos, pixel_data_pos FROM {} "
+            "SELECT frame, start_pos, end_pos, pixel_data_pos, transfer_syntax_uid "
+            "FROM {} "
             "WHERE filename = %s AND uc_table_name = %s ORDER BY frame"
         ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
@@ -626,21 +628,109 @@ class LakebaseUtils:
         )
         if not results:
             return None
-        return [
-            {
+
+        tsuid = None
+        for row in results:
+            if row[4]:
+                tsuid = row[4]
+                break
+
+        frames = []
+        for row in results:
+            entry = {
                 "frame_number": int(row[0]),
                 "start_pos": int(row[1]),
                 "end_pos": int(row[2]),
                 "pixel_data_pos": int(row[3]),
             }
-            for row in results
-        ]
+            if tsuid:
+                entry["transfer_syntax_uid"] = tsuid
+            frames.append(entry)
+        return frames
+
+    def retrieve_frame_ranges_batch(
+        self,
+        filenames: list[str],
+        uc_table_name: str,
+        table: str = DICOM_FRAMES_TABLE,
+        user_groups: list[str] | None = None,
+    ) -> dict[str, list[dict]]:
+        """
+        Retrieve cached frame offsets for multiple files in a single query.
+
+        Used during series-level BOT preloading to populate the in-memory
+        BOT cache for all instances at once, instead of N individual queries.
+
+        Each file's frame list includes a ``transfer_syntax_uid`` key (on
+        every frame dict) when the value is stored in the table.
+
+        Args:
+            filenames: Full paths of the DICOM files.
+            uc_table_name: Fully qualified Unity Catalog table name.
+            table: Lakebase table name (default: dicom_frames).
+            user_groups: User's Databricks groups for RLS enforcement.
+
+        Returns:
+            ``{filename: [frame_dicts]}`` for files that have cached data.
+            Files not in the cache are omitted from the result.
+        """
+        if not filenames:
+            return {}
+
+        placeholders = sql.SQL(", ").join([sql.Placeholder()] * len(filenames))
+        query = sql.SQL(
+            "SELECT filename, frame, start_pos, end_pos, pixel_data_pos, "
+            "transfer_syntax_uid "
+            "FROM {table} "
+            "WHERE filename IN ({placeholders}) AND uc_table_name = %s "
+            "ORDER BY filename, frame"
+        ).format(
+            table=sql.Identifier(self.schema, table),
+            placeholders=placeholders,
+        )
+        params = tuple(filenames) + (uc_table_name,)
+        results = self.execute_and_fetch_query(
+            query, params, user_groups=user_groups,
+        )
+
+        if not results:
+            return {}
+
+        # Group rows by filename and resolve per-file transfer_syntax_uid
+        raw_batch: dict[str, list[tuple]] = {}
+        for row in results:
+            fn = row[0]
+            if fn not in raw_batch:
+                raw_batch[fn] = []
+            raw_batch[fn].append(row)
+
+        batch: dict[str, list[dict]] = {}
+        for fn, rows in raw_batch.items():
+            tsuid = None
+            for r in rows:
+                if r[5]:
+                    tsuid = r[5]
+                    break
+            frames = []
+            for r in rows:
+                entry = {
+                    "frame_number": int(r[1]),
+                    "start_pos": int(r[2]),
+                    "end_pos": int(r[3]),
+                    "pixel_data_pos": int(r[4]),
+                }
+                if tsuid:
+                    entry["transfer_syntax_uid"] = tsuid
+                frames.append(entry)
+            batch[fn] = frames
+        return batch
 
     def insert_frame_ranges(
         self,
         filename: str,
         frame_ranges: list[dict],
         uc_table_name: str,
+        transfer_syntax_uid: str | None = None,
         table: str = DICOM_FRAMES_TABLE,
         allowed_groups: list[str] | None = None,
     ):
@@ -655,15 +745,18 @@ class LakebaseUtils:
                     str(frame_range.get("end_pos")),
                     str(frame_range.get("pixel_data_pos")),
                     uc_table_name,
+                    transfer_syntax_uid,
                     groups_literal,
                 ]
                 for frame_range in frame_ranges
             ]
             query = sql.SQL(
                 "INSERT INTO {table} (filename, frame, start_pos, end_pos, "
-                "pixel_data_pos, uc_table_name, allowed_groups) "
+                "pixel_data_pos, uc_table_name, transfer_syntax_uid, allowed_groups) "
                 "VALUES %s "
                 "ON CONFLICT (filename, frame, uc_table_name) DO UPDATE SET "
+                "transfer_syntax_uid = COALESCE(EXCLUDED.transfer_syntax_uid, "
+                "  {table}.transfer_syntax_uid), "
                 "allowed_groups = ARRAY("
                 "  SELECT DISTINCT unnest("
                 "    {table}.allowed_groups || EXCLUDED.allowed_groups"
@@ -679,14 +772,21 @@ class LakebaseUtils:
                     str(frame_range.get("end_pos")),
                     str(frame_range.get("pixel_data_pos")),
                     uc_table_name,
+                    transfer_syntax_uid,
                 ]
                 for frame_range in frame_ranges
             ]
             query = sql.SQL(
                 "INSERT INTO {} (filename, frame, start_pos, end_pos, "
-                "pixel_data_pos, uc_table_name) "
-                "VALUES %s ON CONFLICT DO NOTHING"
-            ).format(sql.Identifier(self.schema, table))
+                "pixel_data_pos, uc_table_name, transfer_syntax_uid) "
+                "VALUES %s "
+                "ON CONFLICT (filename, frame, uc_table_name) DO UPDATE SET "
+                "transfer_syntax_uid = COALESCE(EXCLUDED.transfer_syntax_uid, "
+                "  {}.transfer_syntax_uid)"
+            ).format(
+                sql.Identifier(self.schema, table),
+                sql.Identifier(self.schema, table),
+            )
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:

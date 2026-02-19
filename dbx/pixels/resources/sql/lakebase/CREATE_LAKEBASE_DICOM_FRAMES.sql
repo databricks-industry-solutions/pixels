@@ -21,8 +21,12 @@
 --   4. Applications can directly seek to specific frame positions
 --
 -- Performance Considerations:
---   - Composite primary key (filename, frame) enables efficient frame lookups
+--   - Composite primary key (filename, frame, uc_table_name) enables efficient frame lookups
 --   - Integer positions allow for fast byte-range operations
+--   - The (uc_table_name, filename) index accelerates batch lookups by series
+--     (WHERE uc_table_name = ... AND filename IN (...)) used during BOT preloading
+--   - transfer_syntax_uid is denormalized per-frame to avoid an extra HTTP
+--     round-trip per file when populating the in-memory BOT cache from Lakebase
 --   - Table supports high-volume medical imaging workloads
 --
 -- Schema Alignment:
@@ -39,11 +43,25 @@ CREATE TABLE IF NOT EXISTS {schema_name}.dicom_frames (
     end_pos BIGINT NOT NULL,
     pixel_data_pos INTEGER NOT NULL,
     uc_table_name TEXT NOT NULL,
+    transfer_syntax_uid TEXT,
     PRIMARY KEY (filename, frame, uc_table_name)
 );
 
-CREATE INDEX IF NOT EXISTS idx_dicom_frames_filename
-    ON {schema_name}.dicom_frames (filename);
+-- Add the column to existing tables that predate this definition.
+ALTER TABLE {schema_name}.dicom_frames
+    ADD COLUMN IF NOT EXISTS transfer_syntax_uid TEXT;
+
+-- Optimised for the batch BOT preload query pattern:
+--   WHERE uc_table_name = %s AND filename IN (%s, %s, ...)
+-- The uc_table_name prefix lets PostgreSQL satisfy both conditions
+-- from a single index prefix scan instead of N scans with post-filters.
+CREATE INDEX IF NOT EXISTS idx_dicom_frames_uc_filename
+    ON {schema_name}.dicom_frames (uc_table_name, filename);
+
+-- NOTE: The old idx_dicom_frames_filename (on filename alone) is a strict
+-- prefix of the PK and is therefore redundant.  Drop it to save disk space
+-- and insert overhead.
+DROP INDEX IF EXISTS {schema_name}.idx_dicom_frames_filename;
 
 
 -- =====================================================================================
@@ -70,3 +88,6 @@ COMMENT ON COLUMN {schema_name}.dicom_frames.pixel_data_pos IS
 
 COMMENT ON COLUMN {schema_name}.dicom_frames.uc_table_name IS
 'Unity Catalog table name: Fully qualified catalog.schema.table name of the source Unity Catalog table this frame data originates from. Enables multi-table support within the same Lakebase cache.';
+
+COMMENT ON COLUMN {schema_name}.dicom_frames.transfer_syntax_uid IS
+'DICOM Transfer Syntax UID (0002,0010) for the file. Denormalized per frame (same value for all frames in a file) so the in-memory BOT cache can be populated from Lakebase without an extra HTTP round-trip to read the DICOM file meta header.';

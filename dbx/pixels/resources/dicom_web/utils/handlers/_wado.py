@@ -565,6 +565,7 @@ def _compute_and_cache_bot(
             try:
                 lb_utils.insert_frame_ranges(
                     filename, frames, uc_table,
+                    transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                     allowed_groups=user_groups,
                 )
             except Exception as exc:
