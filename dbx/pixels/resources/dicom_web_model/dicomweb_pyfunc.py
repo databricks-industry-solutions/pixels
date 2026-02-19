@@ -41,6 +41,44 @@ _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
 _COMPRESS_THRESHOLD = 512
 
 
+def _resolve_node_id() -> str:
+    """Derive a unique node identifier for this serving replica.
+
+    On Databricks Model Serving every replica shares the same generic
+    hostname (``mlflow-server.host.local``), so ``socket.gethostname()``
+    alone cannot distinguish replicas.  This function tries several
+    strategies in order:
+
+    1. Explicit ``DICOMWEB_NODE_ID`` environment variable (operator override).
+    2. Container ID from ``/proc/self/cgroup`` (Docker / K8s).
+    3. Container ID from ``/proc/1/cpuset`` (older cgroup v1 setups).
+    4. ``socket.gethostname()`` if it looks unique (non-generic).
+    5. Short random UUID as a last resort.
+    """
+    import uuid
+
+    explicit = os.getenv("DICOMWEB_NODE_ID")
+    if explicit:
+        return explicit
+
+    for proc_path in ("/proc/self/cgroup", "/proc/1/cpuset"):
+        try:
+            with open(proc_path) as fh:
+                for line in fh:
+                    parts = line.strip().rsplit("/", 1)
+                    if len(parts) == 2 and len(parts[1]) >= 12:
+                        return parts[1][:12]
+        except (OSError, IndexError):
+            continue
+
+    hostname = socket.gethostname()
+    _generic = {"mlflow-server.host.local", "mlflow-server", "localhost"}
+    if hostname and hostname not in _generic:
+        return hostname
+
+    return uuid.uuid4().hex[:8]
+
+
 class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     """MLflow PyFunc wrapper around the Pixels DICOMweb FastAPI service."""
 
@@ -68,7 +106,7 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
         from fastapi.middleware.cors import CORSMiddleware
 
         # ── Node identity (unique per serving replica) ────────────────
-        self._node_id = socket.gethostname()
+        self._node_id = _resolve_node_id()
         self._metrics_source = f"serving:{self._node_id}"
         logger.info("Serving node ID: %s", self._node_id)
 

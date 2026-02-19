@@ -330,7 +330,8 @@
 
         function extractNodeId(source) {
             var idx = source.indexOf(':');
-            return idx !== -1 ? source.substring(idx + 1) : 'default';
+            if (idx === -1 || idx === source.length - 1) return null;
+            return source.substring(idx + 1);
         }
 
         /* ── Node selector ──────────────────────────────────────── */
@@ -568,7 +569,7 @@
             var latestPerNode = {};
             for (var i = 0; i < sRows.length; i++) {
                 var nodeId = extractNodeId(sRows[i].source);
-                if (!latestPerNode[nodeId]) latestPerNode[nodeId] = sRows[i];
+                if (nodeId && !latestPerNode[nodeId]) latestPerNode[nodeId] = sRows[i];
             }
 
             /* ── Push serving data per node ──────────────────────── */
