@@ -54,9 +54,6 @@ _COMPRESS_THRESHOLD = 512
 
 SERVING_ENDPOINT = os.getenv("DICOMWEB_SERVING_ENDPOINT", "dicomweb-serving")
 _TIMEOUT = int(os.getenv("DICOMWEB_GATEWAY_TIMEOUT", "300"))
-STREAMING_ENABLED = os.getenv("DICOMWEB_USE_STREAMING", "true").lower() in (
-    "1", "true", "yes",
-)
 
 _FORWARD_HEADERS = {
     "accept",
@@ -778,12 +775,12 @@ app = FastAPI(
 
 @app.get("/api/dicomweb/studies", tags=["QIDO-RS"])
 async def search_studies(request: Request):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get("/api/dicomweb/all_series", tags=["QIDO-RS"])
 async def search_all_series(request: Request):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get(
@@ -791,7 +788,7 @@ async def search_all_series(request: Request):
     tags=["QIDO-RS"],
 )
 async def search_series(request: Request, study_uid: str):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get(
@@ -801,7 +798,7 @@ async def search_series(request: Request, study_uid: str):
 async def search_instances(
     request: Request, study_uid: str, series_uid: str,
 ):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 # ── WADO-RS ──────────────────────────────────────────────────────────────
@@ -813,7 +810,7 @@ async def search_instances(
 async def retrieve_series_metadata(
     request: Request, study_uid: str, series_uid: str,
 ):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get(
@@ -828,9 +825,7 @@ async def retrieve_instance_frames(
     sop_uid: str,
     frame_list: str,
 ):
-    if STREAMING_ENABLED:
-        return await _proxy_stream(request)
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get(
@@ -841,24 +836,20 @@ async def retrieve_instance_frames(
 async def retrieve_instance(
     request: Request, study_uid: str, series_uid: str, sop_uid: str,
 ):
-    if STREAMING_ENABLED:
-        return await _proxy_stream(request)
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 # ── WADO-URI (legacy) ────────────────────────────────────────────────────
 
 @app.get("/api/dicomweb/wado", tags=["WADO-URI"])
 async def wado_uri(request: Request):
-    if STREAMING_ENABLED:
-        return await _proxy_stream(request)
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get("/api/dicomweb", tags=["WADO-URI"])
 async def wado_uri_base(request: Request):
     if request.query_params.get("requestType", "").upper() == "WADO":
-        return await _proxy(request)
+        return await _proxy_stream(request)
     return {
         "service": "DICOMweb Gateway",
         "endpoint": SERVING_ENDPOINT,
@@ -870,24 +861,24 @@ async def wado_uri_base(request: Request):
 
 @app.post("/api/dicomweb/studies/{study_uid}", tags=["STOW-RS"])
 async def store_instances_study(request: Request, study_uid: str):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.post("/api/dicomweb/studies", tags=["STOW-RS"])
 async def store_instances(request: Request):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 # ── Auxiliary ────────────────────────────────────────────────────────────
 
 @app.post("/api/dicomweb/resolve_paths", tags=["Path Resolution"])
 async def resolve_paths(request: Request):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.post("/api/dicomweb/prime", tags=["Cache Priming"])
 async def prime_series(request: Request):
-    return await _proxy(request)
+    return await _proxy_stream(request)
 
 
 @app.get("/api/dicomweb/", tags=["DICOMweb"])
