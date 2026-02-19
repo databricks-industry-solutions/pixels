@@ -1,8 +1,14 @@
 fastapi
 uvicorn
 databricks-sdk==0.88.0
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@features/dicom_web_integration
+databricks-sql-connector>=3.0.0
 requests
-zstd
 psycopg2-binary
 psutil
 httpx[http2]
+python-multipart
+pydicom>=2.4.0
+pylibjpeg
+pylibjpeg-libjpeg
+pylibjpeg-openjpeg

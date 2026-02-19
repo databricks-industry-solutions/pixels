@@ -1,9 +1,9 @@
 env:
-  - name: "DICOMWEB_SERVING_ENDPOINT"
-    valueFrom: "serving_endpoint"
-  - name: "DICOMWEB_GATEWAY_TIMEOUT"
-    value: "300"
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "warehouse_id"
   - name: "DATABRICKS_PIXELS_TABLE"
     valueFrom: "pixels_table"
   - name: "LAKEBASE_INSTANCE_NAME"
     valueFrom: "lakebase_instance"
+  - name: "DATABRICKS_STOW_VOLUME_PATH"
+    valueFrom: "stow_volume_path"
