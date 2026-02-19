@@ -363,9 +363,10 @@ async def _metrics_reporter():
             payload: dict = {"serving": [], "gateway": []}
             if store:
                 try:
-                    rows = store.get_latest_metrics(source=None, limit=120)
+                    rows = store.get_latest_metrics(source=None, limit=300)
                     payload["serving"] = [
-                        r for r in rows if r["source"] == "serving"
+                        r for r in rows
+                        if r["source"].startswith("serving")
                     ]
                     payload["gateway"] = [
                         r for r in rows if r["source"] == "gateway"
@@ -557,8 +558,8 @@ async def metrics():
             status_code=503,
             content={"error": "MetricsStore not available"},
         )
-    rows = store.get_latest_metrics(source=None, limit=120)
-    serving = [r for r in rows if r["source"] == "serving"]
+    rows = store.get_latest_metrics(source=None, limit=300)
+    serving = [r for r in rows if r["source"].startswith("serving")]
     gateway = [r for r in rows if r["source"] == "gateway"]
     return JSONResponse(content={
         "serving": serving,

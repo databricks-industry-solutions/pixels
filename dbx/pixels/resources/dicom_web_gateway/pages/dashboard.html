@@ -47,13 +47,23 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .status {
+        /* ── Status bar ────────────────────────────────────────── */
+
+        .status-bar {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 1.5rem;
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
             color: var(--text-dim);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .status-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .dot {
@@ -73,6 +83,39 @@
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.4); opacity: 0.5; }
+        }
+
+        .node-selector label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-right: 0.4rem;
+        }
+
+        .node-selector select {
+            background: rgba(30, 41, 59, 0.9);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .node-selector select:focus {
+            border-color: var(--primary);
+        }
+
+        .node-badge {
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--primary);
+            border-radius: 0.4rem;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         /* ── KPI tiles ─────────────────────────────────────────── */
@@ -176,10 +219,19 @@
 
     <h1>DICOMweb Endpoint Dashboard</h1>
 
-    <div class="status">
-        <div class="dot" id="status-dot"></div>
-        <span id="status-text">Connecting&hellip;</span>
-        <span style="margin-left: 1rem;" id="timestamp">&mdash;</span>
+    <div class="status-bar">
+        <div class="status-group">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-text">Connecting&hellip;</span>
+        </div>
+        <span id="timestamp">&mdash;</span>
+        <span class="node-badge" id="node-count" style="display:none;"></span>
+        <div class="node-selector" id="node-selector-wrap" style="display:none;">
+            <label for="node-select">Node</label>
+            <select id="node-select">
+                <option value="__all__">All Nodes (avg)</option>
+            </select>
+        </div>
     </div>
 
     <div class="kpi-row">
@@ -246,20 +298,66 @@
         var MAX_RECONNECT_DELAY = 30000;
         var restFallback = null;
 
-        /* ── Data buffers (shared references used by Chart.js) ── */
+        /* ── Per-node data storage ──────────────────────────────── */
 
         var labels = [];
-        var buf = {
-            cpu: [], memPct: [],
-            botHit: [], pathHit: [],
-            srvReq: [], srvErr: [],
-            gwReq: [], gwErr: [],
-            srvLat: [], gwLat: []
-        };
+        var nodeData = {};       // nodeId -> { cpu:[], memPct:[], botHit:[], pathHit:[], req:[], err:[], lat:[] }
+        var knownNodes = [];     // ordered list of discovered node IDs
+        var activeNode = null;   // null = aggregate, string = specific node
 
-        function pushBuf(key, val) {
-            buf[key].push(val);
-            if (buf[key].length > MAX_POINTS) buf[key].shift();
+        var gwBuf = { req: [], err: [], lat: [] };
+
+        function emptyNodeBuf() {
+            return { cpu: [], memPct: [], botHit: [], pathHit: [], req: [], err: [], lat: [] };
+        }
+
+        function ensureNode(nodeId) {
+            if (nodeData[nodeId]) return;
+            nodeData[nodeId] = emptyNodeBuf();
+            var padLen = labels.length;
+            var keys = Object.keys(nodeData[nodeId]);
+            for (var k = 0; k < keys.length; k++) {
+                for (var i = 0; i < padLen; i++) nodeData[nodeId][keys[k]].push(0);
+            }
+            knownNodes.push(nodeId);
+            rebuildNodeSelector();
+        }
+
+        function pushBuf(arr, val) {
+            arr.push(val);
+            if (arr.length > MAX_POINTS) arr.shift();
+        }
+
+        function extractNodeId(source) {
+            var idx = source.indexOf(':');
+            return idx !== -1 ? source.substring(idx + 1) : 'default';
+        }
+
+        /* ── Node selector ──────────────────────────────────────── */
+
+        var selectEl = document.getElementById('node-select');
+        var selectorWrap = document.getElementById('node-selector-wrap');
+        var badgeEl = document.getElementById('node-count');
+
+        selectEl.addEventListener('change', function () {
+            activeNode = this.value === '__all__' ? null : this.value;
+            syncCharts();
+        });
+
+        function rebuildNodeSelector() {
+            var prev = selectEl.value;
+            while (selectEl.options.length > 1) selectEl.remove(1);
+            for (var i = 0; i < knownNodes.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = knownNodes[i];
+                opt.text = knownNodes[i];
+                selectEl.add(opt);
+            }
+            selectEl.value = prev;
+            if (!selectEl.value) selectEl.value = '__all__';
+            selectorWrap.style.display = knownNodes.length > 0 ? '' : 'none';
+            badgeEl.style.display = knownNodes.length > 1 ? '' : 'none';
+            badgeEl.innerText = knownNodes.length + ' nodes';
         }
 
         /* ── DOM helpers ────────────────────────────────────────── */
@@ -284,7 +382,35 @@
             }
         }
 
-        /* ── Chart.js defaults & factory ────────────────────────── */
+        /* ── Aggregate helpers ──────────────────────────────────── */
+
+        function aggregate(key, mode) {
+            if (knownNodes.length === 0) return [];
+            if (knownNodes.length === 1) return nodeData[knownNodes[0]][key];
+            var len = labels.length;
+            var out = [];
+            for (var i = 0; i < len; i++) {
+                var sum = 0, cnt = 0;
+                for (var n = 0; n < knownNodes.length; n++) {
+                    var arr = nodeData[knownNodes[n]][key];
+                    if (arr && i < arr.length) { sum += arr[i]; cnt++; }
+                }
+                out.push(mode === 'sum' ? sum : (cnt ? +(sum / cnt).toFixed(2) : 0));
+            }
+            return out;
+        }
+
+        function latestAggregate(key, mode) {
+            var total = 0, cnt = 0;
+            for (var n = 0; n < knownNodes.length; n++) {
+                var arr = nodeData[knownNodes[n]][key];
+                if (arr.length) { total += arr[arr.length - 1]; cnt++; }
+            }
+            if (mode === 'sum') return total;
+            return cnt ? +(total / cnt).toFixed(2) : 0;
+        }
+
+        /* ── Chart.js setup ─────────────────────────────────────── */
 
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
@@ -338,15 +464,16 @@
             return out;
         }
 
-        /* ── Create charts ──────────────────────────────────────── */
+        /* Placeholder arrays — reassigned every sync cycle */
+        var _empty = [];
 
         var chartSystem = new Chart(document.getElementById('chart-system'), {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    ds('CPU %', buf.cpu, '#38bdf8'),
-                    ds('Memory %', buf.memPct, '#818cf8')
+                    ds('CPU %', _empty, '#38bdf8'),
+                    ds('Memory %', _empty, '#818cf8')
                 ]
             },
             options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
@@ -357,8 +484,8 @@
             data: {
                 labels: labels,
                 datasets: [
-                    ds('BOT Hit Rate', buf.botHit, '#4ade80'),
-                    ds('Path Hit Rate', buf.pathHit, '#facc15')
+                    ds('BOT Hit Rate', _empty, '#4ade80'),
+                    ds('Path Hit Rate', _empty, '#facc15')
                 ]
             },
             options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
@@ -369,10 +496,10 @@
             data: {
                 labels: labels,
                 datasets: [
-                    ds('Serving', buf.srvReq, '#38bdf8'),
-                    ds('Gateway', buf.gwReq, '#818cf8'),
-                    ds('Srv Errors', buf.srvErr, '#fb7185', { fill: false, borderDash: [4, 2] }),
-                    ds('Gw Errors', buf.gwErr, '#f472b6', { fill: false, borderDash: [2, 2] })
+                    ds('Serving', _empty, '#38bdf8'),
+                    ds('Gateway', gwBuf.req, '#818cf8'),
+                    ds('Srv Errors', _empty, '#fb7185', { fill: false, borderDash: [4, 2] }),
+                    ds('Gw Errors', gwBuf.err, '#f472b6', { fill: false, borderDash: [2, 2] })
                 ]
             },
             options: makeOpts()
@@ -383,8 +510,8 @@
             data: {
                 labels: labels,
                 datasets: [
-                    ds('Serving', buf.srvLat, '#38bdf8'),
-                    ds('Gateway', buf.gwLat, '#818cf8')
+                    ds('Serving', _empty, '#38bdf8'),
+                    ds('Gateway', gwBuf.lat, '#818cf8')
                 ]
             },
             options: makeOpts({ ticks: { callback: function (v) { return v + ' ms'; } } })
@@ -392,78 +519,162 @@
 
         var allCharts = [chartSystem, chartCaches, chartThroughput, chartLatency];
 
-        /* ── Dashboard update (shared by WS and REST paths) ─────── */
+        /* ── Sync chart data to active node selection ───────────── */
+
+        function syncCharts() {
+            var isAll = !activeNode || !nodeData[activeNode];
+            var buf;
+
+            if (isAll) {
+                chartSystem.data.datasets[0].data = aggregate('cpu', 'avg');
+                chartSystem.data.datasets[1].data = aggregate('memPct', 'avg');
+                chartCaches.data.datasets[0].data = aggregate('botHit', 'avg');
+                chartCaches.data.datasets[1].data = aggregate('pathHit', 'avg');
+                chartThroughput.data.datasets[0].data = aggregate('req', 'sum');
+                chartThroughput.data.datasets[2].data = aggregate('err', 'sum');
+                chartLatency.data.datasets[0].data = aggregate('lat', 'avg');
+            } else {
+                buf = nodeData[activeNode];
+                chartSystem.data.datasets[0].data = buf.cpu;
+                chartSystem.data.datasets[1].data = buf.memPct;
+                chartCaches.data.datasets[0].data = buf.botHit;
+                chartCaches.data.datasets[1].data = buf.pathHit;
+                chartThroughput.data.datasets[0].data = buf.req;
+                chartThroughput.data.datasets[2].data = buf.err;
+                chartLatency.data.datasets[0].data = buf.lat;
+            }
+
+            chartThroughput.data.datasets[1].data = gwBuf.req;
+            chartThroughput.data.datasets[3].data = gwBuf.err;
+            chartLatency.data.datasets[1].data = gwBuf.lat;
+
+            allCharts.forEach(function (ch) { ch.update('none'); });
+        }
+
+        /* ── Dashboard update (shared by WS and REST) ───────────── */
 
         function updateDashboard(data) {
             var sRows = data.serving || [];
             var gRows = data.gateway || [];
-            var sLatest = sRows.length ? sRows[0] : null;
-            var gLatest = gRows.length ? gRows[0] : null;
 
+            /* ── Timestamp label ─────────────────────────────────── */
             var now = new Date().toLocaleTimeString([], {
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
             labels.push(now);
             if (labels.length > MAX_POINTS) labels.shift();
 
-            if (sLatest) {
-                var m = sLatest.metrics;
-                document.getElementById('timestamp').innerText =
-                    new Date(sLatest.recorded_at).toLocaleTimeString();
+            /* ── Group serving rows by node (latest per node) ────── */
+            var latestPerNode = {};
+            for (var i = 0; i < sRows.length; i++) {
+                var nodeId = extractNodeId(sRows[i].source);
+                if (!latestPerNode[nodeId]) latestPerNode[nodeId] = sRows[i];
+            }
 
+            /* ── Push serving data per node ──────────────────────── */
+            var reportedNodes = Object.keys(latestPerNode);
+            for (var r = 0; r < reportedNodes.length; r++) {
+                var nid = reportedNodes[r];
+                ensureNode(nid);
+                var m = latestPerNode[nid].metrics;
                 var sys = m.system || {};
-                var cpu = parseFloat(sys.cpu_percent_process) || 0;
-                var memPct = parseFloat(sys.system_memory_used_percent) || 0;
-                pushBuf('cpu', cpu);
-                pushBuf('memPct', memPct);
-                setKpi('kpi-cpu', cpu.toFixed(1) + '%',
-                    cpu < 50 ? 'good' : cpu < 80 ? 'warn' : 'bad');
-                setKpi('kpi-ram', (sys.memory_rss_mb || 0) + ' MB',
-                    memPct < 70 ? 'good' : memPct < 90 ? 'warn' : 'bad');
-
                 var c = m.caches || {};
                 var bot = c.bot_cache || {};
                 var path = c.instance_path_cache || {};
-                var botHit = parseFloat(String(bot.hit_rate || '0').replace('%', ''));
-                var pathHit = parseFloat(String(path.hit_rate || '0').replace('%', ''));
-                pushBuf('botHit', botHit);
-                pushBuf('pathHit', pathHit);
-                setKpi('kpi-bot', botHit.toFixed(1) + '%',
-                    botHit > 80 ? 'good' : botHit > 50 ? 'warn' : 'bad');
-                setKpi('kpi-path', pathHit.toFixed(1) + '%',
-                    pathHit > 80 ? 'good' : pathHit > 50 ? 'warn' : 'bad');
+                var req = m.requests || {};
 
-                var r = m.requests || {};
-                pushBuf('srvReq', r.request_count || 0);
-                pushBuf('srvErr', r.error_count || 0);
-                var srvLatMs = Math.round((r.avg_latency_s || 0) * 1000);
-                pushBuf('srvLat', srvLatMs);
-                setKpi('kpi-slat', srvLatMs + ' ms',
-                    srvLatMs < 100 ? 'good' : srvLatMs < 500 ? 'warn' : 'bad');
-            } else {
-                pushBuf('cpu', 0); pushBuf('memPct', 0);
-                pushBuf('botHit', 0); pushBuf('pathHit', 0);
-                pushBuf('srvReq', 0); pushBuf('srvErr', 0);
-                pushBuf('srvLat', 0);
+                pushBuf(nodeData[nid].cpu, parseFloat(sys.cpu_percent_process) || 0);
+                pushBuf(nodeData[nid].memPct, parseFloat(sys.system_memory_used_percent) || 0);
+                pushBuf(nodeData[nid].botHit, parseFloat(String(bot.hit_rate || '0').replace('%', '')));
+                pushBuf(nodeData[nid].pathHit, parseFloat(String(path.hit_rate || '0').replace('%', '')));
+                pushBuf(nodeData[nid].req, req.request_count || 0);
+                pushBuf(nodeData[nid].err, req.error_count || 0);
+                pushBuf(nodeData[nid].lat, Math.round((req.avg_latency_s || 0) * 1000));
+
+                if (r === 0 && latestPerNode[nid].recorded_at) {
+                    document.getElementById('timestamp').innerText =
+                        new Date(latestPerNode[nid].recorded_at).toLocaleTimeString();
+                }
             }
 
+            /* Push zeros for nodes that didn't report this tick */
+            for (var k = 0; k < knownNodes.length; k++) {
+                if (!latestPerNode[knownNodes[k]]) {
+                    var nb = nodeData[knownNodes[k]];
+                    pushBuf(nb.cpu, 0); pushBuf(nb.memPct, 0);
+                    pushBuf(nb.botHit, 0); pushBuf(nb.pathHit, 0);
+                    pushBuf(nb.req, 0); pushBuf(nb.err, 0); pushBuf(nb.lat, 0);
+                }
+            }
+
+            /* ── Gateway data ────────────────────────────────────── */
+            var gLatest = gRows.length ? gRows[0] : null;
             if (gLatest) {
                 var gm = gLatest.metrics;
-                pushBuf('gwReq', gm.request_count || 0);
-                pushBuf('gwErr', gm.error_count || 0);
-                var gwLatMs = Math.round((gm.avg_latency_s || 0) * 1000);
-                pushBuf('gwLat', gwLatMs);
-                setKpi('kpi-glat', gwLatMs + ' ms',
-                    gwLatMs < 100 ? 'good' : gwLatMs < 500 ? 'warn' : 'bad');
+                pushBuf(gwBuf.req, gm.request_count || 0);
+                pushBuf(gwBuf.err, gm.error_count || 0);
+                pushBuf(gwBuf.lat, Math.round((gm.avg_latency_s || 0) * 1000));
             } else {
-                pushBuf('gwReq', 0); pushBuf('gwErr', 0); pushBuf('gwLat', 0);
+                pushBuf(gwBuf.req, 0); pushBuf(gwBuf.err, 0); pushBuf(gwBuf.lat, 0);
             }
 
-            allCharts.forEach(function (ch) { ch.update('none'); });
+            /* ── KPI tiles (based on active selection) ───────────── */
+            updateKpis(latestPerNode, gLatest);
+
+            /* ── Sync charts ─────────────────────────────────────── */
+            syncCharts();
             setStatus('connected');
         }
 
-        /* ── REST fallback (active while WebSocket reconnects) ── */
+        function updateKpis(latestPerNode, gLatest) {
+            var isAll = !activeNode || !nodeData[activeNode];
+            var cpu, memPct, ramMb, botHit, pathHit, srvLat;
+
+            if (isAll && knownNodes.length > 0) {
+                cpu = latestAggregate('cpu', 'avg');
+                memPct = latestAggregate('memPct', 'avg');
+                botHit = latestAggregate('botHit', 'avg');
+                pathHit = latestAggregate('pathHit', 'avg');
+                srvLat = Math.round(latestAggregate('lat', 'avg'));
+
+                var totalRam = 0, cnt = 0;
+                for (var n = 0; n < knownNodes.length; n++) {
+                    var row = latestPerNode[knownNodes[n]];
+                    if (row) { totalRam += (row.metrics.system || {}).memory_rss_mb || 0; cnt++; }
+                }
+                ramMb = cnt ? Math.round(totalRam / cnt) : 0;
+            } else if (activeNode && nodeData[activeNode]) {
+                var buf = nodeData[activeNode];
+                cpu = buf.cpu.length ? buf.cpu[buf.cpu.length - 1] : 0;
+                memPct = buf.memPct.length ? buf.memPct[buf.memPct.length - 1] : 0;
+                botHit = buf.botHit.length ? buf.botHit[buf.botHit.length - 1] : 0;
+                pathHit = buf.pathHit.length ? buf.pathHit[buf.pathHit.length - 1] : 0;
+                srvLat = buf.lat.length ? buf.lat[buf.lat.length - 1] : 0;
+                var row = latestPerNode[activeNode];
+                ramMb = row ? ((row.metrics.system || {}).memory_rss_mb || 0) : 0;
+            } else {
+                return;
+            }
+
+            setKpi('kpi-cpu', cpu.toFixed(1) + '%',
+                cpu < 50 ? 'good' : cpu < 80 ? 'warn' : 'bad');
+            setKpi('kpi-ram', ramMb + ' MB',
+                memPct < 70 ? 'good' : memPct < 90 ? 'warn' : 'bad');
+            setKpi('kpi-bot', botHit.toFixed(1) + '%',
+                botHit > 80 ? 'good' : botHit > 50 ? 'warn' : 'bad');
+            setKpi('kpi-path', pathHit.toFixed(1) + '%',
+                pathHit > 80 ? 'good' : pathHit > 50 ? 'warn' : 'bad');
+            setKpi('kpi-slat', srvLat + ' ms',
+                srvLat < 100 ? 'good' : srvLat < 500 ? 'warn' : 'bad');
+
+            if (gLatest) {
+                var gwLat = Math.round((gLatest.metrics.avg_latency_s || 0) * 1000);
+                setKpi('kpi-glat', gwLat + ' ms',
+                    gwLat < 100 ? 'good' : gwLat < 500 ? 'warn' : 'bad');
+            }
+        }
+
+        /* ── REST fallback ──────────────────────────────────────── */
 
         function fetchRest() {
             fetch(REST_ENDPOINT, { credentials: 'include' })

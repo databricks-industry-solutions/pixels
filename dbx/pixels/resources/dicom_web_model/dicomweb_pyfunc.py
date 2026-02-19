@@ -23,6 +23,7 @@ import base64
 import json
 import logging
 import os
+import socket
 import sys
 import threading
 import time
@@ -65,6 +66,11 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
         import httpx
         from fastapi import FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
+
+        # ── Node identity (unique per serving replica) ────────────────
+        self._node_id = socket.gethostname()
+        self._metrics_source = f"serving:{self._node_id}"
+        logger.info("Serving node ID: %s", self._node_id)
 
         # ── Request counters (thread-safe) ────────────────────────────
         self._stats_lock = threading.Lock()
@@ -333,7 +339,7 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                     system_metrics = collect_metrics()
                     request_stats = self._snapshot_and_reset_stats()
                     payload = {**system_metrics, "requests": request_stats}
-                    lb_utils.insert_metrics("serving", payload)
+                    lb_utils.insert_metrics(self._metrics_source, payload)
                 except Exception as exc:
                     logger.error("Metrics reporter error: %s", exc)
 
