@@ -503,25 +503,78 @@ async def _proxy(request: Request) -> Response:
 # Streaming proxy — uses predict_stream for chunked transfer
 # ---------------------------------------------------------------------------
 
+
+def _unwrap_sse_chunk(data: str) -> dict | None:
+    """Parse an SSE ``data:`` payload into one of our chunk dicts.
+
+    MLflow model serving wraps ``predict_stream`` yields in a
+    ``{"predictions": "<json_string>"}`` envelope.  This helper peels
+    that wrapper (if present) and returns the inner chunk dict, or
+    ``None`` if the payload doesn't match our protocol.
+    """
+    parsed = json.loads(data)
+
+    if isinstance(parsed, dict) and "predictions" in parsed:
+        inner = parsed["predictions"]
+        if isinstance(inner, str):
+            parsed = json.loads(inner)
+        elif isinstance(inner, dict):
+            parsed = inner
+
+    if isinstance(parsed, dict) and parsed.get("type") in ("header", "chunk", "end"):
+        return parsed
+
+    logger.debug("Unexpected SSE payload: %s", str(parsed)[:200])
+    return None
+
+
+def _unwrap_predict_result(raw: bytes) -> dict:
+    """Parse a regular (non-streaming) ``predict`` response body.
+
+    The serving endpoint returns ``{"predictions": "<json>"}`` (or a
+    list variant).  This function unwraps it into our response dict
+    (``status_code``, ``headers``, ``body``, ``encoding``, …).
+    """
+    result = json.loads(raw)
+
+    if isinstance(result, dict) and "predictions" in result:
+        pred = result["predictions"]
+        if isinstance(pred, list) and pred:
+            pred = pred[0]
+        if isinstance(pred, str):
+            try:
+                return json.loads(pred)
+            except json.JSONDecodeError:
+                pass
+        if isinstance(pred, dict):
+            return pred
+
+    return result if isinstance(result, dict) else {}
+
+
 async def _invoke_endpoint_stream(payload: dict):
     """
-    POST to the serving endpoint with streaming enabled.
+    POST to the serving endpoint requesting streaming.
 
-    Yields parsed JSON chunk dicts from the SSE response.  The serving
-    endpoint calls ``predict_stream`` when ``params.stream`` is true and
-    returns each yielded string as an SSE ``data:`` line.
+    Handles **three** response shapes transparently:
 
-    The invocations URL and ``authorization_details`` are resolved from
-    the endpoint's data-plane info (route-optimized).  The OAuth token
-    is minted with the ``authorization_details`` claim so it is accepted
-    by the data-plane.
+    1. **True SSE** (``text/event-stream``) with raw chunk dicts —
+       ``predict_stream`` yielded our protocol directly.
+    2. **True SSE with MLflow wrapping** — each ``data:`` line is
+       ``{"predictions": "<json_chunk>"}``; we unwrap it.
+    3. **Regular JSON** (``application/json``) — ``predict`` was called
+       instead of ``predict_stream`` (e.g. older MLflow or missing
+       params schema).  The single response is converted into the
+       header / chunk / end protocol on the fly.
+
+    In every case the caller receives the same sequence of chunk dicts.
     """
     url, auth_details = await run_in_threadpool(_resolve_endpoint_info)
     auth_headers = await run_in_threadpool(
         lambda: _get_streaming_auth_headers(auth_details),
     )
 
-    body = {
+    request_body = {
         "dataframe_records": [payload],
         "params": {"stream": True},
     }
@@ -529,7 +582,7 @@ async def _invoke_endpoint_stream(payload: dict):
     async with _http_client.stream(
         "POST",
         url,
-        json=body,
+        json=request_body,
         headers={**auth_headers, "Accept": "text/event-stream"},
         timeout=httpx.Timeout(_TIMEOUT, connect=30.0),
     ) as resp:
@@ -540,17 +593,47 @@ async def _invoke_endpoint_stream(payload: dict):
                 f"{error_body[:500].decode('utf-8', errors='replace')}"
             )
 
-        async for line in resp.aiter_lines():
-            line = line.strip()
-            if not line or not line.startswith("data:"):
-                continue
-            data = line[5:].strip()
-            if data == "[DONE]":
-                break
-            try:
-                yield json.loads(data)
-            except json.JSONDecodeError:
-                logger.warning("Malformed SSE chunk: %s", data[:200])
+        content_type = resp.headers.get("content-type", "")
+
+        if "text/event-stream" in content_type:
+            # ── Path A: true SSE (predict_stream) ──────────────────
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line or not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    chunk = _unwrap_sse_chunk(data)
+                    if chunk is not None:
+                        yield chunk
+                except Exception:
+                    logger.warning("Malformed SSE data: %s", data[:200])
+        else:
+            # ── Path B: regular predict response (fallback) ────────
+            raw = await resp.aread()
+            logger.info(
+                "Serving endpoint returned %s (not SSE); "
+                "falling back to predict-result parsing",
+                content_type,
+            )
+            pred = _unwrap_predict_result(raw)
+
+            yield {
+                "type": "header",
+                "status_code": pred.get("status_code", 200),
+                "headers": pred.get("headers", {}),
+                "content_type": pred.get("content_type", "application/octet-stream"),
+            }
+            body = pred.get("body", "")
+            if body:
+                yield {
+                    "type": "chunk",
+                    "body": body,
+                    "encoding": pred.get("encoding", ""),
+                }
+            yield {"type": "end"}
 
 
 async def _proxy_stream(request: Request) -> Response:
