@@ -26,16 +26,19 @@ import logging
 import os
 import threading
 import time
+import requests
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 import httpx
 import zstd
+from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from metrics_store import get_store
 
@@ -128,14 +131,17 @@ async def _broadcast_metrics(data: dict):
 
 _cfg: Config | None = None
 _header_factory = None
+_workspace_client = None
 
 
 def _get_auth() -> tuple[str, dict]:
     """Return ``(host, auth_headers)`` for serving endpoint calls."""
-    global _cfg, _header_factory
+    global _cfg, _header_factory, _workspace_client
+
     if _cfg is None:
         _cfg = Config()
         _header_factory = _cfg.authenticate()
+        _workspace_client = WorkspaceClient(config = _cfg)
 
     headers = _header_factory() if callable(_header_factory) else _header_factory
     if headers is None:
@@ -143,7 +149,8 @@ def _get_auth() -> tuple[str, dict]:
         _header_factory = None
         raise RuntimeError("Authentication failed — could not obtain token")
 
-    host = (_cfg.host or os.getenv("DATABRICKS_HOST", "")).rstrip("/")
+    host = os.getenv("DATABRICKS_HOST").rstrip("/")
+
     return host, headers
 
 
@@ -160,34 +167,26 @@ async def _invoke_endpoint(payload: dict) -> dict:
 
     Returns the parsed prediction result dict.
     """
-    host, auth_headers = _get_auth()
-    url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
+    _get_auth()
 
-    client = _http_client
-    if client is None:
-        raise RuntimeError("HTTP client not initialised — is the app running?")
+    results = await run_in_threadpool(
+            lambda: _workspace_client.serving_endpoints_data_plane.query(name=SERVING_ENDPOINT, dataframe_records=[payload])
+        )
+    resp = json.loads(results.predictions)
 
-    resp = await client.post(
-        url,
-        headers={**auth_headers, "Content-Type": "application/json"},
-        json={"dataframe_records": [payload]},
-        timeout=_TIMEOUT,
-    )
-
-    if resp.status_code >= 400:
+    if resp['status_code'] >= 400:
         logger.error(
-            "Serving endpoint HTTP %d: %s", resp.status_code, resp.text[:500],
+            "Serving endpoint HTTP %d: %s", resp['status_code'], resp[:500],
         )
         return {
-            "status_code": resp.status_code,
+            "status_code": resp['status_code'],
             "headers": {},
-            "body_text": resp.text,
+            "body_text": resp['body'],
             "body": "",
             "content_type": "text/plain",
         }
-
-    result = resp.json()
-    predictions = result.get("predictions")
+    
+    predictions = results.predictions
 
     if isinstance(predictions, list) and predictions:
         pred = predictions[0]
@@ -618,5 +617,4 @@ app.add_middleware(
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
