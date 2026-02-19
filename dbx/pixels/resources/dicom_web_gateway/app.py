@@ -41,9 +41,13 @@ from dbx.pixels.resources.dicom_web.utils.handlers import (
     dicomweb_wado_uri,
     dicomweb_stow_studies,
     dicomweb_resolve_paths,
-    dicomweb_resolve_frame_ranges,
     dicomweb_prime_series,
 )
+
+try:
+    from dbx.pixels.resources.dicom_web.utils.handlers import dicomweb_resolve_frame_ranges
+except ImportError:
+    dicomweb_resolve_frame_ranges = None
 
 from metrics_store import get_store
 
@@ -128,17 +132,11 @@ async def _metrics_reporter():
                 logger.error("Gateway metrics Lakebase write: %s", exc)
 
         if _ws_clients:
-            payload: dict = {"serving": [], "gateway": []}
+            payload: dict = {"gateway": []}
             if store:
                 try:
-                    rows = store.get_latest_metrics(source=None, limit=300)
-                    payload["serving"] = [
-                        r for r in rows
-                        if r["source"].startswith("serving")
-                    ]
-                    payload["gateway"] = [
-                        r for r in rows if r["source"] == "gateway"
-                    ]
+                    rows = store.get_latest_metrics(source="gateway", limit=300)
+                    payload["gateway"] = rows
                 except Exception as exc:
                     logger.error("Lakebase read for WS broadcast: %s", exc)
 
@@ -290,9 +288,10 @@ async def resolve_paths(request: Request):
     return await dicomweb_resolve_paths(request)
 
 
-@app.post("/api/dicomweb/resolve_frame_ranges", tags=["Frame Resolution"])
-async def resolve_frame_ranges(request: Request):
-    return await dicomweb_resolve_frame_ranges(request)
+if dicomweb_resolve_frame_ranges is not None:
+    @app.post("/api/dicomweb/resolve_frame_ranges", tags=["Frame Resolution"])
+    async def resolve_frame_ranges(request: Request):
+        return await dicomweb_resolve_frame_ranges(request)
 
 
 @app.post("/api/dicomweb/prime", tags=["Cache Priming"])
@@ -332,18 +331,15 @@ def dicomweb_root():
 
 @app.get("/api/metrics", tags=["Monitoring"])
 def metrics():
-    """Return the latest metrics from the gateway (via Lakebase)."""
+    """Return the latest gateway metrics (via Lakebase)."""
     store = get_store()
     if store is None:
         return JSONResponse(
             status_code=503,
             content={"error": "MetricsStore not available"},
         )
-    rows = store.get_latest_metrics(source=None, limit=300)
-    gateway = [r for r in rows if r["source"] == "gateway"]
-    return JSONResponse(content={
-        "gateway": gateway,
-    })
+    rows = store.get_latest_metrics(source="gateway", limit=300)
+    return JSONResponse(content={"gateway": rows})
 
 
 @app.websocket("/ws/metrics")
