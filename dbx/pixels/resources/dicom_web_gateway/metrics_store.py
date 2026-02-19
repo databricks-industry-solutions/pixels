@@ -58,7 +58,6 @@ class MetricsStore:
         self._host: str | None = None
         self._resolve_host()
         self._ensure_connection()
-        self._ensure_table()
 
     # ------------------------------------------------------------------
     # Connection management
@@ -104,28 +103,6 @@ class MetricsStore:
     def _get_conn(self) -> psycopg2.extensions.connection:
         self._ensure_connection()
         return self._conn  # type: ignore[return-value]
-
-    # ------------------------------------------------------------------
-    # Table bootstrap
-    # ------------------------------------------------------------------
-
-    def _ensure_table(self):
-        conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute(
-                f"CREATE TABLE IF NOT EXISTS {self._schema}.{_METRICS_TABLE} ("
-                "  source TEXT NOT NULL,"
-                "  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
-                "  metrics JSONB NOT NULL,"
-                "  PRIMARY KEY (source, recorded_at)"
-                ")"
-            )
-            cur.execute(
-                f"CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_source_time "
-                f"ON {self._schema}.{_METRICS_TABLE} (source, recorded_at DESC)"
-            )
-            conn.commit()
-        logger.info("Ensured %s.%s table exists", self._schema, _METRICS_TABLE)
 
     # ------------------------------------------------------------------
     # Public API
