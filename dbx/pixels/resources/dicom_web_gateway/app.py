@@ -37,7 +37,6 @@ from databricks.sdk.core import Config
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.concurrency import run_in_threadpool
 
 from metrics_store import get_store
@@ -70,10 +69,13 @@ _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
 _http_client: httpx.AsyncClient | None = None
 
 # ---------------------------------------------------------------------------
-# Gateway request counters (thread-safe)
+# Gateway request counters
 # ---------------------------------------------------------------------------
+# Under single-process uvicorn the GIL serialises basic int/float
+# increments — a threading.Lock adds unnecessary contention on the
+# event loop.  If you scale to multiple *processes*, each gets its own
+# counters anyway (shared state needs Redis / Lakebase).
 
-_stats_lock = threading.Lock()
 _gw_req_count = 0
 _gw_req_errors = 0
 _gw_req_latency_sum = 0.0
@@ -81,28 +83,26 @@ _gw_req_latency_sum = 0.0
 
 def _record_request(elapsed: float, is_error: bool):
     global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
-    with _stats_lock:
-        _gw_req_count += 1
-        _gw_req_latency_sum += elapsed
-        if is_error:
-            _gw_req_errors += 1
+    _gw_req_count += 1
+    _gw_req_latency_sum += elapsed
+    if is_error:
+        _gw_req_errors += 1
 
 
 def _snapshot_and_reset() -> dict:
     global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
-    with _stats_lock:
-        snap = {
-            "request_count": _gw_req_count,
-            "error_count": _gw_req_errors,
-            "latency_sum_s": round(_gw_req_latency_sum, 4),
-            "avg_latency_s": (
-                round(_gw_req_latency_sum / _gw_req_count, 4)
-                if _gw_req_count else 0
-            ),
-        }
-        _gw_req_count = 0
-        _gw_req_errors = 0
-        _gw_req_latency_sum = 0.0
+    snap = {
+        "request_count": _gw_req_count,
+        "error_count": _gw_req_errors,
+        "latency_sum_s": round(_gw_req_latency_sum, 4),
+        "avg_latency_s": (
+            round(_gw_req_latency_sum / _gw_req_count, 4)
+            if _gw_req_count else 0
+        ),
+    }
+    _gw_req_count = 0
+    _gw_req_errors = 0
+    _gw_req_latency_sum = 0.0
     return snap
 
 
@@ -421,7 +421,7 @@ async def _serialize_request(request: Request) -> dict:
     if request.method in ("POST", "PUT", "PATCH"):
         body_bytes = await request.body()
 
-    body_encoded, body_encoding = _encode(body_bytes)
+    body_encoded, body_encoding = await run_in_threadpool(_encode, body_bytes)
 
     return {
         "method": request.method,
@@ -701,8 +701,10 @@ async def _proxy_stream(request: Request) -> Response:
                 async for chunk in stream:
                     ct = chunk.get("type")
                     if ct == "chunk":
-                        yield _decode(
-                            chunk.get("body", ""), chunk.get("encoding", ""),
+                        yield await run_in_threadpool(
+                            _decode,
+                            chunk.get("body", ""),
+                            chunk.get("encoding", ""),
                         )
                     elif ct == "end":
                         break
@@ -992,11 +994,22 @@ async def health():
 
 # ── Middleware ───────────────────────────────────────────────────────────
 
-class _Options200(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        if request.method == "OPTIONS":
-            return Response(status_code=200)
-        return await call_next(request)
+class _Options200:
+    """Pure ASGI middleware — bypasses BaseHTTPMiddleware's TaskGroup overhead."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope["method"] == "OPTIONS":
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-length", b"0")],
+            })
+            await send({"type": "http.response.body", "body": b""})
+            return
+        await self.app(scope, receive, send)
 
 
 app.add_middleware(_Options200)
