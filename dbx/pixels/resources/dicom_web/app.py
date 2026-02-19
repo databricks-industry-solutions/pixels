@@ -23,6 +23,7 @@ from dbx.pixels.resources.common.middleware import (
     TokenMiddleware,
 )
 from dbx.pixels.resources.common.routes import register_all_common_routes
+import dbx.pixels.version as dbx_pixels_version
 
 logger = logging.getLogger("DICOMweb.Viewer")
 
@@ -56,6 +57,11 @@ async def _proxy_to_gateway(request: Request) -> Response:
         k: v for k, v in request.headers.items()
         if k.lower() not in _SKIP_PROXY_HEADERS
     }
+
+    user_token = request.headers.get("x-forwarded-access-token")
+    if user_token:
+        forward_headers["authorization"] = f"Bearer {user_token}"
+    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version}_dicomweb"
 
     body = (
         await request.body()
