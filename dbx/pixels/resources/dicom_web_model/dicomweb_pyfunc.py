@@ -345,12 +345,14 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
     ) -> tuple:
         """Send a request through the ASGI transport and return the raw response.
 
-        Uses an explicit ``new_event_loop`` + ``run_until_complete`` instead
-        of ``asyncio.run`` because the Model Serving environment may already
-        have a running loop on the current (or pool-worker) thread, which
-        makes ``asyncio.run`` refuse to start.
+        The Databricks Model Serving environment exposes a running event
+        loop on every thread (including pool workers), which makes both
+        ``asyncio.run()`` and ``loop.run_until_complete()`` refuse to
+        start — they see the ambient loop via ``_get_running_loop()``.
+
+        We work around this by temporarily clearing the thread-local
+        running-loop flag so our private loop can execute normally.
         """
-        import concurrent.futures
         import httpx
 
         async def _do():
@@ -367,24 +369,17 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                 )
                 return resp.status_code, dict(resp.headers), resp.content
 
-        def _run_in_fresh_loop():
-            loop = asyncio.new_event_loop()
-            try:
-                return loop.run_until_complete(_do())
-            finally:
-                loop.close()
-
+        # Snapshot and clear the ambient running-loop flag so
+        # run_until_complete's _check_running() doesn't reject us.
+        ambient_loop = asyncio._get_running_loop()  # may be None
+        asyncio._set_running_loop(None)
+        loop = asyncio.new_event_loop()
         try:
-            asyncio.get_running_loop()
-            # There IS a running loop on this thread — dispatch to a
-            # dedicated thread that owns its own event loop.
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(_run_in_fresh_loop).result(
-                    timeout=_REQUEST_TIMEOUT,
-                )
-        except RuntimeError:
-            # No running loop — safe to run directly.
-            return _run_in_fresh_loop()
+            return loop.run_until_complete(_do())
+        finally:
+            loop.close()
+            # Restore the original flag for the serving framework.
+            asyncio._set_running_loop(ambient_loop)
 
     @staticmethod
     def _decode_body(raw_b64: str, encoding: str) -> bytes:
