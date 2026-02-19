@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 _REQUEST_TIMEOUT = float(os.getenv("DICOMWEB_PREDICT_TIMEOUT", "300"))
 _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
+_STREAM_CHUNK_SIZE = int(os.getenv("DICOMWEB_STREAM_CHUNK_SIZE", "262144"))
 
 # Payloads smaller than this are sent as plain base64 — the zstd frame
 # header (~12 bytes) and dictionary overhead aren't worth it.
@@ -332,6 +333,62 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                     self._req_errors += 1
 
     # ------------------------------------------------------------------
+    # predict_stream — chunked streaming variant for large responses
+    # ------------------------------------------------------------------
+
+    def predict_stream(self, context, model_input, params=None):
+        """
+        Stream a serialised HTTP response from the DICOMweb ASGI app.
+
+        Same input contract as :meth:`predict`.  Instead of returning a
+        single JSON blob, this generator yields JSON-encoded chunks:
+
+        1. **header** — ``{"type":"header", "status_code":…, "headers":…, "content_type":…}``
+        2. **chunk**  — ``{"type":"chunk", "body":"<encoded>", "encoding":"…"}``
+           (one per ``_STREAM_CHUNK_SIZE`` bytes of response body)
+        3. **end**    — ``{"type":"end"}``
+
+        Useful for WADO-RS instance / frame retrieval where responses can
+        be hundreds of megabytes.  The serving endpoint sends each yielded
+        string as an SSE ``data:`` event, so the gateway can start
+        forwarding bytes to the client before the full response is built.
+        """
+        t0 = time.monotonic()
+        is_error = False
+        try:
+            row = self._extract_row(model_input)
+
+            method = str(row.get("method", "GET")).upper()
+            path = str(row.get("path", "/"))
+            query_string = str(row.get("query_string", "") or "")
+            headers = self._parse_headers(row.get("headers", "{}"))
+            body = self._decode_body(
+                row.get("body", ""), row.get("body_encoding", ""),
+            )
+
+            url = f"{path}?{query_string}" if query_string else path
+
+            for chunk_dict in self._asgi_request_stream(
+                method, url, headers, body,
+            ):
+                if (
+                    chunk_dict.get("type") == "header"
+                    and chunk_dict.get("status_code", 200) >= 500
+                ):
+                    is_error = True
+                yield json.dumps(chunk_dict)
+        except Exception:
+            is_error = True
+            raise
+        finally:
+            elapsed = time.monotonic() - t0
+            with self._stats_lock:
+                self._req_count += 1
+                self._req_latency_sum += elapsed
+                if is_error:
+                    self._req_errors += 1
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
@@ -425,6 +482,72 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
 
         future = asyncio.run_coroutine_threadsafe(_do(), self._loop)
         return future.result(timeout=_REQUEST_TIMEOUT + 5)
+
+    def _asgi_request_stream(
+        self, method: str, url: str, headers: dict, body: bytes,
+    ):
+        """Stream an ASGI response, yielding chunk dicts to the caller.
+
+        A bounded :class:`queue.Queue` bridges the async ASGI iteration
+        (running on the background event loop) to the synchronous
+        ``predict_stream`` generator.  Back-pressure is automatic: the
+        producer blocks when the queue is full.
+        """
+        import queue as _queue_mod
+
+        _SENTINEL = object()
+        q = _queue_mod.Queue(maxsize=32)
+
+        async def _producer():
+            try:
+                skip = {
+                    "transfer-encoding", "connection",
+                    "content-length", "content-encoding",
+                }
+                async with self._asgi_client.stream(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    content=body if body else None,
+                ) as resp:
+                    resp_headers = {
+                        k: v for k, v in resp.headers.items()
+                        if k.lower() not in skip
+                    }
+                    q.put({
+                        "type": "header",
+                        "status_code": resp.status_code,
+                        "headers": resp_headers,
+                        "content_type": resp.headers.get("content-type", ""),
+                    })
+
+                    async for raw_chunk in resp.aiter_bytes(
+                        chunk_size=_STREAM_CHUNK_SIZE,
+                    ):
+                        encoded, enc_label = (
+                            DICOMwebServingModel._encode_body(raw_chunk)
+                        )
+                        q.put({
+                            "type": "chunk",
+                            "body": encoded,
+                            "encoding": enc_label,
+                        })
+
+                    q.put({"type": "end"})
+            except Exception as exc:
+                q.put(exc)
+            finally:
+                q.put(_SENTINEL)
+
+        asyncio.run_coroutine_threadsafe(_producer(), self._loop)
+
+        while True:
+            item = q.get(timeout=_REQUEST_TIMEOUT + 5)
+            if item is _SENTINEL:
+                break
+            if isinstance(item, Exception):
+                raise item
+            yield item
 
     @staticmethod
     def _decode_body(raw_b64: str, encoding: str) -> bytes:

@@ -36,7 +36,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.concurrency import run_in_threadpool
 
@@ -54,6 +54,9 @@ _COMPRESS_THRESHOLD = 512
 
 SERVING_ENDPOINT = os.getenv("DICOMWEB_SERVING_ENDPOINT", "dicomweb-serving")
 _TIMEOUT = int(os.getenv("DICOMWEB_GATEWAY_TIMEOUT", "300"))
+STREAMING_ENABLED = os.getenv("DICOMWEB_USE_STREAMING", "true").lower() in (
+    "1", "true", "yes",
+)
 
 _FORWARD_HEADERS = {
     "accept",
@@ -152,6 +155,133 @@ def _get_auth() -> tuple[str, dict]:
     host = os.getenv("DATABRICKS_HOST").rstrip("/")
 
     return host, headers
+
+
+# ---------------------------------------------------------------------------
+# OAuth token for streaming (service principal client credentials grant)
+# ---------------------------------------------------------------------------
+# The SDK's WorkspaceClient handles token lifecycle internally for
+# _invoke_endpoint, but _invoke_endpoint_stream makes raw HTTP calls
+# and therefore needs an explicit Bearer token.  We obtain one via the
+# standard OAuth2 client-credentials flow using DATABRICKS_CLIENT_ID /
+# DATABRICKS_CLIENT_SECRET injected by the Databricks Apps runtime.
+# ---------------------------------------------------------------------------
+
+_oauth_lock = threading.Lock()
+_oauth_token: str | None = None
+_oauth_expiry: float = 0
+
+
+def _refresh_sp_oauth_token() -> str:
+    """Exchange SP credentials for a short-lived OAuth access token."""
+    global _oauth_token, _oauth_expiry
+
+    host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
+    client_id = os.getenv("DATABRICKS_CLIENT_ID", "")
+    client_secret = os.getenv("DATABRICKS_CLIENT_SECRET", "")
+
+    if not all([host, client_id, client_secret]):
+        raise RuntimeError(
+            "Service principal credentials not configured — "
+            "set DATABRICKS_HOST, DATABRICKS_CLIENT_ID, and "
+            "DATABRICKS_CLIENT_SECRET"
+        )
+
+    resp = requests.post(
+        f"{host}/oidc/v1/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data="grant_type=client_credentials&scope=all-apis",
+        auth=(client_id, client_secret),
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+
+    _oauth_token = data["access_token"]
+    _oauth_expiry = time.time() + data.get("expires_in", 3600)
+    logger.info("SP OAuth token refreshed (expires in %ds)", data.get("expires_in", 0))
+    return _oauth_token
+
+
+def _get_sp_oauth_token() -> str:
+    """Return a cached SP OAuth token, refreshing if expired or close to it."""
+    global _oauth_token, _oauth_expiry
+
+    if _oauth_token and time.time() < _oauth_expiry - 300:
+        return _oauth_token
+
+    with _oauth_lock:
+        if _oauth_token and time.time() < _oauth_expiry - 300:
+            return _oauth_token
+        return _refresh_sp_oauth_token()
+
+
+def _get_streaming_auth_headers() -> dict:
+    """Return auth headers for streaming HTTP calls.
+
+    Uses the explicit SP OAuth client-credentials flow when
+    ``DATABRICKS_CLIENT_ID`` / ``DATABRICKS_CLIENT_SECRET`` are set
+    (the normal Databricks Apps case).  Falls back to SDK Config headers
+    otherwise (e.g. PAT-based local testing).
+    """
+    if os.getenv("DATABRICKS_CLIENT_ID") and os.getenv("DATABRICKS_CLIENT_SECRET"):
+        token = _get_sp_oauth_token()
+        return {"Authorization": f"Bearer {token}"}
+    _, headers = _get_auth()
+    return headers
+
+
+# ---------------------------------------------------------------------------
+# Route-optimized data-plane URL resolution
+# ---------------------------------------------------------------------------
+# Endpoints with route optimization use a dedicated data-plane host that
+# bypasses the workspace control plane.  The SDK resolves this internally
+# for `serving_endpoints_data_plane.query()`; for raw HTTP streaming we
+# must resolve it ourselves via `serving_endpoints.get()`.
+# ---------------------------------------------------------------------------
+
+_dp_url: str | None = None
+_dp_url_ts: float = 0
+_DP_URL_TTL = 300  # re-resolve every 5 minutes
+
+
+def _resolve_invocations_url() -> str:
+    """Return the full invocations URL for the serving endpoint.
+
+    Queries the endpoint details to extract the route-optimized
+    data-plane URL from ``data_plane_info.query_info.endpoint_url``.
+    Falls back to the standard workspace URL when the data-plane info
+    is not present (endpoint without route optimization).
+
+    The resolved URL is cached for ``_DP_URL_TTL`` seconds.
+    """
+    global _dp_url, _dp_url_ts
+
+    if _dp_url and time.time() < _dp_url_ts + _DP_URL_TTL:
+        return _dp_url
+
+    _get_auth()  # ensure _workspace_client is initialised
+
+    try:
+        ep = _workspace_client.serving_endpoints.get(name=SERVING_ENDPOINT)
+        if (
+            ep.data_plane_info
+            and ep.data_plane_info.query_info
+            and ep.data_plane_info.query_info.endpoint_url
+        ):
+            url = ep.data_plane_info.query_info.endpoint_url
+            _dp_url = url
+            _dp_url_ts = time.time()
+            logger.info("Resolved route-optimized invocations URL: %s", url)
+            return url
+    except Exception as exc:
+        logger.warning("Data-plane URL resolution failed: %s — falling back to workspace URL", exc)
+
+    host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
+    _dp_url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
+    _dp_url_ts = time.time()
+    logger.info("Using standard workspace invocations URL: %s", _dp_url)
+    return _dp_url
 
 
 # ---------------------------------------------------------------------------
@@ -339,6 +469,126 @@ async def _proxy(request: Request) -> Response:
 
 
 # ---------------------------------------------------------------------------
+# Streaming proxy — uses predict_stream for chunked transfer
+# ---------------------------------------------------------------------------
+
+async def _invoke_endpoint_stream(payload: dict):
+    """
+    POST to the serving endpoint with streaming enabled.
+
+    Yields parsed JSON chunk dicts from the SSE response.  The serving
+    endpoint calls ``predict_stream`` when ``params.stream`` is true and
+    returns each yielded string as an SSE ``data:`` line.
+
+    The invocations URL is resolved from the endpoint's data-plane info
+    (route-optimized) and auth uses the SP OAuth token obtained via
+    client-credentials grant.
+    """
+    url = await run_in_threadpool(_resolve_invocations_url)
+    auth_headers = await run_in_threadpool(_get_streaming_auth_headers)
+
+    body = {
+        "dataframe_records": [payload],
+        "params": {"stream": True},
+    }
+
+    async with _http_client.stream(
+        "POST",
+        url,
+        json=body,
+        headers={**auth_headers, "Accept": "text/event-stream"},
+        timeout=httpx.Timeout(_TIMEOUT, connect=30.0),
+    ) as resp:
+        if resp.status_code != 200:
+            error_body = await resp.aread()
+            raise RuntimeError(
+                f"Serving endpoint returned {resp.status_code}: "
+                f"{error_body[:500].decode('utf-8', errors='replace')}"
+            )
+
+        async for line in resp.aiter_lines():
+            line = line.strip()
+            if not line or not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                yield json.loads(data)
+            except json.JSONDecodeError:
+                logger.warning("Malformed SSE chunk: %s", data[:200])
+
+
+async def _proxy_stream(request: Request) -> Response:
+    """Proxy a DICOMweb request with chunked streaming from the serving endpoint.
+
+    The first SSE chunk carries HTTP metadata (status code, headers,
+    content-type).  Subsequent chunks carry base64/zstd-encoded body
+    fragments that are decoded and forwarded as a
+    :class:`StreamingResponse` so the client receives bytes
+    incrementally.
+    """
+    t0 = time.monotonic()
+    try:
+        payload = await _serialize_request(request)
+        stream = _invoke_endpoint_stream(payload)
+
+        header_chunk = None
+        async for chunk in stream:
+            if chunk.get("type") == "header":
+                header_chunk = chunk
+                break
+
+        if header_chunk is None:
+            _record_request(time.monotonic() - t0, True)
+            return JSONResponse(
+                status_code=502,
+                content={"error": "No header chunk in streaming response"},
+            )
+
+        status_code = header_chunk.get("status_code", 200)
+        content_type = header_chunk.get("content_type", "application/octet-stream")
+        resp_headers = header_chunk.get("headers", {})
+        is_error = status_code >= 500
+
+        skip = {
+            "transfer-encoding", "connection",
+            "content-length", "content-encoding",
+        }
+        clean_headers = {
+            k: v for k, v in resp_headers.items()
+            if k.lower() not in skip
+        }
+
+        async def _body_gen():
+            try:
+                async for chunk in stream:
+                    ct = chunk.get("type")
+                    if ct == "chunk":
+                        yield _decode(
+                            chunk.get("body", ""), chunk.get("encoding", ""),
+                        )
+                    elif ct == "end":
+                        break
+            finally:
+                _record_request(time.monotonic() - t0, is_error)
+
+        return StreamingResponse(
+            _body_gen(),
+            status_code=status_code,
+            media_type=content_type,
+            headers=clean_headers,
+        )
+    except Exception as exc:
+        _record_request(time.monotonic() - t0, True)
+        logger.error("Gateway stream proxy error: %s", exc, exc_info=True)
+        return JSONResponse(
+            status_code=502,
+            content={"error": "Gateway streaming error", "detail": str(exc)},
+        )
+
+
+# ---------------------------------------------------------------------------
 # Background metrics reporter
 # ---------------------------------------------------------------------------
 
@@ -461,6 +711,8 @@ async def retrieve_instance_frames(
     sop_uid: str,
     frame_list: str,
 ):
+    if STREAMING_ENABLED:
+        return await _proxy_stream(request)
     return await _proxy(request)
 
 
@@ -472,6 +724,8 @@ async def retrieve_instance_frames(
 async def retrieve_instance(
     request: Request, study_uid: str, series_uid: str, sop_uid: str,
 ):
+    if STREAMING_ENABLED:
+        return await _proxy_stream(request)
     return await _proxy(request)
 
 
@@ -479,6 +733,8 @@ async def retrieve_instance(
 
 @app.get("/api/dicomweb/wado", tags=["WADO-URI"])
 async def wado_uri(request: Request):
+    if STREAMING_ENABLED:
+        return await _proxy_stream(request)
     return await _proxy(request)
 
 
