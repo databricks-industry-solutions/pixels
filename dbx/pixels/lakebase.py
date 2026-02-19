@@ -779,14 +779,8 @@ class LakebaseUtils:
             query = sql.SQL(
                 "INSERT INTO {} (filename, frame, start_pos, end_pos, "
                 "pixel_data_pos, uc_table_name, transfer_syntax_uid) "
-                "VALUES %s "
-                "ON CONFLICT (filename, frame, uc_table_name) DO UPDATE SET "
-                "transfer_syntax_uid = COALESCE(EXCLUDED.transfer_syntax_uid, "
-                "  {}.transfer_syntax_uid)"
-            ).format(
-                sql.Identifier(self.schema, table),
-                sql.Identifier(self.schema, table),
-            )
+                "VALUES %s ON CONFLICT DO NOTHING"
+            ).format(sql.Identifier(self.schema, table))
         try:
             conn = self.connection.getconn()
             with conn.cursor() as cursor:
