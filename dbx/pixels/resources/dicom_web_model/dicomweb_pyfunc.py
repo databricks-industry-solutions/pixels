@@ -324,12 +324,6 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
                 )
                 return
 
-            try:
-                lb_utils.ensure_metrics_table()
-            except Exception as exc:
-                logger.error("Failed to create metrics table: %s", exc)
-                return
-
             logger.info(
                 "Metrics reporter started (interval=%.1fs)", _METRICS_INTERVAL
             )

@@ -855,35 +855,6 @@ class LakebaseUtils:
             if conn:
                 self.connection.putconn(conn)
 
-    # ------------------------------------------------------------------
-    # Endpoint metrics (time-series snapshots for /metrics dashboard)
-    # ------------------------------------------------------------------
-
-    def ensure_metrics_table(self):
-        """Create the ``endpoint_metrics`` table if it does not exist."""
-        ddl = sql.SQL(
-            "CREATE TABLE IF NOT EXISTS {} ("
-            "  source TEXT NOT NULL,"
-            "  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),"
-            "  metrics JSONB NOT NULL,"
-            "  PRIMARY KEY (source, recorded_at)"
-            ")"
-        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
-        idx = sql.SQL(
-            "CREATE INDEX IF NOT EXISTS idx_endpoint_metrics_source_time "
-            "ON {} (source, recorded_at DESC)"
-        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
-        conn = None
-        try:
-            conn = self.connection.getconn()
-            with conn.cursor() as cursor:
-                cursor.execute(ddl)
-                cursor.execute(idx)
-                conn.commit()
-            logger.info("Ensured endpoint_metrics table exists")
-        finally:
-            if conn:
-                self.connection.putconn(conn)
 
     def insert_metrics(self, source: str, metrics: dict):
         """Insert a metrics snapshot and purge rows older than the retention window."""
