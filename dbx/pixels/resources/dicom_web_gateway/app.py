@@ -549,6 +549,30 @@ def _unwrap_predict_result(raw: bytes) -> dict:
     return result if isinstance(result, dict) else {}
 
 
+async def _get_endpoint_info_async() -> tuple[str, str | None]:
+    """Return cached endpoint info without a thread-pool hop when possible."""
+    if _dp_url and time.time() < _dp_info_ts + _DP_INFO_TTL:
+        return _dp_url, _dp_auth_details
+    return await run_in_threadpool(_resolve_endpoint_info)
+
+
+async def _get_auth_headers_async(
+    authorization_details: str | None = None,
+) -> dict:
+    """Return cached auth headers without a thread-pool hop when possible."""
+    if (
+        os.getenv("DATABRICKS_CLIENT_ID")
+        and os.getenv("DATABRICKS_CLIENT_SECRET")
+        and _oauth_token
+        and time.time() < _oauth_expiry - 300
+        and _oauth_auth_details == authorization_details
+    ):
+        return {"Authorization": f"Bearer {_oauth_token}"}
+    return await run_in_threadpool(
+        lambda: _get_streaming_auth_headers(authorization_details),
+    )
+
+
 async def _invoke_endpoint_stream(payload: dict):
     """
     POST to the serving endpoint requesting streaming.
@@ -566,10 +590,8 @@ async def _invoke_endpoint_stream(payload: dict):
 
     In every case the caller receives the same sequence of chunk dicts.
     """
-    url, auth_details = await run_in_threadpool(_resolve_endpoint_info)
-    auth_headers = await run_in_threadpool(
-        lambda: _get_streaming_auth_headers(auth_details),
-    )
+    url, auth_details = await _get_endpoint_info_async()
+    auth_headers = await _get_auth_headers_async(auth_details)
 
     request_body = {
         "dataframe_records": [payload],
@@ -753,7 +775,15 @@ async def _metrics_reporter():
 @asynccontextmanager
 async def _lifespan(application: FastAPI):
     global _http_client
-    _http_client = httpx.AsyncClient(http2=True)
+    _http_client = httpx.AsyncClient(
+        http2=True,
+        limits=httpx.Limits(
+            max_connections=int(os.getenv("DICOMWEB_MAX_CONNECTIONS", "200")),
+            max_keepalive_connections=int(
+                os.getenv("DICOMWEB_MAX_KEEPALIVE", "100"),
+            ),
+        ),
+    )
     task = asyncio.create_task(_metrics_reporter())
     yield
     task.cancel()
