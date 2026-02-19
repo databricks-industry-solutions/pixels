@@ -217,7 +217,7 @@ def _resolve_endpoint_info() -> tuple[str, str | None]:
         )
 
     host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
-    _dp_url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
+    _dp_url = f"https://{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
     _dp_auth_details = None
     _dp_info_ts = time.time()
     logger.info("Using standard workspace invocations URL: %s", _dp_url)
