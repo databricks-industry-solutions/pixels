@@ -158,23 +158,93 @@ def _get_auth() -> tuple[str, dict]:
 
 
 # ---------------------------------------------------------------------------
-# OAuth token for streaming (service principal client credentials grant)
+# Route-optimized data-plane URL + authorization_details resolution
+# ---------------------------------------------------------------------------
+# Endpoints with route optimization use a dedicated data-plane host that
+# bypasses the workspace control plane.  The SDK resolves this internally
+# for `serving_endpoints_data_plane.query()`; for raw HTTP streaming we
+# must resolve it ourselves via `serving_endpoints.get()`.
+#
+# The endpoint also exposes `authorization_details` — a JSON blob that
+# **must** be included in the OAuth client-credentials token request so
+# the resulting token is scoped for this specific serving endpoint.
+# Without it, the data-plane returns 401 "Missing authorization details".
+# ---------------------------------------------------------------------------
+
+_dp_url: str | None = None
+_dp_auth_details: str | None = None
+_dp_info_ts: float = 0
+_DP_INFO_TTL = 300  # re-resolve every 5 minutes
+
+
+def _resolve_endpoint_info() -> tuple[str, str | None]:
+    """Resolve the invocations URL and ``authorization_details``.
+
+    Queries the endpoint via the control-plane API and extracts:
+
+    * ``data_plane_info.query_info.endpoint_url`` — the route-optimized
+      invocations URL.
+    * ``data_plane_info.query_info.authorization_details`` — the JSON
+      claim that must be sent in the OAuth token request.
+
+    Both values are cached for ``_DP_INFO_TTL`` seconds.  Falls back to
+    the standard workspace URL (no ``authorization_details``) when the
+    data-plane info is unavailable.
+    """
+    global _dp_url, _dp_auth_details, _dp_info_ts
+
+    if _dp_url and time.time() < _dp_info_ts + _DP_INFO_TTL:
+        return _dp_url, _dp_auth_details
+
+    _get_auth()  # ensure _workspace_client is initialised
+
+    try:
+        ep = _workspace_client.serving_endpoints.get(name=SERVING_ENDPOINT)
+        qi = getattr(getattr(ep, "data_plane_info", None), "query_info", None)
+        if qi and qi.endpoint_url:
+            _dp_url = qi.endpoint_url
+            _dp_auth_details = getattr(qi, "authorization_details", None)
+            _dp_info_ts = time.time()
+            logger.info(
+                "Route-optimized endpoint: url=%s  auth_details=%s",
+                _dp_url,
+                "present" if _dp_auth_details else "absent",
+            )
+            return _dp_url, _dp_auth_details
+    except Exception as exc:
+        logger.warning(
+            "Data-plane info resolution failed: %s — falling back to workspace URL", exc,
+        )
+
+    host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
+    _dp_url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
+    _dp_auth_details = None
+    _dp_info_ts = time.time()
+    logger.info("Using standard workspace invocations URL: %s", _dp_url)
+    return _dp_url, _dp_auth_details
+
+
+# ---------------------------------------------------------------------------
+# OAuth token for streaming (SP client-credentials grant)
 # ---------------------------------------------------------------------------
 # The SDK's WorkspaceClient handles token lifecycle internally for
 # _invoke_endpoint, but _invoke_endpoint_stream makes raw HTTP calls
-# and therefore needs an explicit Bearer token.  We obtain one via the
-# standard OAuth2 client-credentials flow using DATABRICKS_CLIENT_ID /
-# DATABRICKS_CLIENT_SECRET injected by the Databricks Apps runtime.
+# and therefore needs an explicit Bearer token.
+#
+# For route-optimized endpoints the token request MUST include the
+# `authorization_details` claim obtained from the endpoint's
+# data_plane_info — otherwise the data-plane rejects the call with 401.
 # ---------------------------------------------------------------------------
 
 _oauth_lock = threading.Lock()
 _oauth_token: str | None = None
 _oauth_expiry: float = 0
+_oauth_auth_details: str | None = object()  # sentinel: != any real value
 
 
-def _refresh_sp_oauth_token() -> str:
+def _refresh_sp_oauth_token(authorization_details: str | None = None) -> str:
     """Exchange SP credentials for a short-lived OAuth access token."""
-    global _oauth_token, _oauth_expiry
+    global _oauth_token, _oauth_expiry, _oauth_auth_details
 
     host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
     client_id = os.getenv("DATABRICKS_CLIENT_ID", "")
@@ -187,10 +257,16 @@ def _refresh_sp_oauth_token() -> str:
             "DATABRICKS_CLIENT_SECRET"
         )
 
+    post_data = {
+        "grant_type": "client_credentials",
+        "scope": "all-apis",
+    }
+    if authorization_details:
+        post_data["authorization_details"] = authorization_details
+
     resp = requests.post(
         f"{host}/oidc/v1/token",
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data="grant_type=client_credentials&scope=all-apis",
+        data=post_data,
         auth=(client_id, client_secret),
         timeout=30,
     )
@@ -199,24 +275,32 @@ def _refresh_sp_oauth_token() -> str:
 
     _oauth_token = data["access_token"]
     _oauth_expiry = time.time() + data.get("expires_in", 3600)
+    _oauth_auth_details = authorization_details
     logger.info("SP OAuth token refreshed (expires in %ds)", data.get("expires_in", 0))
     return _oauth_token
 
 
-def _get_sp_oauth_token() -> str:
-    """Return a cached SP OAuth token, refreshing if expired or close to it."""
-    global _oauth_token, _oauth_expiry
+def _get_sp_oauth_token(authorization_details: str | None = None) -> str:
+    """Return a cached SP OAuth token, refreshing if expired or stale."""
+    global _oauth_token, _oauth_expiry, _oauth_auth_details
 
-    if _oauth_token and time.time() < _oauth_expiry - 300:
+    def _valid():
+        return (
+            _oauth_token
+            and time.time() < _oauth_expiry - 300
+            and _oauth_auth_details == authorization_details
+        )
+
+    if _valid():
         return _oauth_token
 
     with _oauth_lock:
-        if _oauth_token and time.time() < _oauth_expiry - 300:
+        if _valid():
             return _oauth_token
-        return _refresh_sp_oauth_token()
+        return _refresh_sp_oauth_token(authorization_details)
 
 
-def _get_streaming_auth_headers() -> dict:
+def _get_streaming_auth_headers(authorization_details: str | None = None) -> dict:
     """Return auth headers for streaming HTTP calls.
 
     Uses the explicit SP OAuth client-credentials flow when
@@ -225,63 +309,10 @@ def _get_streaming_auth_headers() -> dict:
     otherwise (e.g. PAT-based local testing).
     """
     if os.getenv("DATABRICKS_CLIENT_ID") and os.getenv("DATABRICKS_CLIENT_SECRET"):
-        token = _get_sp_oauth_token()
+        token = _get_sp_oauth_token(authorization_details)
         return {"Authorization": f"Bearer {token}"}
     _, headers = _get_auth()
     return headers
-
-
-# ---------------------------------------------------------------------------
-# Route-optimized data-plane URL resolution
-# ---------------------------------------------------------------------------
-# Endpoints with route optimization use a dedicated data-plane host that
-# bypasses the workspace control plane.  The SDK resolves this internally
-# for `serving_endpoints_data_plane.query()`; for raw HTTP streaming we
-# must resolve it ourselves via `serving_endpoints.get()`.
-# ---------------------------------------------------------------------------
-
-_dp_url: str | None = None
-_dp_url_ts: float = 0
-_DP_URL_TTL = 300  # re-resolve every 5 minutes
-
-
-def _resolve_invocations_url() -> str:
-    """Return the full invocations URL for the serving endpoint.
-
-    Queries the endpoint details to extract the route-optimized
-    data-plane URL from ``data_plane_info.query_info.endpoint_url``.
-    Falls back to the standard workspace URL when the data-plane info
-    is not present (endpoint without route optimization).
-
-    The resolved URL is cached for ``_DP_URL_TTL`` seconds.
-    """
-    global _dp_url, _dp_url_ts
-
-    if _dp_url and time.time() < _dp_url_ts + _DP_URL_TTL:
-        return _dp_url
-
-    _get_auth()  # ensure _workspace_client is initialised
-
-    try:
-        ep = _workspace_client.serving_endpoints.get(name=SERVING_ENDPOINT)
-        if (
-            ep.data_plane_info
-            and ep.data_plane_info.query_info
-            and ep.data_plane_info.query_info.endpoint_url
-        ):
-            url = ep.data_plane_info.query_info.endpoint_url
-            _dp_url = url
-            _dp_url_ts = time.time()
-            logger.info("Resolved route-optimized invocations URL: %s", url)
-            return url
-    except Exception as exc:
-        logger.warning("Data-plane URL resolution failed: %s — falling back to workspace URL", exc)
-
-    host = os.getenv("DATABRICKS_HOST", "").rstrip("/")
-    _dp_url = f"{host}/serving-endpoints/{SERVING_ENDPOINT}/invocations"
-    _dp_url_ts = time.time()
-    logger.info("Using standard workspace invocations URL: %s", _dp_url)
-    return _dp_url
 
 
 # ---------------------------------------------------------------------------
@@ -480,12 +511,15 @@ async def _invoke_endpoint_stream(payload: dict):
     endpoint calls ``predict_stream`` when ``params.stream`` is true and
     returns each yielded string as an SSE ``data:`` line.
 
-    The invocations URL is resolved from the endpoint's data-plane info
-    (route-optimized) and auth uses the SP OAuth token obtained via
-    client-credentials grant.
+    The invocations URL and ``authorization_details`` are resolved from
+    the endpoint's data-plane info (route-optimized).  The OAuth token
+    is minted with the ``authorization_details`` claim so it is accepted
+    by the data-plane.
     """
-    url = await run_in_threadpool(_resolve_invocations_url)
-    auth_headers = await run_in_threadpool(_get_streaming_auth_headers)
+    url, auth_details = await run_in_threadpool(_resolve_endpoint_info)
+    auth_headers = await run_in_threadpool(
+        lambda: _get_streaming_auth_headers(auth_details),
+    )
 
     body = {
         "dataframe_records": [payload],
