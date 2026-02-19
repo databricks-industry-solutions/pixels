@@ -265,7 +265,7 @@ def _refresh_sp_oauth_token(authorization_details: str | None = None) -> str:
         post_data["authorization_details"] = authorization_details
 
     resp = requests.post(
-        f"{host}/oidc/v1/token",
+        f"https://{host}/oidc/v1/token",
         data=post_data,
         auth=(client_id, client_secret),
         timeout=30,
