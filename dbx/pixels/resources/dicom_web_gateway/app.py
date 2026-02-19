@@ -420,6 +420,44 @@ def health():
 
 # ── Middleware ───────────────────────────────────────────────────────────
 
+_METRICS_SKIP_PREFIXES = ("/health", "/ws/", "/api/metrics", "/api/dashboard")
+
+
+class _InstrumentMiddleware:
+    """Pure ASGI middleware that records per-request latency and errors."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        if any(path.startswith(p) for p in _METRICS_SKIP_PREFIXES):
+            await self.app(scope, receive, send)
+            return
+
+        t0 = time.perf_counter()
+        status_code = 200
+
+        async def _send_wrapper(message):
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message.get("status", 200)
+            await send(message)
+
+        try:
+            await self.app(scope, receive, _send_wrapper)
+        except Exception:
+            status_code = 500
+            raise
+        finally:
+            elapsed = time.perf_counter() - t0
+            _record_request(elapsed, status_code >= 400)
+
+    
 class _Options200:
     """Pure ASGI middleware — bypasses BaseHTTPMiddleware's TaskGroup overhead."""
 
@@ -438,6 +476,7 @@ class _Options200:
         await self.app(scope, receive, send)
 
 
+app.add_middleware(_InstrumentMiddleware)
 app.add_middleware(_Options200)
 app.add_middleware(
     CORSMiddleware,
