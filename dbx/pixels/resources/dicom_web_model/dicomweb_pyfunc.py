@@ -372,10 +372,7 @@ class DICOMwebServingModel(mlflow.pyfunc.PythonModel):
             try:
                 return loop.run_until_complete(_do())
             finally:
-                try:
-                    loop.run_until_complete(loop.shutdown_asyncgens())
-                finally:
-                    loop.close()
+                loop.close()
 
         try:
             asyncio.get_running_loop()
