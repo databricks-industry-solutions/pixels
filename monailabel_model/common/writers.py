@@ -262,8 +262,7 @@ class HighDicomSegWriter(ImageWriter):
             binary_segments.append((seg_array == label_idx).astype(np.uint8))
 
         # pixel_array shape: (frames, rows, cols, num_segments)
-        pixel_array = np.stack(binary_segments, axis=-1)
-        pixel_array = np.ascontiguousarray(pixel_array)
+        pixel_array = np.ascontiguousarray(np.stack(binary_segments, axis=-1))
 
         # ---- create DICOM SEG with highdicom ----------------------------
         seg = hd.seg.Segmentation(
