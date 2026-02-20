@@ -28,9 +28,19 @@ Environment variables (set in ``app.yml``)::
 
     # ── In-memory caches ────────────────────────────────────────────────────
     PIXELS_BOT_CACHE_MAX_ENTRIES    Max BOT (frame-offset) cache entries
-                                    (default: 100 000, ~1 GB)
+                                    (default: 100 000).
+                                    Memory per entry ≈ 1.1 KB base +
+                                    ~600 B × avg_frames_per_file:
+                                      single-frame (X-ray)  → ~1.7 KB  → ~170 MB / 100 k
+                                      10-frame avg          → ~7 KB    → ~700 MB / 100 k
+                                      50-frame avg (CT)     → ~31 KB   → ~3 GB  / 100 k
+                                    Each entry stores a list of frame dicts
+                                    plus a mirrored frame_number→dict index.
     PIXELS_PATH_CACHE_MAX_ENTRIES   Max instance-path cache entries
-                                    (default: 100 000, ~20 MB)
+                                    (default: 100 000).
+                                    Memory per entry ≈ 1 KB flat
+                                    (SOP UID key + local_path + num_frames)
+                                    → ~100 MB / 100 k entries.
 
     # ── File prefetcher (async Volumes read-ahead) ───────────────────────────
     PIXELS_PREFETCH_ENABLED         Enable background prefetch of full DICOM
