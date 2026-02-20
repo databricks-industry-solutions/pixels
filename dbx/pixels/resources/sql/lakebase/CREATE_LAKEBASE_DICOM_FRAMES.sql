@@ -44,12 +44,25 @@ CREATE TABLE IF NOT EXISTS {schema_name}.dicom_frames (
     pixel_data_pos INTEGER NOT NULL,
     uc_table_name TEXT NOT NULL,
     transfer_syntax_uid TEXT,
+    -- Cache-metadata columns — used by CachePriorityScorer for in-memory preload ranking.
+    inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ,
+    access_count BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (filename, frame, uc_table_name)
 );
 
--- Add the column to existing tables that predate this definition.
+-- Add columns to existing tables that predate this definition.
 ALTER TABLE {schema_name}.dicom_frames
     ADD COLUMN IF NOT EXISTS transfer_syntax_uid TEXT;
+
+ALTER TABLE {schema_name}.dicom_frames
+    ADD COLUMN IF NOT EXISTS inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE {schema_name}.dicom_frames
+    ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMPTZ;
+
+ALTER TABLE {schema_name}.dicom_frames
+    ADD COLUMN IF NOT EXISTS access_count BIGINT NOT NULL DEFAULT 0;
 
 -- Optimised for the batch BOT preload query pattern:
 --   WHERE uc_table_name = %s AND filename IN (%s, %s, ...)
@@ -58,10 +71,12 @@ ALTER TABLE {schema_name}.dicom_frames
 CREATE INDEX IF NOT EXISTS idx_dicom_frames_uc_filename
     ON {schema_name}.dicom_frames (uc_table_name, filename);
 
--- NOTE: The old idx_dicom_frames_filename (on filename alone) is a strict
--- prefix of the PK and is therefore redundant.  Drop it to save disk space
--- and insert overhead.
-DROP INDEX IF EXISTS {schema_name}.idx_dicom_frames_filename;
+-- Accelerates the CachePriorityScorer preload query:
+--   GROUP BY filename, ORDER BY priority_score DESC, WHERE uc_table_name = %s
+-- Storing (uc_table_name, last_used_at, access_count) lets PostgreSQL satisfy
+-- the WHERE and provide statistics for the decay ordering from a single scan.
+CREATE INDEX IF NOT EXISTS idx_dicom_frames_uc_cache_meta
+    ON {schema_name}.dicom_frames (uc_table_name, last_used_at, access_count);
 
 
 -- =====================================================================================
@@ -91,3 +106,12 @@ COMMENT ON COLUMN {schema_name}.dicom_frames.uc_table_name IS
 
 COMMENT ON COLUMN {schema_name}.dicom_frames.transfer_syntax_uid IS
 'DICOM Transfer Syntax UID (0002,0010) for the file. Denormalized per frame (same value for all frames in a file) so the in-memory BOT cache can be populated from Lakebase without an extra HTTP round-trip to read the DICOM file meta header.';
+
+COMMENT ON COLUMN {schema_name}.dicom_frames.inserted_at IS
+'Timestamp when this BOT row was first written to Lakebase by the BOTCacheBuilder Spark job. Used in CachePriorityScorer: recently inserted files receive a mild recency bonus (half-life ~1 week).';
+
+COMMENT ON COLUMN {schema_name}.dicom_frames.last_used_at IS
+'Timestamp of the last time this file''s BOT was retrieved by the DICOMweb server from Lakebase. NULL when pre-populated by the Spark job but never yet served. Used in CachePriorityScorer with a 1-day half-life decay.';
+
+COMMENT ON COLUMN {schema_name}.dicom_frames.access_count IS
+'Cumulative number of times this file''s BOT has been served from Lakebase. Incremented atomically by LakebaseUtils.touch_frame_ranges(). Used in CachePriorityScorer via log10(1 + access_count).';

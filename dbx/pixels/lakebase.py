@@ -648,6 +648,127 @@ class LakebaseUtils:
             frames.append(entry)
         return frames
 
+    def touch_frame_ranges(
+        self,
+        filename: str,
+        uc_table_name: str,
+        table: str = DICOM_FRAMES_TABLE,
+    ) -> int:
+        """
+        Record a BOT cache access: update ``last_used_at`` and increment
+        ``access_count`` for all frames of *filename* in one statement.
+
+        Call this every time a file's complete BOT is served from Lakebase
+        (i.e. after a successful ``retrieve_all_frame_ranges`` that was
+        loaded into the in-memory BOT cache).  The resulting statistics are
+        consumed by ``get_preload_priority_list`` on server startup.
+
+        Args:
+            filename:      Full path of the DICOM file.
+            uc_table_name: Fully qualified UC table name.
+            table:         Lakebase table name (default: ``dicom_frames``).
+
+        Returns:
+            Number of rows updated (equals the number of frames for the file).
+        """
+        query = sql.SQL(
+            "UPDATE {table} "
+            "SET last_used_at = NOW(), access_count = access_count + 1 "
+            "WHERE filename = %s AND uc_table_name = %s"
+        ).format(table=sql.Identifier(self.schema, table))
+        conn = None
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                cursor.execute(query, (filename, uc_table_name))
+                updated = cursor.rowcount
+                conn.commit()
+            return updated
+        finally:
+            if conn:
+                self.connection.putconn(conn)
+
+    def get_preload_priority_list(
+        self,
+        uc_table_name: str,
+        limit: int = 10_000,
+        table: str = DICOM_FRAMES_TABLE,
+    ) -> list[dict]:
+        """
+        Return files ordered by in-memory preload priority, highest first.
+
+        The priority score is computed entirely in PostgreSQL::
+
+            score = 0.5 × exp(−seconds_since(last_used_at) / 86400)
+                  + 0.2 × exp(−seconds_since(inserted_at)  / 604800)
+                  + 0.3 × log(1 + access_count)
+
+        * **last_used_at** — most recently served BOT entries score highest
+          (1-day half-life).
+        * **inserted_at** — recently ingested files receive a mild bonus
+          (1-week half-life).
+        * **access_count** — frequently accessed files are favoured via
+          ``log(1 + n)`` so high counts do not completely dominate.
+
+        Caller responsibility: after consuming the list, use
+        ``BOTCache.put_from_lakebase`` to populate the in-memory cache for
+        each entry, stopping when the RAM budget is exhausted.
+
+        Args:
+            uc_table_name: Fully qualified UC table name.
+            limit:         Maximum number of files to return.
+            table:         Lakebase table name (default: ``dicom_frames``).
+
+        Returns:
+            List of dicts, each with:
+            ``filename``, ``frame_count``, ``transfer_syntax_uid``,
+            ``last_used_at``, ``inserted_at``, ``access_count``,
+            ``priority_score``.
+        """
+        query = sql.SQL(
+            """
+            SELECT
+                filename,
+                COUNT(*)                        AS frame_count,
+                MAX(transfer_syntax_uid)        AS transfer_syntax_uid,
+                MAX(last_used_at)               AS last_used_at,
+                MIN(inserted_at)                AS inserted_at,
+                SUM(access_count)               AS access_count,
+                (
+                  0.5 * EXP(
+                    -EXTRACT(EPOCH FROM (
+                        NOW() - COALESCE(MAX(last_used_at), NOW() - INTERVAL '30 days')
+                    )) / 86400.0
+                  )
+                + 0.2 * EXP(
+                    -EXTRACT(EPOCH FROM (
+                        NOW() - COALESCE(MIN(inserted_at), NOW() - INTERVAL '30 days')
+                    )) / 604800.0
+                  )
+                + 0.3 * LOG(1 + SUM(access_count))
+                )                               AS priority_score
+            FROM {table}
+            WHERE uc_table_name = %s
+            GROUP BY filename
+            ORDER BY priority_score DESC
+            LIMIT %s
+            """
+        ).format(table=sql.Identifier(self.schema, table))
+
+        rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
+        return [
+            {
+                "filename": row[0],
+                "frame_count": int(row[1]),
+                "transfer_syntax_uid": row[2],
+                "last_used_at": row[3],
+                "inserted_at": row[4],
+                "access_count": int(row[5]),
+                "priority_score": float(row[6]),
+            }
+            for row in rows
+        ]
+
     def retrieve_frame_ranges_batch(
         self,
         filenames: list[str],
