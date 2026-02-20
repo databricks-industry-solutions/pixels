@@ -25,6 +25,7 @@ import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import psutil
@@ -61,6 +62,72 @@ _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
 
 # Shared async HTTP client — available for future async Volumes reads.
 _http_client: httpx.AsyncClient | None = None
+
+# ---------------------------------------------------------------------------
+# Startup BOT cache preload
+# ---------------------------------------------------------------------------
+
+def _startup_bot_preload() -> None:
+    """
+    Pre-warm the in-memory BOT cache from Lakebase immediately after startup.
+
+    Runs in a background thread so the server starts accepting requests
+    without delay.  Files are loaded in priority order — most recently
+    accessed and most frequently accessed first — up to the BOT cache's
+    configured ``max_entries`` limit.  The LRU cache handles any overflow
+    automatically, so no RAM budget arithmetic is needed.
+    """
+    from dbx.pixels.resources.dicom_web.utils.handlers._common import lb_utils
+    from dbx.pixels.resources.dicom_web.utils.cache import bot_cache
+
+    if lb_utils is None:
+        logger.info("Startup BOT preload: Lakebase not configured — skipping")
+        return
+
+    uc_table = os.getenv("DATABRICKS_PIXELS_TABLE")
+    if not uc_table:
+        logger.info("Startup BOT preload: DATABRICKS_PIXELS_TABLE not set — skipping")
+        return
+
+    limit = bot_cache._max_entries
+    logger.info("Startup BOT preload: table=%s, limit=%d", uc_table, limit)
+
+    t0 = time.perf_counter()
+    try:
+        priority_list = lb_utils.get_preload_priority_list(
+            uc_table_name=uc_table,
+            limit=limit,
+        )
+    except Exception as exc:
+        logger.warning("Startup BOT preload: get_preload_priority_list failed: %s", exc)
+        return
+
+    if not priority_list:
+        logger.info("Startup BOT preload: Lakebase has no entries yet — skipping")
+        return
+
+    logger.info("Startup BOT preload: %d files in priority list", len(priority_list))
+
+    loaded = 0
+    errors = 0
+
+    for entry in priority_list:
+        filename = entry["filename"]
+        try:
+            frames = lb_utils.retrieve_all_frame_ranges(filename, uc_table)
+            if frames:
+                tsuid = entry.get("transfer_syntax_uid") or "1.2.840.10008.1.2.1"
+                bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
+                loaded += 1
+        except Exception as exc:
+            logger.debug("Startup BOT preload: error for %s: %s", filename, exc)
+            errors += 1
+
+    elapsed = time.perf_counter() - t0
+    logger.info(
+        "Startup BOT preload complete: %d loaded, %d errors — %.1fs",
+        loaded, errors, elapsed,
+    )
 
 # ---------------------------------------------------------------------------
 # Gateway request counters
@@ -208,8 +275,19 @@ async def _lifespan(application: FastAPI):
         ),
     )
     task = asyncio.create_task(_metrics_reporter())
+
+    # Pre-warm the in-memory BOT cache from Lakebase in a background thread.
+    # The server starts serving requests immediately; the preload runs
+    # concurrently and completes within seconds for most deployments.
+    _preload_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bot-preload")
+    _preload_future = _preload_executor.submit(_startup_bot_preload)
+
     yield
+
+    # Graceful shutdown
     task.cancel()
+    _preload_future.cancel()
+    _preload_executor.shutdown(wait=False)
     await _http_client.aclose()
     _http_client = None
 

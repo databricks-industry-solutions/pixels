@@ -55,6 +55,50 @@ from .sql_client import DatabricksSQLClient, validate_table_name
 
 logger = LoggerProvider("DICOMweb.Wrapper")
 
+
+# ---------------------------------------------------------------------------
+# Fire-and-forget Lakebase touch helpers
+# ---------------------------------------------------------------------------
+# Touching last_used_at / access_count should never block a request.
+# Both helpers submit work to the prefetcher's thread pool so they share
+# the existing worker budget without spawning extra threads.
+
+def _touch_lakebase(lb, filename: str, uc_table: str) -> None:
+    """
+    Fire-and-forget: update ``last_used_at`` and increment ``access_count``
+    for *filename* in Lakebase.  Failures are logged at DEBUG level only.
+    """
+    def _run():
+        try:
+            lb.touch_frame_ranges(filename, uc_table)
+        except Exception as exc:
+            logger.debug(f"touch_frame_ranges non-fatal: {exc}")
+
+    try:
+        file_prefetcher._pool.submit(_run)
+    except Exception:
+        pass  # pool may be shut down; ignore
+
+
+def _touch_lakebase_batch(lb, filenames: list[str], uc_table: str) -> None:
+    """
+    Fire-and-forget batch variant for series-level BOT preloads.
+    """
+    if not filenames:
+        return
+
+    def _run():
+        try:
+            lb.touch_frame_ranges_batch(filenames, uc_table)
+        except Exception as exc:
+            logger.debug(f"touch_frame_ranges_batch non-fatal: {exc}")
+
+    try:
+        file_prefetcher._pool.submit(_run)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Module-level series pre-warming state
 # ---------------------------------------------------------------------------
@@ -586,6 +630,7 @@ class DICOMwebDatabricksWrapper:
                     bot_cache.put_from_lakebase(
                         filename, self._table, lb_frames, tsuid,
                     )
+                    _touch_lakebase(self._lb, filename, self._table)
                     return {
                         "file_path": path,
                         "transfer_syntax_uid": tsuid,
@@ -688,6 +733,7 @@ class DICOMwebDatabricksWrapper:
                         bot_cache.put_from_lakebase(
                             filename, self._table, lb_frames, tsuid,
                         )
+                        _touch_lakebase(self._lb, filename, self._table)
                         logger.debug("Promoted Lakebase → memory cache")
                         state = progressive_streamer.get_state(filename)
                         return (
@@ -1215,6 +1261,9 @@ class DICOMwebDatabricksWrapper:
                             tsuid = "1.2.840.10008.1.2.1"
                     bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
                     loaded_from_lb.add(filename)
+
+                if loaded_from_lb:
+                    _touch_lakebase_batch(self._lb, list(loaded_from_lb), uc_table)
             except Exception as exc:
                 logger.warning(f"BOT preload: Lakebase batch failed ({exc})")
 

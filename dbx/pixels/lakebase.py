@@ -769,6 +769,46 @@ class LakebaseUtils:
             for row in rows
         ]
 
+    def touch_frame_ranges_batch(
+        self,
+        filenames: list[str],
+        uc_table_name: str,
+        table: str = DICOM_FRAMES_TABLE,
+    ) -> int:
+        """
+        Update ``last_used_at`` and increment ``access_count`` for multiple
+        files in a single SQL statement.
+
+        Used after a batch BOT load from Lakebase (e.g. ``_preload_series_bots``)
+        to record accesses efficiently without N individual UPDATE calls.
+
+        Args:
+            filenames:     List of file paths to touch.
+            uc_table_name: Fully qualified UC table name.
+            table:         Lakebase table name (default: ``dicom_frames``).
+
+        Returns:
+            Number of rows updated.
+        """
+        if not filenames:
+            return 0
+        query = sql.SQL(
+            "UPDATE {table} "
+            "SET last_used_at = NOW(), access_count = access_count + 1 "
+            "WHERE filename = ANY(%s) AND uc_table_name = %s"
+        ).format(table=sql.Identifier(self.schema, table))
+        conn = None
+        try:
+            conn = self.connection.getconn()
+            with conn.cursor() as cursor:
+                cursor.execute(query, (filenames, uc_table_name))
+                updated = cursor.rowcount
+                conn.commit()
+            return updated
+        finally:
+            if conn:
+                self.connection.putconn(conn)
+
     def retrieve_frame_ranges_batch(
         self,
         filenames: list[str],
