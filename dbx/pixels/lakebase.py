@@ -1057,6 +1057,47 @@ class LakebaseUtils:
             for row in results
         }
 
+    def retrieve_instance_paths_by_local_paths(
+        self,
+        local_paths: list[str],
+        uc_table_name: str,
+        table: str = INSTANCE_PATHS_TABLE,
+    ) -> dict[str, dict]:
+        """
+        Retrieve SOP-instance-path entries for an arbitrary list of file paths.
+
+        Uses ``local_path = ANY(%s)`` (a single PostgreSQL array parameter) so
+        the call is safe and efficient even for tens of thousands of paths — the
+        typical use-case being the startup instance-path-cache preload that
+        derives its file list from the BOT priority list.
+
+        Args:
+            local_paths:    List of local DICOM file paths
+                            (same values stored in ``dicom_frames.filename``).
+            uc_table_name:  Fully-qualified UC table name.
+
+        Returns:
+            ``{sop_instance_uid: {"path": local_path, "num_frames": int}}``
+            for every path that has a matching row in the table.
+        """
+        if not local_paths:
+            return {}
+
+        query = sql.SQL(
+            "SELECT sop_instance_uid, local_path, num_frames "
+            "FROM {table} "
+            "WHERE local_path = ANY(%s) AND uc_table_name = %s"
+        ).format(table=sql.Identifier(self.schema, table))
+
+        rows = self.execute_and_fetch_query(query, (local_paths, uc_table_name))
+        if not rows:
+            return {}
+
+        return {
+            row[0]: {"path": row[1], "num_frames": int(row[2])}
+            for row in rows
+        }
+
     def insert_instance_paths_batch(
         self,
         entries: list[dict],

@@ -130,6 +130,34 @@ def _startup_bot_preload() -> None:
         loaded, errors, elapsed,
     )
 
+    # ── Instance-path cache preload ────────────────────────────────────────
+    # Re-use the same filename list: query instance_paths once with
+    # local_path = ANY(%s), then batch_put into instance_path_cache.
+    # This eliminates the first SQL-warehouse round-trip (~300 ms) for every
+    # instance whose BOT was just preloaded.
+    all_filenames = [e["filename"] for e in priority_list]
+    if all_filenames:
+        try:
+            from dbx.pixels.resources.dicom_web.utils.cache import instance_path_cache
+            t1 = time.perf_counter()
+            path_map = lb_utils.retrieve_instance_paths_by_local_paths(
+                all_filenames, uc_table
+            )
+            if path_map:
+                instance_path_cache.batch_put(uc_table, path_map)
+                logger.info(
+                    "Startup instance-path preload complete: %d entries — %.1fs",
+                    len(path_map),
+                    time.perf_counter() - t1,
+                )
+            else:
+                logger.info(
+                    "Startup instance-path preload: instance_paths table is empty "
+                    "or not yet synced — skipping"
+                )
+        except Exception as exc:
+            logger.warning("Startup instance-path preload failed (non-fatal): %s", exc)
+
 # ---------------------------------------------------------------------------
 # Gateway request counters
 # ---------------------------------------------------------------------------
