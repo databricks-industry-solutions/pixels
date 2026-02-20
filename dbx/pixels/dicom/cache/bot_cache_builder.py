@@ -324,11 +324,15 @@ def compute_bot_from_local_path(path: str) -> dict:
 _executor_lb_cache: dict = {}
 
 
-def _get_executor_lb(instance_name: str, uc_table_name: str):
+def _get_executor_lb(instance_name: str, uc_table_name: str, host:str, token: str):
     """Return a cached LakebaseUtils for the given parameters, creating one if needed."""
     key = f"{instance_name}::{uc_table_name}"
     if key not in _executor_lb_cache:
         from dbx.pixels.lakebase import LakebaseUtils
+        import os
+        os.environ['DATABRICKS_HOST'] = host
+        os.environ['DATABRICKS_TOKEN'] = token
+
         _executor_lb_cache[key] = LakebaseUtils(
             instance_name=instance_name,
             uc_table_name=uc_table_name,
@@ -392,6 +396,8 @@ class BOTCacheBuilder(Transformer):
         outputCol: str = "bot_cache_status",
         skip_existing: bool = True,
         filter_extension: str = ".dcm",
+        host: str = None,
+        token: str = None,
     ):
         self.uc_table_name = uc_table_name
         self.lakebase_instance_name = lakebase_instance_name
@@ -399,6 +405,8 @@ class BOTCacheBuilder(Transformer):
         self.outputCol = outputCol
         self.skip_existing = skip_existing
         self.filter_extension = filter_extension
+        self.host = host
+        self.token = token
 
     def _transform(self, df):
         uc_table_name = self.uc_table_name
@@ -410,7 +418,7 @@ class BOTCacheBuilder(Transformer):
         def _build_bot_udf(paths: pd.Series) -> pd.Series:
             import json
 
-            lb = _get_executor_lb(lakebase_instance_name, uc_table_name)
+            lb = _get_executor_lb(lakebase_instance_name, uc_table_name, host=self.host, token=self.token)
 
             results = []
             for path in paths:
@@ -459,7 +467,7 @@ class BOTCacheBuilder(Transformer):
             ext = filter_extension.lstrip(".").lower()
             input_df = df.filter(col("extension") == ext)
 
-        return input_df.withColumn(self.outputCol, _build_bot_udf(col(self.inputCol)))
+        return input_df.repartition(128).withColumn(self.outputCol, _build_bot_udf(col(self.inputCol)))
 
 
 # ---------------------------------------------------------------------------
