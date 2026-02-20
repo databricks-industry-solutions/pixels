@@ -585,26 +585,21 @@ class CachePriorityScorer:
         self,
         uc_table_name: str,
         limit: int = 10_000,
-        available_memory_bytes: Optional[int] = None,
     ) -> list[dict]:
         """
         Return files ordered by priority score, highest first.
 
-        Queries the ``dicom_frames`` Lakebase table and groups rows by
-        file, computing the score entirely in SQL for efficiency.
+        A single ``GROUP BY filename`` query computes the priority score
+        **and** aggregates all frame offset data inline via ``json_agg``,
+        so each returned entry can be passed directly to
+        ``BOTCache.put_from_lakebase`` without any further Lakebase queries.
 
         Parameters
         ----------
         uc_table_name:
             Fully qualified UC table name (``catalog.schema.table``).
         limit:
-            Maximum number of files to return.  Acts as a hard cap even when
-            *available_memory_bytes* is set.
-        available_memory_bytes:
-            Optional RAM budget.  When provided, the list is further trimmed
-            so that the estimated in-memory size does not exceed this budget.
-            Size is estimated as ``frame_count × 200`` bytes per file (rough
-            approximation of a BOT cache entry).
+            Maximum number of files to return.
 
         Returns
         -------
@@ -618,7 +613,11 @@ class CachePriorityScorer:
             * ``inserted_at``        — ``datetime``
             * ``access_count``       — total accesses
             * ``priority_score``     — computed priority (higher = better)
+            * ``frames``             — list of frame dicts ready for
+              ``BOTCache.put_from_lakebase`` (``frame_number``, ``start_pos``,
+              ``end_pos``, ``pixel_data_pos``)
         """
+        import json as _json
         from psycopg2 import sql
 
         w_used = self.weights["last_used"]
@@ -627,10 +626,6 @@ class CachePriorityScorer:
         hl_used = self.half_lives["last_used"] * 3600.0    # hours → seconds
         hl_ins = self.half_lives["inserted"] * 3600.0
 
-        # SQL expression for the priority score, computed per-filename group.
-        # EXP decay uses EXTRACT(EPOCH …) to get seconds, then divides by
-        # the half-life in seconds.  COALESCE handles NULL last_used_at by
-        # substituting a timestamp 30 days in the past (score = ~0).
         query = sql.SQL(
             """
             SELECT
@@ -652,7 +647,15 @@ class CachePriorityScorer:
                     )) / {hl_ins}
                   )
                 + {w_cnt}   * LOG(1 + SUM(access_count))
-                )                               AS priority_score
+                )                               AS priority_score,
+                json_agg(
+                    json_build_object(
+                        'frame_number',   frame,
+                        'start_pos',      start_pos,
+                        'end_pos',        end_pos,
+                        'pixel_data_pos', pixel_data_pos
+                    ) ORDER BY frame
+                )                               AS frames
             FROM {table}
             WHERE uc_table_name = %s
             GROUP BY filename
@@ -669,9 +672,12 @@ class CachePriorityScorer:
         )
 
         rows = self.lb.execute_and_fetch_query(query, (uc_table_name, limit))
-
-        results = [
-            {
+        results = []
+        for row in rows:
+            raw_frames = row[7]
+            if isinstance(raw_frames, str):
+                raw_frames = _json.loads(raw_frames)
+            results.append({
                 "filename": row[0],
                 "frame_count": int(row[1]),
                 "transfer_syntax_uid": row[2],
@@ -679,21 +685,6 @@ class CachePriorityScorer:
                 "inserted_at": row[4],
                 "access_count": int(row[5]),
                 "priority_score": float(row[6]),
-            }
-            for row in rows
-        ]
-
-        if available_memory_bytes is not None:
-            # Trim to memory budget: each file costs ~200 bytes per frame.
-            _BYTES_PER_FRAME_ESTIMATE = 200
-            budget = available_memory_bytes
-            trimmed = []
-            for entry in results:
-                cost = entry["frame_count"] * _BYTES_PER_FRAME_ESTIMATE
-                if cost > budget:
-                    break
-                trimmed.append(entry)
-                budget -= cost
-            return trimmed
-
+                "frames": raw_frames or [],
+            })
         return results

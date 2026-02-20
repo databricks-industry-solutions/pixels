@@ -710,9 +710,9 @@ class LakebaseUtils:
         * **access_count** — frequently accessed files are favoured via
           ``log(1 + n)`` so high counts do not completely dominate.
 
-        Caller responsibility: after consuming the list, use
-        ``BOTCache.put_from_lakebase`` to populate the in-memory cache for
-        each entry, stopping when the RAM budget is exhausted.
+        Each returned entry includes the full frame offset data aggregated
+        inline, so callers can pass ``entry["frames"]`` directly to
+        ``BOTCache.put_from_lakebase`` without issuing any additional queries.
 
         Args:
             uc_table_name: Fully qualified UC table name.
@@ -720,11 +720,15 @@ class LakebaseUtils:
             table:         Lakebase table name (default: ``dicom_frames``).
 
         Returns:
-            List of dicts, each with:
+            List of dicts ordered by priority score (highest first), each with:
             ``filename``, ``frame_count``, ``transfer_syntax_uid``,
             ``last_used_at``, ``inserted_at``, ``access_count``,
-            ``priority_score``.
+            ``priority_score``, and ``frames`` — a list of frame dicts
+            (``frame_number``, ``start_pos``, ``end_pos``, ``pixel_data_pos``)
+            ready for ``BOTCache.put_from_lakebase``.
         """
+        import json as _json
+
         query = sql.SQL(
             """
             SELECT
@@ -746,7 +750,15 @@ class LakebaseUtils:
                     )) / 604800.0
                   )
                 + 0.3 * LOG(1 + SUM(access_count))
-                )                               AS priority_score
+                )                               AS priority_score,
+                json_agg(
+                    json_build_object(
+                        'frame_number', frame,
+                        'start_pos',    start_pos,
+                        'end_pos',      end_pos,
+                        'pixel_data_pos', pixel_data_pos
+                    ) ORDER BY frame
+                )                               AS frames
             FROM {table}
             WHERE uc_table_name = %s
             GROUP BY filename
@@ -756,8 +768,14 @@ class LakebaseUtils:
         ).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
-        return [
-            {
+        results = []
+        for row in rows:
+            raw_frames = row[7]
+            # psycopg2 may return json_agg as a Python list (with json adapter)
+            # or as a raw JSON string (without one); handle both.
+            if isinstance(raw_frames, str):
+                raw_frames = _json.loads(raw_frames)
+            results.append({
                 "filename": row[0],
                 "frame_count": int(row[1]),
                 "transfer_syntax_uid": row[2],
@@ -765,9 +783,9 @@ class LakebaseUtils:
                 "inserted_at": row[4],
                 "access_count": int(row[5]),
                 "priority_score": float(row[6]),
-            }
-            for row in rows
-        ]
+                "frames": raw_frames or [],
+            })
+        return results
 
     def touch_frame_ranges_batch(
         self,

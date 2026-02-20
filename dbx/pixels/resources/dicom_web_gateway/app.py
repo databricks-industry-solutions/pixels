@@ -113,12 +113,13 @@ def _startup_bot_preload() -> None:
 
     for entry in priority_list:
         filename = entry["filename"]
+        frames = entry.get("frames") or []
+        if not frames:
+            continue
         try:
-            frames = lb_utils.retrieve_all_frame_ranges(filename, uc_table)
-            if frames:
-                tsuid = entry.get("transfer_syntax_uid") or "1.2.840.10008.1.2.1"
-                bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
-                loaded += 1
+            tsuid = entry.get("transfer_syntax_uid") or "1.2.840.10008.1.2.1"
+            bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
+            loaded += 1
         except Exception as exc:
             logger.debug("Startup BOT preload: error for %s: %s", filename, exc)
             errors += 1
