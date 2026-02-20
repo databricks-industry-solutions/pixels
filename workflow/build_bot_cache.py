@@ -26,7 +26,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install psycopg2-binary pydicom --quiet
+# MAGIC %pip install psycopg2-binary pydicom databricks-sdk==0.88 --quiet
 # MAGIC dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -57,21 +57,26 @@ print(f"Skip existing    : {skip_existing}")
 
 # COMMAND ----------
 
+import os
 from dbx.pixels.dicom.cache import BOTCacheBuilder
 
 df = spark.read.table(table)
+
+host = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get()
+token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
 
 result_df = (
     BOTCacheBuilder(
         uc_table_name=table,
         lakebase_instance_name=lakebase_instance,
         skip_existing=skip_existing,
+        host=host,
+        token=token
     )
     .transform(df)
 )
 
 # Trigger computation and cache results for the summary below.
-result_df.cache()
 result_df.count()
 
 # COMMAND ----------
