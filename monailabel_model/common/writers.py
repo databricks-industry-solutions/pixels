@@ -90,7 +90,7 @@ class HighDicomSegWriter(ImageWriter):
         if channel_dim is not None and data_array.ndim > 3:
             data_array = np.take(data_array, 0, axis=channel_dim)
 
-        self.data_obj = data_array.astype(self.output_dtype)
+        self.data_obj = np.ascontiguousarray(data_array.astype(self.output_dtype))
 
     def set_metadata(self, meta_dict: Optional[Mapping] = None, **options):
         """
@@ -263,6 +263,7 @@ class HighDicomSegWriter(ImageWriter):
 
         # pixel_array shape: (frames, rows, cols, num_segments)
         pixel_array = np.stack(binary_segments, axis=-1)
+        pixel_array = np.ascontiguousarray(pixel_array)
 
         # ---- create DICOM SEG with highdicom ----------------------------
         seg = hd.seg.Segmentation(
@@ -281,6 +282,7 @@ class HighDicomSegWriter(ImageWriter):
             content_description=content_description,
             content_creator_name="MONAI Label",
             series_description=series_description,
+            transfer_syntax_uid=pydicom.uid.JPEG2000Lossless
         )
 
         seg.save_as(str(filename))
@@ -373,7 +375,7 @@ class HighDicomSegWriter(ImageWriter):
 
         # SimpleITK images are indexed (x, y, z) but GetArrayFromImage
         # returns (z, y, x).  We need to pass the array in (z, y, x) order.
-        seg_sitk = sitk.GetImageFromArray(seg_array.astype(np.uint8))
+        seg_sitk = sitk.GetImageFromArray(np.ascontiguousarray(seg_array.astype(np.uint8)))
         seg_sitk.SetSpacing(spacing.tolist())
         seg_sitk.SetDirection(direction)
         seg_sitk.SetOrigin(origin)

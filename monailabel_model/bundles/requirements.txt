@@ -28,3 +28,4 @@ cucim-cu12
 huggingface_hub
 simpleitk
 databricks-sdk==0.84
+pylibjpeg-openjpeg
