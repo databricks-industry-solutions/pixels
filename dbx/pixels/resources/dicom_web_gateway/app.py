@@ -12,10 +12,49 @@ handlers in-process.  No Model Serving endpoint is involved.
 
 Environment variables (set in ``app.yml``)::
 
-    DATABRICKS_WAREHOUSE_ID     SQL warehouse for QIDO-RS queries
-    DATABRICKS_PIXELS_TABLE     Fully-qualified UC table (catalog.schema.table)
-    LAKEBASE_INSTANCE_NAME      Lakebase instance for tier-2 caching
-    DATABRICKS_STOW_VOLUME_PATH Base Volumes path for STOW-RS uploads
+    # ── Required ────────────────────────────────────────────────────────────
+    DATABRICKS_WAREHOUSE_ID         SQL warehouse for QIDO-RS queries
+    DATABRICKS_PIXELS_TABLE         Fully-qualified UC table (catalog.schema.table)
+
+    # ── Lakebase (tier-2 persistent cache) ──────────────────────────────────
+    LAKEBASE_INSTANCE_NAME          Lakebase instance name
+                                    (default: "pixels-lakebase")
+    LAKEBASE_INIT_DB                Run DDL migrations on startup — set to
+                                    "true" on first deploy or after a schema
+                                    change (default: disabled)
+
+    # ── STOW-RS ─────────────────────────────────────────────────────────────
+    DATABRICKS_STOW_VOLUME_PATH     Base Volumes path for STOW-RS uploads
+
+    # ── In-memory caches ────────────────────────────────────────────────────
+    PIXELS_BOT_CACHE_MAX_ENTRIES    Max BOT (frame-offset) cache entries
+                                    (default: 100 000, ~1 GB)
+    PIXELS_PATH_CACHE_MAX_ENTRIES   Max instance-path cache entries
+                                    (default: 100 000, ~20 MB)
+
+    # ── File prefetcher (async Volumes read-ahead) ───────────────────────────
+    PIXELS_PREFETCH_ENABLED         Enable background prefetch of full DICOM
+                                    files into RAM (default: false)
+    PIXELS_PREFETCH_RAM_RATIO       Fraction of total RAM reserved for the
+                                    prefetch buffer when no explicit cap is set
+                                    (default: 0.50)
+    PIXELS_PREFETCH_MAX_MEMORY_MB   Hard cap on prefetch buffer in MB —
+                                    overrides PIXELS_PREFETCH_RAM_RATIO
+    PIXELS_PREFETCH_MAX_FILE_MB     Skip prefetching files larger than this
+                                    (default: 512 MB)
+
+    # ── Disk frame cache (local SSD) ────────────────────────────────────────
+    PIXELS_FRAME_CACHE_DIR          Directory for the on-disk frame cache
+                                    (default: /tmp/pixels_frame_cache)
+    PIXELS_FRAME_CACHE_MAX_GB       Maximum size of the on-disk cache in GB
+                                    (default: 10 GB)
+
+    # ── Gateway tuning ───────────────────────────────────────────────────────
+    DICOMWEB_MAX_CONNECTIONS        Max concurrent outbound connections to
+                                    Volumes (default: 200)
+    DICOMWEB_MAX_KEEPALIVE          Max keep-alive connections (default: 100)
+    DICOMWEB_METRICS_INTERVAL       Seconds between metrics snapshots pushed
+                                    to the metrics store (default: 1)
 """
 
 import asyncio
