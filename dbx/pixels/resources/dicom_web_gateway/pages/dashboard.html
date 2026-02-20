@@ -195,6 +195,60 @@
             grid-column: 1 / -1;
         }
 
+        /* ── Time-window selector ─────────────────────────────── */
+
+        .window-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .window-label {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .window-selector {
+            display: flex;
+            gap: 0;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+            padding: 3px;
+            backdrop-filter: blur(12px);
+        }
+
+        .win-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.35rem 1rem;
+            border-radius: 1.5rem;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .win-btn:hover:not(.active) {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .win-btn.active {
+            background: var(--primary);
+            color: #0f172a;
+            font-weight: 600;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+        }
+
         footer {
             margin-top: 2rem;
             color: var(--text-dim);
@@ -225,6 +279,16 @@
             <span id="status-text">Connecting&hellip;</span>
         </div>
         <span id="timestamp">&mdash;</span>
+    </div>
+
+    <div class="window-bar">
+        <span class="window-label">View</span>
+        <div class="window-selector">
+            <button class="win-btn active" data-window="5m">5 min</button>
+            <button class="win-btn" data-window="30m">30 min</button>
+            <button class="win-btn" data-window="1h">1 hour</button>
+            <button class="win-btn" data-window="8h">8 hours</button>
+        </div>
     </div>
 
     <!-- ── Request Metrics ────────────────────────────────────── -->
@@ -355,7 +419,21 @@
         /* ── Configuration ──────────────────────────────────────── */
 
         var REST_ENDPOINT = '/api/metrics';
-        var MAX_POINTS = 60;
+        var MAX_POINTS = 300;
+
+        /* ── Time-window state ──────────────────────────────────── */
+
+        var selectedWindow = '5m';
+
+        // Seconds in each window + how often (ms) to auto-refresh via REST
+        var WINDOW_CFG = {
+            '5m':  { seconds: 300,   refresh: null   },
+            '30m': { seconds: 1800,  refresh: 30000  },
+            '1h':  { seconds: 3600,  refresh: 60000  },
+            '8h':  { seconds: 28800, refresh: 300000 }
+        };
+
+        var windowRefreshTimer = null;
 
         /* ── WebSocket state ────────────────────────────────────── */
 
@@ -368,14 +446,22 @@
         /* ── Time-series buffers ───────────────────────────────── */
 
         var labels = [];
-        var gwBuf = { req: [], err: [], lat: [] };
-        var cpuBuf = { proc: [], sys: [] };
-        var memBuf = { rss: [], sysPct: [] };
+        var gwBuf   = { req: [], err: [], lat: [] };
+        var cpuBuf  = { proc: [], sys: [] };
+        var memBuf  = { rss: [], sysPct: [] };
         var cacheBuf = { botHit: [], pathHit: [], botEntries: [], pathEntries: [], pfCached: [] };
 
-        function pushBuf(arr, val) {
-            arr.push(val);
-            if (arr.length > MAX_POINTS) arr.shift();
+        var ALL_BUFS = [
+            labels,
+            gwBuf.req, gwBuf.err, gwBuf.lat,
+            cpuBuf.proc, cpuBuf.sys,
+            memBuf.rss, memBuf.sysPct,
+            cacheBuf.botHit, cacheBuf.pathHit,
+            cacheBuf.botEntries, cacheBuf.pathEntries, cacheBuf.pfCached
+        ];
+
+        function clearBuffers() {
+            ALL_BUFS.forEach(function (a) { a.length = 0; });
         }
 
         /* ── DOM helpers ────────────────────────────────────────── */
@@ -408,6 +494,19 @@
         function parseHitRate(str) {
             if (!str || str === 'N/A') return 0;
             return parseFloat(str.replace('%', '')) || 0;
+        }
+
+        /* ── Timestamp formatting ───────────────────────────────── */
+
+        function fmtTs(isoStr) {
+            var d = isoStr ? new Date(isoStr) : new Date();
+            if (selectedWindow === '5m') {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+            if (selectedWindow === '8h') {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
 
         /* ── Chart.js setup ─────────────────────────────────────── */
@@ -555,71 +654,78 @@
 
         var allCharts = [chartThroughput, chartLatency, chartCpu, chartMemory, chartHitRate, chartEntries];
 
-        /* ── Dashboard update (shared by WS and REST) ───────────── */
+        /* ── Append a single row to all rolling buffers ─────────── */
 
-        function updateDashboard(data) {
-            var gRows = data.gateway || [];
+        function appendRowToBuffers(row) {
+            var gm = row.metrics || {};
+            var ts = fmtTs(row.recorded_at);
 
-            /* ── Timestamp label ─────────────────────────────────── */
-            var now = new Date().toLocaleTimeString([], {
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
-            labels.push(now);
-            if (labels.length > MAX_POINTS) labels.shift();
-
-            /* ── Gateway request data ─────────────────────────────── */
-            var gLatest = gRows.length ? gRows[0] : null;
-            var reqCount = 0, errCount = 0, avgLat = 0;
-            var sys = null, caches = null;
-
-            if (gLatest) {
-                var gm = gLatest.metrics;
-                reqCount = gm.request_count || 0;
-                errCount = gm.error_count || 0;
-                avgLat = Math.round((gm.avg_latency_s || 0) * 1000);
-                sys = gm.system || null;
-                caches = gm.caches || null;
-
-                if (gLatest.recorded_at) {
-                    document.getElementById('timestamp').innerText =
-                        new Date(gLatest.recorded_at).toLocaleTimeString();
-                }
+            if (labels.length >= MAX_POINTS) {
+                ALL_BUFS.forEach(function (a) { a.shift(); });
             }
 
-            if (data.system) sys = data.system;
-            if (data.caches) caches = data.caches;
+            labels.push(ts);
+            gwBuf.req.push(gm.request_count || 0);
+            gwBuf.err.push(gm.error_count || 0);
+            gwBuf.lat.push(Math.round((gm.avg_latency_s || 0) * 1000));
 
-            pushBuf(gwBuf.req, reqCount);
-            pushBuf(gwBuf.err, errCount);
-            pushBuf(gwBuf.lat, avgLat);
+            var sys = gm.system || {};
+            cpuBuf.proc.push(sys.cpu_percent_process || 0);
+            cpuBuf.sys.push(sys.cpu_percent_system || 0);
+            memBuf.rss.push(sys.memory_rss_mb || 0);
+            memBuf.sysPct.push(sys.system_memory_used_percent || 0);
 
-            /* ── Request KPIs ─────────────────────────────────────── */
+            var caches = gm.caches || {};
+            var botStats  = caches.bot_cache          || {};
+            var pathStats = caches.instance_path_cache || {};
+            var pfStats   = caches.prefetcher          || {};
+            cacheBuf.botHit.push(parseHitRate(botStats.hit_rate));
+            cacheBuf.pathHit.push(parseHitRate(pathStats.hit_rate));
+            cacheBuf.botEntries.push(botStats.entries || 0);
+            cacheBuf.pathEntries.push(pathStats.entries || 0);
+            cacheBuf.pfCached.push(pfStats.cached || pfStats.done || 0);
+        }
+
+        /* ── Rebuild charts from a historical batch ─────────────── */
+
+        function rebuildFromHistory(rows) {
+            // rows comes DESC (newest first) from the API — reverse for display
+            var chronoRows = rows.slice().reverse();
+            clearBuffers();
+            chronoRows.forEach(appendRowToBuffers);
+            allCharts.forEach(function (ch) { ch.update('none'); });
+        }
+
+        /* ── Update KPI tiles from a metrics snapshot ────────────── */
+
+        function updateKpis(gm, sys, caches) {
+            gm = gm || {};
+            var reqCount = gm.request_count || 0;
+            var errCount = gm.error_count   || 0;
+            var avgLat   = Math.round((gm.avg_latency_s || 0) * 1000);
+
             setKpi('kpi-req', reqCount, reqCount > 0 ? 'good' : null);
             setKpi('kpi-err', errCount,
                 errCount === 0 ? 'good' : errCount < 5 ? 'warn' : 'bad');
             setKpi('kpi-lat', avgLat + ' ms',
                 avgLat < 100 ? 'good' : avgLat < 500 ? 'warn' : 'bad');
 
-            var errRate = reqCount > 0
-                ? ((errCount / reqCount) * 100).toFixed(1) + '%'
-                : '0%';
             var errRatePct = reqCount > 0 ? (errCount / reqCount) * 100 : 0;
-            setKpi('kpi-erate', errRate,
+            setKpi('kpi-erate', errRatePct.toFixed(1) + '%',
                 errRatePct < 1 ? 'good' : errRatePct < 5 ? 'warn' : 'bad');
 
-            /* ── System KPIs ──────────────────────────────────────── */
             var cpuProc = 0, cpuSys = 0, memRss = 0, memVms = 0;
-            var sysMemPct = 0, sysMemAvail = 0, threads = 0, conns = 0;
+            var sysMemPct = 0, sysMemAvail = 0, threads = 0, conns = 'N/A';
 
             if (sys) {
-                cpuProc = sys.cpu_percent_process || 0;
-                cpuSys = sys.cpu_percent_system || 0;
-                memRss = sys.memory_rss_mb || 0;
-                memVms = sys.memory_vms_mb || 0;
-                sysMemPct = sys.system_memory_used_percent || 0;
+                cpuProc    = sys.cpu_percent_process       || 0;
+                cpuSys     = sys.cpu_percent_system        || 0;
+                memRss     = sys.memory_rss_mb             || 0;
+                memVms     = sys.memory_vms_mb             || 0;
+                sysMemPct  = sys.system_memory_used_percent  || 0;
                 sysMemAvail = sys.system_memory_available_mb || 0;
-                threads = sys.threads_active || 0;
-                conns = sys.network_connections;
+                threads    = sys.threads_active            || 0;
+                conns      = sys.network_connections;
                 if (conns < 0) conns = 'N/A';
             }
 
@@ -635,17 +741,11 @@
             setKpi('kpi-threads', threads, null);
             setKpi('kpi-conns', conns, null);
 
-            pushBuf(cpuBuf.proc, cpuProc);
-            pushBuf(cpuBuf.sys, cpuSys);
-            pushBuf(memBuf.rss, memRss);
-            pushBuf(memBuf.sysPct, sysMemPct);
-
-            /* ── Cache KPIs ───────────────────────────────────────── */
-            var botStats = (caches && caches.bot_cache) || {};
+            var botStats  = (caches && caches.bot_cache)           || {};
             var pathStats = (caches && caches.instance_path_cache) || {};
-            var pfStats = (caches && caches.prefetcher) || {};
+            var pfStats   = (caches && caches.prefetcher)          || {};
 
-            var botHitPct = parseHitRate(botStats.hit_rate);
+            var botHitPct  = parseHitRate(botStats.hit_rate);
             var pathHitPct = parseHitRate(pathStats.hit_rate);
 
             setKpi('kpi-bot-entries', botStats.entries || 0, null);
@@ -660,31 +760,99 @@
                 pathHitPct > 80 ? 'good' : pathHitPct > 50 ? 'warn' : pathHitPct > 0 ? 'bad' : null);
             setSub('kpi-path-hm-sub', (pathStats.hits || 0) + ' hits / ' + (pathStats.misses || 0) + ' miss');
 
-            var pfCached = pfStats.cached || pfStats.done || 0;
-            var pfPending = pfStats.pending || 0;
-            var pfMemUsed = pfStats.memory_used_mb || 0;
+            var pfCached    = pfStats.cached || pfStats.done || 0;
+            var pfPending   = pfStats.pending || 0;
+            var pfMemUsed   = pfStats.memory_used_mb   || 0;
             var pfMemBudget = pfStats.memory_budget_mb || 0;
 
             setKpi('kpi-pf-cached', pfCached, null);
             setSub('kpi-pf-pending-sub', pfPending + ' pending, ' + (pfStats.evicted || 0) + ' evicted');
             setKpi('kpi-pf-mem', pfMemUsed + ' MB', null);
             setSub('kpi-pf-budget-sub', 'budget: ' + pfMemBudget + ' MB');
+        }
 
-            pushBuf(cacheBuf.botHit, botHitPct);
-            pushBuf(cacheBuf.pathHit, pathHitPct);
-            pushBuf(cacheBuf.botEntries, botStats.entries || 0);
-            pushBuf(cacheBuf.pathEntries, pathStats.entries || 0);
-            pushBuf(cacheBuf.pfCached, pfCached);
+        /* ── WebSocket live-update handler ──────────────────────── */
 
-            /* ── Sync all charts ──────────────────────────────────── */
+        function updateDashboard(data) {
+            var gRows  = data.gateway || [];
+            var gLatest = gRows.length ? gRows[0] : null;
+
+            if (gLatest) {
+                appendRowToBuffers(gLatest);
+                if (gLatest.recorded_at) {
+                    document.getElementById('timestamp').innerText =
+                        new Date(gLatest.recorded_at).toLocaleTimeString();
+                }
+            }
+
+            var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
+            var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
+            updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
+
             allCharts.forEach(function (ch) { ch.update('none'); });
             setStatus('connected');
         }
 
-        /* ── REST fallback ──────────────────────────────────────── */
+        /* ── REST history fetch (window selector) ───────────────── */
+
+        function fetchWindowData(win) {
+            fetch(REST_ENDPOINT + '?window=' + win, { credentials: 'include' })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    var gRows = data.gateway || [];
+                    if (gRows.length) {
+                        rebuildFromHistory(gRows);
+                        var gLatest = gRows[0];
+                        if (gLatest && gLatest.recorded_at) {
+                            document.getElementById('timestamp').innerText =
+                                new Date(gLatest.recorded_at).toLocaleTimeString();
+                        }
+                        var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
+                        var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
+                        updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
+                    }
+                    setStatus('connected');
+                })
+                .catch(function () { setStatus('disconnected'); });
+        }
+
+        /* ── Window selector logic ──────────────────────────────── */
+
+        function selectWindow(win) {
+            selectedWindow = win;
+
+            document.querySelectorAll('.win-btn').forEach(function (btn) {
+                btn.classList.toggle('active', btn.dataset.window === win);
+            });
+
+            if (windowRefreshTimer) {
+                clearTimeout(windowRefreshTimer);
+                windowRefreshTimer = null;
+            }
+
+            fetchWindowData(win);
+
+            var cfg = WINDOW_CFG[win];
+            if (cfg && cfg.refresh) {
+                (function schedule() {
+                    windowRefreshTimer = setTimeout(function () {
+                        if (selectedWindow === win) {
+                            fetchWindowData(win);
+                            schedule();
+                        }
+                    }, cfg.refresh);
+                })();
+            }
+        }
+
+        document.querySelectorAll('.win-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () { selectWindow(btn.dataset.window); });
+        });
+
+        /* ── REST fallback (when WebSocket is down) ─────────────── */
 
         function fetchRest() {
-            fetch(REST_ENDPOINT, { credentials: 'include' })
+            fetch(REST_ENDPOINT + '?window=5m', { credentials: 'include' })
                 .then(function (res) { return res.json(); })
                 .then(updateDashboard)
                 .catch(function () { setStatus('disconnected'); });
@@ -726,6 +894,9 @@
             reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
         }
 
+        /* ── Bootstrap ──────────────────────────────────────────── */
+
+        fetchWindowData('5m');
         connectWebSocket();
     </script>
 

@@ -23,7 +23,8 @@ logger = logging.getLogger("DICOMweb.Gateway.MetricsStore")
 _DEFAULT_DATABASE = "databricks_postgres"
 _DEFAULT_SCHEMA = "pixels"
 _METRICS_TABLE = "endpoint_metrics"
-_RETENTION_HOURS = 24
+_RETENTION_HOURS = 168  # 7 days
+_MAX_FETCH_ROWS = 30_000  # hard cap per query to avoid huge result sets
 
 # Credentials are refreshed 5 min before the 1-hour token lifetime expires.
 _TOKEN_LIFETIME = 3600
@@ -137,24 +138,49 @@ class MetricsStore:
         self,
         source: str | None = None,
         limit: int = 60,
+        since: datetime | None = None,
+        max_points: int | None = None,
     ) -> list[dict]:
-        """Return the most recent metrics rows."""
+        """Return metrics rows, optionally filtered to a time window and downsampled.
+
+        Parameters
+        ----------
+        source:
+            Filter by source name (e.g. ``"gateway"``).
+        limit:
+            Maximum rows to return when *since* is not set.
+        since:
+            If given, return all rows with ``recorded_at >= since`` (up to
+            ``_MAX_FETCH_ROWS``).
+        max_points:
+            If given and the result has more rows than this, downsample
+            uniformly to ``max_points`` entries before returning.
+        """
         conn = self._get_conn()
         with conn.cursor() as cur:
+            conditions: list[str] = []
+            params: list = []
+
             if source:
-                cur.execute(
-                    f"SELECT source, recorded_at, metrics "
-                    f"FROM {self._schema}.{_METRICS_TABLE} "
-                    "WHERE source = %s ORDER BY recorded_at DESC LIMIT %s",
-                    (source, limit),
-                )
+                conditions.append("source = %s")
+                params.append(source)
+            if since is not None:
+                conditions.append("recorded_at >= %s")
+                params.append(since)
+
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+            if since is not None:
+                params.append(_MAX_FETCH_ROWS)
             else:
-                cur.execute(
-                    f"SELECT source, recorded_at, metrics "
-                    f"FROM {self._schema}.{_METRICS_TABLE} "
-                    "ORDER BY recorded_at DESC LIMIT %s",
-                    (limit,),
-                )
+                params.append(limit)
+
+            cur.execute(
+                f"SELECT source, recorded_at, metrics "
+                f"FROM {self._schema}.{_METRICS_TABLE} "
+                f"{where} ORDER BY recorded_at DESC LIMIT %s",
+                params,
+            )
             conn.commit()
             rows = cur.fetchall()
 
@@ -165,6 +191,11 @@ class MetricsStore:
                 "recorded_at": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
                 "metrics": m if isinstance(m, dict) else {},
             })
+
+        if max_points and len(results) > max_points:
+            step = len(results) / max_points
+            results = [results[int(i * step)] for i in range(max_points)]
+
         return results
 
 

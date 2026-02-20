@@ -73,7 +73,7 @@ import os
 import threading
 import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
@@ -322,7 +322,7 @@ async def _metrics_reporter():
             payload: dict = {"gateway": []}
             if store:
                 try:
-                    rows = store.get_latest_metrics(source="gateway", limit=300)
+                    rows = store.get_latest_metrics(source="gateway", limit=1)
                     payload["gateway"] = rows
                 except Exception as exc:
                     logger.error("Lakebase read for WS broadcast: %s", exc)
@@ -527,18 +527,42 @@ def dicomweb_root():
 
 # ── Monitoring ───────────────────────────────────────────────────────────
 
+_METRICS_WINDOWS: dict[str, int] = {
+    "5m":  5 * 60,
+    "30m": 30 * 60,
+    "1h":  60 * 60,
+    "8h":  8 * 60 * 60,
+}
+
+
 @app.get("/api/metrics", tags=["Monitoring"])
-def metrics():
-    """Return the latest gateway metrics (via Lakebase) plus live system snapshot."""
+def metrics(window: str = "5m"):
+    """Return gateway metrics for the requested time window.
+
+    Query parameters
+    ----------------
+    window : str
+        One of ``5m`` (5 minutes), ``30m`` (30 minutes), ``1h`` (1 hour),
+        or ``8h`` (8 hours).  Defaults to ``5m``.  Results are downsampled
+        to at most 300 data points so the response stays lean.
+    """
+    delta_s = _METRICS_WINDOWS.get(window, _METRICS_WINDOWS["5m"])
+    since = datetime.now(timezone.utc) - timedelta(seconds=delta_s)
+
     store = get_store()
-    rows = []
+    rows: list = []
     if store:
         try:
-            rows = store.get_latest_metrics(source="gateway", limit=300)
+            rows = store.get_latest_metrics(
+                source="gateway",
+                since=since,
+                max_points=300,
+            )
         except Exception as exc:
             logger.error("Metrics Lakebase read: %s", exc)
     return JSONResponse(content={
         "gateway": rows,
+        "window": window,
         "system": _collect_system_metrics(),
         "caches": _collect_cache_metrics(),
     })
