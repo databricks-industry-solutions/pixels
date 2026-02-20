@@ -727,17 +727,21 @@ class LakebaseUtils:
             (``frame_number``, ``start_pos``, ``end_pos``, ``pixel_data_pos``)
             ready for ``BOTCache.put_from_lakebase``.
         """
-        import json as _json
-
+        # Four parallel array_agg columns (one per integer field) instead of
+        # json_agg.  psycopg2 always adapts PostgreSQL integer arrays to Python
+        # lists natively — no JSON adapter registration is needed, so this
+        # avoids the json_agg / OID-114 deserialization issue where psycopg2
+        # may return the json type as Python None if the JSON adapter is not
+        # registered in the connection context.
         query = sql.SQL(
             """
             SELECT
                 filename,
-                COUNT(*)                        AS frame_count,
-                MAX(transfer_syntax_uid)        AS transfer_syntax_uid,
-                MAX(last_used_at)               AS last_used_at,
-                MIN(inserted_at)                AS inserted_at,
-                SUM(access_count)               AS access_count,
+                COUNT(*)                             AS frame_count,
+                MAX(transfer_syntax_uid)             AS transfer_syntax_uid,
+                MAX(last_used_at)                    AS last_used_at,
+                MIN(inserted_at)                     AS inserted_at,
+                SUM(access_count)                    AS access_count,
                 (
                   0.5 * EXP(
                     -EXTRACT(EPOCH FROM (
@@ -750,15 +754,11 @@ class LakebaseUtils:
                     )) / 604800.0
                   )
                 + 0.3 * LOG(1 + SUM(access_count))
-                )                               AS priority_score,
-                json_agg(
-                    json_build_object(
-                        'frame_number', frame,
-                        'start_pos',    start_pos,
-                        'end_pos',      end_pos,
-                        'pixel_data_pos', pixel_data_pos
-                    ) ORDER BY frame
-                )                               AS frames
+                )                                    AS priority_score,
+                array_agg(frame           ORDER BY frame) AS frame_numbers,
+                array_agg(start_pos       ORDER BY frame) AS start_positions,
+                array_agg(end_pos         ORDER BY frame) AS end_positions,
+                array_agg(pixel_data_pos  ORDER BY frame) AS pixel_data_positions
             FROM {table}
             WHERE uc_table_name = %s
             GROUP BY filename
@@ -770,11 +770,19 @@ class LakebaseUtils:
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
         for row in rows:
-            raw_frames = row[7]
-            # psycopg2 may return json_agg as a Python list (with json adapter)
-            # or as a raw JSON string (without one); handle both.
-            if isinstance(raw_frames, str):
-                raw_frames = _json.loads(raw_frames)
+            frame_numbers     = row[7] or []
+            start_positions   = row[8] or []
+            end_positions     = row[9] or []
+            pixel_data_pos_list = row[10] or []
+            frames = [
+                {
+                    "frame_number":   int(frame_numbers[i]),
+                    "start_pos":      int(start_positions[i]),
+                    "end_pos":        int(end_positions[i]),
+                    "pixel_data_pos": int(pixel_data_pos_list[i]),
+                }
+                for i in range(len(frame_numbers))
+            ]
             results.append({
                 "filename": row[0],
                 "frame_count": int(row[1]),
@@ -783,7 +791,7 @@ class LakebaseUtils:
                 "inserted_at": row[4],
                 "access_count": int(row[5]),
                 "priority_score": float(row[6]),
-                "frames": raw_frames or [],
+                "frames": frames,
             })
         return results
 
