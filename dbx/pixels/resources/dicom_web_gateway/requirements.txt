@@ -12,3 +12,8 @@ pydicom>=2.4.0
 pylibjpeg
 pylibjpeg-libjpeg
 pylibjpeg-openjpeg
+# Direct cloud upload (Unity Catalog credential vending) — optional
+# At least one of the three is required depending on the cloud provider:
+boto3>=1.26.0                   # AWS S3
+azure-storage-blob>=12.19.0     # Azure ADLS Gen2
+google-cloud-storage>=2.10.0    # GCP GCS

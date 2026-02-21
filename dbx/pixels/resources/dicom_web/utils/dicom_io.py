@@ -394,7 +394,13 @@ async def async_stream_to_volumes(
     content_length: int | None = None,
 ) -> int:
     """
-    Stream an async byte stream directly to a Databricks Volume path.
+    Stream an async byte stream to a Databricks Volume path.
+
+    When ``STOW_DIRECT_CLOUD_UPLOAD=true`` and the Volume is an External
+    Volume, the upload bypasses the Databricks Files API and writes
+    directly to S3 / ADLS / GCS via Unity Catalog credential vending.
+    Falls back to the Files API transparently on any error (e.g. Managed
+    Volume or missing ``EXTERNAL USE LOCATION`` privilege).
 
     Uses the same ``build_request`` → ``send`` — the request body is piped
     chunk-by-chunk to the Volumes Files API with **O(chunk_size)** memory.
@@ -429,6 +435,22 @@ async def async_stream_to_volumes(
         .replace("http://", "")
         .rstrip("/")
     )
+
+    # ── Direct cloud upload fast path (External Volumes only) ─────────────
+    from .cloud_direct_upload import DIRECT_UPLOAD_ENABLED, async_direct_volumes_upload
+    if DIRECT_UPLOAD_ENABLED:
+        try:
+            return await async_direct_volumes_upload(
+                token, host, volume_path, body_stream, content_length,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Direct cloud upload failed (%s) — falling back to Files API: %s",
+                type(exc).__name__, exc,
+            )
+            # body_stream may be partially consumed; the Files API fallback
+            # below will receive whatever remains (or raise its own error).
+
     api_path = volume_path.lstrip("/")
     url = f"https://{host}/api/2.0/fs/files/{api_path}"
 

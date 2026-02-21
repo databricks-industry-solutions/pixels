@@ -336,39 +336,64 @@ async def _upload_one_part(
         api_path = dest_path.lstrip("/")
         url = f"https://{host}/api/2.0/fs/files/{api_path}"
 
-        # -- Phase 2: stream to Volumes ------------------------------------
-        total_size = 0
+        # -- Phase 2: stream to storage ------------------------------------
+        total_size = len(header_buf)
 
-        async def _upload_body():
-            nonlocal total_size
-            total_size += len(header_buf)
+        extra_bytes = [0]  # mutable container so inner generator can accumulate
+
+        async def _part_stream():
+            """Yield buffered header then remaining body chunks."""
             yield bytes(header_buf)
             if has_more:
                 try:
                     while True:
                         chunk = await body_gen.__anext__()
-                        total_size += len(chunk)
+                        extra_bytes[0] += len(chunk)
                         yield chunk
                 except StopAsyncIteration:
                     pass
 
-        rp_req = client.build_request(
-            "PUT",
-            url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/octet-stream",
-            },
-            content=_upload_body(),
-        )
-        async with _get_upload_semaphore():
-            response = await client.send(rp_req)
+        # ── Direct cloud upload fast path ──────────────────────────────
+        from .cloud_direct_upload import DIRECT_UPLOAD_ENABLED, async_stream_to_cloud, resolve_cloud_url, get_temp_credentials
+        _direct_ok = False
+        if DIRECT_UPLOAD_ENABLED:
+            try:
+                _h = (
+                    os.environ.get("DATABRICKS_HOST", "")
+                    .replace("https://", "").replace("http://", "").rstrip("/")
+                )
+                cloud_url = await asyncio.to_thread(resolve_cloud_url, _h, token, dest_path)
+                creds = await asyncio.to_thread(get_temp_credentials, _h, token, cloud_url)
+                from .cloud_direct_upload import async_stream_to_cloud
+                await async_stream_to_cloud(token, _h, cloud_url, _part_stream())
+                _direct_ok = True
+            except Exception as exc:
+                logger.warning(
+                    "Direct cloud upload failed (%s) — falling back to Files API: %s",
+                    type(exc).__name__, exc,
+                )
 
-        if response.status_code not in (200, 204):
-            raise RuntimeError(
-                f"Volumes PUT failed (HTTP {response.status_code}): "
-                f"{response.text[:500]}"
+        total_size += extra_bytes[0]
+
+        if not _direct_ok:
+            # ── Files API fallback ─────────────────────────────────────
+            rp_req = client.build_request(
+                "PUT",
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/octet-stream",
+                },
+                content=_part_stream(),
             )
+            async with _get_upload_semaphore():
+                response = await client.send(rp_req)
+
+            if response.status_code not in (200, 204):
+                raise RuntimeError(
+                    f"Volumes PUT failed (HTTP {response.status_code}): "
+                    f"{response.text[:500]}"
+                )
 
         logger.info(
             f"Streamed part → {dest_path} "
