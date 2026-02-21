@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import AsyncIterator
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.resources.dicom_web.utils.dicom_io import _get_upload_client
+from dbx.pixels.resources.dicom_web.utils.dicom_io import _get_upload_client, _get_upload_semaphore
 
 logger = LoggerProvider("DICOMweb.MultipartStream")
 
@@ -361,7 +361,8 @@ async def _upload_one_part(
             },
             content=_upload_body(),
         )
-        response = await client.send(rp_req)
+        async with _get_upload_semaphore():
+            response = await client.send(rp_req)
 
         if response.status_code not in (200, 204):
             raise RuntimeError(

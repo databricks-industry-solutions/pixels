@@ -95,12 +95,19 @@ _upload_client: "httpx.AsyncClient | None" = None  # type: ignore[name-defined]
 
 
 def _get_upload_client():  # return type annotated lazily to avoid top-level httpx import
-    """Return the process-wide shared ``httpx.AsyncClient`` for Volumes uploads."""
+    """Return the process-wide shared ``httpx.AsyncClient`` for Volumes uploads.
+
+    HTTP/2 is intentionally disabled: multiplexing large file PUTs over a
+    shared TCP connection causes all streams to compete for the same flow-
+    control window, which makes large uploads SLOWER than dedicated HTTP/1.1
+    connections.  Each upload stream should have its own TCP connection so
+    it can use the full per-connection bandwidth.
+    """
     global _upload_client
     if _upload_client is None:
         import httpx
         _upload_client = httpx.AsyncClient(
-            http2=True,
+            http2=False,  # HTTP/1.1 — dedicated connection per upload stream
             limits=httpx.Limits(
                 max_connections=200,
                 max_keepalive_connections=100,
@@ -108,6 +115,28 @@ def _get_upload_client():  # return type annotated lazily to avoid top-level htt
             timeout=httpx.Timeout(connect=30.0, write=None, read=60.0, pool=30.0),
         )
     return _upload_client
+
+
+# ---------------------------------------------------------------------------
+# Semaphore — limit concurrent Volumes PUT operations
+# ---------------------------------------------------------------------------
+# Without a concurrency cap, all N benchmark workers hit the Volumes API
+# simultaneously.  Each upload gets 1/N of the available API bandwidth,
+# making each take N× longer.  A semaphore ensures at most
+# STOW_VOLUMES_CONCURRENCY uploads are active at once; the rest wait
+# cheaply on the event loop.  Tune with the env var (default: 20).
+
+_VOLUMES_UPLOAD_CONCURRENCY = int(os.environ.get("STOW_VOLUMES_CONCURRENCY", "20"))
+_upload_semaphore: "asyncio.Semaphore | None" = None  # type: ignore[name-defined]
+
+
+def _get_upload_semaphore():
+    """Return the process-wide asyncio.Semaphore for Volumes PUT concurrency."""
+    global _upload_semaphore
+    if _upload_semaphore is None:
+        import asyncio as _asyncio
+        _upload_semaphore = _asyncio.Semaphore(_VOLUMES_UPLOAD_CONCURRENCY)
+    return _upload_semaphore
 
 
 # ---------------------------------------------------------------------------
@@ -438,19 +467,23 @@ async def async_stream_to_volumes(
 
     drain_task = asyncio.create_task(_drain_client())
 
-    # Use the process-wide shared client — no TCP+TLS handshake per upload.
+    # Acquire the upload semaphore before starting the Volumes PUT so that
+    # at most STOW_VOLUMES_CONCURRENCY uploads are active simultaneously.
+    # Excess requests wait here on the event loop (zero threads, zero CPU)
+    # instead of all hammering the Volumes API at once and sharing bandwidth.
     client = _get_upload_client()
     try:
-        rp_req = client.build_request(
-            "PUT",
-            url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/octet-stream",
-            },
-            content=_volume_stream(),
-        )
-        response = await client.send(rp_req)
+        async with _get_upload_semaphore():
+            rp_req = client.build_request(
+                "PUT",
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/octet-stream",
+                },
+                content=_volume_stream(),
+            )
+            response = await client.send(rp_req)
     finally:
         # Do NOT close the shared client — it is reused across requests.
         if not drain_task.done():
