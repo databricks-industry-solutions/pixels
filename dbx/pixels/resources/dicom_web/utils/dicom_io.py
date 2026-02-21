@@ -80,6 +80,37 @@ _session.mount("http://", _adapter)
 
 
 # ---------------------------------------------------------------------------
+# Shared async HTTP client for Volumes uploads (mirrors _session for reads)
+# ---------------------------------------------------------------------------
+# Creating a new httpx.AsyncClient per upload forces a fresh TCP+TLS
+# handshake (~100–300 ms) for every request and prevents HTTP/2 connection
+# multiplexing.  A single shared client keeps connections alive and reuses
+# them across all concurrent uploads — the same principle that makes
+# _session fast for reads.
+#
+# Lazy-initialised so that the client is created inside the worker process
+# *after* uvicorn forks (avoids sharing asyncio state across fork()).
+
+_upload_client: "httpx.AsyncClient | None" = None  # type: ignore[name-defined]
+
+
+def _get_upload_client():  # return type annotated lazily to avoid top-level httpx import
+    """Return the process-wide shared ``httpx.AsyncClient`` for Volumes uploads."""
+    global _upload_client
+    if _upload_client is None:
+        import httpx
+        _upload_client = httpx.AsyncClient(
+            http2=True,
+            limits=httpx.Limits(
+                max_connections=200,
+                max_keepalive_connections=100,
+            ),
+            timeout=httpx.Timeout(connect=30.0, write=None, read=60.0, pool=30.0),
+        )
+    return _upload_client
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -361,7 +392,6 @@ async def async_stream_to_volumes(
         RuntimeError: If the PUT request returns a non-success status.
     """
     import asyncio
-    import httpx
 
     host = (
         os.environ.get("DATABRICKS_HOST", "")
@@ -408,12 +438,8 @@ async def async_stream_to_volumes(
 
     drain_task = asyncio.create_task(_drain_client())
 
-    # Separate timeouts per phase:
-    #   connect — 30 s to establish the TLS connection to Volumes
-    #   write   — None (no timeout): upload duration depends on file size
-    #   read    — 60 s to receive the PUT response after the body is sent
-    _timeout = httpx.Timeout(connect=30.0, write=None, read=60.0, pool=5.0)
-    client = httpx.AsyncClient(timeout=_timeout)
+    # Use the process-wide shared client — no TCP+TLS handshake per upload.
+    client = _get_upload_client()
     try:
         rp_req = client.build_request(
             "PUT",
@@ -426,8 +452,7 @@ async def async_stream_to_volumes(
         )
         response = await client.send(rp_req)
     finally:
-        await client.aclose()
-        # Ensure the drain task is always awaited to avoid dangling tasks
+        # Do NOT close the shared client — it is reused across requests.
         if not drain_task.done():
             drain_task.cancel()
         try:

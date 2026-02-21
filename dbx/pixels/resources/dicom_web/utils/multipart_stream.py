@@ -23,6 +23,7 @@ from io import BytesIO
 from typing import AsyncIterator
 
 from dbx.pixels.logging import LoggerProvider
+from dbx.pixels.resources.dicom_web.utils.dicom_io import _get_upload_client
 
 logger = LoggerProvider("DICOMweb.MultipartStream")
 
@@ -440,8 +441,6 @@ async def async_stream_split_to_volumes(
         ``study_uid``, ``series_uid``, ``sop_uid``, ``num_frames``,
         ``status``, ``error_message``.
     """
-    import httpx
-
     boundary = _extract_boundary(content_type)
     if not boundary:
         raise ValueError(f"No boundary found in Content-Type: {content_type}")
@@ -481,19 +480,19 @@ async def async_stream_split_to_volumes(
 
     drain_task = asyncio.create_task(_drain_client())
 
-    # Separate per-phase timeouts; write=None means no timeout on the
-    # outbound Volumes PUT body — duration is upload-size-dependent.
-    _timeout = httpx.Timeout(connect=30.0, write=None, read=60.0, pool=5.0)
+    # Use the process-wide shared client — no TCP+TLS handshake per upload.
+    # Do NOT use `async with` here: closing a shared client would break all
+    # other concurrent uploads that are still using it.
+    client = _get_upload_client()
 
     results: list[dict] = []
     try:
         parser = AsyncMultipartParser(boundary, _queue_stream())
-        async with httpx.AsyncClient(timeout=_timeout) as client:
-            async for headers, body_gen in parser.parts():
-                result = await _upload_one_part(
-                    token, host, stow_base, client, headers, body_gen,
-                )
-                results.append(result)
+        async for headers, body_gen in parser.parts():
+            result = await _upload_one_part(
+                token, host, stow_base, client, headers, body_gen,
+            )
+            results.append(result)
     finally:
         if not drain_task.done():
             drain_task.cancel()
