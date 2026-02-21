@@ -92,9 +92,27 @@ def _sdk_host_and_token() -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 
 _storage_location_cache: dict[str, str] = {}   # uc_volume_name → cloud_url
-_cred_cache: dict[str, tuple[dict, float]] = {}  # cloud_url → (creds, expiry_ts)
+_cred_cache: dict[str, tuple[dict, float]] = {}  # credential_name → (creds, expiry_ts)
+_cred_inflight: dict[str, threading.Event] = {}  # credential_name → Event (stampede guard)
 _cache_lock = threading.Lock()
 _CRED_EXPIRE_BUFFER_S = 300   # refresh 5 minutes before actual expiry
+
+# Module-level WorkspaceClient — created once, reused across all credential
+# vends.  Creating WorkspaceClient() per call forces repeated SDK config
+# loading and OAuth token inspection, which adds ~100-500 ms per call and
+# causes massive thread-pool contention under high concurrency.
+_workspace_client = None
+_wc_lock = threading.Lock()
+
+
+def _get_workspace_client():
+    global _workspace_client
+    if _workspace_client is None:
+        with _wc_lock:
+            if _workspace_client is None:
+                from databricks.sdk import WorkspaceClient
+                _workspace_client = WorkspaceClient()
+    return _workspace_client
 
 
 # ---------------------------------------------------------------------------
@@ -233,16 +251,44 @@ def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
     credential_name = _get_service_credential_name(host, token, cloud_url)
 
     cache_key = credential_name
+
+    # Fast path — return from cache if still valid.
     with _cache_lock:
         entry = _cred_cache.get(cache_key)
         if entry and entry[1] > now:
             return entry[0]
 
-    from databricks.sdk import WorkspaceClient
-    w = WorkspaceClient()
-    result = w.credentials.generate_temporary_service_credential(
-        credential_name=credential_name,
-    )
+        # Stampede guard: if another thread is already fetching, wait for it
+        # instead of making N simultaneous SDK calls under high concurrency.
+        if cache_key in _cred_inflight:
+            event = _cred_inflight[cache_key]
+        else:
+            event = threading.Event()
+            _cred_inflight[cache_key] = event
+            event = None  # this thread is the fetcher
+
+    if event is not None:
+        event.wait(timeout=30)
+        with _cache_lock:
+            entry = _cred_cache.get(cache_key)
+            if entry and entry[1] > now:
+                return entry[0]
+        raise RuntimeError(
+            f"Timed out waiting for credential '{credential_name}' from another thread"
+        )
+
+    t0 = time.time()
+    try:
+        w = _get_workspace_client()
+        result = w.credentials.generate_temporary_service_credential(
+            credential_name=credential_name,
+        )
+        logger.debug("generate_temporary_service_credential took %.2fs", time.time() - t0)
+    finally:
+        with _cache_lock:
+            inflight_event = _cred_inflight.pop(cache_key, None)
+        if inflight_event:
+            inflight_event.set()  # wake all threads waiting on this credential
 
     # Normalise the SDK response into the same dict shape the writer
     # functions (_write_s3, _write_adls, _write_gcs) already expect.
@@ -349,9 +395,12 @@ def _write_s3(
 
     # multipart_threshold / multipart_chunksize belong in TransferConfig,
     # not BotoConfig — they control the S3Transfer layer, not the botocore client.
+    # 8 MB chunks keep per-upload memory at ~16 MB (queue + one boto3 part buffer)
+    # while still giving S3 enough parallelism for large files.
+    _chunk = int(os.environ.get("STOW_S3_CHUNK_MB", "8")) * 1024 * 1024
     transfer_cfg = TransferConfig(
-        multipart_threshold=16 * 1024 * 1024,
-        multipart_chunksize=16 * 1024 * 1024,
+        multipart_threshold=_chunk,
+        multipart_chunksize=_chunk,
     )
 
     extra = {}
@@ -452,10 +501,15 @@ async def async_stream_to_cloud(
 
     Returns the total number of bytes written.
     """
+    t_start = time.time()
     creds = await asyncio.to_thread(get_temp_credentials, host, token, cloud_url)
+    t_creds = time.time()
     provider = _detect_provider(cloud_url)
 
-    _QUEUE_SIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "256"))
+    # 128 chunks × ~64 KB = ~8 MB per upload (halved from 256 to reduce RSS
+    # under high concurrency — each in-flight upload was holding ~16 MB just
+    # from the queue buffer).
+    _QUEUE_SIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "128"))
     queue: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_SIZE)
     total_size = 0
 
@@ -487,8 +541,13 @@ async def async_stream_to_cloud(
         except asyncio.CancelledError:
             pass
 
+    t_end = time.time()
     logger.info(
-        "Direct cloud upload complete: %s (%d bytes)", cloud_url, total_size
+        "Direct cloud upload complete: %s  bytes=%d  creds=%.2fs  upload=%.2fs  total=%.2fs",
+        cloud_url, total_size,
+        t_creds - t_start,
+        t_end - t_creds,
+        t_end - t_start,
     )
     return total_size
 

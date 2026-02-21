@@ -467,7 +467,7 @@ async def async_stream_to_volumes(
     # fills (Volumes is consistently slower than the client), back-pressure
     # propagates through the asyncio queue to the OS socket buffer, which is
     # acceptable because the proxy only cares about *short* idle gaps.
-    _QUEUE_MAXSIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "256"))
+    _QUEUE_MAXSIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "128"))
     queue: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
 
     async def _drain_client() -> None:
