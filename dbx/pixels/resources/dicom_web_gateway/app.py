@@ -364,6 +364,21 @@ async def _lifespan(application: FastAPI):
     )
     task = asyncio.create_task(_metrics_reporter())
 
+    # Log STOW upload mode clearly so operators can see at a glance
+    # which path is active without needing to inspect env vars manually.
+    from dbx.pixels.resources.dicom_web.utils.cloud_direct_upload import (
+        DIRECT_UPLOAD_ENABLED,
+        probe_direct_upload,
+    )
+    if DIRECT_UPLOAD_ENABLED:
+        _probe_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stow-probe")
+        _probe_executor.submit(probe_direct_upload)
+    else:
+        logger.info(
+            "STOW upload mode: FILES API  "
+            "(set STOW_DIRECT_CLOUD_UPLOAD=true to enable direct cloud upload)"
+        )
+
     # Pre-warm the in-memory BOT cache from Lakebase in a background thread.
     # The server starts serving requests immediately; the preload runs
     # concurrently and completes within seconds for most deployments.
@@ -544,6 +559,47 @@ _METRICS_WINDOWS: dict[str, int] = {
     "1h":  60 * 60,
     "8h":  8 * 60 * 60,
 }
+
+
+@app.get("/api/stow/status", tags=["Monitoring"])
+def stow_status():
+    """Return the active STOW upload mode and direct-cloud-upload diagnostics.
+
+    Use this endpoint to confirm at runtime whether the gateway is writing
+    DICOM files through the Databricks Files API or directly to cloud storage
+    via UC Credential Vending.
+
+    Response fields
+    ---------------
+    direct_upload_enabled : bool
+        Value of the ``STOW_DIRECT_CLOUD_UPLOAD`` env var.
+    mode : str
+        ``"direct_cloud"`` or ``"files_api"``.
+    provider : str | null
+        Cloud provider detected from the volume storage location:
+        ``"aws"``, ``"azure"``, or ``"gcp"``.  ``null`` when the Files API
+        path is active.
+    cloud_url : str | null
+        Resolved cloud storage prefix (e.g. ``s3://my-bucket/dicom/``).
+        ``null`` when the Files API path is active.
+    volumes_concurrency : int
+        Value of ``STOW_VOLUMES_CONCURRENCY`` semaphore limit.
+    probe_error : str | null
+        Reason string when the direct-upload probe failed at startup.
+    """
+    from dbx.pixels.resources.dicom_web.utils.cloud_direct_upload import (
+        DIRECT_UPLOAD_ENABLED,
+        probe_direct_upload,
+    )
+    probe = probe_direct_upload()
+    return JSONResponse(content={
+        "direct_upload_enabled": DIRECT_UPLOAD_ENABLED,
+        "mode": probe["mode"],
+        "provider": probe.get("provider"),
+        "cloud_url": probe.get("cloud_url"),
+        "volumes_concurrency": int(os.getenv("STOW_VOLUMES_CONCURRENCY", "8")),
+        "probe_error": probe.get("error"),
+    })
 
 
 @app.get("/api/metrics", tags=["Monitoring"])

@@ -415,3 +415,65 @@ async def async_direct_volumes_upload(
     return await async_stream_to_cloud(
         token, host, cloud_url, body_stream, content_length,
     )
+
+
+def probe_direct_upload() -> dict:
+    """
+    Synchronous startup probe that validates the direct-upload configuration.
+
+    Tries to resolve the storage location for the configured Volumes path and
+    vend a read credential.  The result is logged clearly at INFO level so
+    operators can see the active upload mode in the startup logs without
+    having to send a real DICOM file.
+
+    Returns a dict with keys:
+        mode        – "direct_cloud" or "files_api"
+        provider    – "aws" | "azure" | "gcp" | None
+        cloud_url   – resolved cloud storage prefix, or None
+        error       – error message string, or None
+    """
+    result: dict = {"mode": "files_api", "provider": None, "cloud_url": None, "error": None}
+
+    if not DIRECT_UPLOAD_ENABLED:
+        logger.info(
+            "STOW upload mode: FILES API  "
+            "(set STOW_DIRECT_CLOUD_UPLOAD=true to enable direct cloud upload)"
+        )
+        return result
+
+    host = os.environ.get("DATABRICKS_HOST", "").lstrip("https://").rstrip("/")
+    token = os.environ.get("DATABRICKS_TOKEN", "") or os.environ.get("DATABRICKS_APP_TOKEN", "")
+    volumes_path = os.environ.get("STOW_VOLUME_PATH", "")
+
+    if not (host and token and volumes_path):
+        msg = (
+            "STOW_DIRECT_CLOUD_UPLOAD=true but required env vars are missing: "
+            f"DATABRICKS_HOST={'set' if host else 'MISSING'}, "
+            f"DATABRICKS_TOKEN={'set' if token else 'MISSING'}, "
+            f"STOW_VOLUME_PATH={'set' if volumes_path else 'MISSING'}"
+        )
+        logger.warning("STOW upload mode: DIRECT CLOUD — CONFIGURATION INCOMPLETE\n  %s", msg)
+        result["error"] = msg
+        return result
+
+    try:
+        cloud_url = resolve_cloud_url(host, token, volumes_path)
+        provider = _detect_provider(cloud_url)
+        result.update({"mode": "direct_cloud", "provider": provider, "cloud_url": cloud_url})
+        logger.info(
+            "STOW upload mode: DIRECT CLOUD (%s)  "
+            "storage_location=%s  volume=%s",
+            provider.upper(),
+            cloud_url,
+            volumes_path,
+        )
+    except Exception as exc:
+        msg = str(exc)
+        result["error"] = msg
+        logger.warning(
+            "STOW upload mode: DIRECT CLOUD — probe failed, will fall back to Files API\n"
+            "  Reason: %s",
+            msg,
+        )
+
+    return result
