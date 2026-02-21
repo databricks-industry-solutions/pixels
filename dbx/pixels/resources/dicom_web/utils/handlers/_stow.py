@@ -710,7 +710,7 @@ async def _handle_streaming(
 
     # ── Audit metadata ─────────────────────────────────────────────────
     client_ip = request.client.host if request.client else None
-    user_email = _resolve_user_email(request, token)
+    user_email = await asyncio.to_thread(_resolve_user_email, request, token)
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
@@ -727,8 +727,10 @@ async def _handle_streaming(
     }
 
     # ── INSERT as completed (Phase 2 picks this up via CDF) ───────────
+    # Offloaded to a thread so the blocking SQL round-trip does not stall
+    # the asyncio event loop and freeze every other in-flight upload.
     sql_client = get_sql_client()
-    _write_stow_records_completed(sql_client, token, [record])
+    await asyncio.to_thread(_write_stow_records_completed, sql_client, token, [record])
 
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
@@ -739,11 +741,14 @@ async def _handle_streaming(
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
 
     # ── Cache UID → path mappings directly (no header re-reads!) ───────
+    # Also offloaded: _cache_streaming_results calls lb_utils.insert_instance_paths_batch
+    # which is a synchronous Lakebase (PostgreSQL) write.
     cached_entries: list[dict] = []
     if succeeded and token:
         uc_table = _stow_catalog_table or ""
         user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
-        cached_entries = _cache_streaming_results(
+        cached_entries = await asyncio.to_thread(
+            _cache_streaming_results,
             part_results, study_instance_uid, uc_table, user_groups,
         )
 
@@ -829,7 +834,7 @@ async def _handle_legacy_spark(
 
     # ── Audit metadata ─────────────────────────────────────────────────
     client_ip = request.client.host if request.client else None
-    user_email = _resolve_user_email(request, token)
+    user_email = await asyncio.to_thread(_resolve_user_email, request, token)
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
@@ -844,9 +849,10 @@ async def _handle_legacy_spark(
         "user_agent": user_agent,
     }
 
-    # ── Synchronous INSERT (must complete before returning to client) ───
+    # ── INSERT tracking row (offloaded so the SQL round-trip does not
+    # stall the event loop and block other concurrent uploads) ──────────
     sql_client = get_sql_client()
-    _write_stow_records(sql_client, token, [record])
+    await asyncio.to_thread(_write_stow_records, sql_client, token, [record])
 
     # ── Fire Spark job in the background — do NOT await ────────────────
     async def _background_fire():

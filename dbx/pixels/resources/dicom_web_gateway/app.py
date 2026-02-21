@@ -343,6 +343,16 @@ async def _metrics_reporter():
 @asynccontextmanager
 async def _lifespan(application: FastAPI):
     global _http_client
+
+    # Pre-size the default executor used by asyncio.to_thread so that
+    # blocking SQL / Lakebase calls under concurrent load don't stall
+    # waiting for new threads to be created.
+    _default_executor = ThreadPoolExecutor(
+        max_workers=int(os.getenv("STOW_THREAD_POOL_SIZE", "64")),
+        thread_name_prefix="stow-io",
+    )
+    asyncio.get_event_loop().set_default_executor(_default_executor)
+
     _http_client = httpx.AsyncClient(
         http2=True,
         limits=httpx.Limits(
@@ -366,6 +376,7 @@ async def _lifespan(application: FastAPI):
     task.cancel()
     _preload_future.cancel()
     _preload_executor.shutdown(wait=False)
+    _default_executor.shutdown(wait=False)
     await _http_client.aclose()
     _http_client = None
 
