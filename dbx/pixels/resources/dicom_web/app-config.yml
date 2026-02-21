@@ -9,6 +9,8 @@ env:
     value: ""
   - name: "STOW_VOLUMES_CONCURRENCY"
     value: "6"
+  - name: "DATABRICKS_SQL_POOL_SIZE"
+    value: "8"
   - name: "DATABRICKS_WAREHOUSE_ID"
     valueFrom: "sql_warehouse"
   - name: "MONAI_SERVING_ENDPOINT"

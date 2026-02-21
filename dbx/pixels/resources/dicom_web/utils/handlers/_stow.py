@@ -147,6 +147,110 @@ if _stow_volume_path_env:
 
 
 # ---------------------------------------------------------------------------
+# Batched async write buffer — collects audit records from concurrent uploads
+# and flushes them to the SQL warehouse in chunks of up to BATCH_SIZE rows.
+# ---------------------------------------------------------------------------
+
+import threading as _threading
+
+
+class _StowRecordBuffer:
+    """
+    Thread-safe buffer that coalesces single-row STOW audit records into
+    batch INSERTs.
+
+    Each upload appends its record.  A flush is triggered when:
+    * the buffer reaches ``max_batch`` records, OR
+    * ``flush_interval_s`` seconds have elapsed since the last flush.
+
+    The periodic flush runs in a daemon background thread so records never
+    sit in the buffer longer than ``flush_interval_s`` seconds even during
+    quiet periods.
+    """
+
+    def __init__(
+        self,
+        write_fn,          # callable(sql_client, token, records) → None
+        max_batch: int = 100,
+        flush_interval_s: float = 2.0,
+    ):
+        self._write_fn = write_fn
+        self._max_batch = max_batch
+        self._flush_interval_s = flush_interval_s
+        self._buf: list[dict] = []
+        self._lock = _threading.Lock()
+        self._sql_client = None
+        self._token = None
+        self._last_flush = time.monotonic()
+        self._stop = _threading.Event()
+        self._thread = _threading.Thread(
+            target=self._periodic_flush, daemon=True, name="stow-record-flusher"
+        )
+        self._thread.start()
+
+    def set_client(self, sql_client, token: str | None):
+        """Provide the SQL client and auth token (called lazily on first use)."""
+        self._sql_client = sql_client
+        self._token = token
+
+    def append(self, record: dict, sql_client=None, token: str | None = None) -> None:
+        """Add *record* to the buffer; flush immediately if batch is full."""
+        if sql_client is not None:
+            self.set_client(sql_client, token)
+        with self._lock:
+            self._buf.append(record)
+            if len(self._buf) >= self._max_batch:
+                batch = self._buf[:]
+                self._buf.clear()
+                self._last_flush = time.monotonic()
+            else:
+                batch = None
+        if batch:
+            self._flush(batch)
+
+    def flush_all(self) -> None:
+        """Flush any remaining records synchronously (call at shutdown)."""
+        with self._lock:
+            batch = self._buf[:]
+            self._buf.clear()
+        if batch:
+            self._flush(batch)
+
+    def stop(self) -> None:
+        self._stop.set()
+        self.flush_all()
+
+    def _periodic_flush(self) -> None:
+        while not self._stop.wait(timeout=self._flush_interval_s):
+            elapsed = time.monotonic() - self._last_flush
+            if elapsed >= self._flush_interval_s:
+                with self._lock:
+                    if not self._buf:
+                        continue
+                    batch = self._buf[:]
+                    self._buf.clear()
+                    self._last_flush = time.monotonic()
+                self._flush(batch)
+
+    def _flush(self, batch: list[dict]) -> None:
+        if not batch or self._sql_client is None:
+            return
+        try:
+            self._write_fn(self._sql_client, self._token, batch)
+        except Exception as exc:
+            logger.warning(
+                "STOW record buffer: batch flush failed (%d records): %s", len(batch), exc
+            )
+
+
+_stow_record_buffer = _StowRecordBuffer(
+    write_fn=lambda sql_client, token, records: _write_stow_records(sql_client, token, records),
+    max_batch=int(os.getenv("STOW_SQL_BATCH_SIZE", "100")),
+    flush_interval_s=float(os.getenv("STOW_SQL_FLUSH_INTERVAL_S", "2.0")),
+)
+
+
+# ---------------------------------------------------------------------------
 # Tracking table INSERT helpers
 # ---------------------------------------------------------------------------
 
@@ -853,20 +957,20 @@ async def _handle_legacy_spark(
         "user_agent": user_agent,
     }
 
-    # ── INSERT tracking row (offloaded so the SQL round-trip does not
-    # stall the event loop and block other concurrent uploads) ──────────
-    sql_client = get_sql_client()
-    await asyncio.to_thread(_write_stow_records, sql_client, token, [record])
     _t_sql = _time.perf_counter()
-
     logger.info(
-        "STOW-RS [legacy]: timings for %s — upload=%.2fs  scim=%.2fs  sql=%.2fs  total=%.2fs",
+        "STOW-RS [legacy]: timings for %s — upload=%.2fs  scim=%.2fs  total_before_sql=%.2fs",
         file_id,
         _t_upload - _t0,
         _t_scim - _t_upload,
-        _t_sql - _t_scim,
         _t_sql - _t0,
     )
+
+    # ── Buffer the audit record — flushed in batches of up to STOW_SQL_BATCH_SIZE
+    # rows every STOW_SQL_FLUSH_INTERVAL_S seconds.  The file is already safely
+    # on S3/Volumes so the SQL write does not block the HTTP response.
+    sql_client = get_sql_client()
+    _stow_record_buffer.append(record, sql_client=sql_client, token=token)
 
     # ── Fire Spark job in the background — do NOT await ────────────────
     async def _background_fire():

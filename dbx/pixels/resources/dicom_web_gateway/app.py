@@ -395,7 +395,12 @@ async def _lifespan(application: FastAPI):
 
     yield
 
-    # Graceful shutdown
+    # Graceful shutdown — flush any buffered STOW audit records before exit
+    try:
+        from dbx.pixels.resources.dicom_web.utils.handlers._stow import _stow_record_buffer
+        _stow_record_buffer.stop()
+    except Exception:
+        pass
     task.cancel()
     _preload_future.cancel()
     _preload_executor.shutdown(wait=False)

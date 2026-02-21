@@ -21,7 +21,9 @@ Authorization modes (controlled by ``DICOMWEB_USE_USER_AUTH`` env var):
 """
 
 import os
+import queue
 import re
+import threading
 from collections.abc import Iterator
 from typing import Any
 
@@ -84,24 +86,73 @@ class DatabricksSQLClient:
         self._host = host.replace("https://", "").replace("http://", "").rstrip("/")
         self._http_path = f"/sql/1.0/warehouses/{warehouse_id}"
         self._cfg = Config()
-        self._app_conn = None  # lazy-initialised, reused across requests
+
+        # Connection pool for app-auth queries.
+        # Each connection can only run one cursor at a time (SQL connector
+        # is not thread-safe per connection), so under high concurrency a
+        # pool prevents 60 threads from serializing behind one connection.
+        _pool_size = int(os.getenv("DATABRICKS_SQL_POOL_SIZE", "8"))
+        self._pool: queue.Queue = queue.Queue(maxsize=_pool_size)
+        self._pool_size = _pool_size
+        self._pool_lock = threading.Lock()
+        self._pool_count = 0  # total connections created so far
 
         mode = "USER (OBO)" if USE_USER_AUTH else "APP (service principal)"
-        logger.info(f"SQL client configured for {mode} authorization")
+        logger.info(
+            "SQL client configured for %s authorization (pool_size=%d)",
+            mode, _pool_size,
+        )
 
     # -- connection management ---------------------------------------------
 
-    def _get_app_connection(self):
-        """Return (or create) the shared app-auth connection."""
-        if self._app_conn is None:
-            self._app_conn = dbsql.connect(
-                server_hostname=self._host,
-                http_path=self._http_path,
-                credentials_provider=lambda: self._cfg.authenticate,
-                use_cloud_fetch=False,
-            )
-            logger.info("App-auth SQL connection established")
-        return self._app_conn
+    def _new_app_connection(self):
+        return dbsql.connect(
+            server_hostname=self._host,
+            http_path=self._http_path,
+            credentials_provider=lambda: self._cfg.authenticate,
+            use_cloud_fetch=False,
+        )
+
+    def _acquire_app_connection(self):
+        """
+        Return a connection from the pool, creating one if needed.
+
+        Blocks until a connection is available.  Connections are returned
+        to the pool via ``_release_app_connection`` after each query.
+        """
+        try:
+            return self._pool.get_nowait()
+        except queue.Empty:
+            pass
+
+        with self._pool_lock:
+            if self._pool_count < self._pool_size:
+                conn = self._new_app_connection()
+                self._pool_count += 1
+                logger.debug(
+                    "SQL pool: opened connection %d/%d", self._pool_count, self._pool_size
+                )
+                return conn
+
+        # Pool is full — wait for a connection to be returned
+        return self._pool.get(timeout=60)
+
+    def _release_app_connection(self, conn, failed: bool = False):
+        """Return *conn* to the pool, or discard it if *failed*."""
+        if failed:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            with self._pool_lock:
+                self._pool_count -= 1
+        else:
+            try:
+                self._pool.put_nowait(conn)
+            except queue.Full:
+                conn.close()
+                with self._pool_lock:
+                    self._pool_count -= 1
 
     def _connect_as_user(self, user_token: str):
         """Create a one-shot connection using the user's access token."""
@@ -138,12 +189,14 @@ class DatabricksSQLClient:
         logger.debug(f"SQL: {query}  params={parameters}")
 
         is_obo = USE_USER_AUTH and user_token is not None
+        conn = None
+        failed = False
 
         try:
             if is_obo:
                 conn = self._connect_as_user(user_token)
             else:
-                conn = self._get_app_connection()
+                conn = self._acquire_app_connection()
 
             with conn.cursor() as cursor:
                 cursor.execute(query, parameters=parameters)
@@ -161,19 +214,19 @@ class DatabricksSQLClient:
                 return results
 
         except Exception as exc:
+            failed = True
             logger.error(f"SQL execution failed: {exc}")
-            # Reset app connection on failure so next call gets a fresh one
-            if not is_obo:
-                self._app_conn = None
             raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
 
         finally:
-            # Close per-request OBO connections; app connection is reused
-            if is_obo:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
+            if conn is not None:
+                if is_obo:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                else:
+                    self._release_app_connection(conn, failed=failed)
 
     def execute_stream(
         self,
