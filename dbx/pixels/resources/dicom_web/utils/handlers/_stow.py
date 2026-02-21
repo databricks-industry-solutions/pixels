@@ -816,6 +816,8 @@ async def _handle_legacy_spark(
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
+    import time as _time
+    _t0 = _time.perf_counter()
     try:
         file_size = await async_stream_to_volumes(
             token, dest_path, request.stream(),
@@ -829,12 +831,14 @@ async def _handle_legacy_spark(
             status_code=500,
             detail=f"Upload failed ({type(exc).__name__}): {exc}",
         )
+    _t_upload = _time.perf_counter()
 
     logger.info(f"STOW-RS [legacy]: streamed {file_id}.mpr ({file_size} bytes)")
 
     # ── Audit metadata ─────────────────────────────────────────────────
     client_ip = request.client.host if request.client else None
     user_email = await asyncio.to_thread(_resolve_user_email, request, token)
+    _t_scim = _time.perf_counter()
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
@@ -853,6 +857,16 @@ async def _handle_legacy_spark(
     # stall the event loop and block other concurrent uploads) ──────────
     sql_client = get_sql_client()
     await asyncio.to_thread(_write_stow_records, sql_client, token, [record])
+    _t_sql = _time.perf_counter()
+
+    logger.info(
+        "STOW-RS [legacy]: timings for %s — upload=%.2fs  scim=%.2fs  sql=%.2fs  total=%.2fs",
+        file_id,
+        _t_upload - _t0,
+        _t_scim - _t_upload,
+        _t_sql - _t_scim,
+        _t_sql - _t0,
+    )
 
     # ── Fire Spark job in the background — do NOT await ────────────────
     async def _background_fire():
