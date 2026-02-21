@@ -4,10 +4,12 @@ Shared Starlette middleware for Pixels applications.
 - **TokenMiddleware** — intercepts OHIF JS requests and injects config values
   (pixels table, router basename, host) into the config template.
 - **LoggingMiddleware** — logs every request with user e-mail, method, path,
-  and status code.
+  status code, and elapsed time.
 - **DBStaticFiles** — custom ``StaticFiles`` that falls back to ``index.html``
   on 404 (SPA support for OHIF viewer).
 """
+
+import time
 
 from fastapi import HTTPException, Response
 from fastapi.staticfiles import StaticFiles
@@ -83,9 +85,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         email = request.headers.get("X-Forwarded-Email", "")
+        start = time.perf_counter()
         response = await call_next(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000
         logger.info(
-            f" {email} | {request.method} {request.url.path} {response.status_code}"
+            f" {email} | {request.method} {request.url.path} {response.status_code} [{elapsed_ms:.1f}ms]"
         )
         return response
 

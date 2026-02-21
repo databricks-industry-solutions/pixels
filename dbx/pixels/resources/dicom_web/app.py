@@ -166,23 +166,6 @@ register_all_common_routes(app)
 app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
 app.add_middleware(LoggingMiddleware)
 
-
-class Options200Middleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        if request.method == "OPTIONS":
-            return Response(status_code=200)
-        return await call_next(request)
-
-
-app.add_middleware(Options200Middleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)

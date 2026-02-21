@@ -722,36 +722,8 @@ class _InstrumentMiddleware:
             elapsed = time.perf_counter() - t0
             _record_request(elapsed, status_code >= 400)
 
-    
-class _Options200:
-    """Pure ASGI middleware — bypasses BaseHTTPMiddleware's TaskGroup overhead."""
-
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "http" and scope["method"] == "OPTIONS":
-            await send({
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [(b"content-length", b"0")],
-            })
-            await send({"type": "http.response.body", "body": b""})
-            return
-        await self.app(scope, receive, send)
-
-
 app.add_middleware(_InstrumentMiddleware)
-app.add_middleware(_Options200)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
