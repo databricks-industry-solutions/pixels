@@ -173,23 +173,9 @@ priority_list = lb.get_preload_priority_list(
 )
 
 print(f"Top {len(priority_list)} files by preload priority:")
+import json
 
-priority_df = spark.createDataFrame(
-    [
-        {
-            "filename":            p["filename"],
-            "frame_count":         p["frame_count"],
-            "transfer_syntax_uid": p["transfer_syntax_uid"],
-            "last_used_at":        str(p["last_used_at"]) if p["last_used_at"] else None,
-            "inserted_at":         str(p["inserted_at"]) if p["inserted_at"] else None,
-            "access_count":        p["access_count"],
-            "priority_score":      round(p["priority_score"], 4),
-        }
-        for p in priority_list
-    ]
-)
-
-display(priority_df.orderBy(col("priority_score").desc()))
+print(json.dumps(priority_list, indent=2, default=str))
 
 # COMMAND ----------
 
