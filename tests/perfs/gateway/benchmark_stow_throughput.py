@@ -418,9 +418,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Comma-separated payload sizes in MB (default: 1,10,50,100)",
     )
     p.add_argument("--repeats", type=int, default=5,
-                    help="Uploads per size per phase (default: 5)")
+                    help="Total uploads per size per phase (default: 5). "
+                         "This is the number of files that will be created on the server. "
+                         "Set this >= --concurrency to keep all workers busy.")
     p.add_argument("--concurrency", type=int, default=4,
-                    help="Parallel workers for the concurrent phase (default: 4)")
+                    help="Parallel workers for the concurrent phase (default: 4). "
+                         "Only controls parallelism — total uploads is set by --repeats.")
     p.add_argument(
         "--upload-timeout", type=float, default=300.0,
         help="Per-upload read/send timeout in seconds (default: 300). "
@@ -469,7 +472,15 @@ def main(argv: list[str] | None = None) -> None:
         allowed_methods=["GET", "POST"],
         raise_on_status=False,
     )
-    _adapter = HTTPAdapter(max_retries=_retry)
+    # Size the connection pool to match concurrency. The default urllib3 pool
+    # (pool_maxsize=10) would serialize requests when concurrency > 10, turning
+    # a 1000-worker test into effectively sequential uploads.
+    _pool_size = max(args.concurrency, 10)
+    _adapter = HTTPAdapter(
+        max_retries=_retry,
+        pool_connections=_pool_size,
+        pool_maxsize=_pool_size,
+    )
     session.mount("https://", _adapter)
     session.mount("http://", _adapter)
 
@@ -488,6 +499,13 @@ def main(argv: list[str] | None = None) -> None:
         logger.error("Server unreachable: HTTP %d", resp.status_code)
         sys.exit(1)
     logger.info("Server OK")
+
+    if args.repeats < args.concurrency:
+        logger.warning(
+            "--repeats (%d) < --concurrency (%d): only %d file(s) will be uploaded "
+            "and most workers will never be used. Set --repeats >= --concurrency.",
+            args.repeats, args.concurrency, args.repeats,
+        )
 
     # Parse sizes
     sizes = [float(s.strip()) for s in args.sizes.split(",")]
