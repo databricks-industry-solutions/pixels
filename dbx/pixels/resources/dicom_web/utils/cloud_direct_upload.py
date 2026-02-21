@@ -165,49 +165,112 @@ def resolve_cloud_url(host: str, token: str, volumes_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Credential vending
+# Credential vending via UC service credentials
 # ---------------------------------------------------------------------------
 
-def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
-    """
-    Return (possibly cached) UC temporary path credentials for *cloud_url*.
+_service_credential_cache: dict[str, str] = {}  # cloud_url_prefix → credential_name
 
-    Calls ``POST /api/2.1/unity-catalog/temporary-path-credentials`` and
-    caches the result until 5 minutes before expiry.
+
+def _get_service_credential_name(host: str, token: str, cloud_url: str) -> str:
     """
-    now = time.time()
+    Resolve the UC service credential name for *cloud_url*.
+
+    Checks ``STOW_SERVICE_CREDENTIAL_NAME`` first; if unset, queries the
+    external-locations API and returns the credential that covers *cloud_url*.
+    The result is cached permanently (credentials don't change).
+    """
+    explicit = os.environ.get("STOW_SERVICE_CREDENTIAL_NAME", "").strip()
+    if explicit:
+        return explicit
+
     with _cache_lock:
-        entry = _cred_cache.get(cloud_url)
-        if entry and entry[1] > now:
-            return entry[0]
+        for prefix, name in _service_credential_cache.items():
+            if cloud_url.startswith(prefix):
+                return name
 
-    resp = _requests.post(
-        f"https://{host}/api/2.1/unity-catalog/temporary-path-credentials",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={"url": cloud_url, "operation": "PATH_READ_WRITE"},
+    resp = _requests.get(
+        f"https://{host}/api/2.1/unity-catalog/external-locations",
+        headers={"Authorization": f"Bearer {token}"},
         timeout=10,
     )
     if not resp.ok:
         raise RuntimeError(
-            f"Credential vending failed for {cloud_url}: "
-            f"HTTP {resp.status_code}: {resp.text[:300]}"
+            f"Failed to list external locations: HTTP {resp.status_code}: {resp.text[:300]}"
         )
 
-    creds = resp.json()
+    for loc in resp.json().get("external_locations", []):
+        url = loc.get("url", "").rstrip("/") + "/"
+        cred_name = loc.get("credential_name", "")
+        if cloud_url.startswith(url) and cred_name:
+            with _cache_lock:
+                _service_credential_cache[url] = cred_name
+            logger.info(
+                "Auto-discovered service credential '%s' for %s", cred_name, cloud_url
+            )
+            return cred_name
 
-    # Parse expiry — AWS returns epoch milliseconds; fall back to 55 minutes
-    expiry_ts = now + 3600 - _CRED_EXPIRE_BUFFER_S
-    aws_creds = creds.get("aws_temp_credentials") or creds
-    if "expiration_time" in aws_creds:
-        expiry_ts = aws_creds["expiration_time"] / 1000 - _CRED_EXPIRE_BUFFER_S
+    raise RuntimeError(
+        f"No external location covers {cloud_url}. "
+        "Set STOW_SERVICE_CREDENTIAL_NAME explicitly or check UC external locations."
+    )
 
+
+def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
+    """
+    Return (possibly cached) temporary credentials for writing to *cloud_url*.
+
+    Uses ``w.credentials.generate_temporary_service_credential()`` via the
+    Databricks SDK.  Unlike ``temporary-path-credentials``, this API works
+    from **Databricks Apps** and only requires the ``ACCESS`` privilege on
+    the service credential (not ``EXTERNAL USE LOCATION``).
+
+    The credential name is resolved from ``STOW_SERVICE_CREDENTIAL_NAME``
+    or auto-discovered from the external location that covers *cloud_url*.
+
+    Credentials are cached for ~55 minutes (refreshed 5 minutes before expiry).
+    """
+    now = time.time()
+    credential_name = _get_service_credential_name(host, token, cloud_url)
+
+    cache_key = credential_name
     with _cache_lock:
-        _cred_cache[cloud_url] = (creds, expiry_ts)
+        entry = _cred_cache.get(cache_key)
+        if entry and entry[1] > now:
+            return entry[0]
 
-    logger.debug("Vended credentials for %s (expire ~%.0fs)", cloud_url, expiry_ts - now)
+    from databricks.sdk import WorkspaceClient
+    w = WorkspaceClient()
+    result = w.credentials.generate_temporary_service_credential(
+        credential_name=credential_name,
+    )
+
+    # Normalise the SDK response into the same dict shape the writer
+    # functions (_write_s3, _write_adls, _write_gcs) already expect.
+    creds: dict = {}
+    if result.aws_temp_credentials:
+        creds["aws_temp_credentials"] = {
+            "access_key_id":     result.aws_temp_credentials.access_key_id,
+            "secret_access_key": result.aws_temp_credentials.secret_access_key,
+            "session_token":     result.aws_temp_credentials.session_token,
+        }
+    elif result.azure_user_delegation_sas:
+        creds["azure_sas_token"] = result.azure_user_delegation_sas.sas_token
+    elif hasattr(result, "gcp_oauth_token") and result.gcp_oauth_token:
+        creds["gcp_oauth_token"] = {"oauth_token": result.gcp_oauth_token.oauth_token}
+
+    if not creds:
+        raise RuntimeError(
+            f"generate_temporary_service_credential returned no usable credentials "
+            f"for '{credential_name}' — check the credential type and provider."
+        )
+
+    expiry_ts = now + 3600 - _CRED_EXPIRE_BUFFER_S  # 55 minutes
+    with _cache_lock:
+        _cred_cache[cache_key] = (creds, expiry_ts)
+
+    logger.debug(
+        "Vended service credentials via '%s' (expire ~%.0fs)", credential_name, expiry_ts - now
+    )
     return creds
 
 
@@ -479,6 +542,14 @@ def probe_direct_upload() -> dict:
             )
         cloud_url = resolve_cloud_url(host, token, volumes_path)
         provider = _detect_provider(cloud_url)
+
+        # Verify credential vending works from this runtime — the UC
+        # temporary-path-credentials API only works from Databricks Compute
+        # (clusters/SQL warehouses), NOT from Databricks Apps.  Testing here
+        # at startup surfaces the failure immediately with a clear message
+        # rather than silently falling back on every request.
+        get_temp_credentials(host, token, cloud_url)
+
         result.update({"mode": "direct_cloud", "provider": provider, "cloud_url": cloud_url})
         logger.info(
             "STOW upload mode: DIRECT CLOUD (%s)  "
@@ -489,11 +560,21 @@ def probe_direct_upload() -> dict:
         )
     except Exception as exc:
         msg = str(exc)
-        result["error"] = msg
-        logger.warning(
-            "STOW upload mode: DIRECT CLOUD — probe failed, will fall back to Files API\n"
-            "  Reason: %s",
-            msg,
-        )
+        result.update({"mode": "files_api", "provider": None, "cloud_url": None, "error": msg})
+        is_compute_restriction = "outside of Databricks Compute" in msg
+        if is_compute_restriction:
+            logger.warning(
+                "STOW upload mode: FILES API  (direct cloud unavailable from Databricks Apps)\n"
+                "  UC credential vending requires Databricks Compute (cluster/SQL warehouse).\n"
+                "  The Files API will be used instead — set STOW_VOLUMES_CONCURRENCY ≤ 8.\n"
+                "  To enable direct cloud from Apps, provide static cloud credentials via\n"
+                "  STOW_AWS_ACCESS_KEY_ID / STOW_AWS_SECRET_ACCESS_KEY env vars (future)."
+            )
+        else:
+            logger.warning(
+                "STOW upload mode: FILES API  (direct cloud probe failed)\n"
+                "  Reason: %s",
+                msg,
+            )
 
     return result
