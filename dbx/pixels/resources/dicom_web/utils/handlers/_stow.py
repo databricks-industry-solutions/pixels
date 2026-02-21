@@ -816,14 +816,9 @@ async def _handle_legacy_spark(
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
-    # Forward Content-Length so the Volumes PUT can use fixed-length transfer
-    # instead of chunked encoding — avoids server-side buffering overhead.
-    _cl = request.headers.get("content-length", "")
-    _content_length = int(_cl) if _cl else None
-
     try:
         file_size = await async_stream_to_volumes(
-            token, dest_path, request.stream(), content_length=_content_length,
+            token, dest_path, request.stream(),
         )
     except Exception as exc:
         logger.error(

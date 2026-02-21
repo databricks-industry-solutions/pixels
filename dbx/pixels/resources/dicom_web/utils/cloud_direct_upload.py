@@ -330,6 +330,7 @@ def _write_s3(
 ) -> None:
     """Stream *reader* to S3 using boto3 ``upload_fileobj``."""
     import boto3
+    from boto3.s3.transfer import TransferConfig
     from botocore.config import Config as BotoConfig
     from urllib.parse import urlparse
 
@@ -343,17 +344,25 @@ def _write_s3(
         aws_access_key_id=aws["access_key_id"],
         aws_secret_access_key=aws["secret_access_key"],
         aws_session_token=aws.get("session_token"),
-        config=BotoConfig(
-            retries={"max_attempts": 3, "mode": "adaptive"},
-            multipart_threshold=16 * 1024 * 1024,   # multipart for > 16 MB
-            multipart_chunksize=16 * 1024 * 1024,
-        ),
+        config=BotoConfig(retries={"max_attempts": 3, "mode": "adaptive"}),
     )
+
+    # multipart_threshold / multipart_chunksize belong in TransferConfig,
+    # not BotoConfig — they control the S3Transfer layer, not the botocore client.
+    transfer_cfg = TransferConfig(
+        multipart_threshold=16 * 1024 * 1024,
+        multipart_chunksize=16 * 1024 * 1024,
+    )
+
     extra = {}
     if content_length is not None:
         extra["ContentLength"] = content_length
 
-    s3.upload_fileobj(reader, bucket, key, ExtraArgs=extra if extra else None)
+    s3.upload_fileobj(
+        reader, bucket, key,
+        ExtraArgs=extra if extra else None,
+        Config=transfer_cfg,
+    )
     logger.debug("S3 upload complete: s3://%s/%s", bucket, key)
 
 
