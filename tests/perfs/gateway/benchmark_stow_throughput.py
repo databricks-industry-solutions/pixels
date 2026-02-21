@@ -171,19 +171,11 @@ def build_stow_payload(dicom_bytes: bytes) -> tuple[bytes, str]:
 # Upload helpers
 # ---------------------------------------------------------------------------
 
-def _do_upload(
-    session: requests.Session,
-    url: str,
-    dicom_bytes: bytes,
-    upload_timeout: float = 300.0,
-) -> tuple[float, int, int]:
-    """Upload a DICOM file via STOW-RS and return (elapsed_s, http_status, body_size).
+def _assign_fresh_uid(dicom_bytes: bytes) -> bytes:
+    """Return a copy of *dicom_bytes* with a newly generated SOP Instance UID.
 
-    A fresh SOP UID and multipart boundary are generated per call so that
-    uploads are unique and never deduplicated.
-
-    Returns http_status=-1 on connection / SSL errors so callers can count
-    them as errors without raising.
+    Call this sequentially before submitting work to a thread pool to avoid
+    any thread-safety concerns with pydicom's internal state.
     """
     import pydicom
     from pydicom.uid import generate_uid
@@ -192,9 +184,25 @@ def _do_upload(
     ds.SOPInstanceUID = generate_uid()
     buf = BytesIO()
     pydicom.dcmwrite(buf, ds)
-    fresh_bytes = buf.getvalue()
+    return buf.getvalue()
 
-    body, content_type = build_stow_payload(fresh_bytes)
+
+def _do_upload(
+    session: requests.Session,
+    url: str,
+    dicom_bytes: bytes,
+    upload_timeout: float = 300.0,
+) -> tuple[float, int, int]:
+    """Upload a pre-prepared DICOM file via STOW-RS and return (elapsed_s, http_status, body_size).
+
+    *dicom_bytes* must already contain a unique SOP Instance UID — callers are
+    responsible for generating distinct payloads via :func:`_assign_fresh_uid`
+    before submitting to a thread pool.
+
+    Returns http_status=-1 on connection / SSL errors so callers can count
+    them as errors without raising.
+    """
+    body, content_type = build_stow_payload(dicom_bytes)
 
     # connect timeout 30 s; read/upload timeout controlled by --upload-timeout
     timeout = (30, upload_timeout)
@@ -245,7 +253,8 @@ def run_sequential(
     errors = 0
 
     for i in range(repeats):
-        elapsed, status, body_size = _do_upload(session, url, dicom_bytes, upload_timeout)
+        unique_bytes = _assign_fresh_uid(dicom_bytes)
+        elapsed, status, body_size = _do_upload(session, url, unique_bytes, upload_timeout)
         if status != 200:
             logger.warning(
                 "    upload %d/%d failed: HTTP %d (%.1fs)",
@@ -279,11 +288,18 @@ def run_concurrent(
     latencies: list[float] = []
     errors = 0
 
+    # Pre-generate one unique DICOM file per request sequentially so that each
+    # worker thread receives a distinct SOP Instance UID payload. Doing this
+    # outside the thread pool avoids any pydicom thread-safety concerns and
+    # guarantees no two concurrent requests upload the same instance.
+    logger.info("  Pre-generating %d unique DICOM payloads ...", repeats)
+    unique_payloads = [_assign_fresh_uid(dicom_bytes) for _ in range(repeats)]
+
     t_wall_start = time.perf_counter()
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [
-            pool.submit(_do_upload, session, url, dicom_bytes, upload_timeout)
-            for _ in range(repeats)
+            pool.submit(_do_upload, session, url, payload, upload_timeout)
+            for payload in unique_payloads
         ]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             elapsed, status, body_size = future.result()
