@@ -259,22 +259,32 @@ class DatabricksSQLClient:
         logger.debug(f"SQL (stream): {query}  params={parameters}")
 
         is_obo = USE_USER_AUTH and user_token is not None
+        conn = None
+        failed = False
 
         try:
             if is_obo:
                 conn = self._connect_as_user(user_token)
             else:
-                conn = self._get_app_connection()
+                conn = self._acquire_app_connection()
 
             cursor = conn.cursor()
             cursor.execute(query, parameters=parameters)
         except Exception as exc:
+            failed = True
             logger.error(f"SQL execution failed: {exc}")
-            if not is_obo:
-                self._app_conn = None
+            if conn is not None:
+                if is_obo:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                else:
+                    self._release_app_connection(conn, failed=True)
             raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
 
         def _rows() -> Iterator[list[Any]]:
+            row_failed = False
             try:
                 while True:
                     batch = cursor.fetchmany_arrow(10_000)
@@ -282,6 +292,9 @@ class DatabricksSQLClient:
                         break
                     for row in batch.to_pylist():
                         yield list(row.values())
+            except Exception:
+                row_failed = True
+                raise
             finally:
                 cursor.close()
                 if is_obo:
@@ -289,12 +302,22 @@ class DatabricksSQLClient:
                         conn.close()
                     except Exception:
                         pass
+                else:
+                    self._release_app_connection(conn, failed=row_failed)
 
         return _rows()
 
     def close(self):
-        """Close the shared app-auth connection (if open)."""
-        if self._app_conn:
-            self._app_conn.close()
-            self._app_conn = None
+        """Drain and close all pooled app-auth connections."""
+        while True:
+            try:
+                conn = self._pool.get_nowait()
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            except queue.Empty:
+                break
+        with self._pool_lock:
+            self._pool_count = 0
 
