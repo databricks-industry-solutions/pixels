@@ -464,9 +464,9 @@ def probe_direct_upload() -> dict:
         )
         return result
 
-    volumes_path = os.environ.get("STOW_VOLUME_PATH", "")
+    volumes_path = os.environ.get("DATABRICKS_STOW_VOLUME_PATH", "")
     if not volumes_path:
-        msg = "STOW_DIRECT_CLOUD_UPLOAD=true but STOW_VOLUME_PATH is not set"
+        msg = "STOW_DIRECT_CLOUD_UPLOAD=true but DATABRICKS_STOW_VOLUME_PATH is not set"
         logger.warning("STOW upload mode: DIRECT CLOUD — CONFIGURATION INCOMPLETE\n  %s", msg)
         result["error"] = msg
         return result
