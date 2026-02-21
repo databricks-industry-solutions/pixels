@@ -429,6 +429,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
              "Increase for very large payloads over slow links.",
     )
     p.add_argument(
+        "--no-sequential", action="store_true",
+        help="Skip the sequential upload phase",
+    )
+    p.add_argument(
+        "--no-concurrent", action="store_true",
+        help="Skip the concurrent upload phase",
+    )
+    p.add_argument(
         "--no-verify", action="store_true",
         help="Disable TLS certificate verification (useful for debugging SSL issues)",
     )
@@ -499,6 +507,10 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(1)
     logger.info("Server OK")
 
+    if args.no_sequential and args.no_concurrent:
+        logger.error("Both --no-sequential and --no-concurrent are set — nothing to run.")
+        sys.exit(1)
+
     if args.repeats < args.concurrency:
         logger.warning(
             "--repeats (%d) < --concurrency (%d): only %d file(s) will be uploaded "
@@ -529,18 +541,20 @@ def main(argv: list[str] | None = None) -> None:
         dicom_bytes = payloads[mb]
         logger.info("--- %g MB ---", mb)
 
-        seq = run_sequential(
-            session, stow_url, dicom_bytes, args.repeats, mb,
-            upload_timeout=args.upload_timeout,
-        )
-        all_results.append(seq)
+        if not args.no_sequential:
+            seq = run_sequential(
+                session, stow_url, dicom_bytes, args.repeats, mb,
+                upload_timeout=args.upload_timeout,
+            )
+            all_results.append(seq)
 
-        conc = run_concurrent(
-            session, stow_url, dicom_bytes,
-            args.repeats, args.concurrency, mb,
-            upload_timeout=args.upload_timeout,
-        )
-        all_results.append(conc)
+        if not args.no_concurrent:
+            conc = run_concurrent(
+                session, stow_url, dicom_bytes,
+                args.repeats, args.concurrency, mb,
+                upload_timeout=args.upload_timeout,
+            )
+            all_results.append(conc)
 
     # Summary
     print_summary(all_results)
