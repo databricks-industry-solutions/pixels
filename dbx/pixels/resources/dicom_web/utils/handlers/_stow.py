@@ -17,10 +17,8 @@ STOW-RS handler — dual-path: streaming split or legacy Spark.
 
 1. Streams the multipart/related body to a single temp ``.mpr`` file.
 2. Inserts a tracking row (``status='pending'``).
-3. Fires a Spark job (Phase 1 split + Phase 2 metadata).
-4. Polls ``stow_operations`` until Phase 1 completes.
-5. Reads DICOM headers, caches UID → path mappings.
-6. Returns a JSON receipt.
+3. Returns a JSON receipt immediately to the client.
+4. Fires a Spark job (Phase 1 split + Phase 2 metadata) in the background.
 
 The threshold is controlled by ``STOW_STREAMING_MAX_BYTES`` (default 500 MB).
 When ``Content-Length`` is absent or ≤ threshold, the streaming path is used.
@@ -612,7 +610,8 @@ async def dicomweb_stow_studies(
       No intermediate ``.mpr``, no Spark Phase 1, no polling.
 
     **Legacy Spark path** (> threshold):
-      Streams the full body to a ``.mpr`` file, triggers Spark to split.
+      Streams the full body to a ``.mpr`` file, returns immediately, then
+      triggers the Spark split+metadata job in the background.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -845,62 +844,38 @@ async def _handle_legacy_spark(
         "user_agent": user_agent,
     }
 
-    # ── Synchronous INSERT (must complete before job trigger) ───────────
+    # ── Synchronous INSERT (must complete before returning to client) ───
     sql_client = get_sql_client()
     _write_stow_records(sql_client, token, [record])
 
-    # ── Fire Spark job (non-blocking) ──────────────────────────────────
-    if token:
+    # ── Fire Spark job in the background — do NOT await ────────────────
+    async def _background_fire():
+        if not token:
+            logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
+            return
         job_status = await asyncio.to_thread(_fire_stow_job, token)
-    else:
-        job_status = {"action": "skipped", "reason": "no auth token"}
+        job_action = job_status.get("action", "?")
+        logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
-    job_action = job_status.get("action", "?")
-    logger.info(f"STOW-RS [legacy]: job {job_action} for file_id={file_id}")
+    asyncio.create_task(_background_fire())
 
-    # ── Poll stow_operations until Phase 1 completes ──────────────────
-    poll_result = await asyncio.to_thread(
-        _poll_stow_status, sql_client, token, file_id,
-    )
-
-    phase1_status = poll_result.get("status", "unknown")
-    output_paths = poll_result.get("output_paths", [])
-    phase1_succeeded = phase1_status == "completed"
-
-    # ── Cache UID → path mappings (Tier 1 + Tier 2) ───────────────────
-    cached_entries: list[dict] = []
-    if phase1_succeeded and output_paths and token:
-        uc_table = _stow_catalog_table or ""
-        user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
-
-        cached_entries = await asyncio.to_thread(
-            _cache_stow_paths, token, output_paths,
-            study_instance_uid, uc_table, user_groups,
-        )
-
-    # ── Build receipt & choose HTTP status ────────────────────────────
+    # ── Build receipt & return immediately ────────────────────────────
     receipt = {
         "file_id": file_id,
         "mode": "legacy_spark",
         "path": dest_path,
         "size": file_size,
-        "status": "succeeded" if phase1_succeeded else phase1_status,
+        "status": "accepted",
         "content_type": content_type,
         "study_constraint": study_instance_uid,
-        "output_paths": output_paths,
-        "cached_instances": len(cached_entries),
-        "job": job_status,
-        "phase1": poll_result,
     }
 
-    http_status = 200 if phase1_succeeded else 500
     logger.info(
-        f"STOW-RS [legacy] complete: {file_id} ({file_size} bytes), "
-        f"phase1={phase1_status}, cached={len(cached_entries)}, "
-        f"HTTP {http_status}"
+        f"STOW-RS [legacy] accepted: {file_id} ({file_size} bytes), "
+        f"job will run in background"
     )
     return Response(
         content=json.dumps(receipt, indent=2),
-        status_code=http_status,
+        status_code=200,
         media_type="application/json",
     )
