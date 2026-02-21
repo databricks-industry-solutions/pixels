@@ -379,8 +379,12 @@ async def _lifespan(application: FastAPI):
         probe_direct_upload,
     )
     if DIRECT_UPLOAD_ENABLED:
+        # Run synchronously so credentials are cached before the first upload request
+        # arrives.  probe_direct_upload() also calls get_temp_credentials(), which
+        # populates the in-process cache and prevents the first real upload from
+        # paying the 5-8 s cold-start penalty.
         _probe_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="stow-probe")
-        _probe_executor.submit(probe_direct_upload)
+        await asyncio.get_event_loop().run_in_executor(_probe_executor, probe_direct_upload)
     else:
         logger.info(
             "STOW upload mode: FILES API  "
