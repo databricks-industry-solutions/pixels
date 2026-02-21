@@ -214,14 +214,21 @@ def _startup_bot_preload() -> None:
 _gw_req_count = 0
 _gw_req_errors = 0
 _gw_req_latency_sum = 0.0
+_gw_req_in_flight = 0   # gauge: requests currently being processed
 
 
 def _record_request(elapsed: float, is_error: bool):
-    global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
+    global _gw_req_count, _gw_req_errors, _gw_req_latency_sum, _gw_req_in_flight
     _gw_req_count += 1
     _gw_req_latency_sum += elapsed
     if is_error:
         _gw_req_errors += 1
+    _gw_req_in_flight -= 1
+
+
+def _record_request_start():
+    global _gw_req_in_flight
+    _gw_req_in_flight += 1
 
 
 def _bytes_to_mb(b: int) -> float:
@@ -270,6 +277,7 @@ def _snapshot_and_reset() -> dict:
             round(_gw_req_latency_sum / _gw_req_count, 4)
             if _gw_req_count else 0
         ),
+        "in_flight": max(_gw_req_in_flight, 0),  # gauge — not reset
         "system": _collect_system_metrics(),
         "caches": _collect_cache_metrics(),
     }
@@ -686,6 +694,7 @@ class _InstrumentMiddleware:
             await self.app(scope, receive, send)
             return
 
+        _record_request_start()
         t0 = time.perf_counter()
         status_code = 200
 

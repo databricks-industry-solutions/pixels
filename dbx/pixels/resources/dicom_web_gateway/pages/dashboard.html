@@ -293,9 +293,13 @@
 
     <!-- ── Request Metrics ────────────────────────────────────── -->
     <div class="section-title">Request Metrics</div>
-    <div class="kpi-row cols-4">
+    <div class="kpi-row cols-5">
         <div class="kpi">
-            <span class="kpi-label">Requests / tick</span>
+            <span class="kpi-label">In Flight</span>
+            <span class="kpi-value" id="kpi-inflight">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Completed / tick</span>
             <span class="kpi-value" id="kpi-req">&mdash;</span>
         </div>
         <div class="kpi">
@@ -446,14 +450,14 @@
         /* ── Time-series buffers ───────────────────────────────── */
 
         var labels = [];
-        var gwBuf   = { req: [], err: [], lat: [] };
+        var gwBuf   = { req: [], err: [], lat: [], inflight: [] };
         var cpuBuf  = { proc: [], sys: [] };
         var memBuf  = { rss: [], sysPct: [] };
         var cacheBuf = { botHit: [], pathHit: [], botEntries: [], pathEntries: [], pfCached: [] };
 
         var ALL_BUFS = [
             labels,
-            gwBuf.req, gwBuf.err, gwBuf.lat,
+            gwBuf.req, gwBuf.err, gwBuf.lat, gwBuf.inflight,
             cpuBuf.proc, cpuBuf.sys,
             memBuf.rss, memBuf.sysPct,
             cacheBuf.botHit, cacheBuf.pathHit,
@@ -570,7 +574,8 @@
             data: {
                 labels: labels,
                 datasets: [
-                    ds('Requests', gwBuf.req, '#38bdf8'),
+                    ds('In Flight', gwBuf.inflight, '#34d399', { fill: false }),
+                    ds('Completed', gwBuf.req, '#38bdf8'),
                     ds('Errors', gwBuf.err, '#fb7185', { fill: false, borderDash: [4, 2] })
                 ]
             },
@@ -668,6 +673,7 @@
             gwBuf.req.push(gm.request_count || 0);
             gwBuf.err.push(gm.error_count || 0);
             gwBuf.lat.push(Math.round((gm.avg_latency_s || 0) * 1000));
+            gwBuf.inflight.push(gm.in_flight || 0);
 
             var sys = gm.system || {};
             cpuBuf.proc.push(sys.cpu_percent_process || 0);
@@ -700,10 +706,13 @@
 
         function updateKpis(gm, sys, caches) {
             gm = gm || {};
-            var reqCount = gm.request_count || 0;
-            var errCount = gm.error_count   || 0;
-            var avgLat   = Math.round((gm.avg_latency_s || 0) * 1000);
+            var reqCount  = gm.request_count || 0;
+            var errCount  = gm.error_count   || 0;
+            var avgLat    = Math.round((gm.avg_latency_s || 0) * 1000);
+            var inFlight  = gm.in_flight != null ? gm.in_flight : '—';
 
+            setKpi('kpi-inflight', inFlight,
+                inFlight === 0 ? null : inFlight < 10 ? 'good' : inFlight < 20 ? 'warn' : 'bad');
             setKpi('kpi-req', reqCount, reqCount > 0 ? 'good' : null);
             setKpi('kpi-err', errCount,
                 errCount === 0 ? 'good' : errCount < 5 ? 'warn' : 'bad');
