@@ -65,6 +65,29 @@ DIRECT_UPLOAD_ENABLED: bool = (
 )
 
 # ---------------------------------------------------------------------------
+# SDK-based host / token resolution
+# ---------------------------------------------------------------------------
+
+def _sdk_host_and_token() -> tuple[str, str]:
+    """
+    Return ``(host, bearer_token)`` using the Databricks SDK ``Config``.
+
+    This is the same credential path used by the rest of the gateway
+    (``app_token_provider()`` in ``_common.py``).  It works for all
+    Databricks authentication methods — OAuth M2M, PAT, Databricks Apps
+    identity — without requiring a raw ``DATABRICKS_TOKEN`` env var.
+    """
+    from databricks.sdk.core import Config
+    cfg = Config()
+    headers = cfg.authenticate()
+    if callable(headers):
+        headers = headers()
+    token = (headers or {}).get("Authorization", "").removeprefix("Bearer ").strip()
+    host = cfg.host.replace("https://", "").replace("http://", "").rstrip("/")
+    return host, token
+
+
+# ---------------------------------------------------------------------------
 # In-process caches (one per process / uvicorn worker)
 # ---------------------------------------------------------------------------
 
@@ -441,22 +464,19 @@ def probe_direct_upload() -> dict:
         )
         return result
 
-    host = os.environ.get("DATABRICKS_HOST", "").lstrip("https://").rstrip("/")
-    token = os.environ.get("DATABRICKS_TOKEN", "") or os.environ.get("DATABRICKS_APP_TOKEN", "")
     volumes_path = os.environ.get("STOW_VOLUME_PATH", "")
-
-    if not (host and token and volumes_path):
-        msg = (
-            "STOW_DIRECT_CLOUD_UPLOAD=true but required env vars are missing: "
-            f"DATABRICKS_HOST={'set' if host else 'MISSING'}, "
-            f"DATABRICKS_TOKEN={'set' if token else 'MISSING'}, "
-            f"STOW_VOLUME_PATH={'set' if volumes_path else 'MISSING'}"
-        )
+    if not volumes_path:
+        msg = "STOW_DIRECT_CLOUD_UPLOAD=true but STOW_VOLUME_PATH is not set"
         logger.warning("STOW upload mode: DIRECT CLOUD — CONFIGURATION INCOMPLETE\n  %s", msg)
         result["error"] = msg
         return result
 
     try:
+        host, token = _sdk_host_and_token()
+        if not (host and token):
+            raise RuntimeError(
+                "Databricks SDK returned empty host or token — check workspace authentication"
+            )
         cloud_url = resolve_cloud_url(host, token, volumes_path)
         provider = _detect_provider(cloud_url)
         result.update({"mode": "direct_cloud", "provider": provider, "cloud_url": cloud_url})
