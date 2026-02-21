@@ -391,6 +391,7 @@ async def async_stream_to_volumes(
     token: str,
     volume_path: str,
     body_stream,
+    content_length: int | None = None,
 ) -> int:
     """
     Stream an async byte stream directly to a Databricks Volume path.
@@ -474,13 +475,20 @@ async def async_stream_to_volumes(
     client = _get_upload_client()
     try:
         async with _get_upload_semaphore():
+            put_headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/octet-stream",
+            }
+            # Setting Content-Length lets the Volumes API pre-allocate storage
+            # and avoids chunked transfer encoding, which forces the API to
+            # buffer the body before committing — adding significant latency
+            # for large files.
+            if content_length is not None:
+                put_headers["Content-Length"] = str(content_length)
             rp_req = client.build_request(
                 "PUT",
                 url,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/octet-stream",
-                },
+                headers=put_headers,
                 content=_volume_stream(),
             )
             response = await client.send(rp_req)
