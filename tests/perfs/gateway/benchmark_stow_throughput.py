@@ -44,6 +44,9 @@ import uuid
 from io import BytesIO
 
 import requests
+import urllib3
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -172,11 +175,15 @@ def _do_upload(
     session: requests.Session,
     url: str,
     dicom_bytes: bytes,
+    upload_timeout: float = 300.0,
 ) -> tuple[float, int, int]:
     """Upload a DICOM file via STOW-RS and return (elapsed_s, http_status, body_size).
 
     A fresh SOP UID and multipart boundary are generated per call so that
     uploads are unique and never deduplicated.
+
+    Returns http_status=-1 on connection / SSL errors so callers can count
+    them as errors without raising.
     """
     import pydicom
     from pydicom.uid import generate_uid
@@ -189,18 +196,35 @@ def _do_upload(
 
     body, content_type = build_stow_payload(fresh_bytes)
 
+    # connect timeout 30 s; read/upload timeout controlled by --upload-timeout
+    timeout = (30, upload_timeout)
+
     t0 = time.perf_counter()
-    resp = session.post(
-        url,
-        data=body,
-        headers={"Content-Type": content_type},
-        stream=True,
-    )
-    # Consume the streamed response fully
-    for chunk in resp.iter_content(chunk_size=STREAM_CHUNK_SIZE):
-        pass
-    elapsed = time.perf_counter() - t0
-    return elapsed, resp.status_code, len(body)
+    try:
+        resp = session.post(
+            url,
+            data=body,
+            headers={"Content-Type": content_type},
+            stream=True,
+            timeout=timeout,
+        )
+        # Consume the streamed response fully
+        for chunk in resp.iter_content(chunk_size=STREAM_CHUNK_SIZE):
+            pass
+        elapsed = time.perf_counter() - t0
+        return elapsed, resp.status_code, len(body)
+    except requests.exceptions.SSLError as exc:
+        elapsed = time.perf_counter() - t0
+        logger.error("SSL error during upload (%.1fs): %s", elapsed, exc)
+        return elapsed, -1, len(body)
+    except requests.exceptions.ConnectionError as exc:
+        elapsed = time.perf_counter() - t0
+        logger.error("Connection error during upload (%.1fs): %s", elapsed, exc)
+        return elapsed, -1, len(body)
+    except requests.exceptions.Timeout as exc:
+        elapsed = time.perf_counter() - t0
+        logger.error("Timeout during upload (%.1fs): %s", elapsed, exc)
+        return elapsed, -1, len(body)
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +237,7 @@ def run_sequential(
     dicom_bytes: bytes,
     repeats: int,
     size_mb: float,
+    upload_timeout: float = 300.0,
 ) -> dict:
     """Upload *repeats* times sequentially and return timing stats."""
     logger.info("  Sequential: %d uploads of ~%g MB ...", repeats, size_mb)
@@ -220,9 +245,12 @@ def run_sequential(
     errors = 0
 
     for i in range(repeats):
-        elapsed, status, body_size = _do_upload(session, url, dicom_bytes)
+        elapsed, status, body_size = _do_upload(session, url, dicom_bytes, upload_timeout)
         if status != 200:
-            logger.warning("    upload %d/%d failed: HTTP %d", i + 1, repeats, status)
+            logger.warning(
+                "    upload %d/%d failed: HTTP %d (%.1fs)",
+                i + 1, repeats, status, elapsed,
+            )
             errors += 1
         else:
             latencies.append(elapsed)
@@ -241,6 +269,7 @@ def run_concurrent(
     repeats: int,
     concurrency: int,
     size_mb: float,
+    upload_timeout: float = 300.0,
 ) -> dict:
     """Upload *repeats* times across *concurrency* workers and return timing stats."""
     logger.info(
@@ -253,13 +282,16 @@ def run_concurrent(
     t_wall_start = time.perf_counter()
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [
-            pool.submit(_do_upload, session, url, dicom_bytes)
+            pool.submit(_do_upload, session, url, dicom_bytes, upload_timeout)
             for _ in range(repeats)
         ]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             elapsed, status, body_size = future.result()
             if status != 200:
-                logger.warning("    upload %d/%d failed: HTTP %d", i + 1, repeats, status)
+                logger.warning(
+                    "    upload %d/%d failed: HTTP %d (%.1fs)",
+                    i + 1, repeats, status, elapsed,
+                )
                 errors += 1
             else:
                 latencies.append(elapsed)
@@ -373,6 +405,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                     help="Uploads per size per phase (default: 5)")
     p.add_argument("--concurrency", type=int, default=4,
                     help="Parallel workers for the concurrent phase (default: 4)")
+    p.add_argument(
+        "--upload-timeout", type=float, default=300.0,
+        help="Per-upload read/send timeout in seconds (default: 300). "
+             "Increase for very large payloads over slow links.",
+    )
+    p.add_argument(
+        "--no-verify", action="store_true",
+        help="Disable TLS certificate verification (useful for debugging SSL issues)",
+    )
     p.add_argument("--output", default="",
                     help="Write JSON results to this file")
     return p.parse_args(argv)
@@ -394,16 +435,39 @@ def main(argv: list[str] | None = None) -> None:
     app_host = args.app_host.rstrip("/")
     stow_url = f"{app_host}/api/dicomweb/studies"
 
-    # Session
+    if args.no_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        logger.warning("TLS verification DISABLED (--no-verify)")
+
+    # Session — mount a retry adapter that handles transient SSL / connection drops
     session = requests.Session()
     session.headers["Authorization"] = f"Bearer {token}"
+    session.verify = not args.no_verify
+
+    _retry = Retry(
+        total=3,
+        connect=3,
+        read=1,
+        backoff_factor=2,
+        status_forcelist=[500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+        raise_on_status=False,
+    )
+    _adapter = HTTPAdapter(max_retries=_retry)
+    session.mount("https://", _adapter)
+    session.mount("http://", _adapter)
+
     pixels_table = args.pixels_table or os.environ.get("PIXELS_TABLE", "")
     if pixels_table:
         session.cookies.set("pixels_table", pixels_table)
 
     # Connectivity check
     logger.info("Checking connectivity to %s ...", stow_url)
-    resp = session.get(f"{app_host}/api/dicomweb/studies", params={"limit": 1})
+    resp = session.get(
+        f"{app_host}/api/dicomweb/studies",
+        params={"limit": 1},
+        timeout=(10, 30),
+    )
     if resp.status_code != 200:
         logger.error("Server unreachable: HTTP %d", resp.status_code)
         sys.exit(1)
@@ -423,6 +487,8 @@ def main(argv: list[str] | None = None) -> None:
         payloads[mb] = _build_dicom_bytes(mb)
         logger.info("  -> %s bytes", f"{len(payloads[mb]):,}")
 
+    logger.info("Upload timeout: %.0fs per request", args.upload_timeout)
+
     # Run benchmarks
     all_results: list[dict] = []
 
@@ -430,12 +496,16 @@ def main(argv: list[str] | None = None) -> None:
         dicom_bytes = payloads[mb]
         logger.info("--- %g MB ---", mb)
 
-        seq = run_sequential(session, stow_url, dicom_bytes, args.repeats, mb)
+        seq = run_sequential(
+            session, stow_url, dicom_bytes, args.repeats, mb,
+            upload_timeout=args.upload_timeout,
+        )
         all_results.append(seq)
 
         conc = run_concurrent(
             session, stow_url, dicom_bytes,
             args.repeats, args.concurrency, mb,
+            upload_timeout=args.upload_timeout,
         )
         all_results.append(conc)
 

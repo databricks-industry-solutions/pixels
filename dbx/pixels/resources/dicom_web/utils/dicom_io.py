@@ -342,6 +342,12 @@ async def async_stream_to_volumes(
     is streamed as-is to a single temp file on Volumes.  No parsing, no
     buffering of the full body.
 
+    **Back-pressure prevention**: an ``asyncio.Queue`` decouples reading
+    from the client (fast) and writing to Volumes (potentially slower).
+    The client body is drained eagerly into the queue so the inbound TCP
+    connection never goes idle — preventing the Databricks Apps proxy from
+    closing it due to an idle-connection timeout.
+
     Args:
         token: Databricks bearer token.
         volume_path: Destination path starting with ``/Volumes/…``.
@@ -354,6 +360,7 @@ async def async_stream_to_volumes(
     Raises:
         RuntimeError: If the PUT request returns a non-success status.
     """
+    import asyncio
     import httpx
 
     host = (
@@ -367,13 +374,46 @@ async def async_stream_to_volumes(
 
     total_size = 0
 
-    async def _counting_stream():
+    # Drain the inbound body into a bounded queue independently of the Volumes
+    # write speed.  The queue absorbs short-lived throughput differences
+    # between the client send rate and the Volumes PUT rate, preventing the
+    # inbound TCP connection from going idle long enough for the Databricks
+    # Apps proxy to time it out.
+    #
+    # maxsize=256 at ~64 KB chunks ≈ 16 MB per upload — enough headroom for
+    # brief Volumes write pauses while keeping memory bounded.  If the queue
+    # fills (Volumes is consistently slower than the client), back-pressure
+    # propagates through the asyncio queue to the OS socket buffer, which is
+    # acceptable because the proxy only cares about *short* idle gaps.
+    _QUEUE_MAXSIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "256"))
+    queue: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
+
+    async def _drain_client() -> None:
+        """Read all chunks from the request body and enqueue them."""
+        try:
+            async for chunk in body_stream:
+                await queue.put(chunk)
+        finally:
+            await queue.put(None)  # sentinel — signals end of stream
+
+    async def _volume_stream():
+        """Yield chunks from the queue to the Volumes PUT body."""
         nonlocal total_size
-        async for chunk in body_stream:
+        while True:
+            chunk = await queue.get()
+            if chunk is None:
+                return
             total_size += len(chunk)
             yield chunk
 
-    client = httpx.AsyncClient(timeout=httpx.Timeout(300.0))
+    drain_task = asyncio.create_task(_drain_client())
+
+    # Separate timeouts per phase:
+    #   connect — 30 s to establish the TLS connection to Volumes
+    #   write   — None (no timeout): upload duration depends on file size
+    #   read    — 60 s to receive the PUT response after the body is sent
+    _timeout = httpx.Timeout(connect=30.0, write=None, read=60.0, pool=5.0)
+    client = httpx.AsyncClient(timeout=_timeout)
     try:
         rp_req = client.build_request(
             "PUT",
@@ -382,11 +422,18 @@ async def async_stream_to_volumes(
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/octet-stream",
             },
-            content=_counting_stream(),
+            content=_volume_stream(),
         )
         response = await client.send(rp_req)
     finally:
         await client.aclose()
+        # Ensure the drain task is always awaited to avoid dangling tasks
+        if not drain_task.done():
+            drain_task.cancel()
+        try:
+            await drain_task
+        except asyncio.CancelledError:
+            pass
 
     if response.status_code not in (200, 204):
         raise RuntimeError(

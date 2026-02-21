@@ -7,8 +7,15 @@ part directly to its final ``/stow/{StudyUID}/{SeriesUID}/{SOPUID}.dcm``
 location on Volumes — no intermediate ``.mpr`` file, no Spark split job.
 
 Memory usage is **O(header_buf + chunk_size)** per part (~128 KB typical).
+
+**Back-pressure prevention**: the client body is immediately drained into
+an internal ``asyncio.Queue`` (unbounded), decoupled from the per-part
+Volumes PUT writes.  This prevents the Databricks Apps reverse proxy from
+closing an idle inbound connection when Volumes writes are slower than the
+client upload rate.
 """
 
+import asyncio
 import os
 import struct
 import uuid
@@ -412,7 +419,13 @@ async def async_stream_split_to_volumes(
     3. Opens a streaming PUT to the Volumes Files API.
     4. Sends the buffered header + remaining body bytes.
 
-    Memory: O(64 KB + chunk_size) per part.
+    Memory: O(64 KB + chunk_size) per part, plus the read-ahead queue
+    (unbounded, but at most one in-flight chunk per producer step).
+
+    **Back-pressure prevention**: an ``asyncio.Queue`` eagerly drains the
+    client body regardless of how fast individual Volumes PUTs complete.
+    The multipart parser reads from the queue, so the inbound connection
+    stays active throughout the upload, preventing proxy idle-timeouts.
 
     Args:
         token: Databricks bearer token.
@@ -442,15 +455,52 @@ async def async_stream_split_to_volumes(
     if not host:
         raise ValueError("DATABRICKS_HOST not configured")
 
-    parser = AsyncMultipartParser(boundary, body_stream.__aiter__())
-    results: list[dict] = []
+    # ── Read-ahead: drain client body into a bounded queue independently of
+    #    per-part Volumes writes.  256 × ~64 KB ≈ 16 MB per upload, which
+    #    absorbs brief Volumes write pauses without unbounded memory growth.
+    #    Back-pressure propagates to the OS socket only when the queue is
+    #    full (i.e., Volumes is consistently slower than the client), which
+    #    is acceptable — the proxy only cares about *short* idle gaps.
+    _QUEUE_MAXSIZE = int(os.environ.get("STOW_READ_AHEAD_CHUNKS", "256"))
+    queue: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
 
-    async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
-        async for headers, body_gen in parser.parts():
-            result = await _upload_one_part(
-                token, host, stow_base, client, headers, body_gen,
-            )
-            results.append(result)
+    async def _drain_client() -> None:
+        try:
+            async for chunk in body_stream:
+                await queue.put(chunk)
+        finally:
+            await queue.put(None)  # sentinel
+
+    async def _queue_stream():
+        """Async iterator that yields chunks from the queue."""
+        while True:
+            chunk = await queue.get()
+            if chunk is None:
+                return
+            yield chunk
+
+    drain_task = asyncio.create_task(_drain_client())
+
+    # Separate per-phase timeouts; write=None means no timeout on the
+    # outbound Volumes PUT body — duration is upload-size-dependent.
+    _timeout = httpx.Timeout(connect=30.0, write=None, read=60.0, pool=5.0)
+
+    results: list[dict] = []
+    try:
+        parser = AsyncMultipartParser(boundary, _queue_stream())
+        async with httpx.AsyncClient(timeout=_timeout) as client:
+            async for headers, body_gen in parser.parts():
+                result = await _upload_one_part(
+                    token, host, stow_base, client, headers, body_gen,
+                )
+                results.append(result)
+    finally:
+        if not drain_task.done():
+            drain_task.cancel()
+        try:
+            await drain_task
+        except asyncio.CancelledError:
+            pass
 
     succeeded = sum(1 for r in results if r["status"] == "SUCCESS")
     failed = sum(1 for r in results if r["status"] == "FAILED")
