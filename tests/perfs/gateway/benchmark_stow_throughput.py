@@ -288,18 +288,17 @@ def run_concurrent(
     latencies: list[float] = []
     errors = 0
 
-    # Pre-generate one unique DICOM file per request sequentially so that each
-    # worker thread receives a distinct SOP Instance UID payload. Doing this
-    # outside the thread pool avoids any pydicom thread-safety concerns and
-    # guarantees no two concurrent requests upload the same instance.
-    logger.info("  Pre-generating %d unique DICOM payloads ...", repeats)
-    unique_payloads = [_assign_fresh_uid(dicom_bytes) for _ in range(repeats)]
+    # One unique DICOM file per worker slot is enough: no two in-flight requests
+    # will share the same SOP Instance UID, so the server won't overwrite.
+    # Tasks are assigned round-robin across the worker payloads.
+    logger.info("  Pre-generating %d unique DICOM payloads (one per worker) ...", concurrency)
+    worker_payloads = [_assign_fresh_uid(dicom_bytes) for _ in range(concurrency)]
 
     t_wall_start = time.perf_counter()
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [
-            pool.submit(_do_upload, session, url, payload, upload_timeout)
-            for payload in unique_payloads
+            pool.submit(_do_upload, session, url, worker_payloads[i % concurrency], upload_timeout)
+            for i in range(repeats)
         ]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             elapsed, status, body_size = future.result()
