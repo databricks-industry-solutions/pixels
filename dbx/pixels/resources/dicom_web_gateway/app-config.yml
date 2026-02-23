@@ -21,7 +21,7 @@ env:
   - name: "STOW_VOLUMES_CONCURRENCY"
     value: "8"
   - name: "STOW_STREAMING_MAX_BYTES"
-    value: "524288000"
+    value: "5242880"
   - name: "STOW_THREAD_POOL_SIZE"
     value: "64"
   - name: "STOW_SQL_BATCH_SIZE"
@@ -41,7 +41,7 @@ env:
   - name: "PIXELS_PREFETCH_RAM_RATIO"
     value: "0.50"
   - name: "PIXELS_PREFETCH_MAX_MEMORY_MB"
-    value: ""
+    value: "2048"
   - name: "PIXELS_PREFETCH_MAX_FILE_MB"
     value: "512"
 

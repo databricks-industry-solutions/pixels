@@ -1,31 +1,26 @@
 env:
+  # ── Required ────────────────────────────────────────────────────────────────
+  - name: "DICOMWEB_GATEWAY_URL"
+    value: "https://pixels-dicomweb-gateway-7474654130285494.aws.databricksapps.com"
   - name: "DATABRICKS_WAREHOUSE_ID"
     valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "serverless_lh10u9_catalog.tcia.object_catalog"
+
+  # ── MONAI serving ───────────────────────────────────────────────────────────
   - name: "MONAI_SERVING_ENDPOINT"
     valueFrom: "serving_endpoint"
-  - name: "DATABRICKS_PIXELS_TABLE"
-    value: "main.pixels_solacc.object_catalog"
-  - name: "LAKEBASE_INSTANCE_NAME"
-    value: "pixels-lakebase"
-  - name: "LAKEBASE_INIT_DB"
-    value: "false"
-  - name: "LAKEBASE_RLS_ENABLED"
-    value: "false"
+
+  # ── Authentication ──────────────────────────────────────────────────────────
   - name: "DICOMWEB_USE_USER_AUTH"
     value: "false"
-  - name: "DATABRICKS_STOW_VOLUME_PATH"
-    value: "/Volumes/main/pixels_solacc/pixels_volume/stow/"
-  - name: "PIXELS_PREFETCH_ENABLED"
-    value: "false"
-  - name: "PIXELS_PREFETCH_RAM_RATIO"
-    value: "0.50"
-  - name: "PIXELS_PREFETCH_MAX_FILE_MB"
-    value: "10"
-  - name: "PIXELS_BOT_CACHE_MAX_ENTRIES"
-    value: "100000"
-  - name: "PIXELS_PATH_CACHE_MAX_ENTRIES"
-    value: "100000"
-  - name: "PIXELS_FRAME_CACHE_MAX_GB"
-    value: "50"
+
+  # ── HTTP client tuning ──────────────────────────────────────────────────────
+  - name: "DICOMWEB_MAX_CONNECTIONS"
+    value: "200"
+  - name: "DICOMWEB_MAX_KEEPALIVE"
+    value: "100"
+
+  # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"
     value: "INFO"

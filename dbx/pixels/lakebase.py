@@ -283,15 +283,17 @@ class LakebaseUtils:
         try:
             project = self.workspace_client.postgres.get_project(self.project_resource_name)
             logger.info(f"Lakebase project '{self.instance_name}' exists.")
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to get project '{self.instance_name}': {str(e)}")
             if create_instance:
                 logger.info(f"Creating Lakebase project '{self.instance_name}'")
                 project = self.workspace_client.postgres.create_project(
                     project_id=self.instance_name, project=Project(spec=ProjectSpec())
-                ).result()
+                )
+                time.sleep(10)
             else:
                 raise Exception(f"Lakebase project '{self.instance_name}' does not exist")
-
+       
         # 2. Ensure Branch exists
         try:
             branch = self.workspace_client.postgres.get_branch(self.branch_resource_name)
@@ -303,11 +305,11 @@ class LakebaseUtils:
                     parent=self.project_resource_name,
                     branch_id=self.branch_name,
                     branch=Branch(spec=BranchSpec(no_expiry=True)),
-
                 )
+                time.sleep(10)
             else:
                 raise Exception(f"Lakebase branch '{self.branch_name}' does not exist")
-
+        
         # 3. Ensure Endpoint exists
         try:
             endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
@@ -326,18 +328,11 @@ class LakebaseUtils:
                         )
                     ),
                 )
+                time.sleep(10)
             else:
                 raise Exception(f"Lakebase endpoint '{self.instance_name}' does not exist")
 
-        # Wait for endpoint to be ready (RUNNING or SUSPENDED)
-        while endpoint.status.current_state not in [
-            EndpointStatusState.ACTIVE,
-            EndpointStatusState.IDLE,
-        ]:
-            endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
-            logger.info(f"Waiting for endpoint to be ready: {endpoint.status.current_state}")
-            time.sleep(30)
-
+        endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
         logger.info(f"Connection endpoint: {endpoint.status.hosts.host}")
         return endpoint
 
@@ -357,14 +352,13 @@ class LakebaseUtils:
             )
             db_role = self.workspace_client.postgres.create_role(
                 parent=self.branch_resource_name,
-                role_id=sp_client_id,
                 role=Role(
                     spec=RoleRoleSpec(
                         identity_type=RoleIdentityType.SERVICE_PRINCIPAL,
                         postgres_role=sp_client_id,
                     )
                 ),
-            ).result()
+            )
             return db_role
 
     def _generate_credential(self):

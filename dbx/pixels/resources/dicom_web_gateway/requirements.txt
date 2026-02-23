@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 databricks-sdk==0.88.0
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@features/dicom_web_integration
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@feature/dicomweb_servign
 databricks-sql-connector>=3.0.0
 requests
 psycopg2-binary

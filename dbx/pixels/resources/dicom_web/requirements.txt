@@ -1,4 +1,4 @@
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@features/dicom_web_integration
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@feature/dicomweb_servign
 databricks-sql-connector>=3.0.0
 databricks-sdk
 requests-toolbelt
