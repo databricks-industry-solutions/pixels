@@ -18,6 +18,7 @@ overhead that compounds on asset-heavy pages.  Pure ASGI middleware calls
 import time
 from functools import lru_cache
 
+import anyio
 from fastapi import HTTPException, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -39,8 +40,18 @@ def _read_static_file(path: str) -> bytes:
     Only use this for files that are identical for every user and every request
     (JS bundles, index.html).  Do NOT use it for anything derived from request
     context — load those once at middleware init time instead.
+
+    Always call this via ``anyio.to_thread.run_sync`` from async code.  The
+    first call performs a real disk read (potentially several MB); subsequent
+    calls return the cached bytes.  Either way, keeping it off the event loop
+    avoids stalling concurrent requests.
     """
     return open(path, "rb").read()
+
+
+async def _read_static_file_async(path: str) -> bytes:
+    """Async wrapper for ``_read_static_file`` that never blocks the event loop."""
+    return await anyio.to_thread.run_sync(_read_static_file, path)
 
 
 class TokenMiddleware:
@@ -98,7 +109,7 @@ class TokenMiddleware:
             return
 
         if path.endswith("local"):
-            body = _read_static_file(f"{ohif_path}/index.html")
+            body = await _read_static_file_async(f"{ohif_path}/index.html")
             await Response(
                 content=body.replace(b"./", b"/ohif/"), media_type="text/html"
             )(scope, receive, send)
@@ -107,7 +118,7 @@ class TokenMiddleware:
         if path.startswith("/ohif/app.bundle.") and path.endswith(".js"):
             file_name = path.split("/")[-1]
             logger.debug(f"Patching HTJ2K decoder in {file_name}")
-            body = _read_static_file(f"{ohif_path}/{file_name}")
+            body = await _read_static_file_async(f"{ohif_path}/{file_name}")
             await Response(
                 content=body.replace(b"(decodeHTJ2K_local.codec)", b"(false)"),
                 media_type="text/javascript",
