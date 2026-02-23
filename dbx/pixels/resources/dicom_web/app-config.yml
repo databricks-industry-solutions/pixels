@@ -1,29 +1,26 @@
 env:
+  # ── Required ────────────────────────────────────────────────────────────────
   - name: "DICOMWEB_GATEWAY_URL"
     value: "{DICOMWEB_GATEWAY_URL}"
-  - name: "STOW_STREAMING_MAX_BYTES"
-    value: "5000000"
-  - name: "STOW_DIRECT_CLOUD_UPLOAD"
-    value: "false"
-  - name: "STOW_SERVICE_CREDENTIAL_NAME"
-    value: ""
-  - name: "STOW_VOLUMES_CONCURRENCY"
-    value: "6"
-  - name: "DATABRICKS_SQL_POOL_SIZE"
-    value: "8"
   - name: "DATABRICKS_WAREHOUSE_ID"
     valueFrom: "sql_warehouse"
-  - name: "MONAI_SERVING_ENDPOINT"
-    valueFrom: "serving_endpoint"
   - name: "DATABRICKS_PIXELS_TABLE"
     value: "{PIXELS_TABLE}"
-  - name: "LAKEBASE_INSTANCE_NAME"
-    value: "{LAKEBASE_INSTANCE_NAME}"
-  - name: "LAKEBASE_INIT_DB"
-    value: "{LAKEBASE_INIT_DB}"
-  - name: "LAKEBASE_RLS_ENABLED"
-    value: "{LAKEBASE_RLS_ENABLED}"
+
+  # ── MONAI serving ───────────────────────────────────────────────────────────
+  - name: "MONAI_SERVING_ENDPOINT"
+    valueFrom: "serving_endpoint"
+
+  # ── Authentication ──────────────────────────────────────────────────────────
   - name: "DICOMWEB_USE_USER_AUTH"
-    value: "{DICOMWEB_USE_USER_AUTH}"
+    value: "false"
+
+  # ── HTTP client tuning ──────────────────────────────────────────────────────
+  - name: "DICOMWEB_MAX_CONNECTIONS"
+    value: "200"
+  - name: "DICOMWEB_MAX_KEEPALIVE"
+    value: "100"
+
+  # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"
     value: "INFO"
