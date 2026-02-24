@@ -235,6 +235,15 @@ def app_token_provider() -> str:
         _app_cfg = None
         _app_header_factory = None
         _app_refreshing = True
+
+        # Proactively reset the SQL client's credentials and drain its
+        # connection pool so it doesn't keep using a stale token.
+        if _sql_client is not None:
+            try:
+                _sql_client.reset_credentials()
+            except Exception as exc:
+                logger.warning("Failed to reset SQL client credentials: %s", exc)
+
         try:
             return app_token_provider()
         finally:

@@ -145,14 +145,14 @@ class DatabricksSQLClient:
             except Exception:
                 pass
             with self._pool_lock:
-                self._pool_count -= 1
+                self._pool_count = max(0, self._pool_count - 1)
         else:
             try:
                 self._pool.put_nowait(conn)
             except queue.Full:
                 conn.close()
                 with self._pool_lock:
-                    self._pool_count -= 1
+                    self._pool_count = max(0, self._pool_count - 1)
 
     def _connect_as_user(self, user_token: str):
         """Create a one-shot connection using the user's access token."""
@@ -162,6 +162,18 @@ class DatabricksSQLClient:
             access_token=user_token,
             use_cloud_fetch=False,
         )
+
+    def reset_credentials(self):
+        """Recreate the SDK ``Config`` and drain stale pooled connections.
+
+        Call this when the service principal token is detected as invalid
+        or expired.  New connections will authenticate through a fresh
+        ``Config`` instance; existing idle connections are closed because
+        they may hold stale HTTP-level auth state.
+        """
+        self._cfg = Config()
+        self.close()
+        logger.info("SQL client credentials and connection pool reset")
 
     # -- public API --------------------------------------------------------
 
@@ -189,44 +201,55 @@ class DatabricksSQLClient:
         logger.debug(f"SQL: {query}  params={parameters}")
 
         is_obo = USE_USER_AUTH and user_token is not None
-        conn = None
-        failed = False
+        max_attempts = 1 if is_obo else 2
+        last_exc: Exception | None = None
 
-        try:
-            if is_obo:
-                conn = self._connect_as_user(user_token)
-            else:
-                conn = self._acquire_app_connection()
+        for attempt in range(max_attempts):
+            conn = None
+            failed = False
 
-            with conn.cursor() as cursor:
-                cursor.execute(query, parameters=parameters)
-                # Use fetchmany_arrow in a loop instead of fetchall to
-                # avoid crashes on large result sets (Arrow batches are
-                # more memory-friendly and bypass known connector bugs).
-                results: list[list[Any]] = []
-                while True:
-                    batch = cursor.fetchmany_arrow(10_000)
-                    if batch.num_rows == 0:
-                        break
-                    results.extend(
-                        list(row.values()) for row in batch.to_pylist()
-                    )
-                return results
-
-        except Exception as exc:
-            failed = True
-            logger.error(f"SQL execution failed: {exc}")
-            raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
-
-        finally:
-            if conn is not None:
+            try:
                 if is_obo:
-                    try:
-                        conn.close()
-                    except Exception:
-                        pass
+                    conn = self._connect_as_user(user_token)
                 else:
-                    self._release_app_connection(conn, failed=failed)
+                    conn = self._acquire_app_connection()
+
+                with conn.cursor() as cursor:
+                    cursor.execute(query, parameters=parameters)
+                    results: list[list[Any]] = []
+                    while True:
+                        batch = cursor.fetchmany_arrow(10_000)
+                        if batch.num_rows == 0:
+                            break
+                        results.extend(
+                            list(row.values()) for row in batch.to_pylist()
+                        )
+                    return results
+
+            except Exception as exc:
+                failed = True
+                last_exc = exc
+                if attempt + 1 < max_attempts:
+                    logger.warning(
+                        "SQL execution failed (attempt %d/%d), "
+                        "resetting credentials and retrying: %s",
+                        attempt + 1, max_attempts, exc,
+                    )
+                    self.reset_credentials()
+                else:
+                    logger.error(f"SQL execution failed: {exc}")
+
+            finally:
+                if conn is not None:
+                    if is_obo:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                    else:
+                        self._release_app_connection(conn, failed=failed)
+
+        raise HTTPException(status_code=500, detail=f"SQL query failed: {last_exc}")
 
     def execute_stream(
         self,
@@ -259,29 +282,42 @@ class DatabricksSQLClient:
         logger.debug(f"SQL (stream): {query}  params={parameters}")
 
         is_obo = USE_USER_AUTH and user_token is not None
+        max_attempts = 1 if is_obo else 2
         conn = None
-        failed = False
+        cursor = None
 
-        try:
-            if is_obo:
-                conn = self._connect_as_user(user_token)
-            else:
-                conn = self._acquire_app_connection()
-
-            cursor = conn.cursor()
-            cursor.execute(query, parameters=parameters)
-        except Exception as exc:
-            failed = True
-            logger.error(f"SQL execution failed: {exc}")
-            if conn is not None:
+        for attempt in range(max_attempts):
+            try:
                 if is_obo:
-                    try:
-                        conn.close()
-                    except Exception:
-                        pass
+                    conn = self._connect_as_user(user_token)
                 else:
-                    self._release_app_connection(conn, failed=True)
-            raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
+                    conn = self._acquire_app_connection()
+
+                cursor = conn.cursor()
+                cursor.execute(query, parameters=parameters)
+                break
+            except Exception as exc:
+                if conn is not None:
+                    if is_obo:
+                        try:
+                            conn.close()
+                        except Exception:
+                            pass
+                    else:
+                        self._release_app_connection(conn, failed=True)
+                    conn = None
+
+                if attempt + 1 < max_attempts:
+                    logger.warning(
+                        "SQL stream execution failed (attempt %d/%d), "
+                        "resetting credentials and retrying: %s",
+                        attempt + 1, max_attempts, exc,
+                    )
+                    self.reset_credentials()
+                    continue
+
+                logger.error(f"SQL execution failed: {exc}")
+                raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
 
         def _rows() -> Iterator[list[Any]]:
             row_failed = False
