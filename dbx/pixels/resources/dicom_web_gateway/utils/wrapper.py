@@ -555,7 +555,7 @@ class DICOMwebDatabricksWrapper:
         Returns:
             ``(frame_generator, transfer_syntax_uid)``
         """
-        logger.info(f"WADO-RS: frames {frame_numbers} from {sop_instance_uid}")
+        logger.debug(f"WADO-RS: frames {frame_numbers} from {sop_instance_uid}")
 
         # --- Trigger series-level pre-warming in background ───────────
         self._maybe_prime_series(study_instance_uid, series_instance_uid)
