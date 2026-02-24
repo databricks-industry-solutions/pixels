@@ -16,6 +16,7 @@ import uuid
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import iterate_in_threadpool
 
 from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.logging import LoggerProvider
@@ -44,7 +45,7 @@ def dicomweb_wado_series_metadata(
     """
     wrapper = get_dicomweb_wrapper(request)
     stream = wrapper.retrieve_series_metadata(study_instance_uid, series_instance_uid)
-    return StreamingResponse(stream, media_type="application/dicom+json")
+    return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom+json")
 
 
 def dicomweb_wado_instance(
@@ -65,7 +66,7 @@ def dicomweb_wado_instance(
     headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
     if content_length:
         headers["Content-Length"] = content_length
-    return StreamingResponse(stream, media_type="application/dicom", headers=headers)
+    return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom", headers=headers)
 
 
 @timing_decorator
@@ -119,7 +120,7 @@ def dicomweb_wado_instance_frames(
             yield f"--{boundary}--\r\n".encode()
 
         return StreamingResponse(
-            multipart_generator(),
+            iterate_in_threadpool(multipart_generator()),
             media_type=f"multipart/related; type={mime_type}; boundary={boundary}",
             headers={"Cache-Control": "private, max-age=3600"},
         )
@@ -254,7 +255,7 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
             yield f"--{boundary}--\r\n".encode()
 
         return StreamingResponse(
-            single_frame_generator(),
+            iterate_in_threadpool(single_frame_generator()),
             media_type=(
                 f"multipart/related; type={mime_type}; boundary={boundary}"
             ),
@@ -269,7 +270,7 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
     if content_length:
         headers["Content-Length"] = content_length
     return StreamingResponse(
-        stream, media_type="application/dicom", headers=headers,
+        iterate_in_threadpool(stream), media_type="application/dicom", headers=headers,
     )
 
 
