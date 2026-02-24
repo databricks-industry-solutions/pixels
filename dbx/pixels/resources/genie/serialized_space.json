@@ -1,186 +1,259 @@
 {
-  "version": 1,
-    "config": {
-    "sample_questions": [
-      {
-        "id": "01f0bfd16d951e5783146dae38ab1d59",
-        "question": [
-          "For the MG modality, are there any patients over 50?"
+    "version": 2,
+        "config": {
+        "sample_questions": [
+            {
+                "id": "01f0bfd16d951e5783146dae38ab1d59",
+                "question": [
+                    "For the MG modality, are there any patients over 50?"
+                ]
+            },
+            {
+                "id": "01f0bfd15f7014d691a50c48d6cade1a",
+                "question": [
+                    "Show me the distribution of the modalities"
+                ]
+            },
+            {
+                "id": "01f0bfd159b6175bb91fdf709a7303e1",
+                "question": [
+                    "How old are the patients?"
+                ]
+            }
         ]
-      },
-      {
-        "id": "01f0bfd15f7014d691a50c48d6cade1a",
-        "question": [
-          "Show me the distribution of the modalities"
+    },
+    "data_sources": {
+        "tables": [
+            {
+                "identifier": "{UC_SCHEMA}.dicom_tags",
+                "column_configs": [
+                    {
+                        "column_name": "Keyword",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "Name",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "Retired",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "Tag",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "VM",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "VR",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    }
+                ]
+            },
+            {
+                "identifier": "{UC_SCHEMA}.dicom_tags_vs",
+                "column_configs": [
+                    {
+                        "column_name": "Keyword",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "Name",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "Retired",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "Tag",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "VM",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "VR",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "__db_Name_vector"
+                    }
+                ]
+            },
+            {
+                "identifier": "{UC_SCHEMA}.object_catalog",
+                "column_configs": [
+                    {
+                        "column_name": "extension",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "file_type",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "is_anon",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "length",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "local_path",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "meta",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "modificationTime",
+                        "enable_format_assistance": true
+                    },
+                    {
+                        "column_name": "original_path",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "path",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "path_tags"
+                    },
+                    {
+                        "column_name": "relative_path",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    }
+                ]
+            },
+            {
+                "identifier": "{UC_SCHEMA}.object_catalog_autoseg_result",
+                "column_configs": [
+                    {
+                        "column_name": "error",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "result",
+                        "enable_format_assistance": true,
+                        "enable_entity_matching": true
+                    },
+                    {
+                        "column_name": "series_uid",
+                        "enable_format_assistance": true
+                    }
+                ]
+            }
         ]
-      },
-      {
-        "id": "01f0bfd159b6175bb91fdf709a7303e1",
-        "question": [
-          "How old are the patients?"
-        ]
-      }
-    ]
-  },
-  "data_sources": {
-    "tables": [
-      {
-        "identifier": "{UC_SCHEMA}.dicom_tags",
-        "column_configs": [
-          {
-            "column_name": "Keyword",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "Name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "Retired",
-            "get_example_values": true
-          },
-          {
-            "column_name": "Tag",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "VM",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "VR",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          }
-        ]
-      },
-      {
-        "identifier": "{UC_SCHEMA}.dicom_tags_vs",
-        "column_configs": [
-          {
-            "column_name": "Keyword",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "Name",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "Retired",
-            "get_example_values": true
-          },
-          {
-            "column_name": "Tag",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "VM",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "VR",
-            "get_example_values": true,
-            "build_value_dictionary": true
-          },
-          {
-            "column_name": "__db_Name_vector"
-          }
-        ]
-      }
-    ]
-  },
-  "instructions": {
-    "text_instructions": [
-      {
-        "id": "01f0bfd093591564bb60c1f0e102916f",
-        "content": [
-          "Use the function {UC_SCHEMA}.retrieve_dicom_tag to retrieve a DICOM TAG from a DICOM TAG DESCRIPTION if you don't know the tag. After retrieving that value you can query the object_catalog table with the **{UC_SCHEMA}.extract_tag_value** to extract the right DICOM TAG VALUE from the META column.\n",
-          "\n",
-          "Always add the meta:[\"hash] to the select statement as identifier of single file.\n",
-          "To identify a single patient, use the following script in the select statement: <p>distinct(**{UC_SCHEMA}.extract_tag_value**(struct(\"00100020\",\"PatientID\",\"1\"), meta )) as PATIENT_ID\n",
-          "\n",
-          "The modificationTime is the time of the file creation and not always related to the scan date.\n",
-          "To identify the scan date, use the 'AcquisitionDate' tag, if the value is null then use modificationTime column."
-        ]
-      }
-    ],
-      "example_question_sqls": [
-        {
-          "id": "01f0bfd0aceb16e1b950fd88b33e5175",
-          "question": [
-            "How old are the patients?"
-          ],
-          "sql": [
-            "select \n",
-            "distinct({UC_SCHEMA}.extract_tag_value(\n",
-            "      struct(\"00100020\",\"PatientID\",\"1\"), meta\n",
-            "    )) as PATIENT_ID,\n",
-            "  replace(\n",
-            "    {UC_SCHEMA}.extract_tag_value(\n",
-            "      {UC_SCHEMA}.retrieve_dicom_tag(\"patient age\"), meta )\n",
-            "   ,\"Y\", \"\") as patient_age\n",
-            "from {UC_SCHEMA}.object_catalog;"
-          ]
-        },
-        {
-          "id": "01f0bfd0c6ca1961ae7b26a00f424a02",
-          "question": [
-            "Show me the distribution of the modalities"
-          ],
-          "sql": [
-            "SELECT\n",
-            "  modality,\n",
-            "  COUNT(1) AS count\n",
-            "FROM\n",
-            "  (\n",
-            "    SELECT\n",
-            "      {UC_SCHEMA}.extract_tag_value(\n",
-            "        {UC_SCHEMA}.retrieve_dicom_tag('modality'), `meta`\n",
-            "      ) AS modality\n",
-            "    FROM\n",
-            "      {UC_SCHEMA}.object_catalog\n",
-            "  ) AS modalities\n",
-            "GROUP BY\n",
-            "  modality"
-          ]
-        },
-        {
-          "id": "01f0bfd0eeb412ed8d6f52ecd2994c44",
-          "question": [
-            "For the MG modality, are there any patients over 50?"
-          ],
-          "sql": [
-            "SELECT DISTINCT\n",
-            "  {UC_SCHEMA}.extract_tag_value(struct('00100020', 'PatientID', '1'), `meta`) AS PATIENT_ID,\n",
-            "  CAST(\n",
-            "    REPLACE(\n",
-            "      {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('patient age'), `meta`),\n",
-            "      'Y',\n",
-            "      ''\n",
-            "    ) AS INTEGER\n",
-            "  ) AS patient_age\n",
-            "FROM\n",
-            "  {UC_SCHEMA}.object_catalog\n",
-            "WHERE\n",
-            "  {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('modality'), `meta`) = 'MG'\n",
-            "  AND CAST(\n",
-            "    REPLACE(\n",
-            "      {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('patient age'), `meta`),\n",
-            "      'Y',\n",
-            "      ''\n",
-            "    ) AS INTEGER\n",
-            "  ) > 50\n",
-            "  and meta not like '%udf_%';\n"
-          ]
-        }
-      ]
-  }
+    },
+    "instructions": {
+        "text_instructions": [
+            {
+                "id": "01f0bfd093591564bb60c1f0e102916f",
+                "content": [
+                    "Use the function {UC_SCHEMA}.retrieve_dicom_tag to retrieve a DICOM TAG from a DICOM TAG DESCRIPTION if you don't know the tag. After retrieving that value you can query the object_catalog table with the **{UC_SCHEMA}.extract_tag_value** to extract the right DICOM TAG VALUE from the META column.\n",
+                    "\n",
+                    "Always add the meta:[\"hash] to the select statement as identifier of single file.\n",
+                    "To identify a single patient, use the following script in the select statement: <p>distinct(**{UC_SCHEMA}.extract_tag_value**(struct(\"00100020\",\"PatientID\",\"1\"), meta )) as PATIENT_ID\n",
+                    "\n",
+                    "The modificationTime is the time of the file creation and not always related to the scan date.\n",
+                    "To identify the scan date, use the 'AcquisitionDate' tag, if the value is null then use modificationTime column."
+                ]
+            }
+        ],
+            "example_question_sqls": [
+                {
+                    "id": "01f0bfd0aceb16e1b950fd88b33e5175",
+                    "question": [
+                        "How old are the patients?"
+                    ],
+                    "sql": [
+                        "select \n",
+                        "distinct({UC_SCHEMA}.extract_tag_value(\n",
+                        "      struct(\"00100020\",\"PatientID\",\"1\"), meta\n",
+                        "    )) as PATIENT_ID,\n",
+                        "  replace(\n",
+                        "    {UC_SCHEMA}.extract_tag_value(\n",
+                        "      {UC_SCHEMA}.retrieve_dicom_tag(\"patient age\"), meta )\n",
+                        "   ,\"Y\", \"\") as patient_age\n",
+                        "from {UC_SCHEMA}.object_catalog;"
+                    ]
+                },
+                {
+                    "id": "01f0bfd0c6ca1961ae7b26a00f424a02",
+                    "question": [
+                        "Show me the distribution of the modalities"
+                    ],
+                    "sql": [
+                        "SELECT\n",
+                        "  modality,\n",
+                        "  COUNT(1) AS count\n",
+                        "FROM\n",
+                        "  (\n",
+                        "    SELECT\n",
+                        "      {UC_SCHEMA}.extract_tag_value(\n",
+                        "        {UC_SCHEMA}.retrieve_dicom_tag('modality'), `meta`\n",
+                        "      ) AS modality\n",
+                        "    FROM\n",
+                        "      {UC_SCHEMA}.object_catalog\n",
+                        "  ) AS modalities\n",
+                        "GROUP BY\n",
+                        "  modality"
+                    ]
+                },
+                {
+                    "id": "01f0bfd0eeb412ed8d6f52ecd2994c44",
+                    "question": [
+                        "For the MG modality, are there any patients over 50?"
+                    ],
+                    "sql": [
+                        "SELECT DISTINCT\n",
+                        "  {UC_SCHEMA}.extract_tag_value(struct('00100020', 'PatientID', '1'), `meta`) AS PATIENT_ID,\n",
+                        "  CAST(\n",
+                        "    REPLACE(\n",
+                        "      {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('patient age'), `meta`),\n",
+                        "      'Y',\n",
+                        "      ''\n",
+                        "    ) AS INTEGER\n",
+                        "  ) AS patient_age\n",
+                        "FROM\n",
+                        "  {UC_SCHEMA}.object_catalog\n",
+                        "WHERE\n",
+                        "  {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('modality'), `meta`) = 'MG'\n",
+                        "  AND CAST(\n",
+                        "    REPLACE(\n",
+                        "      {UC_SCHEMA}.extract_tag_value({UC_SCHEMA}.retrieve_dicom_tag('patient age'), `meta`),\n",
+                        "      'Y',\n",
+                        "      ''\n",
+                        "    ) AS INTEGER\n",
+                        "  ) > 50\n",
+                        "  and meta not like '%udf_%';\n"
+                    ]
+                }
+            ]
+    }
 }
