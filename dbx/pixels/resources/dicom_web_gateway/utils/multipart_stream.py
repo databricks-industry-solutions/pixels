@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import AsyncIterator
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.resources.dicom_web.utils.dicom_io import _get_upload_client, _get_upload_semaphore
+from .dicom_io import _get_upload_client, _get_upload_semaphore
 
 logger = LoggerProvider("DICOMweb.MultipartStream")
 
