@@ -115,7 +115,7 @@ class TokenMiddleware:
             )(scope, receive, send)
             return
 
-        if path.startswith("/ohif/app.bundle.") and path.endswith(".js"):
+        if False and path.startswith("/ohif/app.bundle.") and path.endswith(".js"):
             file_name = path.split("/")[-1]
             logger.debug(f"Patching HTJ2K decoder in {file_name}")
             body = await _read_static_file_async(f"{ohif_path}/{file_name}")
