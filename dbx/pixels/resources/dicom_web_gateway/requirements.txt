@@ -17,3 +17,4 @@ pylibjpeg-openjpeg
 boto3>=1.26.0                   # AWS S3
 azure-storage-blob>=12.19.0     # Azure ADLS Gen2
 google-cloud-storage>=2.10.0    # GCP GCS
+hypercorn

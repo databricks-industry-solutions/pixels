@@ -82,9 +82,9 @@ from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from dbx.pixels.resources.dicom_web.utils.cache import bot_cache, instance_path_cache
-from dbx.pixels.resources.dicom_web.utils.dicom_io import file_prefetcher
-from dbx.pixels.resources.dicom_web.utils.handlers import (
+from utils.cache import bot_cache, instance_path_cache
+from utils.dicom_io import file_prefetcher
+from utils.handlers import (
     dicomweb_qido_studies,
     dicomweb_qido_series,
     dicomweb_qido_all_series,
@@ -99,7 +99,7 @@ from dbx.pixels.resources.dicom_web.utils.handlers import (
 )
 
 try:
-    from dbx.pixels.resources.dicom_web.utils.handlers import dicomweb_resolve_frame_ranges
+    from utils.handlers import dicomweb_resolve_frame_ranges
 except ImportError:
     dicomweb_resolve_frame_ranges = None
 
@@ -126,8 +126,8 @@ def _startup_bot_preload() -> None:
     configured ``max_entries`` limit.  The LRU cache handles any overflow
     automatically, so no RAM budget arithmetic is needed.
     """
-    from dbx.pixels.resources.dicom_web.utils.handlers._common import lb_utils
-    from dbx.pixels.resources.dicom_web.utils.cache import bot_cache
+    from utils.handlers._common import lb_utils
+    from utils.cache import bot_cache
 
     if lb_utils is None:
         logger.info("Startup BOT preload: Lakebase not configured — skipping")
@@ -187,7 +187,7 @@ def _startup_bot_preload() -> None:
     all_filenames = [e["filename"] for e in priority_list]
     if all_filenames:
         try:
-            from dbx.pixels.resources.dicom_web.utils.cache import instance_path_cache
+            from utils.cache import instance_path_cache
             t1 = time.perf_counter()
             path_map = lb_utils.retrieve_instance_paths_by_local_paths(
                 all_filenames, uc_table
@@ -362,7 +362,7 @@ async def _lifespan(application: FastAPI):
     asyncio.get_event_loop().set_default_executor(_default_executor)
 
     _http_client = httpx.AsyncClient(
-        http2=True,
+        http2=False,
         limits=httpx.Limits(
             max_connections=int(os.getenv("DICOMWEB_MAX_CONNECTIONS", "200")),
             max_keepalive_connections=int(
@@ -374,7 +374,7 @@ async def _lifespan(application: FastAPI):
 
     # Log STOW upload mode clearly so operators can see at a glance
     # which path is active without needing to inspect env vars manually.
-    from dbx.pixels.resources.dicom_web.utils.cloud_direct_upload import (
+    from utils.cloud_direct_upload import (
         DIRECT_UPLOAD_ENABLED,
         probe_direct_upload,
     )
@@ -401,7 +401,7 @@ async def _lifespan(application: FastAPI):
 
     # Graceful shutdown — flush any buffered STOW audit records before exit
     try:
-        from dbx.pixels.resources.dicom_web.utils.handlers._stow import _stow_record_buffer
+        from utils.handlers._stow import _stow_record_buffer
         _stow_record_buffer.stop()
     except Exception:
         pass
@@ -604,7 +604,7 @@ def stow_status():
     probe_error : str | null
         Reason string when the direct-upload probe failed at startup.
     """
-    from dbx.pixels.resources.dicom_web.utils.cloud_direct_upload import (
+    from utils.cloud_direct_upload import (
         DIRECT_UPLOAD_ENABLED,
         probe_direct_upload,
     )

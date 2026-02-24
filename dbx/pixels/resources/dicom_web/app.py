@@ -13,10 +13,10 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from dbx.pixels.resources.common.middleware import (
     LoggingMiddleware,
@@ -61,7 +61,7 @@ async def _proxy_to_gateway(request: Request) -> Response:
     user_token = request.headers.get("x-forwarded-access-token")
     if user_token:
         forward_headers["authorization"] = f"Bearer {user_token}"
-    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version}_dicomweb"
+    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version}_dicomweb_client"
 
     body = (
         await request.body()
@@ -78,14 +78,14 @@ async def _proxy_to_gateway(request: Request) -> Response:
         )
         resp = await _http_client.send(req, stream=True)
 
-        skip = {"transfer-encoding", "connection", "content-encoding"}
+        skip = {"transfer-encoding", "connection"}
         resp_headers = {
             k: v for k, v in resp.headers.items()
             if k.lower() not in skip
         }
 
         return StreamingResponse(
-            resp.aiter_bytes(),
+            resp.aiter_raw(),
             status_code=resp.status_code,
             headers=resp_headers,
             media_type=resp.headers.get("content-type"),
@@ -131,7 +131,7 @@ def register_dicomweb_proxy(app: FastAPI):
 async def lifespan(app: FastAPI):
     global _http_client
     _http_client = httpx.AsyncClient(
-        http2=True,
+        http2=False,
         follow_redirects=True,
         timeout=httpx.Timeout(300.0, connect=30.0),
         limits=httpx.Limits(
@@ -163,6 +163,7 @@ register_dicomweb_proxy(app)
 register_all_common_routes(app)
 
 # ── Middleware (order matters: first added = outermost) ────────────
+#app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
 app.add_middleware(LoggingMiddleware)
 

@@ -1,7 +1,11 @@
+command: 
+  - "hypercorn"
+  - "app:app"
+
 env:
   # ── Required ────────────────────────────────────────────────────────────────
   - name: "DATABRICKS_WAREHOUSE_ID"
-    valueFrom: "warehouse_id"
+    valueFrom: "sql_warehouse"
   - name: "DATABRICKS_PIXELS_TABLE"
     value: "serverless_lh10u9_catalog.tcia.object_catalog"
 
