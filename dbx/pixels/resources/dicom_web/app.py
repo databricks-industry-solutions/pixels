@@ -61,6 +61,9 @@ async def _proxy_to_gateway(request: Request) -> Response:
     user_token = request.headers.get("x-forwarded-access-token")
     if user_token:
         forward_headers["authorization"] = f"Bearer {user_token}"
+        forward_headers["x-forwarded-access-token"] = user_token
+        forward_headers["X-Forwarded-Email"] = request.headers.get("X-Forwarded-Email")
+        
     forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version}_dicomweb_client"
 
     body = (
