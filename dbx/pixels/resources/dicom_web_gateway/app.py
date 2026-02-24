@@ -82,6 +82,8 @@ from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
+from dbx.pixels.resources.common.middleware import LoggingMiddleware
+
 from utils.cache import bot_cache, instance_path_cache
 from utils.dicom_io import file_prefetcher
 from utils.handlers import (
@@ -723,6 +725,7 @@ class _InstrumentMiddleware:
             _record_request(elapsed, status_code >= 400)
 
 app.add_middleware(_InstrumentMiddleware)
+app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     import uvicorn
