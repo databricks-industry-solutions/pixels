@@ -33,23 +33,24 @@
 
 dbutils.widgets.text("table", "main.pixels_solacc.object_catalog",
                      "UC pixels table (catalog.schema.table)")
+dbutils.widgets.text("volume", "main.pixels_solacc.pixels_volume",
+                     "UC pixels volume (catalog.schema.volume)")
 dbutils.widgets.text("lakebase_instance", "pixels-lakebase",
                      "Lakebase instance name")
-dbutils.widgets.text("skip_existing", "true",
-                     "Skip files already cached (true/false)")
 dbutils.widgets.text("priority_limit", "500",
                      "Top-N files to show in preload preview")
 
 # COMMAND ----------
 
 table = dbutils.widgets.get("table")
+volume = dbutils.widgets.get("volume")
 lakebase_instance = dbutils.widgets.get("lakebase_instance")
-skip_existing = dbutils.widgets.get("skip_existing").lower() == "true"
 priority_limit = int(dbutils.widgets.get("priority_limit"))
+
+volume_path = "/Volumes/" + volume.replace(".","/")
 
 print(f"Target table     : {table}")
 print(f"Lakebase instance: {lakebase_instance}")
-print(f"Skip existing    : {skip_existing}")
 
 # COMMAND ----------
 
@@ -57,27 +58,26 @@ print(f"Skip existing    : {skip_existing}")
 
 # COMMAND ----------
 
-import os
 from dbx.pixels.dicom.cache import BOTCacheBuilder
-
-df = spark.read.table(table)
 
 host = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get()
 token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
 
-result_df = (
-    BOTCacheBuilder(
+df = spark.readStream.table(table).select("local_path")
+
+result_df = BOTCacheBuilder(
         uc_table_name=table,
         lakebase_instance_name=lakebase_instance,
-        skip_existing=skip_existing,
         host=host,
         token=token
-    )
-    .transform(df)
-)
+    ).transform(df).select("local_path","bot_cache_status")
 
-# Trigger computation and cache results for the summary below.
-result_df.count()
+result_df.writeStream \
+    .option("checkpointLocation", f"{volume_path}/checkpoints/bot_lakebase_cache/{table}") \
+    .trigger(availableNow=True) \
+    .outputMode("append") \
+    .toTable(table+"_bot_cache_result") \
+    .awaitTermination()
 
 # COMMAND ----------
 
@@ -88,7 +88,7 @@ result_df.count()
 from pyspark.sql.functions import col, get_json_object
 
 summary = (
-    result_df
+    spark.read.table(table+"_bot_cache_result")
     .withColumn("status", get_json_object(col("bot_cache_status"), "$.status"))
     .groupBy("status")
     .count()
@@ -101,7 +101,7 @@ display(summary)
 
 # Error details — inspect any failures.
 errors = (
-    result_df
+    spark.read.table(table+"_bot_cache_result")
     .withColumn("status", get_json_object(col("bot_cache_status"), "$.status"))
     .filter(col("status") == "error")
     .select(
@@ -118,34 +118,7 @@ else:
 
 # COMMAND ----------
 
-# MAGIC %md ## Step 3 — Persist cache log (optional)
-# MAGIC
-# MAGIC Append the per-file status to a Delta log table for auditing and
-# MAGIC incremental re-runs. The `status` column can be used to filter only
-# MAGIC failed files in a subsequent run.
-
-# COMMAND ----------
-
-log_table = table + "_bot_cache_log"
-
-(
-    result_df
-    .select(
-        col("local_path"),
-        col("bot_cache_status"),
-        col("modificationTime"),
-    )
-    .write
-    .mode("append")
-    .option("mergeSchema", "true")
-    .saveAsTable(log_table)
-)
-
-print(f"Cache log written to: {log_table}")
-
-# COMMAND ----------
-
-# MAGIC %md ## Step 4 — Preload priority preview
+# MAGIC %md ## Step 3 — Preload priority preview
 # MAGIC
 # MAGIC Shows which files will be front-loaded into the in-memory BOT cache on
 # MAGIC the next server restart, based on the priority scoring algorithm:
@@ -173,9 +146,55 @@ priority_list = lb.get_preload_priority_list(
 )
 
 print(f"Top {len(priority_list)} files by preload priority:")
+
+priority_df = spark.createDataFrame(priority_list)
+display(priority_df)
 import json
 
 print(json.dumps(priority_list, indent=2, default=str))
+
+# COMMAND ----------
+
+# DBTITLE 1,Cell 12
+from dbx.pixels.lakebase import LakebaseUtils
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, FloatType, TimestampType, ArrayType
+
+lb = LakebaseUtils(
+    instance_name=lakebase_instance,
+    uc_table_name=table,
+    min_connections=1,
+    max_connections=4,
+)
+
+priority_list = lb.get_preload_priority_list(
+    uc_table_name=table,
+    limit=priority_limit,
+)
+
+print(f"Top {len(priority_list)} files by preload priority:")
+
+# Define explicit schema for the DataFrame
+frame_schema = StructType([
+    StructField("frame_number", IntegerType(), True),
+    StructField("start_pos", IntegerType(), True),
+    StructField("end_pos", IntegerType(), True),
+    StructField("pixel_data_pos", IntegerType(), True)
+])
+
+priority_schema = StructType([
+    StructField("filename", StringType(), True),
+    StructField("frame_count", IntegerType(), True),
+    StructField("transfer_syntax_uid", StringType(), True),
+    StructField("last_used_at", TimestampType(), True),
+    StructField("inserted_at", TimestampType(), True),
+    StructField("access_count", IntegerType(), True),
+    StructField("priority_score", FloatType(), True),
+    StructField("frames", ArrayType(frame_schema), True)
+])
+
+# Create DataFrame with explicit schema
+priority_df = spark.createDataFrame(priority_list, schema=priority_schema)
+display(priority_df)
 
 # COMMAND ----------
 
