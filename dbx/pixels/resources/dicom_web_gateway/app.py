@@ -110,6 +110,9 @@ from metrics_store import get_store
 logger = logging.getLogger("DICOMweb.Gateway")
 
 _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
+_WADO_DIAG_HEADERS = os.getenv(
+    "DICOMWEB_WADO_DIAG_HEADERS", "true"
+).strip().lower() in ("1", "true", "yes")
 
 # Shared async HTTP client — available for future async Volumes reads.
 _http_client: httpx.AsyncClient | None = None
@@ -701,6 +704,22 @@ def health():
 _METRICS_SKIP_PREFIXES = ("/health", "/ws/", "/api/metrics", "/api/dashboard")
 
 
+def _is_wado_request(scope) -> bool:
+    """Return True when the HTTP request targets a WADO endpoint."""
+    path = scope.get("path", "")
+    if path == "/api/dicomweb/wado":
+        return True
+    if path == "/api/dicomweb":
+        query = scope.get("query_string", b"").decode("latin1").upper()
+        return "REQUESTTYPE=WADO" in query
+    if path.startswith("/api/dicomweb/studies/"):
+        if path.endswith("/metadata"):
+            return True
+        if "/instances/" in path:
+            return True
+    return False
+
+
 class _InstrumentMiddleware:
     """Pure ASGI middleware that records per-request latency and errors."""
 
@@ -718,13 +737,27 @@ class _InstrumentMiddleware:
             return
 
         _record_request_start()
+        inflight_at_start = max(_gw_req_in_flight, 0)
         t0 = time.perf_counter()
         status_code = 200
+        ttfb_ms: float | None = None
+        is_wado = _is_wado_request(scope)
+        req_method = scope.get("method", "GET")
+        req_id = f"gw-{time.time_ns():x}"
 
         async def _send_wrapper(message):
-            nonlocal status_code
+            nonlocal status_code, ttfb_ms
             if message["type"] == "http.response.start":
                 status_code = message.get("status", 200)
+                if ttfb_ms is None:
+                    ttfb_ms = (time.perf_counter() - t0) * 1000.0
+                if is_wado and _WADO_DIAG_HEADERS:
+                    headers = list(message.get("headers", []))
+                    headers.append((b"x-gw-request-id", req_id.encode()))
+                    headers.append((b"x-gw-ttfb-ms", f"{ttfb_ms:.1f}".encode()))
+                    headers.append((b"x-gw-inflight-start", str(inflight_at_start).encode()))
+                    headers.append((b"server-timing", f"gw_ttfb;dur={ttfb_ms:.1f}".encode()))
+                    message["headers"] = headers
             await send(message)
 
         try:
@@ -735,6 +768,19 @@ class _InstrumentMiddleware:
         finally:
             elapsed = time.perf_counter() - t0
             _record_request(elapsed, status_code >= 400)
+            if is_wado:
+                logger.info(
+                    "WADO_DIAG id=%s method=%s path=%s status=%s "
+                    "ttfb_ms=%.1f total_ms=%.1f inflight_start=%d inflight_end=%d",
+                    req_id,
+                    req_method,
+                    path,
+                    status_code,
+                    ttfb_ms if ttfb_ms is not None else 0.0,
+                    elapsed * 1000.0,
+                    inflight_at_start,
+                    max(_gw_req_in_flight, 0),
+                )
 
 app.add_middleware(_InstrumentMiddleware)
 app.add_middleware(LoggingMiddleware)
