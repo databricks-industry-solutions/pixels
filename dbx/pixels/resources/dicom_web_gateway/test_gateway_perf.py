@@ -32,6 +32,7 @@ import statistics
 import sys
 import time
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
 import httpx
 
@@ -84,6 +85,147 @@ ENDPOINTS: list[dict] = [
     {"method": "GET", "path": "/api/dicomweb/studies?limit=1", "tag": "QIDO-studies-limit1"},
     {"method": "GET", "path": "/api/dicomweb/all_series?limit=1", "tag": "QIDO-all-series"},
 ]
+
+
+def _extract_uid(item: dict, tag: str) -> str | None:
+    """
+    Extract a DICOM UID from a DICOMweb JSON object.
+
+    Expected shape:
+        {"0020000D": {"Value": ["1.2.3..."]}}
+    """
+    try:
+        val = item.get(tag, {}).get("Value", [])
+        if val and isinstance(val[0], str):
+            return val[0]
+    except Exception:
+        return None
+    return None
+
+
+async def _discover_wado_uids(base_url: str, token: str, timeout: float) -> tuple[str, str, str]:
+    """
+    Discover one (study, series, sop) triple via QIDO so WADO endpoints
+    can be exercised without hardcoding UIDs.
+    """
+    headers = _auth_headers(token)
+    root = base_url.rstrip("/")
+
+    async with httpx.AsyncClient(http2=True, verify=False, headers=headers) as client:
+        studies_url = f"{root}/api/dicomweb/studies?limit=1"
+        studies_resp = await client.get(studies_url, timeout=timeout)
+        studies_resp.raise_for_status()
+        studies = studies_resp.json()
+        if not studies:
+            raise RuntimeError("QIDO discovery returned no studies")
+        study_uid = _extract_uid(studies[0], "0020000D")
+        if not study_uid:
+            raise RuntimeError("Failed to extract StudyInstanceUID (0020000D)")
+
+        series_url = f"{root}/api/dicomweb/studies/{quote(study_uid, safe='')}/series?limit=1"
+        series_resp = await client.get(series_url, timeout=timeout)
+        series_resp.raise_for_status()
+        series = series_resp.json()
+        if not series:
+            raise RuntimeError(f"QIDO discovery returned no series for study {study_uid}")
+        series_uid = _extract_uid(series[0], "0020000E")
+        if not series_uid:
+            raise RuntimeError("Failed to extract SeriesInstanceUID (0020000E)")
+
+        instances_url = (
+            f"{root}/api/dicomweb/studies/{quote(study_uid, safe='')}"
+            f"/series/{quote(series_uid, safe='')}/instances?limit=1"
+        )
+        instances_resp = await client.get(instances_url, timeout=timeout)
+        instances_resp.raise_for_status()
+        instances = instances_resp.json()
+        if not instances:
+            raise RuntimeError(
+                f"QIDO discovery returned no instances for "
+                f"study={study_uid}, series={series_uid}"
+            )
+        sop_uid = _extract_uid(instances[0], "00080018")
+        if not sop_uid:
+            raise RuntimeError("Failed to extract SOPInstanceUID (00080018)")
+
+    return study_uid, series_uid, sop_uid
+
+
+def _build_endpoints(args: argparse.Namespace, token: str) -> list[dict]:
+    """Build endpoint list based on CLI flags."""
+    eps = list(ENDPOINTS)
+    if args.proxy_only:
+        eps = [e for e in eps if e["tag"] not in ("health", "dicomweb-root")]
+    return eps
+
+
+async def _maybe_add_wado_endpoints(
+    args: argparse.Namespace, token: str, endpoints: list[dict]
+) -> list[dict]:
+    """Append WADO endpoints when requested."""
+    if not args.include_wado:
+        return endpoints
+
+    study_uid = args.study_uid
+    series_uid = args.series_uid
+    sop_uid = args.sop_uid
+
+    if not (study_uid and series_uid and sop_uid):
+        print("WADO UID discovery: querying QIDO for one instance triple...")
+        study_uid, series_uid, sop_uid = await _discover_wado_uids(
+            args.base_url, token, args.timeout
+        )
+        print(
+            "WADO UID discovery: "
+            f"study={study_uid}, series={series_uid}, sop={sop_uid}"
+        )
+    else:
+        print(
+            "WADO UID source: using CLI values "
+            f"(study={study_uid}, series={series_uid}, sop={sop_uid})"
+        )
+
+    s_study = quote(study_uid, safe="")
+    s_series = quote(series_uid, safe="")
+    s_sop = quote(sop_uid, safe="")
+    frame = max(1, int(args.frame_number))
+
+    wado_eps = [
+        {
+            "method": "GET",
+            "path": (
+                f"/api/dicomweb/studies/{s_study}/series/{s_series}/metadata"
+            ),
+            "tag": "WADO-series-metadata",
+        },
+        {
+            "method": "GET",
+            "path": (
+                f"/api/dicomweb/studies/{s_study}/series/{s_series}/instances/{s_sop}"
+            ),
+            "tag": "WADO-instance",
+        },
+        {
+            "method": "GET",
+            "path": (
+                f"/api/dicomweb/studies/{s_study}/series/{s_series}"
+                f"/instances/{s_sop}/frames/{frame}"
+            ),
+            "tag": f"WADO-frames-{frame}",
+        },
+        {
+            "method": "GET",
+            "path": (
+                "/api/dicomweb/wado"
+                f"?requestType=WADO&studyUID={quote(study_uid, safe='')}"
+                f"&seriesUID={quote(series_uid, safe='')}"
+                f"&objectUID={quote(sop_uid, safe='')}"
+            ),
+            "tag": "WADO-URI-instance",
+        },
+    ]
+
+    return endpoints + wado_eps
 
 
 @dataclass
@@ -193,7 +335,7 @@ async def _run_level(
 
     for r in results:
         report.latencies.append(r.latency)
-        if r.error or r.status >= 500:
+        if r.error or r.status >= 400:
             report.errors += 1
         else:
             report.successes += 1
@@ -292,7 +434,7 @@ async def _run_per_endpoint(
             wall = time.monotonic() - t0
 
             lats = [r.latency for r in results]
-            errs = sum(1 for r in results if r.error or r.status >= 500)
+            errs = sum(1 for r in results if r.error or r.status >= 400)
             ok = len(results) - errs
             rps = len(results) / wall if wall else 0
 
@@ -334,9 +476,8 @@ async def _main(args: argparse.Namespace):
             print(f"Warm-up FAILED ({exc}) — continuing anyway")
     print()
 
-    eps = ENDPOINTS
-    if args.proxy_only:
-        eps = [e for e in eps if e["tag"] not in ("health", "dicomweb-root")]
+    eps = _build_endpoints(args, token)
+    eps = await _maybe_add_wado_endpoints(args, token, eps)
 
     reports: list[LevelReport] = []
     print(_SEP)
@@ -411,6 +552,27 @@ def main():
     parser.add_argument(
         "--per-endpoint-reqs", type=int, default=20,
         help="Requests per endpoint in breakdown (default: 20)",
+    )
+    parser.add_argument(
+        "--include-wado", action="store_true",
+        help="Include WADO endpoints in the benchmark. If UIDs are not "
+             "provided, one instance is auto-discovered via QIDO.",
+    )
+    parser.add_argument(
+        "--study-uid",
+        help="StudyInstanceUID for WADO tests (optional with --include-wado)",
+    )
+    parser.add_argument(
+        "--series-uid",
+        help="SeriesInstanceUID for WADO tests (optional with --include-wado)",
+    )
+    parser.add_argument(
+        "--sop-uid",
+        help="SOPInstanceUID for WADO tests (optional with --include-wado)",
+    )
+    parser.add_argument(
+        "--frame-number", type=int, default=1,
+        help="Frame number for WADO-RS frame test (default: 1)",
     )
     args = parser.parse_args()
     asyncio.run(_main(args))

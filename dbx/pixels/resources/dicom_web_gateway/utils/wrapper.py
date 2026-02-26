@@ -55,6 +55,13 @@ from .sql_client import DatabricksSQLClient, validate_table_name
 
 logger = LoggerProvider("DICOMweb.Wrapper")
 
+# Optional WADO series priming switch.
+# Disabling this avoids background series-wide preload work contending with
+# hot-path WADO requests under bursty load.
+_ENABLE_WADO_SERIES_PRIMING = os.environ.get(
+    "DICOMWEB_ENABLE_WADO_SERIES_PRIMING", "true"
+).strip().lower() in ("1", "true", "yes")
+
 
 # ---------------------------------------------------------------------------
 # Fire-and-forget Lakebase touch helpers
@@ -1061,6 +1068,9 @@ class DICOMwebDatabricksWrapper:
         * Non-blocking — returns immediately.
         * Uses the prefetcher's thread pool (shared CPU budget).
         """
+        if not _ENABLE_WADO_SERIES_PRIMING:
+            return
+
         key = f"{study_instance_uid}/{series_instance_uid}"
         with _series_primed_lock:
             if key in _series_primed:

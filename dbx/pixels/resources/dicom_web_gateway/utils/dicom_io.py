@@ -568,9 +568,9 @@ class FilePrefetcher:
     ``PIXELS_PREFETCH_ENABLED=false`` to turn off background file
     downloads entirely.  The viewer will fall back to streaming from
     Volumes for every request, which avoids resource contention on
-    small instances.  The thread pool is still available (with a
-    minimal worker count) so that lightweight background tasks such as
-    series path pre-warming can still run.
+    small instances.  The thread pool is still available for background
+    tasks such as series path pre-warming and progressive frame streams;
+    tune with ``PIXELS_BACKGROUND_POOL_WORKERS`` when prefetch is off.
     """
 
     _DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024   # 10 MB
@@ -591,7 +591,14 @@ class FilePrefetcher:
         if self._enabled:
             self._max_workers = max_workers or max(1, int(cpu_count * _CPU_BUDGET_RATIO))
         else:
-            self._max_workers = max_workers or max(1, min(2, cpu_count))
+            disabled_default = max(4, min(16, cpu_count))
+            disabled_workers = int(
+                os.environ.get(
+                    "PIXELS_BACKGROUND_POOL_WORKERS",
+                    str(disabled_default),
+                )
+            )
+            self._max_workers = max_workers or max(1, disabled_workers)
 
         self._pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=self._max_workers, thread_name_prefix="volprefetch",

@@ -48,6 +48,8 @@ env:
     value: "2048"
   - name: "PIXELS_PREFETCH_MAX_FILE_MB"
     value: "512"
+  - name: "PIXELS_BACKGROUND_POOL_WORKERS"
+    value: "16"
 
   # ── Disk frame cache (local SSD) ────────────────────────────────────────────
   - name: "PIXELS_FRAME_CACHE_DIR"
@@ -62,6 +64,8 @@ env:
     value: "100"
   - name: "DICOMWEB_METRICS_INTERVAL"
     value: "1"
+  - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
+    value: "false"
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"
