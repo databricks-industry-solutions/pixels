@@ -35,6 +35,9 @@ _proxy_in_flight = 0
 _PROXY_DIAG_HEADERS = os.getenv(
     "DICOMWEB_PROXY_DIAG_HEADERS", "true"
 ).strip().lower() in ("1", "true", "yes")
+_PROXY_DIAG_LOG_WARNING = os.getenv(
+    "DICOMWEB_PROXY_DIAG_LOG_WARNING", "true"
+).strip().lower() in ("1", "true", "yes")
 
 _SKIP_PROXY_HEADERS = frozenset({
     "host", "content-length", "transfer-encoding",
@@ -114,7 +117,8 @@ async def _proxy_to_gateway(request: Request) -> Response:
             finally:
                 total_ms = (time.perf_counter() - t0) * 1000.0
                 _proxy_in_flight = max(0, _proxy_in_flight - 1)
-                logger.info(
+                log_fn = logger.warning if _PROXY_DIAG_LOG_WARNING else logger.info
+                log_fn(
                     "VIEWER_PROXY_DIAG id=%s method=%s path=%s status=%s "
                     "upstream_ttfb_ms=%.1f stream_total_ms=%.1f "
                     "inflight_start=%d inflight_end=%d",
