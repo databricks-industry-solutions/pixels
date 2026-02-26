@@ -70,9 +70,15 @@ _retry_strategy = Retry(
 )
 
 _session = requests.Session()
+_SESSION_POOL_CONNECTIONS = int(
+    os.environ.get("PIXELS_FILES_POOL_CONNECTIONS", "20")
+)
+_SESSION_POOL_MAXSIZE = int(
+    os.environ.get("PIXELS_FILES_POOL_MAXSIZE", "100")
+)
 _adapter = HTTPAdapter(
-    pool_connections=20,   # distinct host pools (typically 1 for Databricks)
-    pool_maxsize=50,       # concurrent connections per host
+    pool_connections=_SESSION_POOL_CONNECTIONS,  # distinct host pools
+    pool_maxsize=_SESSION_POOL_MAXSIZE,          # concurrent connections per host
     max_retries=_retry_strategy,
 )
 _session.mount("https://", _adapter)

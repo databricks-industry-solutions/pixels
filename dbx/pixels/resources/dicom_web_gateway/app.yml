@@ -52,6 +52,10 @@ env:
     value: "0.05"
   - name: "PIXELS_BACKGROUND_POOL_WORKERS"
     value: "16"
+  - name: "PIXELS_FILES_POOL_CONNECTIONS"
+    value: "20"
+  - name: "PIXELS_FILES_POOL_MAXSIZE"
+    value: "200"
 
   # ── Disk frame cache (local SSD) ────────────────────────────────────────────
   - name: "PIXELS_FRAME_CACHE_DIR"
