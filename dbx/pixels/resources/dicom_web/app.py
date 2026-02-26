@@ -9,6 +9,7 @@ by the ``DICOMWEB_GATEWAY_URL`` environment variable.
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 import httpx
@@ -30,6 +31,10 @@ logger = logging.getLogger("DICOMweb.Viewer")
 GATEWAY_URL = os.getenv("DICOMWEB_GATEWAY_URL", "").rstrip("/")
 
 _http_client: httpx.AsyncClient | None = None
+_proxy_in_flight = 0
+_PROXY_DIAG_HEADERS = os.getenv(
+    "DICOMWEB_PROXY_DIAG_HEADERS", "true"
+).strip().lower() in ("1", "true", "yes")
 
 _SKIP_PROXY_HEADERS = frozenset({
     "host", "content-length", "transfer-encoding",
@@ -43,6 +48,7 @@ _SKIP_PROXY_HEADERS = frozenset({
 async def _proxy_to_gateway(request: Request) -> Response:
     """Reverse-proxy a request to the DICOMweb gateway, streaming the
     response back to the client without buffering it in memory."""
+    global _proxy_in_flight
     if not GATEWAY_URL:
         return JSONResponse(
             status_code=503,
@@ -71,6 +77,10 @@ async def _proxy_to_gateway(request: Request) -> Response:
         if request.method in ("POST", "PUT", "PATCH")
         else None
     )
+    req_id = f"vp-{time.time_ns():x}"
+    t0 = time.perf_counter()
+    _proxy_in_flight += 1
+    inflight_start = _proxy_in_flight
 
     try:
         req = _http_client.build_request(
@@ -80,21 +90,53 @@ async def _proxy_to_gateway(request: Request) -> Response:
             content=body,
         )
         resp = await _http_client.send(req, stream=True)
+        upstream_ttfb_ms = (time.perf_counter() - t0) * 1000.0
 
         skip = {"transfer-encoding", "connection"}
         resp_headers = {
             k: v for k, v in resp.headers.items()
             if k.lower() not in skip
         }
+        if _PROXY_DIAG_HEADERS:
+            resp_headers["x-vp-request-id"] = req_id
+            resp_headers["x-vp-upstream-ttfb-ms"] = f"{upstream_ttfb_ms:.1f}"
+            resp_headers["x-vp-inflight-start"] = str(inflight_start)
+            existing_timing = resp_headers.get("server-timing", "")
+            vp_timing = f"vp_upstream_ttfb;dur={upstream_ttfb_ms:.1f}"
+            resp_headers["server-timing"] = (
+                f"{existing_timing}, {vp_timing}" if existing_timing else vp_timing
+            )
+
+        async def _close_upstream() -> None:
+            global _proxy_in_flight
+            try:
+                await resp.aclose()
+            finally:
+                total_ms = (time.perf_counter() - t0) * 1000.0
+                _proxy_in_flight = max(0, _proxy_in_flight - 1)
+                logger.info(
+                    "VIEWER_PROXY_DIAG id=%s method=%s path=%s status=%s "
+                    "upstream_ttfb_ms=%.1f stream_total_ms=%.1f "
+                    "inflight_start=%d inflight_end=%d",
+                    req_id,
+                    request.method,
+                    request.url.path,
+                    resp.status_code,
+                    upstream_ttfb_ms,
+                    total_ms,
+                    inflight_start,
+                    _proxy_in_flight,
+                )
 
         return StreamingResponse(
             resp.aiter_raw(),
             status_code=resp.status_code,
             headers=resp_headers,
             media_type=resp.headers.get("content-type"),
-            background=BackgroundTask(resp.aclose),
+            background=BackgroundTask(_close_upstream),
         )
     except Exception as exc:
+        _proxy_in_flight = max(0, _proxy_in_flight - 1)
         logger.error("Gateway proxy error: %s", exc, exc_info=True)
         return JSONResponse(
             status_code=502,
@@ -134,7 +176,8 @@ def register_dicomweb_proxy(app: FastAPI):
 async def lifespan(app: FastAPI):
     global _http_client
     _http_client = httpx.AsyncClient(
-        http2=False,
+        # Allow request multiplexing to the gateway when supported.
+        http2=True,
         follow_redirects=True,
         timeout=httpx.Timeout(300.0, connect=30.0),
         limits=httpx.Limits(
