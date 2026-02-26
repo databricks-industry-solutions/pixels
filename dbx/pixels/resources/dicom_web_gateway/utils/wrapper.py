@@ -62,6 +62,11 @@ _ENABLE_WADO_SERIES_PRIMING = os.environ.get(
     "DICOMWEB_ENABLE_WADO_SERIES_PRIMING", "true"
 ).strip().lower() in ("1", "true", "yes")
 
+# How long WADO instance retrieval waits for an in-flight prefetch to finish.
+# Keep this short to avoid turning pending prefetches into multi-second tail
+# latency spikes under concurrency bursts.
+_WADO_PREFETCH_WAIT_S = float(os.environ.get("PIXELS_WADO_PREFETCH_WAIT_S", "0.05"))
+
 
 # ---------------------------------------------------------------------------
 # Fire-and-forget Lakebase touch helpers
@@ -510,7 +515,7 @@ class DICOMwebDatabricksWrapper:
         )
 
         # --- Check prefetch cache (instant if background download finished) ---
-        prefetched = file_prefetcher.get(local_path)
+        prefetched = file_prefetcher.get(local_path, timeout=_WADO_PREFETCH_WAIT_S)
         if prefetched is not None:
             logger.info(f"WADO-RS: instance {sop_instance_uid} from prefetch ({len(prefetched)} B)")
             return iter([prefetched]), str(len(prefetched))

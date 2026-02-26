@@ -48,6 +48,8 @@ env:
     value: "2048"
   - name: "PIXELS_PREFETCH_MAX_FILE_MB"
     value: "512"
+  - name: "PIXELS_WADO_PREFETCH_WAIT_S"
+    value: "0.05"
   - name: "PIXELS_BACKGROUND_POOL_WORKERS"
     value: "16"
 
