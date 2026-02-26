@@ -1,5 +1,6 @@
-<div bgcolor="white">
-  <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="right">
+<div bgcolor="white" style="display: flex;">
+  <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="center">
+  <img width="800" height="333" alt="Pixels Logo" src="https://github.com/user-attachments/assets/bee10938-caf3-424f-9941-a53ccf27e546" />
 </div>
 
 # `pixels` Solution Accelerator
