@@ -56,6 +56,10 @@ env:
     value: "20"
   - name: "PIXELS_FILES_POOL_MAXSIZE"
     value: "200"
+  - name: "PIXELS_PREFETCH_POOL_CONNECTIONS"
+    value: "20"
+  - name: "PIXELS_PREFETCH_POOL_MAXSIZE"
+    value: "50"
 
   # ── Disk frame cache (local SSD) ────────────────────────────────────────────
   - name: "PIXELS_FRAME_CACHE_DIR"
@@ -70,6 +74,8 @@ env:
     value: "100"
   - name: "DICOMWEB_METRICS_INTERVAL"
     value: "1"
+  - name: "DICOMWEB_ANYIO_THREAD_TOKENS"
+    value: "128"
   - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
     value: "false"
 

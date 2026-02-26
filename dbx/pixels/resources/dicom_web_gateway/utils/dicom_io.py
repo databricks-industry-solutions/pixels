@@ -69,20 +69,46 @@ _retry_strategy = Retry(
     raise_on_status=False,            # let caller inspect the response
 )
 
-_session = requests.Session()
 _SESSION_POOL_CONNECTIONS = int(
     os.environ.get("PIXELS_FILES_POOL_CONNECTIONS", "20")
 )
 _SESSION_POOL_MAXSIZE = int(
     os.environ.get("PIXELS_FILES_POOL_MAXSIZE", "100")
 )
-_adapter = HTTPAdapter(
-    pool_connections=_SESSION_POOL_CONNECTIONS,  # distinct host pools
-    pool_maxsize=_SESSION_POOL_MAXSIZE,          # concurrent connections per host
-    max_retries=_retry_strategy,
+
+def _build_pooled_session(pool_connections: int, pool_maxsize: int) -> requests.Session:
+    """Create a ``requests.Session`` with a tuned connection pool."""
+    session = requests.Session()
+    adapter = HTTPAdapter(
+        pool_connections=pool_connections,
+        pool_maxsize=pool_maxsize,
+        max_retries=_retry_strategy,
+    )
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+# Live WADO reads use this pool (foreground, latency-sensitive).
+_live_session = _build_pooled_session(
+    _SESSION_POOL_CONNECTIONS,
+    _SESSION_POOL_MAXSIZE,
 )
-_session.mount("https://", _adapter)
-_session.mount("http://", _adapter)
+
+# Background prefetch uses a dedicated pool so it can't starve interactive reads.
+_PREFETCH_POOL_CONNECTIONS = int(
+    os.environ.get("PIXELS_PREFETCH_POOL_CONNECTIONS", str(_SESSION_POOL_CONNECTIONS))
+)
+_PREFETCH_POOL_MAXSIZE = int(
+    os.environ.get("PIXELS_PREFETCH_POOL_MAXSIZE", "50")
+)
+_prefetch_session = _build_pooled_session(
+    _PREFETCH_POOL_CONNECTIONS,
+    _PREFETCH_POOL_MAXSIZE,
+)
+
+# Back-compat alias used throughout the file for live reads.
+_session = _live_session
 
 
 # ---------------------------------------------------------------------------
@@ -795,7 +821,7 @@ class FilePrefetcher:
         """
         db_file = DatabricksFile.from_full_path(path)
         headers = _auth_headers(token)
-        response = _session.get(
+        response = _prefetch_session.get(
             db_file.to_api_url(), headers=headers, stream=True,
         )
 

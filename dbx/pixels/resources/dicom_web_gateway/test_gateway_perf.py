@@ -159,6 +159,30 @@ def _build_endpoints(args: argparse.Namespace, token: str) -> list[dict]:
     return eps
 
 
+def _apply_tag_filter(endpoints: list[dict], tags_arg: list[str] | None) -> list[dict]:
+    """
+    Filter endpoints by tag.
+
+    Supports either:
+      - repeated args: --tags a b c
+      - comma-separated: --tags a,b,c
+    """
+    if not tags_arg:
+        return endpoints
+
+    wanted: set[str] = set()
+    for raw in tags_arg:
+        for item in raw.split(","):
+            tag = item.strip()
+            if tag:
+                wanted.add(tag)
+
+    if not wanted:
+        return endpoints
+
+    return [ep for ep in endpoints if ep.get("tag") in wanted]
+
+
 async def _maybe_add_wado_endpoints(
     args: argparse.Namespace, token: str, endpoints: list[dict]
 ) -> list[dict]:
@@ -478,6 +502,10 @@ async def _main(args: argparse.Namespace):
 
     eps = _build_endpoints(args, token)
     eps = await _maybe_add_wado_endpoints(args, token, eps)
+    eps = _apply_tag_filter(eps, args.tags)
+    if not eps:
+        print("ERROR: no endpoints selected after applying --tags filter.", file=sys.stderr)
+        sys.exit(2)
 
     reports: list[LevelReport] = []
     print(_SEP)
@@ -573,6 +601,12 @@ def main():
     parser.add_argument(
         "--frame-number", type=int, default=1,
         help="Frame number for WADO-RS frame test (default: 1)",
+    )
+    parser.add_argument(
+        "--tags", nargs="+",
+        help="Optional endpoint tag filter, e.g. "
+             "--tags WADO-instance WADO-frames-1 WADO-URI-instance "
+             "or --tags WADO-instance,WADO-frames-1",
     )
     args = parser.parse_args()
     asyncio.run(_main(args))

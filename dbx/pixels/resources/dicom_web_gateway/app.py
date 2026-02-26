@@ -354,6 +354,18 @@ async def _metrics_reporter():
 async def _lifespan(application: FastAPI):
     global _http_client
 
+    # Increase AnyIO's default thread-token limiter so StreamingResponse
+    # producers wrapped by iterate_in_threadpool can run with higher
+    # parallelism under bursty WADO traffic.
+    try:
+        import anyio
+        anyio_tokens = int(os.getenv("DICOMWEB_ANYIO_THREAD_TOKENS", "128"))
+        limiter = anyio.to_thread.current_default_thread_limiter()
+        limiter.total_tokens = max(1, anyio_tokens)
+        logger.info("AnyIO thread limiter tokens set to %d", limiter.total_tokens)
+    except Exception as exc:
+        logger.warning("Failed to configure AnyIO thread limiter: %s", exc)
+
     # Pre-size the default executor used by asyncio.to_thread so that
     # blocking SQL / Lakebase calls under concurrent load don't stall
     # waiting for new threads to be created.
