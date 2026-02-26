@@ -111,7 +111,7 @@ logger = logging.getLogger("DICOMweb.Gateway")
 
 _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
 _WADO_DIAG_HEADERS = os.getenv(
-    "DICOMWEB_WADO_DIAG_HEADERS", "true"
+    "DICOMWEB_WADO_DIAG_HEADERS", "false"
 ).strip().lower() in ("1", "true", "yes")
 
 # Shared async HTTP client — available for future async Volumes reads.

@@ -76,8 +76,6 @@ env:
     value: "1"
   - name: "DICOMWEB_ANYIO_THREAD_TOKENS"
     value: "128"
-  - name: "DICOMWEB_WADO_DIAG_HEADERS"
-    value: "true"
   - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
     value: "false"
 

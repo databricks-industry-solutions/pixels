@@ -33,10 +33,10 @@ GATEWAY_URL = os.getenv("DICOMWEB_GATEWAY_URL", "").rstrip("/")
 _http_client: httpx.AsyncClient | None = None
 _proxy_in_flight = 0
 _PROXY_DIAG_HEADERS = os.getenv(
-    "DICOMWEB_PROXY_DIAG_HEADERS", "true"
+    "DICOMWEB_PROXY_DIAG_HEADERS", "false"
 ).strip().lower() in ("1", "true", "yes")
 _PROXY_DIAG_LOG_WARNING = os.getenv(
-    "DICOMWEB_PROXY_DIAG_LOG_WARNING", "true"
+    "DICOMWEB_PROXY_DIAG_LOG_WARNING", "false"
 ).strip().lower() in ("1", "true", "yes")
 
 _SKIP_PROXY_HEADERS = frozenset({
