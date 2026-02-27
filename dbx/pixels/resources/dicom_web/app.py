@@ -67,13 +67,15 @@ async def _proxy_to_gateway(request: Request) -> Response:
         if k.lower() not in _SKIP_PROXY_HEADERS
     }
 
-    user_token = request.headers.get("x-forwarded-access-token")
+    if request.headers.get("x-forwarded-access-token"):
+        user_token = request.headers.get("x-forwarded-access-token")
+    else:
+        user_token = request.headers.get("access-token")
     if user_token:
         forward_headers["authorization"] = f"Bearer {user_token}"
         forward_headers["x-forwarded-access-token"] = user_token
-        forward_headers["X-Forwarded-Email"] = request.headers.get("X-Forwarded-Email")
-        
-    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version}_dicomweb_client"
+        forward_headers["X-Forwarded-Email"] = request.headers.get("X-Forwarded-Email", "unknown")
+    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version.__version__}/dicomweb_client"
 
     body = (
         await request.body()
@@ -213,7 +215,7 @@ register_dicomweb_proxy(app)
 register_all_common_routes(app)
 
 # ── Middleware (order matters: first added = outermost) ────────────
-#app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
 app.add_middleware(LoggingMiddleware)
 
