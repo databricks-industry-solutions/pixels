@@ -194,7 +194,7 @@ class LakebaseUtils:
         uc_table_name: str | None = None,
         min_cu: float = 0.5,
         max_cu: float = 2.0,
-        branch_name: str = "main",
+        branch_name: str = "production"
     ):
         """
         Initialize Lakebase utilities.
@@ -258,7 +258,7 @@ class LakebaseUtils:
         # Build resource names
         self.project_resource_name = f"projects/{self.instance_name}"
         self.branch_resource_name = f"{self.project_resource_name}/branches/{self.branch_name}"
-        self.endpoint_resource_name = f"{self.branch_resource_name}/endpoints/{self.instance_name}"
+        self.endpoint_resource_name = f"{self.branch_resource_name}/endpoints/primary"
 
         if user is None:
             self.user = self.workspace_client.current_user.me().user_name
