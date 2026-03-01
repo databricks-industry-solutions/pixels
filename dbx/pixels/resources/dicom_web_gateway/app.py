@@ -797,7 +797,7 @@ class _InstrumentMiddleware:
             elapsed = time.perf_counter() - t0
             _record_request(elapsed, status_code >= 400)
             if is_wado:
-                logger.info(
+                logger.debug(
                     "WADO_DIAG id=%s method=%s path=%s status=%s "
                     "ttfb_ms=%.1f total_ms=%.1f inflight_start=%d inflight_end=%d",
                     req_id,
