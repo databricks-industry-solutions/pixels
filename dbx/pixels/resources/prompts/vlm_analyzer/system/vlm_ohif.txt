@@ -19,5 +19,3 @@ Step 4:
 Answer the prompt based on the image, the clinician's notes and the metadata. Remove all the steps and uniform the output.
 
 If asked to draw boundaries, return the positions of the boundaries in the image so it can be drawn on the image.
-
-Return JSON formatted output.
