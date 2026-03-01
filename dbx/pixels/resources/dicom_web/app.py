@@ -16,8 +16,9 @@ import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
+
+from starlette.types import ASGIApp, Scope, Receive, Send
+from starlette.middleware.gzip import GZipMiddleware
 
 from dbx.pixels.resources.common.middleware import (
     LoggingMiddleware,
@@ -208,6 +209,30 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+EXCLUDED_PATHS = ["/instances/"]
+
+class SelectiveGZipMiddleware:
+    def __init__(self, app: ASGIApp, minimum_size: int = 1000):
+        self.app = app
+        # Initialize the GZip middleware once, wrapping the base app
+        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        # We only care about HTTP requests
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            
+            # If the path matches our exclusion list, skip GZip entirely
+            if any(excluded in path for excluded in EXCLUDED_PATHS):
+                return await self.app(scope, receive, send)
+            
+            # Otherwise, pass the request through the GZip app
+            return await self.gzip_app(scope, receive, send)
+        
+        # Pass non-HTTP connections (like websockets) through untouched
+        await self.app(scope, receive, send)
+
+
 # ── DICOMweb proxy to gateway ─────────────────────────────────────
 register_dicomweb_proxy(app)
 
@@ -215,7 +240,7 @@ register_dicomweb_proxy(app)
 register_all_common_routes(app)
 
 # ── Middleware (order matters: first added = outermost) ────────────
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(SelectiveGZipMiddleware)
 app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
 app.add_middleware(LoggingMiddleware)
 
