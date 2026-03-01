@@ -156,61 +156,67 @@ def _startup_bot_preload() -> None:
         logger.warning("Startup BOT preload: get_preload_priority_list failed: %s", exc)
         return
 
+    all_filenames: list[str] = []
     if not priority_list:
-        logger.info("Startup BOT preload: Lakebase has no entries yet — skipping")
-        return
+        logger.info(
+            "Startup BOT preload: priority list is empty — "
+            "falling back to instance_paths preload"
+        )
+    else:
+        logger.info("Startup BOT preload: %d files in priority list", len(priority_list))
 
-    logger.info("Startup BOT preload: %d files in priority list", len(priority_list))
+        loaded = 0
+        errors = 0
 
-    loaded = 0
-    errors = 0
+        for entry in priority_list:
+            filename = entry["filename"]
+            frames = entry.get("frames") or []
+            if not frames:
+                continue
+            try:
+                tsuid = entry.get("transfer_syntax_uid") or "1.2.840.10008.1.2.1"
+                bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
+                loaded += 1
+            except Exception as exc:
+                logger.debug("Startup BOT preload: error for %s: %s", filename, exc)
+                errors += 1
 
-    for entry in priority_list:
-        filename = entry["filename"]
-        frames = entry.get("frames") or []
-        if not frames:
-            continue
-        try:
-            tsuid = entry.get("transfer_syntax_uid") or "1.2.840.10008.1.2.1"
-            bot_cache.put_from_lakebase(filename, uc_table, frames, tsuid)
-            loaded += 1
-        except Exception as exc:
-            logger.debug("Startup BOT preload: error for %s: %s", filename, exc)
-            errors += 1
+        elapsed = time.perf_counter() - t0
+        logger.info(
+            "Startup BOT preload complete: %d loaded, %d errors — %.1fs",
+            loaded, errors, elapsed,
+        )
 
-    elapsed = time.perf_counter() - t0
-    logger.info(
-        "Startup BOT preload complete: %d loaded, %d errors — %.1fs",
-        loaded, errors, elapsed,
-    )
+        # Re-use BOT filenames to preload instance paths in one query.
+        all_filenames = [e["filename"] for e in priority_list]
 
     # ── Instance-path cache preload ────────────────────────────────────────
-    # Re-use the same filename list: query instance_paths once with
-    # local_path = ANY(%s), then batch_put into instance_path_cache.
-    # This eliminates the first SQL-warehouse round-trip (~300 ms) for every
-    # instance whose BOT was just preloaded.
-    all_filenames = [e["filename"] for e in priority_list]
-    if all_filenames:
-        try:
-            from utils.cache import instance_path_cache
-            t1 = time.perf_counter()
+    try:
+        from utils.cache import instance_path_cache
+        t1 = time.perf_counter()
+        if all_filenames:
             path_map = lb_utils.retrieve_instance_paths_by_local_paths(
                 all_filenames, uc_table
             )
-            if path_map:
-                instance_path_cache.batch_put(uc_table, path_map)
-                logger.info(
-                    "Startup instance-path preload complete: %d entries — %.1fs",
-                    len(path_map),
-                    time.perf_counter() - t1,
-                )
-            else:
-                logger.info(
-                    "Startup instance-path preload: instance_paths table is empty "
-                    "or not yet synced — skipping"
-                )
-        except Exception as exc:
-            logger.warning("Startup instance-path preload failed (non-fatal): %s", exc)
+        else:
+            path_map = lb_utils.retrieve_instance_paths_for_preload(
+                uc_table_name=uc_table, limit=limit
+            )
+
+        if path_map:
+            instance_path_cache.batch_put(uc_table, path_map)
+            logger.info(
+                "Startup instance-path preload complete: %d entries — %.1fs",
+                len(path_map),
+                time.perf_counter() - t1,
+            )
+        else:
+            logger.info(
+                "Startup instance-path preload: instance_paths table is empty "
+                "or not yet synced — skipping"
+            )
+    except Exception as exc:
+        logger.warning("Startup instance-path preload failed (non-fatal): %s", exc)
 
 # ---------------------------------------------------------------------------
 # Gateway request counters

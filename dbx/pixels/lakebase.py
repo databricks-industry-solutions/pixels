@@ -1092,6 +1092,35 @@ class LakebaseUtils:
             for row in rows
         }
 
+    def retrieve_instance_paths_for_preload(
+        self,
+        uc_table_name: str,
+        limit: int = 10_000,
+        table: str = INSTANCE_PATHS_TABLE,
+    ) -> dict[str, dict]:
+        """
+        Retrieve up to ``limit`` instance-path entries for startup cache warmup.
+
+        This is used as a fallback when BOT preload priority data is empty:
+        the gateway can still prefill the in-memory SOP UID → local path cache
+        directly from Lakebase ``instance_paths``.
+        """
+        query = sql.SQL(
+            "SELECT sop_instance_uid, local_path, num_frames "
+            "FROM {table} "
+            "WHERE uc_table_name = %s "
+            "LIMIT %s"
+        ).format(table=sql.Identifier(self.schema, table))
+
+        rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
+        if not rows:
+            return {}
+
+        return {
+            row[0]: {"path": row[1], "num_frames": int(row[2])}
+            for row in rows
+        }
+
     def insert_instance_paths_batch(
         self,
         entries: list[dict],
