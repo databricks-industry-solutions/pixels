@@ -100,7 +100,8 @@ class DatabricksSQLClient:
         mode = "USER (OBO)" if USE_USER_AUTH else "APP (service principal)"
         logger.info(
             "SQL client configured for %s authorization (pool_size=%d)",
-            mode, _pool_size,
+            mode,
+            _pool_size,
         )
 
     # -- connection management ---------------------------------------------
@@ -129,9 +130,7 @@ class DatabricksSQLClient:
             if self._pool_count < self._pool_size:
                 conn = self._new_app_connection()
                 self._pool_count += 1
-                logger.debug(
-                    "SQL pool: opened connection %d/%d", self._pool_count, self._pool_size
-                )
+                logger.debug("SQL pool: opened connection %d/%d", self._pool_count, self._pool_size)
                 return conn
 
         # Pool is full — wait for a connection to be returned
@@ -221,9 +220,7 @@ class DatabricksSQLClient:
                         batch = cursor.fetchmany_arrow(10_000)
                         if batch.num_rows == 0:
                             break
-                        results.extend(
-                            list(row.values()) for row in batch.to_pylist()
-                        )
+                        results.extend(list(row.values()) for row in batch.to_pylist())
                     return results
 
             except Exception as exc:
@@ -233,7 +230,9 @@ class DatabricksSQLClient:
                     logger.warning(
                         "SQL execution failed (attempt %d/%d), "
                         "resetting credentials and retrying: %s",
-                        attempt + 1, max_attempts, exc,
+                        attempt + 1,
+                        max_attempts,
+                        exc,
                     )
                     self.reset_credentials()
                 else:
@@ -311,7 +310,9 @@ class DatabricksSQLClient:
                     logger.warning(
                         "SQL stream execution failed (attempt %d/%d), "
                         "resetting credentials and retrying: %s",
-                        attempt + 1, max_attempts, exc,
+                        attempt + 1,
+                        max_attempts,
+                        exc,
                     )
                     self.reset_credentials()
                     continue
@@ -356,4 +357,3 @@ class DatabricksSQLClient:
                 break
         with self._pool_lock:
             self._pool_count = 0
-

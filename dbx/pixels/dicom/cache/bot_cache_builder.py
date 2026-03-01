@@ -55,16 +55,17 @@ logger = LoggerProvider("BOTCacheBuilder")
 # ---------------------------------------------------------------------------
 # DICOM byte-range constants (mirrors dicom_io.py — self-contained, no import)
 # ---------------------------------------------------------------------------
-_PIXEL_DATA_MARKER = b"\xe0\x7f\x10\x00"   # (7FE0,0010) little-endian
-_ITEM_TAG = b"\xfe\xff\x00\xe0"            # (FFFE,E000)
-_SEQ_DELIM_TAG = b"\xfe\xff\xdd\xe0"       # (FFFE,E0DD)
-_HEADER_INITIAL_BYTES = 64 * 1024           # 64 KB — enough for most headers
-_HEADER_EXTENDED_BYTES = 2 * 1024 * 1024   # 2 MB — for large private headers
+_PIXEL_DATA_MARKER = b"\xe0\x7f\x10\x00"  # (7FE0,0010) little-endian
+_ITEM_TAG = b"\xfe\xff\x00\xe0"  # (FFFE,E000)
+_SEQ_DELIM_TAG = b"\xfe\xff\xdd\xe0"  # (FFFE,E0DD)
+_HEADER_INITIAL_BYTES = 64 * 1024  # 64 KB — enough for most headers
+_HEADER_EXTENDED_BYTES = 2 * 1024 * 1024  # 2 MB — for large private headers
 
 
 # ---------------------------------------------------------------------------
 # Pure BOT helpers — local-file variants, no HTTP / streaming dependencies
 # ---------------------------------------------------------------------------
+
 
 def _find_pixel_data_pos(raw: bytes) -> int:
     """
@@ -114,7 +115,7 @@ def _pixel_data_header_size(raw: bytes, pixel_data_pos: int) -> int:
     """
     if pixel_data_pos + 8 > len(raw):
         return 12  # safe default
-    vr = raw[pixel_data_pos + 4: pixel_data_pos + 6]
+    vr = raw[pixel_data_pos + 4 : pixel_data_pos + 6]
     if vr in (b"OB", b"OW", b"OF", b"OD", b"UN", b"UT", b"SQ", b"UC", b"UR"):
         return 12
     return 8
@@ -143,7 +144,7 @@ def _extract_from_extended_offset_table(
         return None
 
     # Locate the BOT Item right after the Pixel Data tag to find data_start.
-    search_area = raw[pixel_data_pos + 4: min(pixel_data_pos + 128, len(raw))]
+    search_area = raw[pixel_data_pos + 4 : min(pixel_data_pos + 128, len(raw))]
     rel_pos = search_area.find(_ITEM_TAG)
     if rel_pos == -1:
         return None
@@ -152,7 +153,7 @@ def _extract_from_extended_offset_table(
     if item_pos + 8 > len(raw):
         return None
 
-    bot_length = struct.unpack("<I", raw[item_pos + 4: item_pos + 8])[0]
+    bot_length = struct.unpack("<I", raw[item_pos + 4 : item_pos + 8])[0]
     data_start = item_pos + 8 + bot_length
 
     offsets = struct.unpack(f"<{number_of_frames}Q", bytes(eot_bytes))
@@ -169,9 +170,7 @@ def _extract_from_extended_offset_table(
     ]
 
 
-def _scan_compressed_frames_local(
-    path: str, pixel_data_pos: int, number_of_frames: int
-) -> list:
+def _scan_compressed_frames_local(path: str, pixel_data_pos: int, number_of_frames: int) -> list:
     """
     Scan a local compressed DICOM file for frame byte offsets.
 
@@ -217,12 +216,14 @@ def _scan_compressed_frames_local(
                 break
 
             frame_start = f.tell()
-            frames.append({
-                "frame_number": frame_idx,
-                "start_pos": frame_start,
-                "end_pos": frame_start + item_length - 1,
-                "pixel_data_pos": pixel_data_pos,
-            })
+            frames.append(
+                {
+                    "frame_number": frame_idx,
+                    "start_pos": frame_start,
+                    "end_pos": frame_start + item_length - 1,
+                    "pixel_data_pos": pixel_data_pos,
+                }
+            )
             f.seek(item_length, 1)
 
     return frames
@@ -231,6 +232,7 @@ def _scan_compressed_frames_local(
 # ---------------------------------------------------------------------------
 # Public BOT computation entry point
 # ---------------------------------------------------------------------------
+
 
 def compute_bot_from_local_path(path: str) -> dict:
     """
@@ -324,14 +326,16 @@ def compute_bot_from_local_path(path: str) -> dict:
 _executor_lb_cache: dict = {}
 
 
-def _get_executor_lb(instance_name: str, uc_table_name: str, host:str, token: str):
+def _get_executor_lb(instance_name: str, uc_table_name: str, host: str, token: str):
     """Return a cached LakebaseUtils for the given parameters, creating one if needed."""
     key = f"{instance_name}::{uc_table_name}"
     if key not in _executor_lb_cache:
-        from dbx.pixels.lakebase import LakebaseUtils
         import os
-        os.environ['DATABRICKS_HOST'] = host
-        os.environ['DATABRICKS_TOKEN'] = token
+
+        from dbx.pixels.lakebase import LakebaseUtils
+
+        os.environ["DATABRICKS_HOST"] = host
+        os.environ["DATABRICKS_TOKEN"] = token
 
         _executor_lb_cache[key] = LakebaseUtils(
             instance_name=instance_name,
@@ -345,6 +349,7 @@ def _get_executor_lb(instance_name: str, uc_table_name: str, host:str, token: st
 # ---------------------------------------------------------------------------
 # Spark ML Transformer
 # ---------------------------------------------------------------------------
+
 
 class BOTCacheBuilder(Transformer):
     """
@@ -418,7 +423,9 @@ class BOTCacheBuilder(Transformer):
         def _build_bot_udf(paths: pd.Series) -> pd.Series:
             import json
 
-            lb = _get_executor_lb(lakebase_instance_name, uc_table_name, host=self.host, token=self.token)
+            lb = _get_executor_lb(
+                lakebase_instance_name, uc_table_name, host=self.host, token=self.token
+            )
 
             results = []
             for path in paths:
@@ -434,11 +441,15 @@ class BOTCacheBuilder(Transformer):
                     if skip_existing:
                         existing = lb.retrieve_all_frame_ranges(path, uc_table_name)
                         if existing:
-                            results.append(json.dumps({
-                                "status": "skipped",
-                                "reason": "already_cached",
-                                "num_frames": len(existing),
-                            }))
+                            results.append(
+                                json.dumps(
+                                    {
+                                        "status": "skipped",
+                                        "reason": "already_cached",
+                                        "num_frames": len(existing),
+                                    }
+                                )
+                            )
                             continue
 
                     bot = compute_bot_from_local_path(path)
@@ -448,16 +459,24 @@ class BOTCacheBuilder(Transformer):
                         uc_table_name=uc_table_name,
                         transfer_syntax_uid=bot["transfer_syntax_uid"],
                     )
-                    results.append(json.dumps({
-                        "status": "cached",
-                        "num_frames": bot["num_frames"],
-                    }))
+                    results.append(
+                        json.dumps(
+                            {
+                                "status": "cached",
+                                "num_frames": bot["num_frames"],
+                            }
+                        )
+                    )
 
                 except Exception as exc:
-                    results.append(json.dumps({
-                        "status": "error",
-                        "error": str(exc)[:500],
-                    }))
+                    results.append(
+                        json.dumps(
+                            {
+                                "status": "error",
+                                "error": str(exc)[:500],
+                            }
+                        )
+                    )
 
             return pd.Series(results)
 
@@ -467,12 +486,15 @@ class BOTCacheBuilder(Transformer):
             ext = filter_extension.lstrip(".").lower()
             input_df = df.filter(col("extension") == ext)
 
-        return input_df.repartition(128).withColumn(self.outputCol, _build_bot_udf(col(self.inputCol)))
+        return input_df.repartition(128).withColumn(
+            self.outputCol, _build_bot_udf(col(self.inputCol))
+        )
 
 
 # ---------------------------------------------------------------------------
 # Priority scorer for in-memory BOT preload
 # ---------------------------------------------------------------------------
+
 
 class CachePriorityScorer:
     """
@@ -522,8 +544,8 @@ class CachePriorityScorer:
         "access_count": 0.3,
     }
     DEFAULT_HALF_LIVES = {
-        "last_used": 24,    # 1 day — strongly prefer recently accessed files
-        "inserted": 168,    # 1 week — recently ingested files are mildly preferred
+        "last_used": 24,  # 1 day — strongly prefer recently accessed files
+        "inserted": 168,  # 1 week — recently ingested files are mildly preferred
     }
 
     def __init__(self, lb_utils, weights: dict | None = None, half_lives: dict | None = None):
@@ -630,7 +652,7 @@ class CachePriorityScorer:
         w_used = self.weights["last_used"]
         w_ins = self.weights["inserted"]
         w_cnt = self.weights["access_count"]
-        hl_used = self.half_lives["last_used"] * 3600.0    # hours → seconds
+        hl_used = self.half_lives["last_used"] * 3600.0  # hours → seconds
         hl_ins = self.half_lives["inserted"] * 3600.0
 
         query = sql.SQL(
@@ -677,27 +699,29 @@ class CachePriorityScorer:
         rows = self.lb.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
         for row in rows:
-            frame_numbers       = row[7] or []
-            start_positions     = row[8] or []
-            end_positions       = row[9] or []
+            frame_numbers = row[7] or []
+            start_positions = row[8] or []
+            end_positions = row[9] or []
             pixel_data_pos_list = row[10] or []
             frames = [
                 {
-                    "frame_number":   int(frame_numbers[i]),
-                    "start_pos":      int(start_positions[i]),
-                    "end_pos":        int(end_positions[i]),
+                    "frame_number": int(frame_numbers[i]),
+                    "start_pos": int(start_positions[i]),
+                    "end_pos": int(end_positions[i]),
                     "pixel_data_pos": int(pixel_data_pos_list[i]),
                 }
                 for i in range(len(frame_numbers))
             ]
-            results.append({
-                "filename": row[0],
-                "frame_count": int(row[1]),
-                "transfer_syntax_uid": row[2],
-                "last_used_at": row[3],
-                "inserted_at": row[4],
-                "access_count": int(row[5]),
-                "priority_score": float(row[6]),
-                "frames": frames,
-            })
+            results.append(
+                {
+                    "filename": row[0],
+                    "frame_count": int(row[1]),
+                    "transfer_syntax_uid": row[2],
+                    "last_used_at": row[3],
+                    "inserted_at": row[4],
+                    "access_count": int(row[5]),
+                    "priority_score": float(row[6]),
+                    "frames": frames,
+                }
+            )
         return results

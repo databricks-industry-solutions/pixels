@@ -21,20 +21,20 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+    _ITEM_TAG,
+    _SEQ_DELIM_TAG,
     BufferedStreamReader,
     ProgressiveFileStreamer,
     _CaptureSlot,
     _FileStreamState,
-    _ITEM_TAG,
-    _SEQ_DELIM_TAG,
     _find_bot_item,
     get_file_part_local,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_item(data: bytes) -> bytes:
     """Build a DICOM Item element: tag (4) + length (4) + data."""
@@ -75,13 +75,17 @@ def _make_mock_reader(data: bytes, chunk_size: int = 10, start_pos: int = 0, tee
         [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
     )
     return BufferedStreamReader(
-        response, chunk_size=chunk_size, start_position=start_pos, tee_file=tee_file,
+        response,
+        chunk_size=chunk_size,
+        start_position=start_pos,
+        tee_file=tee_file,
     )
 
 
 # ---------------------------------------------------------------------------
 # BufferedStreamReader tee_file tests
 # ---------------------------------------------------------------------------
+
 
 class TestBufferedStreamReaderTeeFile:
 
@@ -138,6 +142,7 @@ class TestBufferedStreamReaderTeeFile:
 # _CaptureSlot tests
 # ---------------------------------------------------------------------------
 
+
 class TestCaptureSlot:
 
     def test_initial_state(self):
@@ -156,6 +161,7 @@ class TestCaptureSlot:
 # ---------------------------------------------------------------------------
 # _FileStreamState tests
 # ---------------------------------------------------------------------------
+
 
 class TestFileStreamState:
 
@@ -274,6 +280,7 @@ class TestFileStreamState:
 # get_file_part_local tests
 # ---------------------------------------------------------------------------
 
+
 class TestGetFilePartLocal:
 
     def test_read_frame_from_local_file(self):
@@ -325,6 +332,7 @@ class TestGetFilePartLocal:
 # ProgressiveFileStreamer integration test (mocked HTTP)
 # ---------------------------------------------------------------------------
 
+
 class TestProgressiveFileStreamer:
 
     def test_stream_lifecycle(self):
@@ -350,9 +358,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -387,12 +393,16 @@ class TestProgressiveFileStreamer:
             # Verify local cache file
             assert os.path.exists(state.local_path)
             result = get_file_part_local(
-                state.local_path, state.data_start, state.frames[0],
+                state.local_path,
+                state.data_start,
+                state.frames[0],
             )
             assert result == f0
 
             result = get_file_part_local(
-                state.local_path, state.data_start, state.frames[2],
+                state.local_path,
+                state.data_start,
+                state.frames[2],
             )
             assert result == f2
 
@@ -416,9 +426,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -464,9 +472,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state1 = streamer.get_or_start_stream(
@@ -514,9 +520,7 @@ class TestProgressiveFileStreamer:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
             results = {}
 
-            with patch(
-                "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(

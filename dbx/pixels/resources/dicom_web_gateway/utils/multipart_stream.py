@@ -23,6 +23,7 @@ from io import BytesIO
 from typing import AsyncIterator
 
 from dbx.pixels.logging import LoggerProvider
+
 from .dicom_io import _get_upload_client, _get_upload_semaphore
 
 logger = LoggerProvider("DICOMweb.MultipartStream")
@@ -35,16 +36,34 @@ _HEADER_BUF_SIZE = 64 * 1024  # 64 KB — enough for virtually all DICOM headers
 # ---------------------------------------------------------------------------
 
 # DICOM tag bytes (little-endian) for the UIDs we need
-_TAG_SOP_INSTANCE_UID = b"\x08\x00\x18\x00"       # (0008,0018)
-_TAG_STUDY_INSTANCE_UID = b"\x20\x00\x0D\x00"      # (0020,000D)
-_TAG_SERIES_INSTANCE_UID = b"\x20\x00\x0E\x00"     # (0020,000E)
-_TAG_NUMBER_OF_FRAMES = b"\x28\x00\x08\x00"         # (0028,0008)
+_TAG_SOP_INSTANCE_UID = b"\x08\x00\x18\x00"  # (0008,0018)
+_TAG_STUDY_INSTANCE_UID = b"\x20\x00\x0D\x00"  # (0020,000D)
+_TAG_SERIES_INSTANCE_UID = b"\x20\x00\x0E\x00"  # (0020,000E)
+_TAG_NUMBER_OF_FRAMES = b"\x28\x00\x08\x00"  # (0028,0008)
 
 # Known Explicit VR codes that use a 2-byte length field (short form)
 _SHORT_VR = {
-    b"AE", b"AS", b"AT", b"CS", b"DA", b"DS", b"DT", b"FL", b"FD",
-    b"IS", b"LO", b"LT", b"PN", b"SH", b"SL", b"SS", b"ST", b"TM",
-    b"UI", b"UL", b"US",
+    b"AE",
+    b"AS",
+    b"AT",
+    b"CS",
+    b"DA",
+    b"DS",
+    b"DT",
+    b"FL",
+    b"FD",
+    b"IS",
+    b"LO",
+    b"LT",
+    b"PN",
+    b"SH",
+    b"SL",
+    b"SS",
+    b"ST",
+    b"TM",
+    b"UI",
+    b"UL",
+    b"US",
 }
 
 
@@ -65,7 +84,7 @@ def _scan_uid_tag(raw: bytes, tag_bytes: bytes) -> str:
         pos = idx + 4  # skip past the 4 tag bytes
 
         # Try Explicit VR first: next 2 bytes are ASCII VR letters
-        vr = raw[pos:pos + 2]
+        vr = raw[pos : pos + 2]
         if vr in _SHORT_VR:
             # Explicit VR short form: VR(2) + length(2) + value
             if pos + 4 > end:
@@ -89,7 +108,12 @@ def _scan_uid_tag(raw: bytes, tag_bytes: bytes) -> str:
             offset = idx + 4
             continue
 
-        value = raw[val_start:val_start + length].rstrip(b"\x00").decode("ascii", errors="replace").strip()
+        value = (
+            raw[val_start : val_start + length]
+            .rstrip(b"\x00")
+            .decode("ascii", errors="replace")
+            .strip()
+        )
 
         # Validate: DICOM UIDs contain only digits and dots
         if value and all(c in "0123456789." for c in value):
@@ -110,12 +134,16 @@ def extract_dicom_uids(raw: bytes) -> dict[str, str | int]:
     in the binary data — no full DICOM parsing needed.
     """
     result: dict[str, str | int] = {
-        "study_uid": "", "series_uid": "", "sop_uid": "", "num_frames": 1,
+        "study_uid": "",
+        "series_uid": "",
+        "sop_uid": "",
+        "num_frames": 1,
     }
 
     # -- Attempt 1: pydicom (most accurate) --------------------------------
     try:
         import pydicom
+
         ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True, force=True)
         study = str(getattr(ds, "StudyInstanceUID", "") or "")
         series = str(getattr(ds, "SeriesInstanceUID", "") or "")
@@ -146,14 +174,10 @@ def extract_dicom_uids(raw: bytes) -> dict[str, str | int]:
     nf_str = _scan_uid_tag(raw, _TAG_NUMBER_OF_FRAMES)
 
     if sop:
-        logger.debug(
-            f"Raw byte scan extracted UIDs: SOP={sop}, Study={study}, "
-            f"Series={series}"
-        )
+        logger.debug(f"Raw byte scan extracted UIDs: SOP={sop}, Study={study}, " f"Series={series}")
     else:
         logger.warning(
-            f"Both pydicom and raw scan failed to find SOPInstanceUID "
-            f"in {len(raw)}-byte buffer"
+            f"Both pydicom and raw scan failed to find SOPInstanceUID " f"in {len(raw)}-byte buffer"
         )
 
     return {
@@ -167,6 +191,7 @@ def extract_dicom_uids(raw: bytes) -> dict[str, str | int]:
 # ---------------------------------------------------------------------------
 # Async streaming multipart/related parser
 # ---------------------------------------------------------------------------
+
 
 class AsyncMultipartParser:
     """
@@ -210,7 +235,7 @@ class AsyncMultipartParser:
             idx = self._buf.find(marker)
             if idx != -1:
                 result = bytes(self._buf[:idx])
-                self._buf = self._buf[idx + len(marker):]
+                self._buf = self._buf[idx + len(marker) :]
                 return result
             if self._stream_exhausted:
                 return None
@@ -238,7 +263,7 @@ class AsyncMultipartParser:
             if idx != -1:
                 if idx > 0:
                     yield bytes(self._buf[:idx])
-                self._buf = self._buf[idx + len(self._delimiter):]
+                self._buf = self._buf[idx + len(self._delimiter) :]
                 self._part_consumed = True
                 return
 
@@ -267,7 +292,7 @@ class AsyncMultipartParser:
             logger.error("No opening boundary found in multipart body")
             return
 
-        self._buf = self._buf[idx + len(self._first_delimiter):]
+        self._buf = self._buf[idx + len(self._first_delimiter) :]
 
         while True:
             await self._fill_buffer(2)
@@ -296,6 +321,7 @@ class AsyncMultipartParser:
 # ---------------------------------------------------------------------------
 # Per-part upload to Volumes with UID extraction
 # ---------------------------------------------------------------------------
+
 
 async def _upload_one_part(
     token: str,
@@ -354,23 +380,33 @@ async def _upload_one_part(
                     pass
 
         # ── Direct cloud upload fast path ──────────────────────────────
-        from .cloud_direct_upload import DIRECT_UPLOAD_ENABLED, async_stream_to_cloud, resolve_cloud_url, get_temp_credentials
+        from .cloud_direct_upload import (
+            DIRECT_UPLOAD_ENABLED,
+            async_stream_to_cloud,
+            get_temp_credentials,
+            resolve_cloud_url,
+        )
+
         _direct_ok = False
         if DIRECT_UPLOAD_ENABLED:
             try:
                 _h = (
                     os.environ.get("DATABRICKS_HOST", "")
-                    .replace("https://", "").replace("http://", "").rstrip("/")
+                    .replace("https://", "")
+                    .replace("http://", "")
+                    .rstrip("/")
                 )
                 cloud_url = await asyncio.to_thread(resolve_cloud_url, _h, token, dest_path)
-                creds = await asyncio.to_thread(get_temp_credentials, _h, token, cloud_url)
+                await asyncio.to_thread(get_temp_credentials, _h, token, cloud_url)
                 from .cloud_direct_upload import async_stream_to_cloud
+
                 await async_stream_to_cloud(token, _h, cloud_url, _part_stream())
                 _direct_ok = True
             except Exception as exc:
                 logger.warning(
                     "Direct cloud upload failed (%s) — falling back to Files API: %s",
-                    type(exc).__name__, exc,
+                    type(exc).__name__,
+                    exc,
                 )
 
         total_size += extra_bytes[0]
@@ -391,14 +427,10 @@ async def _upload_one_part(
 
             if response.status_code not in (200, 204):
                 raise RuntimeError(
-                    f"Volumes PUT failed (HTTP {response.status_code}): "
-                    f"{response.text[:500]}"
+                    f"Volumes PUT failed (HTTP {response.status_code}): " f"{response.text[:500]}"
                 )
 
-        logger.info(
-            f"Streamed part → {dest_path} "
-            f"({total_size} bytes, SOP={sop_uid})"
-        )
+        logger.info(f"Streamed part → {dest_path} " f"({total_size} bytes, SOP={sop_uid})")
 
         return {
             "output_path": dest_path,
@@ -427,6 +459,7 @@ async def _upload_one_part(
 # ---------------------------------------------------------------------------
 # Orchestrator: stream-and-split entire multipart body to Volumes
 # ---------------------------------------------------------------------------
+
 
 async def async_stream_split_to_volumes(
     token: str,
@@ -516,7 +549,12 @@ async def async_stream_split_to_volumes(
         parser = AsyncMultipartParser(boundary, _queue_stream())
         async for headers, body_gen in parser.parts():
             result = await _upload_one_part(
-                token, host, stow_base, client, headers, body_gen,
+                token,
+                host,
+                stow_base,
+                client,
+                headers,
+                body_gen,
             )
             results.append(result)
     finally:
@@ -540,6 +578,7 @@ async def async_stream_split_to_volumes(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _extract_boundary(content_type: str) -> str | None:
     """Extract the ``boundary`` parameter from a Content-Type header."""

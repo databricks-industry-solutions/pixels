@@ -61,6 +61,7 @@ STREAM_CHUNK_SIZE = 64 * 1024
 # Auth (mirrors benchmark_wado_concurrency.py)
 # ---------------------------------------------------------------------------
 
+
 def _fetch_sp_token(databricks_host: str, client_id: str, client_secret: str) -> str:
     """Obtain a bearer token via the OAuth2 client credentials grant."""
     host = databricks_host.rstrip("/")
@@ -76,9 +77,7 @@ def _fetch_sp_token(databricks_host: str, client_id: str, client_secret: str) ->
         timeout=15,
     )
     if resp.status_code != 200:
-        raise RuntimeError(
-            f"Token request failed (HTTP {resp.status_code}): {resp.text[:300]}"
-        )
+        raise RuntimeError(f"Token request failed (HTTP {resp.status_code}): {resp.text[:300]}")
     access_token = resp.json().get("access_token")
     if not access_token:
         raise RuntimeError(f"No access_token in response: {resp.text[:300]}")
@@ -109,6 +108,7 @@ def resolve_token(args: argparse.Namespace) -> str:
 # ---------------------------------------------------------------------------
 # Payload generation
 # ---------------------------------------------------------------------------
+
 
 def _build_dicom_bytes(target_mb: float) -> bytes:
     """Return a valid DICOM Part-10 byte string of approximately *target_mb* MB.
@@ -157,19 +157,19 @@ def build_stow_payload(dicom_bytes: bytes) -> tuple[bytes, str]:
     """
     boundary = f"STOW_BENCH_{uuid.uuid4().hex[:12]}"
     body = (
-        f"--{boundary}\r\n"
-        f"Content-Type: application/dicom\r\n\r\n"
-    ).encode() + dicom_bytes + f"\r\n--{boundary}--\r\n".encode()
-
-    content_type = (
-        f"multipart/related; type=application/dicom; boundary={boundary}"
+        (f"--{boundary}\r\n" f"Content-Type: application/dicom\r\n\r\n").encode()
+        + dicom_bytes
+        + f"\r\n--{boundary}--\r\n".encode()
     )
+
+    content_type = f"multipart/related; type=application/dicom; boundary={boundary}"
     return body, content_type
 
 
 # ---------------------------------------------------------------------------
 # Upload helpers
 # ---------------------------------------------------------------------------
+
 
 def _assign_fresh_uid(dicom_bytes: bytes) -> bytes:
     """Return a copy of *dicom_bytes* with a newly generated SOP Instance UID.
@@ -239,6 +239,7 @@ def _do_upload(
 # Test phases
 # ---------------------------------------------------------------------------
 
+
 def run_sequential(
     session: requests.Session,
     url: str,
@@ -258,14 +259,21 @@ def run_sequential(
         if status != 200:
             logger.warning(
                 "    upload %d/%d failed: HTTP %d (%.1fs)",
-                i + 1, repeats, status, elapsed,
+                i + 1,
+                repeats,
+                status,
+                elapsed,
             )
             errors += 1
         else:
             latencies.append(elapsed)
             logger.info(
                 "    upload %d/%d: %.2fs (%s bytes, HTTP %d)",
-                i + 1, repeats, elapsed, f"{body_size:,}", status,
+                i + 1,
+                repeats,
+                elapsed,
+                f"{body_size:,}",
+                status,
             )
 
     return _summarise(latencies, errors, size_mb, "sequential")
@@ -283,7 +291,9 @@ def run_concurrent(
     """Upload *repeats* times across *concurrency* workers and return timing stats."""
     logger.info(
         "  Concurrent: %d uploads of ~%g MB (%d workers) ...",
-        repeats, size_mb, concurrency,
+        repeats,
+        size_mb,
+        concurrency,
     )
     latencies: list[float] = []
     errors = 0
@@ -305,7 +315,10 @@ def run_concurrent(
             if status != 200:
                 logger.warning(
                     "    upload %d/%d failed: HTTP %d (%.1fs)",
-                    i + 1, repeats, status, elapsed,
+                    i + 1,
+                    repeats,
+                    status,
+                    elapsed,
                 )
                 errors += 1
             else:
@@ -394,60 +407,81 @@ def print_summary(results: list[dict]) -> None:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="STOW-RS throughput benchmark with synthetic DICOM payloads",
     )
     p.add_argument(
-        "--app-host", required=True,
+        "--app-host",
+        required=True,
         help="Databricks App URL (e.g. https://your-app.databricksapps.com)",
     )
-    p.add_argument("--databricks-host", default="",
-                    help="Workspace URL for OIDC token endpoint (or DATABRICKS_HOST env)")
-    p.add_argument("--client-id", default="",
-                    help="SP client ID (or DATABRICKS_SP_CLIENT_ID env)")
-    p.add_argument("--client-secret", default="",
-                    help="SP client secret (or DATABRICKS_SP_CLIENT_SECRET env)")
-    p.add_argument("--token", default="",
-                    help="Bearer token — bypasses OAuth2 (or DATABRICKS_TOKEN env)")
-    p.add_argument("--pixels-table", default="",
-                    help="Pixels table name sent as cookie (or PIXELS_TABLE env)")
     p.add_argument(
-        "--sizes", default="1,10,50,100",
+        "--databricks-host",
+        default="",
+        help="Workspace URL for OIDC token endpoint (or DATABRICKS_HOST env)",
+    )
+    p.add_argument("--client-id", default="", help="SP client ID (or DATABRICKS_SP_CLIENT_ID env)")
+    p.add_argument(
+        "--client-secret", default="", help="SP client secret (or DATABRICKS_SP_CLIENT_SECRET env)"
+    )
+    p.add_argument(
+        "--token", default="", help="Bearer token — bypasses OAuth2 (or DATABRICKS_TOKEN env)"
+    )
+    p.add_argument(
+        "--pixels-table", default="", help="Pixels table name sent as cookie (or PIXELS_TABLE env)"
+    )
+    p.add_argument(
+        "--sizes",
+        default="1,10,50,100",
         help="Comma-separated payload sizes in MB (default: 1,10,50,100)",
     )
-    p.add_argument("--repeats", type=int, default=5,
-                    help="Total uploads per size per phase (default: 5). "
-                         "This is the number of files that will be created on the server. "
-                         "Set this >= --concurrency to keep all workers busy.")
-    p.add_argument("--concurrency", type=int, default=4,
-                    help="Parallel workers for the concurrent phase (default: 4). "
-                         "Only controls parallelism — total uploads is set by --repeats.")
     p.add_argument(
-        "--upload-timeout", type=float, default=300.0,
-        help="Per-upload read/send timeout in seconds (default: 300). "
-             "Increase for very large payloads over slow links.",
+        "--repeats",
+        type=int,
+        default=5,
+        help="Total uploads per size per phase (default: 5). "
+        "This is the number of files that will be created on the server. "
+        "Set this >= --concurrency to keep all workers busy.",
     )
     p.add_argument(
-        "--no-sequential", action="store_true",
+        "--concurrency",
+        type=int,
+        default=4,
+        help="Parallel workers for the concurrent phase (default: 4). "
+        "Only controls parallelism — total uploads is set by --repeats.",
+    )
+    p.add_argument(
+        "--upload-timeout",
+        type=float,
+        default=300.0,
+        help="Per-upload read/send timeout in seconds (default: 300). "
+        "Increase for very large payloads over slow links.",
+    )
+    p.add_argument(
+        "--no-sequential",
+        action="store_true",
         help="Skip the sequential upload phase",
     )
     p.add_argument(
-        "--no-concurrent", action="store_true",
+        "--no-concurrent",
+        action="store_true",
         help="Skip the concurrent upload phase",
     )
     p.add_argument(
-        "--no-verify", action="store_true",
+        "--no-verify",
+        action="store_true",
         help="Disable TLS certificate verification (useful for debugging SSL issues)",
     )
-    p.add_argument("--output", default="",
-                    help="Write JSON results to this file")
+    p.add_argument("--output", default="", help="Write JSON results to this file")
     return p.parse_args(argv)
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
@@ -515,14 +549,18 @@ def main(argv: list[str] | None = None) -> None:
         logger.warning(
             "--repeats (%d) < --concurrency (%d): only %d file(s) will be uploaded "
             "and most workers will never be used. Set --repeats >= --concurrency.",
-            args.repeats, args.concurrency, args.repeats,
+            args.repeats,
+            args.concurrency,
+            args.repeats,
         )
 
     # Parse sizes
     sizes = [float(s.strip()) for s in args.sizes.split(",")]
     logger.info(
         "Payload sizes: %s MB | repeats=%d | concurrency=%d",
-        sizes, args.repeats, args.concurrency,
+        sizes,
+        args.repeats,
+        args.concurrency,
     )
 
     # Generate payloads
@@ -543,15 +581,23 @@ def main(argv: list[str] | None = None) -> None:
 
         if not args.no_sequential:
             seq = run_sequential(
-                session, stow_url, dicom_bytes, args.repeats, mb,
+                session,
+                stow_url,
+                dicom_bytes,
+                args.repeats,
+                mb,
                 upload_timeout=args.upload_timeout,
             )
             all_results.append(seq)
 
         if not args.no_concurrent:
             conc = run_concurrent(
-                session, stow_url, dicom_bytes,
-                args.repeats, args.concurrency, mb,
+                session,
+                stow_url,
+                dicom_bytes,
+                args.repeats,
+                args.concurrency,
+                mb,
                 upload_timeout=args.upload_timeout,
             )
             all_results.append(conc)

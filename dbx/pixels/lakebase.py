@@ -1,7 +1,6 @@
 import os
 import threading
 import time
-import uuid
 from datetime import datetime, timedelta
 
 import psycopg2
@@ -11,7 +10,6 @@ from databricks.sdk.service.postgres import (
     BranchSpec,
     Endpoint,
     EndpointSpec,
-    EndpointStatusState,
     EndpointType,
     Project,
     ProjectSpec,
@@ -66,9 +64,7 @@ def parse_uc_table_name(uc_table_name: str) -> tuple[str, str, str]:
     """
     parts = uc_table_name.strip().split(".")
     if len(parts) != 3:
-        raise ValueError(
-            f"UC table name must be 'catalog.schema.table', got: '{uc_table_name}'"
-        )
+        raise ValueError(f"UC table name must be 'catalog.schema.table', got: '{uc_table_name}'")
     return parts[0], parts[1], parts[2]
 
 
@@ -194,7 +190,7 @@ class LakebaseUtils:
         uc_table_name: str | None = None,
         min_cu: float = 0.5,
         max_cu: float = 2.0,
-        branch_name: str = "production"
+        branch_name: str = "production",
     ):
         """
         Initialize Lakebase utilities.
@@ -293,7 +289,7 @@ class LakebaseUtils:
                 time.sleep(10)
             else:
                 raise Exception(f"Lakebase project '{self.instance_name}' does not exist")
-       
+
         # 2. Ensure Branch exists
         try:
             branch = self.workspace_client.postgres.get_branch(self.branch_resource_name)
@@ -309,14 +305,16 @@ class LakebaseUtils:
                 time.sleep(10)
             else:
                 raise Exception(f"Lakebase branch '{self.branch_name}' does not exist")
-        
+
         # 3. Ensure Endpoint exists
         try:
             endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
             logger.info(f"Lakebase endpoint '{self.instance_name}' exists.")
         except Exception:
             if create_instance:
-                logger.info(f"Creating Lakebase endpoint '{self.instance_name}' with autoscale ({self.min_cu}-{self.max_cu} CU)")
+                logger.info(
+                    f"Creating Lakebase endpoint '{self.instance_name}' with autoscale ({self.min_cu}-{self.max_cu} CU)"
+                )
                 endpoint = self.workspace_client.postgres.create_endpoint(
                     parent=self.branch_resource_name,
                     endpoint_id=self.instance_name,
@@ -407,9 +405,7 @@ class LakebaseUtils:
                     logger.info(f"Database '{self.database}' already exists")
                 else:
                     cursor.execute(
-                        sql.SQL("CREATE DATABASE {}").format(
-                            sql.Identifier(self.database)
-                        )
+                        sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.database))
                     )
                     logger.info(f"Created database '{self.database}'")
         finally:
@@ -518,7 +514,9 @@ class LakebaseUtils:
             "WHERE filename = %s AND frame = %s AND uc_table_name = %s"
         ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
-            query, (filename, frame, uc_table_name), user_groups=user_groups,
+            query,
+            (filename, frame, uc_table_name),
+            user_groups=user_groups,
         )
         if len(results) == 1:
             return {
@@ -544,7 +542,9 @@ class LakebaseUtils:
             "WHERE filename = %s AND frame <= %s AND uc_table_name = %s"
         ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
-            query, (filename, param_frames, uc_table_name), user_groups=user_groups,
+            query,
+            (filename, param_frames, uc_table_name),
+            user_groups=user_groups,
         )
         if len(results) == 1:
             return {"max_frame_idx": results[0][0], "max_start_pos": results[0][1]}
@@ -577,7 +577,15 @@ class LakebaseUtils:
             ).format(table=sql.Identifier(self.schema, table))
             self.execute_query(
                 query,
-                (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name, groups_literal),
+                (
+                    filename,
+                    frame,
+                    start_pos,
+                    end_pos,
+                    pixel_data_pos,
+                    uc_table_name,
+                    groups_literal,
+                ),
             )
         else:
             query = sql.SQL(
@@ -585,7 +593,8 @@ class LakebaseUtils:
                 "VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING"
             ).format(sql.Identifier(self.schema, table))
             self.execute_query(
-                query, (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name),
+                query,
+                (filename, frame, start_pos, end_pos, pixel_data_pos, uc_table_name),
             )
 
     def retrieve_all_frame_ranges(
@@ -618,7 +627,9 @@ class LakebaseUtils:
             "WHERE filename = %s AND uc_table_name = %s ORDER BY frame"
         ).format(sql.Identifier(self.schema, table))
         results = self.execute_and_fetch_query(
-            query, (filename, uc_table_name), user_groups=user_groups,
+            query,
+            (filename, uc_table_name),
+            user_groups=user_groups,
         )
         if not results:
             return None
@@ -764,29 +775,31 @@ class LakebaseUtils:
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
         for row in rows:
-            frame_numbers     = row[7] or []
-            start_positions   = row[8] or []
-            end_positions     = row[9] or []
+            frame_numbers = row[7] or []
+            start_positions = row[8] or []
+            end_positions = row[9] or []
             pixel_data_pos_list = row[10] or []
             frames = [
                 {
-                    "frame_number":   int(frame_numbers[i]),
-                    "start_pos":      int(start_positions[i]),
-                    "end_pos":        int(end_positions[i]),
+                    "frame_number": int(frame_numbers[i]),
+                    "start_pos": int(start_positions[i]),
+                    "end_pos": int(end_positions[i]),
                     "pixel_data_pos": int(pixel_data_pos_list[i]),
                 }
                 for i in range(len(frame_numbers))
             ]
-            results.append({
-                "filename": row[0],
-                "frame_count": int(row[1]),
-                "transfer_syntax_uid": row[2],
-                "last_used_at": row[3],
-                "inserted_at": row[4],
-                "access_count": int(row[5]),
-                "priority_score": float(row[6]),
-                "frames": frames,
-            })
+            results.append(
+                {
+                    "filename": row[0],
+                    "frame_count": int(row[1]),
+                    "transfer_syntax_uid": row[2],
+                    "last_used_at": row[3],
+                    "inserted_at": row[4],
+                    "access_count": int(row[5]),
+                    "priority_score": float(row[6]),
+                    "frames": frames,
+                }
+            )
         return results
 
     def touch_frame_ranges_batch(
@@ -871,7 +884,9 @@ class LakebaseUtils:
         )
         params = tuple(filenames) + (uc_table_name,)
         results = self.execute_and_fetch_query(
-            query, params, user_groups=user_groups,
+            query,
+            params,
+            user_groups=user_groups,
         )
 
         if not results:
@@ -1046,10 +1061,7 @@ class LakebaseUtils:
         )
         if not results:
             return None
-        return {
-            row[0]: {"path": row[1], "num_frames": int(row[2])}
-            for row in results
-        }
+        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in results}
 
     def retrieve_instance_paths_by_local_paths(
         self,
@@ -1087,10 +1099,7 @@ class LakebaseUtils:
         if not rows:
             return {}
 
-        return {
-            row[0]: {"path": row[1], "num_frames": int(row[2])}
-            for row in rows
-        }
+        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in rows}
 
     def retrieve_instance_paths_for_preload(
         self,
@@ -1116,10 +1125,7 @@ class LakebaseUtils:
         if not rows:
             return {}
 
-        return {
-            row[0]: {"path": row[1], "num_frames": int(row[2])}
-            for row in rows
-        }
+        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in rows}
 
     def insert_instance_paths_batch(
         self,
@@ -1200,7 +1206,6 @@ class LakebaseUtils:
             if conn:
                 self.connection.putconn(conn)
 
-
     def insert_metrics(self, source: str, metrics: dict):
         """Insert a metrics snapshot and purge rows older than the retention window."""
         import json as _json
@@ -1210,9 +1215,9 @@ class LakebaseUtils:
             "VALUES (%s, NOW(), %s) "
             "ON CONFLICT (source, recorded_at) DO UPDATE SET metrics = EXCLUDED.metrics"
         ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
-        purge = sql.SQL(
-            "DELETE FROM {} WHERE recorded_at < NOW() - INTERVAL '%s hours'"
-        ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
+        purge = sql.SQL("DELETE FROM {} WHERE recorded_at < NOW() - INTERVAL '%s hours'").format(
+            sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE)
+        )
 
         conn = None
         try:
@@ -1251,8 +1256,7 @@ class LakebaseUtils:
             params = (source, limit)
         else:
             query = sql.SQL(
-                "SELECT source, recorded_at, metrics FROM {} "
-                "ORDER BY recorded_at DESC LIMIT %s"
+                "SELECT source, recorded_at, metrics FROM {} " "ORDER BY recorded_at DESC LIMIT %s"
             ).format(sql.Identifier(self.schema, ENDPOINT_METRICS_TABLE))
             params = (limit,)
 
@@ -1260,11 +1264,15 @@ class LakebaseUtils:
         results = []
         for row in rows:
             m = row[2] if isinstance(row[2], dict) else {}
-            results.append({
-                "source": row[0],
-                "recorded_at": row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1]),
-                "metrics": m,
-            })
+            results.append(
+                {
+                    "source": row[0],
+                    "recorded_at": (
+                        row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
+                    ),
+                    "metrics": m,
+                }
+            )
         return results
 
     # ==================================================================
@@ -1282,9 +1290,9 @@ class LakebaseUtils:
         Returns:
             Sorted list of group names, or an empty list if no mapping exists.
         """
-        query = sql.SQL(
-            "SELECT group_name FROM {} WHERE user_email = %s"
-        ).format(sql.Identifier(self.schema, USER_GROUPS_TABLE))
+        query = sql.SQL("SELECT group_name FROM {} WHERE user_email = %s").format(
+            sql.Identifier(self.schema, USER_GROUPS_TABLE)
+        )
         results = self.execute_and_fetch_query(query, (user_email,))
         return sorted(row[0] for row in results)
 
@@ -1306,7 +1314,7 @@ class LakebaseUtils:
             email = user.user_name
             if not email:
                 continue
-            for g in (user.groups or []):
+            for g in user.groups or []:
                 if g.display:
                     records.append((email, g.display))
 
@@ -1366,11 +1374,10 @@ class LakebaseUtils:
             "description = EXCLUDED.description"
         ).format(sql.Identifier(self.schema, ACCESS_RULES_TABLE))
         self.execute_query(
-            query, (uc_table_name, group_name, access_type, uc_filter_sql, description),
+            query,
+            (uc_table_name, group_name, access_type, uc_filter_sql, description),
         )
-        logger.info(
-            f"Upserted access rule: {group_name} → {uc_table_name} ({access_type})"
-        )
+        logger.info(f"Upserted access rule: {group_name} → {uc_table_name} ({access_type})")
 
     def get_access_rules(self, uc_table_name: str) -> list[dict]:
         """Return all access rules for a given UC table."""
@@ -1483,12 +1490,11 @@ class LakebaseUtils:
                 )
                 try:
                     rows = sql_client.execute(
-                        uc_query, parameters={"pixels_table": uc_table_name},
+                        uc_query,
+                        parameters={"pixels_table": uc_table_name},
                     )
                 except Exception as exc:
-                    logger.error(
-                        f"sync: UC query failed for group '{group}': {exc}"
-                    )
+                    logger.error(f"sync: UC query failed for group '{group}': {exc}")
                     continue
 
                 sop_uids = [str(r[0]) for r in rows if r and r[0]]
@@ -1536,8 +1542,8 @@ class LakebaseUtils:
         Typically called before a full re-sync.
         """
         for tbl in (INSTANCE_PATHS_TABLE, DICOM_FRAMES_TABLE):
-            query = sql.SQL(
-                "UPDATE {} SET allowed_groups = '{}' WHERE uc_table_name = %s"
-            ).format(sql.Identifier(self.schema, tbl))
+            query = sql.SQL("UPDATE {} SET allowed_groups = '{}' WHERE uc_table_name = %s").format(
+                sql.Identifier(self.schema, tbl)
+            )
             self.execute_query(query, (uc_table_name,))
         logger.info(f"Reset allowed_groups for {uc_table_name}")

@@ -17,15 +17,12 @@ from typing import Any, Dict
 
 from .sql_client import validate_table_name
 
-
 # ---------------------------------------------------------------------------
 # Public query builders — each returns (query_str, params_dict)
 # ---------------------------------------------------------------------------
 
 
-def build_study_query(
-    pixels_table: str, params: Dict[str, Any]
-) -> tuple[str, dict[str, Any]]:
+def build_study_query(pixels_table: str, params: Dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """
     Build a QIDO-RS *study-level* search query.
 
@@ -41,9 +38,7 @@ def build_study_query(
     if "PatientName" in params or "00100010" in params:
         name = params.get("PatientName", params.get("00100010", ""))
         name = name.replace("*", "%").replace("?", "_")
-        filters.append(
-            "lower(meta:['00100010'].Value[0]::String) like lower(%(patient_name)s)"
-        )
+        filters.append("lower(meta:['00100010'].Value[0]::String) like lower(%(patient_name)s)")
         sql_params["patient_name"] = name
 
     # Patient ID
@@ -64,9 +59,7 @@ def build_study_query(
     if "StudyDescription" in params or "00081030" in params:
         desc = params.get("StudyDescription", params.get("00081030", ""))
         desc = desc.replace("*", "%").replace("?", "_")
-        filters.append(
-            "lower(meta:['00081030'].Value[0]::String) like lower(%(study_desc)s)"
-        )
+        filters.append("lower(meta:['00081030'].Value[0]::String) like lower(%(study_desc)s)")
         sql_params["study_desc"] = desc
 
     # Study Instance UID

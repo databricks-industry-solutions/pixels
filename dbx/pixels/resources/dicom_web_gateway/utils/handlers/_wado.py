@@ -22,7 +22,7 @@ from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.logging import LoggerProvider
 
 from .. import timing_decorator
-from ..cache import bot_cache, instance_path_cache
+from ..cache import bot_cache
 from ..dicom_io import compute_full_bot, file_prefetcher
 from ..dicom_tags import TRANSFER_SYNTAX_TO_MIME
 from ._common import get_dicomweb_wrapper, lb_utils
@@ -33,6 +33,7 @@ logger = LoggerProvider("DICOMweb.WADO")
 # ---------------------------------------------------------------------------
 # WADO-RS handlers
 # ---------------------------------------------------------------------------
+
 
 @timing_decorator
 def dicomweb_wado_series_metadata(
@@ -61,12 +62,16 @@ def dicomweb_wado_instance(
     """
     wrapper = get_dicomweb_wrapper(request)
     stream, content_length = wrapper.retrieve_instance(
-        study_instance_uid, series_instance_uid, sop_instance_uid,
+        study_instance_uid,
+        series_instance_uid,
+        sop_instance_uid,
     )
     headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
     if content_length:
         headers["Content-Length"] = content_length
-    return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom", headers=headers)
+    return StreamingResponse(
+        iterate_in_threadpool(stream), media_type="application/dicom", headers=headers
+    )
 
 
 @timing_decorator
@@ -98,7 +103,9 @@ def dicomweb_wado_instance_frames(
     try:
         # BOT resolution (cache/compute) happens eagerly — errors surface now
         frame_stream, transfer_syntax_uid = wrapper.retrieve_instance_frames(
-            study_instance_uid, series_instance_uid, sop_instance_uid,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
             frame_numbers,
         )
 
@@ -132,6 +139,7 @@ def dicomweb_wado_instance_frames(
 # ---------------------------------------------------------------------------
 # WADO-URI handler (legacy query-parameter style)
 # ---------------------------------------------------------------------------
+
 
 @timing_decorator
 def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
@@ -236,11 +244,15 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
         logger.info(f"WADO-URI: frame {frame_number} requested")
 
         frame_stream, transfer_syntax_uid = wrapper.retrieve_instance_frames(
-            study_uid, series_uid, object_uid, [frame_number],
+            study_uid,
+            series_uid,
+            object_uid,
+            [frame_number],
         )
 
         mime_type = TRANSFER_SYNTAX_TO_MIME.get(
-            transfer_syntax_uid, "application/octet-stream",
+            transfer_syntax_uid,
+            "application/octet-stream",
         )
         boundary = f"BOUNDARY_{uuid.uuid4()}"
 
@@ -256,27 +268,30 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
 
         return StreamingResponse(
             iterate_in_threadpool(single_frame_generator()),
-            media_type=(
-                f"multipart/related; type={mime_type}; boundary={boundary}"
-            ),
+            media_type=(f"multipart/related; type={mime_type}; boundary={boundary}"),
             headers={"Cache-Control": "private, max-age=3600"},
         )
 
     # ── Full instance retrieval (default) ───────────────────────────
     stream, content_length = wrapper.retrieve_instance(
-        study_uid, series_uid, object_uid,
+        study_uid,
+        series_uid,
+        object_uid,
     )
     headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
     if content_length:
         headers["Content-Length"] = content_length
     return StreamingResponse(
-        iterate_in_threadpool(stream), media_type="application/dicom", headers=headers,
+        iterate_in_threadpool(stream),
+        media_type="application/dicom",
+        headers=headers,
     )
 
 
 # ---------------------------------------------------------------------------
 # Performance comparison: full stream vs progressive
 # ---------------------------------------------------------------------------
+
 
 @timing_decorator
 def dicomweb_perf_compare(
@@ -299,17 +314,13 @@ def dicomweb_perf_compare(
     import json
     import time as _time
 
+    from ..cache import bot_cache
     from ..dicom_io import (
-        _HEADER_EXTENDED_BYTES,
-        _HEADER_INITIAL_BYTES,
-        _PIXEL_DATA_MARKER,
         _fetch_bytes_range,
         _find_pixel_data_pos,
         compute_full_bot,
         get_file_part,
-        stream_file,
     )
-    from ..cache import bot_cache
 
     wrapper = get_dicomweb_wrapper(request)
 
@@ -318,15 +329,16 @@ def dicomweb_perf_compare(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid frame list format")
 
-    logger.info(
-        f"PERF COMPARE: frames={frame_numbers}, instance={sop_instance_uid}"
-    )
+    logger.info(f"PERF COMPARE: frames={frame_numbers}, instance={sop_instance_uid}")
 
     # ── Resolve path (shared) ────────────────────────────────────────
     path = wrapper._resolve_instance_path(
-        study_instance_uid, series_instance_uid, sop_instance_uid,
+        study_instance_uid,
+        series_instance_uid,
+        sop_instance_uid,
     )
     from dbx.pixels.databricks_file import DatabricksFile
+
     db_file = DatabricksFile.from_full_path(path)
     filename = db_file.full_path
     token = wrapper._token
@@ -342,17 +354,17 @@ def dicomweb_perf_compare(
         t_ttfb = None
 
         raw = _fetch_bytes_range(token, db_file)
-        pixel_data_pos = _find_pixel_data_pos(raw)
+        _find_pixel_data_pos(raw)
 
         from io import BytesIO
+
         import pydicom
+
         ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
-        transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)
+        str(ds.file_meta.TransferSyntaxUID)
 
         bot_data = compute_full_bot(token, db_file)
-        frames_by_idx = {
-            f["frame_number"]: f for f in bot_data.get("frames", [])
-        }
+        frames_by_idx = {f["frame_number"]: f for f in bot_data.get("frames", [])}
 
         frame_sizes_a = []
         for fn in frame_numbers:
@@ -389,8 +401,10 @@ def dicomweb_perf_compare(
         t_ttfb = None
 
         frame_stream, tsuid = wrapper.retrieve_instance_frames(
-            study_instance_uid, series_instance_uid,
-            sop_instance_uid, frame_numbers,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
+            frame_numbers,
         )
 
         frame_sizes_b = []
@@ -431,6 +445,7 @@ def dicomweb_perf_compare(
 # ---------------------------------------------------------------------------
 # Frame range resolution handler
 # ---------------------------------------------------------------------------
+
 
 @timing_decorator
 async def dicomweb_resolve_frame_ranges(request: Request) -> Response:
@@ -485,6 +500,7 @@ async def dicomweb_resolve_frame_ranges(request: Request) -> Response:
 # Path resolution handler
 # ---------------------------------------------------------------------------
 
+
 @timing_decorator
 async def dicomweb_resolve_paths(request: Request) -> Response:
     """POST /api/dicomweb/resolve_paths — resolve file paths for a series.
@@ -529,6 +545,7 @@ async def dicomweb_resolve_paths(request: Request) -> Response:
 # Series priming — prefetch + BOT computation for all instances
 # ---------------------------------------------------------------------------
 
+
 def _compute_and_cache_bot(
     token: str,
     local_path: str,
@@ -565,7 +582,9 @@ def _compute_and_cache_bot(
         if lb_utils and frames:
             try:
                 lb_utils.insert_frame_ranges(
-                    filename, frames, uc_table,
+                    filename,
+                    frames,
+                    uc_table,
                     transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                     allowed_groups=user_groups,
                 )
@@ -646,9 +665,7 @@ async def dicomweb_prime_series(request: Request) -> Response:
     user_groups = wrapper._user_groups
 
     # ── Step 1: Resolve all instance paths ────────────────────────────
-    logger.info(
-        f"Prime: resolving paths for study={study_uid}, series={series_uid}"
-    )
+    logger.info(f"Prime: resolving paths for study={study_uid}, series={series_uid}")
     paths = wrapper.resolve_instance_paths(study_uid, series_uid)
     logger.info(f"Prime: resolved {len(paths)} instance paths")
 
@@ -666,7 +683,11 @@ async def dicomweb_prime_series(request: Request) -> Response:
             futures = {
                 pool.submit(
                     _compute_and_cache_bot,
-                    token, local_path, sop_uid, uc_table, user_groups,
+                    token,
+                    local_path,
+                    sop_uid,
+                    uc_table,
+                    user_groups,
                 ): sop_uid
                 for sop_uid, local_path in paths.items()
             }

@@ -98,8 +98,7 @@ class TokenMiddleware:
             request = Request(scope, receive)
             pixels_table = get_pixels_table(request)
             new_body = (
-                self._config_template
-                .replace(b"{ROUTER_BASENAME}", b"/ohif/")
+                self._config_template.replace(b"{ROUTER_BASENAME}", b"/ohif/")
                 .replace(b"{PIXELS_TABLE}", pixels_table.encode())
                 .replace(b"{HOST_NAME}", b"/sqlwarehouse")
                 .replace(b"{DEFAULT_DATA_SOURCE}", self.default_data_source.encode())
@@ -110,9 +109,9 @@ class TokenMiddleware:
 
         if path.endswith("local"):
             body = await _read_static_file_async(f"{ohif_path}/index.html")
-            await Response(
-                content=body.replace(b"./", b"/ohif/"), media_type="text/html"
-            )(scope, receive, send)
+            await Response(content=body.replace(b"./", b"/ohif/"), media_type="text/html")(
+                scope, receive, send
+            )
             return
 
         if False and path.startswith("/ohif/app.bundle.") and path.endswith(".js"):
@@ -178,4 +177,3 @@ class DBStaticFiles(StaticFiles):
             if ex.status_code == 404:
                 return await super().get_response("index.html", scope)
             raise
-

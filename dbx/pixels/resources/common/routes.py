@@ -23,33 +23,26 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-from starlette.responses import (
-    HTMLResponse,
-    JSONResponse,
-    RedirectResponse,
-    Response,
-)
+from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from dbx.pixels.prompt import get_prompt
-from dbx.pixels.utils import call_llm_serving_endpoint
-
 from dbx.pixels.resources.common.config import (
     MONAI_DATALOADERS,
     MONAI_DATASETS,
     MONAI_TRACKING,
     cfg,
+    get_monai_endpoint,
     get_pixels_table,
     get_seg_dest_dir,
-    get_monai_endpoint,
     get_warehouse_id,
     log,
+    ohif_path,
     pixels_pkg_path,
 )
 from dbx.pixels.resources.common.middleware import DBStaticFiles
 from dbx.pixels.resources.common.pages import config_page
 from dbx.pixels.resources.common.redaction_utils import insert_redaction_job
-from dbx.pixels.resources.common.config import ohif_path
-
+from dbx.pixels.utils import call_llm_serving_endpoint
 
 # ---------------------------------------------------------------------------
 # Segmentation inference cache (MONAI)
@@ -61,6 +54,7 @@ _cache_segmentations_lock = asyncio.Lock()
 # ═══════════════════════════════════════════════════════════════════════════
 # 1. OHIF VIEWER ROUTES — config page, cookies, redirects, static mounts
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def register_ohif_routes(app: FastAPI):
     """Config page, cookie setter, OHIF / microscopy viewer static mounts."""
@@ -113,9 +107,7 @@ def register_ohif_routes(app: FastAPI):
     )
     app.mount(
         "/dicom-microscopy-viewer/",
-        DBStaticFiles(
-            directory=f"{ohif_path}/dicom-microscopy-viewer", html=True
-        ),
+        DBStaticFiles(directory=f"{ohif_path}/dicom-microscopy-viewer", html=True),
         name="dicom-microscopy-viewer",
     )
 
@@ -123,6 +115,7 @@ def register_ohif_routes(app: FastAPI):
 # ═══════════════════════════════════════════════════════════════════════════
 # 2. MONAI MODEL-SERVING PROXY
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def register_monai_routes(app: FastAPI):
     """MONAI info / infer / active-learning / train proxy routes."""
@@ -134,10 +127,7 @@ def register_monai_routes(app: FastAPI):
 
         url = httpx.URL(path=request.url.path.replace("/api/monai/", "/"))
 
-        if (
-            request.cookies.get("is_local")
-            and request.cookies.get("is_local").lower() == "true"
-        ):
+        if request.cookies.get("is_local") and request.cookies.get("is_local").lower() == "true":
             return JSONResponse(
                 status_code=501,
                 content={"message": "Local files are not supported yet"},
@@ -153,9 +143,7 @@ def register_monai_routes(app: FastAPI):
             )
             if '"background",' in resp.predictions:
                 resp.predictions = resp.predictions.replace('"background",', "")
-            return Response(
-                content=resp.predictions, media_type="application/json"
-            )
+            return Response(content=resp.predictions, media_type="application/json")
         except Exception as e:
             log(e, request, "error")
             return Response(
@@ -186,9 +174,7 @@ def register_monai_routes(app: FastAPI):
         # inference parameters so that label / model / config changes
         # invalidate stale cached results.
         image_key = q_params["image"]
-        params_hash = hashlib.sha256(
-            json.dumps(to_send, sort_keys=True).encode()
-        ).hexdigest()[:16]
+        params_hash = hashlib.sha256(json.dumps(to_send, sort_keys=True).encode()).hexdigest()[:16]
         cache_key = f"{image_key}:{params_hash}"
 
         try:
@@ -211,9 +197,7 @@ def register_monai_routes(app: FastAPI):
                     file_res = await run_in_threadpool(
                         lambda: get_deploy_client("databricks").predict(
                             endpoint=serving_endpoint,
-                            inputs={
-                                "inputs": {"input": {"infer": to_send}}
-                            },
+                            inputs={"inputs": {"input": {"infer": to_send}}},
                         )
                     )
                     res_json = json.loads(file_res.predictions)
@@ -254,9 +238,7 @@ def register_monai_routes(app: FastAPI):
                 )
             )
             return Response(
-                content=base64.b64decode(
-                    json.loads(file_content.predictions)["file_content"]
-                ),
+                content=base64.b64decode(json.loads(file_content.predictions)["file_content"]),
                 media_type="application/octet-stream",
             )
         except Exception as e:
@@ -283,9 +265,7 @@ def register_monai_routes(app: FastAPI):
                 endpoint=serving_endpoint,
                 inputs={"inputs": {"input": to_send}},
             )
-            return Response(
-                content=res_json.predictions, media_type="application/json"
-            )
+            return Response(content=res_json.predictions, media_type="application/json")
         except Exception as e:
             log(e, request, "error")
             return Response(
@@ -328,9 +308,7 @@ def register_monai_routes(app: FastAPI):
                     inputs={"inputs": {"input": {"train": to_send}}},
                 )
             )
-            return Response(
-                content=res_json.predictions, media_type="application/json"
-            )
+            return Response(content=res_json.predictions, media_type="application/json")
         except Exception as e:
             log(e, request, "error")
             return Response(
@@ -340,9 +318,7 @@ def register_monai_routes(app: FastAPI):
             )
 
     # Wire routes
-    app.add_route(
-        "/api/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"]
-    )
+    app.add_route("/api/monai/{path:path}", _reverse_proxy_monai, ["GET", "PUT"])
     app.add_route(
         "/api/monai/infer/{path:path}",
         _reverse_proxy_monai_infer_post,
@@ -363,6 +339,7 @@ def register_monai_routes(app: FastAPI):
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. REDACTION API
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def register_redaction_routes(app: FastAPI):
     """Redaction job insertion, metadata shortcuts, AI redaction."""
@@ -392,7 +369,7 @@ def register_redaction_routes(app: FastAPI):
                 raise HTTPException(
                     status_code=401,
                     detail="User authorization (OBO) is enabled but no "
-                           "X-Forwarded-Access-Token header was found",
+                    "X-Forwarded-Access-Token header was found",
                 )
             # App-auth mode — fall back to service-principal SDK credentials.
             try:
@@ -491,17 +468,11 @@ def register_redaction_routes(app: FastAPI):
                 cleaned = result
 
             if "```" in cleaned:
-                matches = re.findall(
-                    r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned
-                )
+                matches = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", cleaned)
                 if matches:
                     cleaned = matches[0].strip()
                 else:
-                    cleaned = (
-                        cleaned.replace("```json", "")
-                        .replace("```", "")
-                        .strip()
-                    )
+                    cleaned = cleaned.replace("```json", "").replace("```", "").strip()
 
             log(f"Cleaned AI response: {cleaned}", request, "debug")
 
@@ -514,23 +485,18 @@ def register_redaction_routes(app: FastAPI):
                             "tags": content["tags"],
                         }
                     )
-                return JSONResponse(
-                    content={"error": "No tags returned from model"}
-                )
-            return JSONResponse(
-                content={"error": "No content returned from model"}
-            )
+                return JSONResponse(content={"error": "No tags returned from model"})
+            return JSONResponse(content={"error": "No content returned from model"})
 
         except Exception as e:
             log(f"Error doing AI redaction: {e}", request, "error")
-            raise HTTPException(
-                status_code=500, detail=f"Failed to do AI redaction: {e}"
-            )
+            raise HTTPException(status_code=500, detail=f"Failed to do AI redaction: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 4. VLM ANALYSIS
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def register_vlm_routes(app: FastAPI):
     """Vision Language Model analysis endpoint."""
@@ -551,11 +517,7 @@ def register_vlm_routes(app: FastAPI):
         user_prompt = {
             "type": "text",
             "text": (
-                "<USER_PROMPT>"
-                + prompt
-                + "</USER_PROMPT>\n<METADATA>"
-                + metadata
-                + "</METADATA>"
+                "<USER_PROMPT>" + prompt + "</USER_PROMPT>\n<METADATA>" + metadata + "</METADATA>"
             ),
         }
 
@@ -570,14 +532,13 @@ def register_vlm_routes(app: FastAPI):
             )
         )
 
-        return JSONResponse(
-            content=analysis_result["choices"][0]["message"]["content"]
-        )
+        return JSONResponse(content=analysis_result["choices"][0]["message"]["content"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # MASTER REGISTRATION
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def register_all_common_routes(app: FastAPI):
     """

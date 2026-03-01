@@ -10,22 +10,22 @@ _stow     — STOW-RS (instance storage with early return + caching)
 """
 
 from ._qido import (
-    dicomweb_qido_studies,
-    dicomweb_qido_series,
     dicomweb_qido_all_series,
     dicomweb_qido_instances,
-)
-from ._wado import (
-    dicomweb_wado_series_metadata,
-    dicomweb_wado_instance,
-    dicomweb_wado_instance_frames,
-    dicomweb_wado_uri,
-    dicomweb_resolve_paths,
-    dicomweb_resolve_frame_ranges,
-    dicomweb_perf_compare,
-    dicomweb_prime_series,
+    dicomweb_qido_series,
+    dicomweb_qido_studies,
 )
 from ._stow import dicomweb_stow_studies
+from ._wado import (
+    dicomweb_perf_compare,
+    dicomweb_prime_series,
+    dicomweb_resolve_frame_ranges,
+    dicomweb_resolve_paths,
+    dicomweb_wado_instance,
+    dicomweb_wado_instance_frames,
+    dicomweb_wado_series_metadata,
+    dicomweb_wado_uri,
+)
 
 __all__ = [
     # QIDO-RS

@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import threading
-import time
 from datetime import datetime, timedelta
 
 import psycopg2
@@ -186,11 +185,13 @@ class MetricsStore:
 
         results = []
         for src, ts, m in rows:
-            results.append({
-                "source": src,
-                "recorded_at": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
-                "metrics": m if isinstance(m, dict) else {},
-            })
+            results.append(
+                {
+                    "source": src,
+                    "recorded_at": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
+                    "metrics": m if isinstance(m, dict) else {},
+                }
+            )
 
         if max_points and len(results) > max_points:
             step = len(results) / max_points

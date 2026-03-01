@@ -18,10 +18,14 @@ from starlette.background import BackgroundTask
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
+from utils.partial_frames import (
+    get_file_metadata,
+    get_file_part,
+    pixel_frames_from_dcm_metadata_file,
+)
 
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
-
 from dbx.pixels.resources.common.config import (
     cfg,
     get_pixels_table,
@@ -31,12 +35,6 @@ from dbx.pixels.resources.common.config import (
 )
 from dbx.pixels.resources.common.middleware import LoggingMiddleware, TokenMiddleware
 from dbx.pixels.resources.common.routes import register_all_common_routes
-
-from utils.partial_frames import (
-    get_file_metadata,
-    get_file_part,
-    pixel_frames_from_dcm_metadata_file,
-)
 
 # ---------------------------------------------------------------------------
 # Lakebase (tier-2 frame cache) — optional
@@ -63,6 +61,7 @@ app = FastAPI(title="Pixels")
 # SQL WAREHOUSE REVERSE-PROXY (lakehouse-app-specific)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 async def _reverse_proxy_statements(request: Request):
     client = httpx.AsyncClient(base_url=cfg.host, timeout=httpx.Timeout(30))
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
@@ -71,9 +70,7 @@ async def _reverse_proxy_statements(request: Request):
         body["warehouse_id"] = os.environ["DATABRICKS_WAREHOUSE_ID"]
 
         dest_dir = get_seg_dest_dir(request)
-        body["statement"] = re.sub(
-            r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body["statement"]
-        )
+        body["statement"] = re.sub(r"Volumes/.*?/ohif/exports/", f"{dest_dir}/", body["statement"])
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
     else:
         body = {}
@@ -100,29 +97,21 @@ async def _reverse_proxy_statements(request: Request):
 async def _reverse_proxy_files_metadata(request: Request):
     """Reverse proxy endpoint for files metadata GET requests."""
     url = httpx.URL(path=request.url.path.replace("/sqlwarehouse/", ""))
-    db_file = DatabricksFile.from_full_path(
-        url.path.replace("api/2.0/fs/files_metadata", "")
-    )
+    db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files_metadata", ""))
     metadata = await run_in_threadpool(
-        lambda: get_file_metadata(
-            request.headers.get("X-Forwarded-Access-Token"), db_file
-        )
+        lambda: get_file_metadata(request.headers.get("X-Forwarded-Access-Token"), db_file)
     )
     return Response(content=json.dumps(metadata), media_type="application/json")
 
 
 async def _reverse_proxy_files_multiframe(request: Request):
     url = httpx.URL(
-        path=request.url.path.replace("/sqlwarehouse/", "").replace(
-            "/files_wsi/", "/files/"
-        )
+        path=request.url.path.replace("/sqlwarehouse/", "").replace("/files_wsi/", "/files/")
     )
     str_url = str(url)
 
     try:
-        db_file = DatabricksFile.from_full_path(
-            url.path.replace("api/2.0/fs/files", "")
-        )
+        db_file = DatabricksFile.from_full_path(url.path.replace("api/2.0/fs/files", ""))
     except ValueError as e:
         log(f"Invalid file path: {e}", request, "error")
         raise HTTPException(status_code=400, detail=f"Invalid file path: {e}")
@@ -204,9 +193,7 @@ async def _reverse_proxy_files(request: Request):
 
     if request.method == "PUT":
         dest_dir = get_seg_dest_dir(request)
-        url = httpx.URL(
-            path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path)
-        )
+        url = httpx.URL(path=re.sub(r"/Volumes/.*?/ohif/exports/", f"{dest_dir}/", url.path))
         log(f"Overriding dest dir to {dest_dir}", request, "debug")
 
     rp_req = client.build_request(
@@ -231,19 +218,23 @@ async def _reverse_proxy_files(request: Request):
 # ── Wire proxy routes ─────────────────────────────────────────────────
 app.add_route(
     "/sqlwarehouse/api/2.0/sql/statements/{path:path}",
-    _reverse_proxy_statements, ["POST", "GET"],
+    _reverse_proxy_statements,
+    ["POST", "GET"],
 )
 app.add_route(
     "/sqlwarehouse/api/2.0/fs/files/{path:path}",
-    _reverse_proxy_files_multiframe, ["GET", "PUT"],
+    _reverse_proxy_files_multiframe,
+    ["GET", "PUT"],
 )
 app.add_route(
     "/sqlwarehouse/api/2.0/fs/files_wsi/{path:path}",
-    _reverse_proxy_files_multiframe, ["GET"],
+    _reverse_proxy_files_multiframe,
+    ["GET"],
 )
 app.add_route(
     "/sqlwarehouse/api/2.0/fs/files_metadata/{path:path}",
-    _reverse_proxy_files_metadata, ["GET"],
+    _reverse_proxy_files_metadata,
+    ["GET"],
 )
 
 # ── Middleware (order matters: first added = outermost) ────────────────

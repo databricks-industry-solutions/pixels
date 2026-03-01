@@ -58,9 +58,7 @@ from ._common import (
 logger = LoggerProvider("DICOMweb.STOW")
 
 # Default 500 MB — uploads larger than this use the legacy Spark split path
-_STOW_STREAMING_MAX_BYTES = int(
-    os.getenv("STOW_STREAMING_MAX_BYTES", str(500 * 1024 * 1024))
-)
+_STOW_STREAMING_MAX_BYTES = int(os.getenv("STOW_STREAMING_MAX_BYTES", str(500 * 1024 * 1024)))
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +127,8 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 _stow_table: str | None = None
-_stow_catalog_table: str | None = None     # e.g. "main.pixels_solacc.object_catalog"
-_stow_volume_uc: str | None = None         # e.g. "main.pixels_solacc.pixels_volume"
+_stow_catalog_table: str | None = None  # e.g. "main.pixels_solacc.object_catalog"
+_stow_volume_uc: str | None = None  # e.g. "main.pixels_solacc.pixels_volume"
 
 _pixels_table_env = os.getenv("DATABRICKS_PIXELS_TABLE", "")
 if _pixels_table_env:
@@ -170,7 +168,7 @@ class _StowRecordBuffer:
 
     def __init__(
         self,
-        write_fn,          # callable(sql_client, token, records) → None
+        write_fn,  # callable(sql_client, token, records) → None
         max_batch: int = 100,
         flush_interval_s: float = 2.0,
     ):
@@ -254,6 +252,7 @@ _stow_record_buffer = _StowRecordBuffer(
 # Tracking table INSERT helpers
 # ---------------------------------------------------------------------------
 
+
 def _write_stow_records(
     sql_client: DatabricksSQLClient,
     token: str | None,
@@ -265,7 +264,8 @@ def _write_stow_records(
     try:
         query, params = build_stow_insert_query(_stow_table, records)
         sql_client.execute(
-            query, parameters=params,
+            query,
+            parameters=params,
             user_token=token if USE_USER_AUTH else None,
         )
         logger.info(f"STOW tracking: inserted {len(records)} record(s)")
@@ -284,7 +284,8 @@ def _write_stow_records_completed(
     try:
         query, params = build_stow_insert_completed_query(_stow_table, records)
         sql_client.execute(
-            query, parameters=params,
+            query,
+            parameters=params,
             user_token=token if USE_USER_AUTH else None,
         )
         logger.info(f"STOW tracking: inserted {len(records)} completed record(s)")
@@ -335,8 +336,7 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
                 logger.warning(f"STOW-RS: no job found with name '{job_name}'")
         else:
             logger.warning(
-                f"STOW-RS: job list lookup failed (HTTP {resp.status_code}): "
-                f"{resp.text[:200]}"
+                f"STOW-RS: job list lookup failed (HTTP {resp.status_code}): " f"{resp.text[:200]}"
             )
     except Exception as exc:
         logger.warning(f"STOW-RS: job name resolution failed: {exc}")
@@ -349,7 +349,7 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
 # Fire Spark job (non-blocking)
 # ---------------------------------------------------------------------------
 
-_STOW_TABLE_POLL_INTERVAL = 30     # seconds between stow_operations polls
+_STOW_TABLE_POLL_INTERVAL = 30  # seconds between stow_operations polls
 _STOW_TABLE_POLL_TIMEOUT = 5 * 60  # max wait for Phase 1
 
 
@@ -469,6 +469,7 @@ def _fire_stow_job(token: str) -> dict:
 # Poll stow_operations table for Phase 1 completion (legacy path only)
 # ---------------------------------------------------------------------------
 
+
 def _poll_stow_status(
     sql_client: DatabricksSQLClient,
     token: str | None,
@@ -481,7 +482,11 @@ def _poll_stow_status(
     this entirely because the split is done in-process.
     """
     if not _stow_table:
-        return {"status": "skipped", "output_paths": [], "error_message": "stow_table not configured"}
+        return {
+            "status": "skipped",
+            "output_paths": [],
+            "error_message": "stow_table not configured",
+        }
 
     query, params = build_stow_poll_query(_stow_table, file_id)
     start = time.monotonic()
@@ -491,7 +496,8 @@ def _poll_stow_status(
 
         try:
             rows = sql_client.execute(
-                query, parameters=params,
+                query,
+                parameters=params,
                 user_token=token if USE_USER_AUTH else None,
             )
         except Exception as exc:
@@ -508,9 +514,7 @@ def _poll_stow_status(
 
         if status == "pending":
             elapsed = int(time.monotonic() - start)
-            logger.debug(
-                f"STOW-RS: file_id={file_id} still pending ({elapsed}s elapsed)"
-            )
+            logger.debug(f"STOW-RS: file_id={file_id} still pending ({elapsed}s elapsed)")
             continue
 
         elapsed = round(time.monotonic() - start, 1)
@@ -538,6 +542,7 @@ def _poll_stow_status(
 # ---------------------------------------------------------------------------
 # Cache DICOM paths in instance_path_cache (Tier 1) + Lakebase (Tier 2)
 # ---------------------------------------------------------------------------
+
 
 def _read_dicom_uids(token: str, path: str) -> dict | None:
     """
@@ -604,10 +609,7 @@ def _cache_stow_paths(
     max_workers = min(8, len(output_paths))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {
-            pool.submit(_read_dicom_uids, token, p): p
-            for p in output_paths
-        }
+        futures = {pool.submit(_read_dicom_uids, token, p): p for p in output_paths}
         results = []
         for future in concurrent.futures.as_completed(futures):
             info = future.result()
@@ -637,13 +639,15 @@ def _cache_streaming_results(
     for r in part_results:
         if r["status"] != "SUCCESS" or not r.get("sop_uid"):
             continue
-        entries.append({
-            "sop_uid": r["sop_uid"],
-            "study_uid": r.get("study_uid", ""),
-            "series_uid": r.get("series_uid", ""),
-            "num_frames": r.get("num_frames", 1),
-            "path": r["output_path"],
-        })
+        entries.append(
+            {
+                "sop_uid": r["sop_uid"],
+                "study_uid": r.get("study_uid", ""),
+                "series_uid": r.get("series_uid", ""),
+                "num_frames": r.get("num_frames", 1),
+                "path": r["output_path"],
+            }
+        )
 
     if not entries:
         return []
@@ -662,7 +666,8 @@ def _populate_cache(
     # ── Tier 1: in-memory cache ───────────────────────────────────────
     for r in entries:
         instance_path_cache.put(
-            r["sop_uid"], uc_table,
+            r["sop_uid"],
+            uc_table,
             {"path": r["path"], "num_frames": r["num_frames"]},
             user_groups=user_groups,
         )
@@ -684,7 +689,8 @@ def _populate_cache(
                 for r in entries
             ]
             lb_utils.insert_instance_paths_batch(
-                lb_entries, allowed_groups=user_groups,
+                lb_entries,
+                allowed_groups=user_groups,
             )
             logger.info(
                 f"STOW-RS cache: Tier 2 (Lakebase) — persisted {len(lb_entries)} instance path(s)"
@@ -696,6 +702,7 @@ def _populate_cache(
 # ---------------------------------------------------------------------------
 # Main STOW-RS handler (dual-path)
 # ---------------------------------------------------------------------------
+
 
 async def dicomweb_stow_studies(
     request: Request,
@@ -723,10 +730,7 @@ async def dicomweb_stow_studies(
     if "multipart/related" not in content_type.lower():
         raise HTTPException(
             status_code=400,
-            detail=(
-                "STOW-RS requires Content-Type: multipart/related; "
-                f"got '{content_type}'"
-            ),
+            detail=("STOW-RS requires Content-Type: multipart/related; " f"got '{content_type}'"),
         )
 
     # ── Landing-zone configuration ─────────────────────────────────────
@@ -739,9 +743,7 @@ async def dicomweb_stow_studies(
         )
 
     # ── Auth token ─────────────────────────────────────────────────────
-    token = (
-        resolve_user_token(request) if USE_USER_AUTH else app_token_provider()
-    )
+    token = resolve_user_token(request) if USE_USER_AUTH else app_token_provider()
 
     # ── Choose streaming vs legacy path ────────────────────────────────
     content_length_str = request.headers.get("content-length", "")
@@ -760,12 +762,15 @@ async def dicomweb_stow_studies(
     if use_streaming:
         return await _handle_streaming(request, stow_base, token, content_type, study_instance_uid)
     else:
-        return await _handle_legacy_spark(request, stow_base, token, content_type, study_instance_uid)
+        return await _handle_legacy_spark(
+            request, stow_base, token, content_type, study_instance_uid
+        )
 
 
 # ---------------------------------------------------------------------------
 # Streaming path — in-process split, no Spark Phase 1
 # ---------------------------------------------------------------------------
+
 
 async def _handle_streaming(
     request: Request,
@@ -789,12 +794,14 @@ async def _handle_streaming(
     # ── Stream-and-split to Volumes ────────────────────────────────────
     try:
         part_results = await async_stream_split_to_volumes(
-            token, stow_base, request.stream(), content_type,
+            token,
+            stow_base,
+            request.stream(),
+            content_type,
         )
     except Exception as exc:
         logger.error(
-            f"STOW-RS [streaming]: split failed for {file_id}: "
-            f"{type(exc).__name__}: {exc!r}"
+            f"STOW-RS [streaming]: split failed for {file_id}: " f"{type(exc).__name__}: {exc!r}"
         )
         raise HTTPException(
             status_code=500,
@@ -853,7 +860,10 @@ async def _handle_streaming(
         user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
         cached_entries = await asyncio.to_thread(
             _cache_streaming_results,
-            part_results, study_instance_uid, uc_table, user_groups,
+            part_results,
+            study_instance_uid,
+            uc_table,
+            user_groups,
         )
 
     # ── Build receipt ──────────────────────────────────────────────────
@@ -899,6 +909,7 @@ async def _handle_streaming(
 # Legacy Spark path — stream to .mpr, trigger Spark split + metadata
 # ---------------------------------------------------------------------------
 
+
 async def _handle_legacy_spark(
     request: Request,
     stow_base: str,
@@ -921,10 +932,13 @@ async def _handle_legacy_spark(
     )
 
     import time as _time
+
     _t0 = _time.perf_counter()
     try:
         file_size = await async_stream_to_volumes(
-            token, dest_path, request.stream(),
+            token,
+            dest_path,
+            request.stream(),
         )
     except Exception as exc:
         logger.error(
@@ -995,8 +1009,7 @@ async def _handle_legacy_spark(
     }
 
     logger.info(
-        f"STOW-RS [legacy] accepted: {file_id} ({file_size} bytes), "
-        f"job will run in background"
+        f"STOW-RS [legacy] accepted: {file_id} ({file_size} bytes), " f"job will run in background"
     )
     return Response(
         content=json.dumps(receipt, indent=2),

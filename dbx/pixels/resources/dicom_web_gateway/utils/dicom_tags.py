@@ -92,6 +92,7 @@ def get_vr_for_tag(tag_id: str) -> str:
 # Value formatting
 # -------------------------------------------------------------------------
 
+
 def format_value(value: Any, vr: str) -> Any:
     """
     Format a raw database value according to its VR type.
@@ -134,9 +135,8 @@ def format_value(value: Any, vr: str) -> Any:
 # DICOMweb JSON response builder
 # -------------------------------------------------------------------------
 
-def format_dicomweb_response(
-    results: List[List[Any]], columns: List[str]
-) -> List[Dict]:
+
+def format_dicomweb_response(results: List[List[Any]], columns: List[str]) -> List[Dict]:
     """
     Convert SQL rows + column names into a DICOMweb-compliant JSON array.
 
@@ -171,13 +171,12 @@ def format_dicomweb_response(
 # -------------------------------------------------------------------------
 
 TRANSFER_SYNTAX_TO_MIME: Dict[str, str] = {
-    "1.2.840.10008.1.2.4.80": "image/jls",   # JPEG-LS Lossless
-    "1.2.840.10008.1.2.4.81": "image/jls",   # JPEG-LS Lossy
-    "1.2.840.10008.1.2.4.90": "image/jp2",   # JPEG 2000 Lossless
-    "1.2.840.10008.1.2.4.91": "image/jp2",   # JPEG 2000
+    "1.2.840.10008.1.2.4.80": "image/jls",  # JPEG-LS Lossless
+    "1.2.840.10008.1.2.4.81": "image/jls",  # JPEG-LS Lossy
+    "1.2.840.10008.1.2.4.90": "image/jp2",  # JPEG 2000 Lossless
+    "1.2.840.10008.1.2.4.91": "image/jp2",  # JPEG 2000
     "1.2.840.10008.1.2.4.50": "image/jpeg",  # JPEG Baseline
     "1.2.840.10008.1.2.4.51": "image/jpeg",  # JPEG Extended
     "1.2.840.10008.1.2.4.57": "image/jpeg",  # JPEG Lossless NH
     "1.2.840.10008.1.2.4.70": "image/jpeg",  # JPEG Lossless
 }
-

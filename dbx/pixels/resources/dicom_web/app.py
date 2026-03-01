@@ -14,17 +14,13 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 
-from dbx.pixels.resources.common.middleware import (
-    LoggingMiddleware,
-    TokenMiddleware,
-)
-from dbx.pixels.resources.common.routes import register_all_common_routes
 import dbx.pixels.version as dbx_pixels_version
+from dbx.pixels.resources.common.middleware import LoggingMiddleware, TokenMiddleware
+from dbx.pixels.resources.common.routes import register_all_common_routes
 
 logger = logging.getLogger("DICOMweb.Viewer")
 
@@ -32,21 +28,30 @@ GATEWAY_URL = os.getenv("DICOMWEB_GATEWAY_URL", "").rstrip("/")
 
 _http_client: httpx.AsyncClient | None = None
 _proxy_in_flight = 0
-_PROXY_DIAG_HEADERS = os.getenv(
-    "DICOMWEB_PROXY_DIAG_HEADERS", "false"
-).strip().lower() in ("1", "true", "yes")
-_PROXY_DIAG_LOG_WARNING = os.getenv(
-    "DICOMWEB_PROXY_DIAG_LOG_WARNING", "false"
-).strip().lower() in ("1", "true", "yes")
+_PROXY_DIAG_HEADERS = os.getenv("DICOMWEB_PROXY_DIAG_HEADERS", "false").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+_PROXY_DIAG_LOG_WARNING = os.getenv("DICOMWEB_PROXY_DIAG_LOG_WARNING", "false").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
-_SKIP_PROXY_HEADERS = frozenset({
-    "host", "content-length", "transfer-encoding",
-})
+_SKIP_PROXY_HEADERS = frozenset(
+    {
+        "host",
+        "content-length",
+        "transfer-encoding",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
 # Reverse proxy — forwards DICOMweb requests to the gateway
 # ---------------------------------------------------------------------------
+
 
 async def _proxy_to_gateway(request: Request) -> Response:
     """Reverse-proxy a request to the DICOMweb gateway, streaming the
@@ -63,8 +68,7 @@ async def _proxy_to_gateway(request: Request) -> Response:
         target_url += f"?{request.query_params}"
 
     forward_headers = {
-        k: v for k, v in request.headers.items()
-        if k.lower() not in _SKIP_PROXY_HEADERS
+        k: v for k, v in request.headers.items() if k.lower() not in _SKIP_PROXY_HEADERS
     }
 
     if request.headers.get("x-forwarded-access-token"):
@@ -75,13 +79,11 @@ async def _proxy_to_gateway(request: Request) -> Response:
         forward_headers["authorization"] = f"Bearer {user_token}"
         forward_headers["x-forwarded-access-token"] = user_token
         forward_headers["X-Forwarded-Email"] = request.headers.get("X-Forwarded-Email", "unknown")
-    forward_headers["user-agent"] = f"DatabricksPixels/{dbx_pixels_version.__version__}/dicomweb_client"
-
-    body = (
-        await request.body()
-        if request.method in ("POST", "PUT", "PATCH")
-        else None
+    forward_headers["user-agent"] = (
+        f"DatabricksPixels/{dbx_pixels_version.__version__}/dicomweb_client"
     )
+
+    body = await request.body() if request.method in ("POST", "PUT", "PATCH") else None
     req_id = f"vp-{time.time_ns():x}"
     t0 = time.perf_counter()
     _proxy_in_flight += 1
@@ -98,10 +100,7 @@ async def _proxy_to_gateway(request: Request) -> Response:
         upstream_ttfb_ms = (time.perf_counter() - t0) * 1000.0
 
         skip = {"transfer-encoding", "connection"}
-        resp_headers = {
-            k: v for k, v in resp.headers.items()
-            if k.lower() not in skip
-        }
+        resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in skip}
         if _PROXY_DIAG_HEADERS:
             resp_headers["x-vp-request-id"] = req_id
             resp_headers["x-vp-upstream-ttfb-ms"] = f"{upstream_ttfb_ms:.1f}"
@@ -178,6 +177,7 @@ def register_dicomweb_proxy(app: FastAPI):
 # App definition
 # ------------------------------------------------------------------
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _http_client
@@ -216,9 +216,12 @@ register_all_common_routes(app)
 
 # ── Middleware (order matters: first added = outermost) ────────────
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-app.add_middleware(TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb")
+app.add_middleware(
+    TokenMiddleware, default_data_source="pixelsdicomweb", dicomweb_root="/api/dicomweb"
+)
 app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)

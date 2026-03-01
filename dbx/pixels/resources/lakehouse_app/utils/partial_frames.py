@@ -29,6 +29,7 @@ logger = LoggerProvider("PartialFramesUtils")
 # Byte-range file access
 # ---------------------------------------------------------------------------
 
+
 def get_file_part(token: str, db_file: DatabricksFile, frame=None):
     """
     Retrieve a specific byte range (optionally a frame) from a file in Databricks Volumes.
@@ -73,6 +74,7 @@ def get_file_metadata(token: str, db_file: DatabricksFile):
 # Frame extraction helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_from_basic_offsets(f, pixel_data_pos, endianness):
     """Parse the DICOM Basic Offset Table and return per-frame byte ranges."""
     frames = []
@@ -90,19 +92,23 @@ def _extract_from_basic_offsets(f, pixel_data_pos, endianness):
     for idx in range(len(basic_offsets) - 1):
         frame_size = basic_offsets[idx + 1] - basic_offsets[idx]
         end_pos = start_pos + frame_size
-        frames.append({
-            "frame_number": idx,
-            "frame_size": frame_size,
-            "start_pos": start_pos,
-            "end_pos": end_pos,
-            "pixel_data_pos": pixel_data_pos,
-        })
+        frames.append(
+            {
+                "frame_number": idx,
+                "frame_size": frame_size,
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "pixel_data_pos": pixel_data_pos,
+            }
+        )
         start_pos = end_pos
 
     return frames
 
 
-def _legacy_extract_frames(f, number_of_frames, pixel_data_pos, frame_limit, start_pos, frame_index):
+def _legacy_extract_frames(
+    f, number_of_frames, pixel_data_pos, frame_limit, start_pos, frame_index
+):
     """Fallback frame extraction by scanning for Item delimiters sequentially."""
     frame_delimiter = b"\xfe\xff\x00\xe0"
     frames = []
@@ -115,20 +121,22 @@ def _legacy_extract_frames(f, number_of_frames, pixel_data_pos, frame_limit, sta
         if delimiter == -1:
             break
 
-        item_length = struct.unpack("<I", file_content[delimiter + 4: delimiter + 8])[0]
+        item_length = struct.unpack("<I", file_content[delimiter + 4 : delimiter + 8])[0]
         start_pos = start_pos + delimiter + 8
         end_pos = start_pos + item_length
 
         if start_pos == end_pos:
             continue
 
-        frames.append({
-            "frame_number": frame_index,
-            "frame_size": item_length,
-            "start_pos": start_pos,
-            "end_pos": end_pos,
-            "pixel_data_pos": pixel_data_pos,
-        })
+        frames.append(
+            {
+                "frame_number": frame_index,
+                "frame_size": item_length,
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "pixel_data_pos": pixel_data_pos,
+            }
+        )
         start_pos = end_pos
         frame_index += 1
 
@@ -141,6 +149,7 @@ def _legacy_extract_frames(f, number_of_frames, pixel_data_pos, frame_limit, sta
 # ---------------------------------------------------------------------------
 # Main extraction function (used by lakehouse_app)
 # ---------------------------------------------------------------------------
+
 
 def pixel_frames_from_dcm_metadata_file(
     token: str, db_file: DatabricksFile, frame_limit, last_indexed_frame, last_indexed_start_pos
@@ -214,22 +223,22 @@ def pixel_frames_from_dcm_metadata_file(
                 )
         else:
             samples_per_pixel = int(getattr(ds, "SamplesPerPixel", 1))
-            item_length = (
-                ds.Rows * ds.Columns * (ds.BitsAllocated // 8) * samples_per_pixel
-            )
+            item_length = ds.Rows * ds.Columns * (ds.BitsAllocated // 8) * samples_per_pixel
             # Explicit VR: tag(4) + VR(2) + reserved(2) + len(4) = 12
             # Implicit VR: tag(4) + len(4) = 8
             vr_bytes = raw_header[pixel_data_pos + 4 : pixel_data_pos + 6]
             header_size = 12 if vr_bytes.isalpha() else 8
             for idx in range(number_of_frames):
                 offset = (idx * item_length) + header_size
-                frames.append({
-                    "frame_number": idx,
-                    "frame_size": item_length,
-                    "start_pos": pixel_data_pos + offset,
-                    "end_pos": pixel_data_pos + offset + item_length - 1,
-                    "pixel_data_pos": pixel_data_pos,
-                })
+                frames.append(
+                    {
+                        "frame_number": idx,
+                        "frame_size": item_length,
+                        "start_pos": pixel_data_pos + offset,
+                        "end_pos": pixel_data_pos + offset + item_length - 1,
+                        "pixel_data_pos": pixel_data_pos,
+                    }
+                )
 
         return {
             "frames": frames,

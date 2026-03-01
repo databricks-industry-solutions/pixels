@@ -106,10 +106,7 @@ class BOTCache:
         """
         key = self._key(filename, uc_table)
         with self._lock:
-            frames_by_idx = {
-                frame["frame_number"]: frame
-                for frame in bot_data.get("frames", [])
-            }
+            frames_by_idx = {frame["frame_number"]: frame for frame in bot_data.get("frames", [])}
             bot_data["frames_by_idx"] = frames_by_idx
 
             self._cache[key] = bot_data
@@ -118,7 +115,9 @@ class BOTCache:
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)
 
-    def put_from_lakebase(self, filename: str, uc_table: str, frames: list, transfer_syntax_uid: str):
+    def put_from_lakebase(
+        self, filename: str, uc_table: str, frames: list, transfer_syntax_uid: str
+    ):
         """
         Populate BOT cache from Lakebase query results.
 

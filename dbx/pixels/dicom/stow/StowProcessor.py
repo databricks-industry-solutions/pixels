@@ -3,13 +3,7 @@ from typing import Dict, List
 
 import pyspark.sql.functions as fn
 from pyspark.sql import DataFrame
-from pyspark.sql.types import (
-    ArrayType,
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-)
+from pyspark.sql.types import ArrayType, LongType, StringType, StructField, StructType
 
 from dbx.pixels import Catalog
 from dbx.pixels.logging import LoggerProvider
@@ -126,16 +120,14 @@ class StowProcessor:
             .table(source_table)
             .filter(fn.col("_change_type") == "insert")
             .filter(fn.col("status") == "pending")
-            .withColumn("parts", stow_split_udf(
-                fn.col("volume_path"),
-                fn.col("content_type"),
-                fn.lit(volume_base))
+            .withColumn(
+                "parts",
+                stow_split_udf(fn.col("volume_path"), fn.col("content_type"), fn.lit(volume_base)),
             )
         )
 
         query = (
-            stream_df.writeStream
-            .foreachBatch(_make_split_handler(source_table))
+            stream_df.writeStream.foreachBatch(_make_split_handler(source_table))
             .option("checkpointLocation", checkpoint_location)
             .trigger(availableNow=True)
             .start()
@@ -183,8 +175,12 @@ class StowProcessor:
         from dbx.pixels.dicom import DicomMetaExtractor
 
         catalog = Catalog(self.spark, table=catalog_table, volume=volume)
-        catalog.catalog(path=catalog._volume_path, streaming=True, streamCheckpointBasePath=f"{catalog._volume_path}/_checkpoints/stow_extract-{catalog_table}/")
-        
+        catalog.catalog(
+            path=catalog._volume_path,
+            streaming=True,
+            streamCheckpointBasePath=f"{catalog._volume_path}/_checkpoints/stow_extract-{catalog_table}/",
+        )
+
         extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
 
         self.logger.info(f"Phase 2 (meta): reading from {source_table}")
@@ -220,9 +216,17 @@ class StowProcessor:
                 fn.lit(0).cast("bigint"),
             ),
         ).select(
-            "path", "modificationTime", "length", "original_path",
-            "relative_path", "local_path", "extension", "file_type",
-            "path_tags", "is_anon", "meta",
+            "path",
+            "modificationTime",
+            "length",
+            "original_path",
+            "relative_path",
+            "local_path",
+            "extension",
+            "file_type",
+            "path_tags",
+            "is_anon",
+            "meta",
         )
 
         catalog.save(df, mode="append")
@@ -232,6 +236,7 @@ class StowProcessor:
 # ---------------------------------------------------------------------------
 # Phase 1: foreachBatch — split bundles, save files, MERGE status + paths
 # ---------------------------------------------------------------------------
+
 
 def _make_split_handler(source_table: str):
     """
@@ -245,22 +250,17 @@ def _make_split_handler(source_table: str):
         _logger.info(f"Batch {batch_id}: splitting STOW bundles")
 
         # Explode parts — one row per extracted file
-        exploded_df = (
-            batch_df
-            .select("file_id", fn.explode("parts").alias("part"))
-            .select(
-                "file_id",
-                fn.col("part.output_path").alias("output_path"),
-                fn.col("part.file_size").alias("file_size"),
-                fn.col("part.status").alias("part_status"),
-                fn.col("part.error_message").alias("part_error"),
-            )
+        exploded_df = batch_df.select("file_id", fn.explode("parts").alias("part")).select(
+            "file_id",
+            fn.col("part.output_path").alias("output_path"),
+            fn.col("part.file_size").alias("file_size"),
+            fn.col("part.status").alias("part_status"),
+            fn.col("part.error_message").alias("part_error"),
         )
 
         # Aggregate per file_id: collect successful paths, determine status
         status_df = (
-            exploded_df
-            .groupBy("file_id")
+            exploded_df.groupBy("file_id")
             .agg(
                 fn.collect_list(
                     fn.when(
@@ -268,24 +268,22 @@ def _make_split_handler(source_table: str):
                         fn.col("output_path"),
                     )
                 ).alias("output_paths"),
-                fn.sum(
-                    fn.when(fn.col("part_status") == "FAILED", 1).otherwise(0)
-                ).alias("fail_count"),
-                fn.first(
-                    fn.when(
-                        fn.col("part_error").isNotNull(), fn.col("part_error")
-                    )
-                ).alias("first_error"),
+                fn.sum(fn.when(fn.col("part_status") == "FAILED", 1).otherwise(0)).alias(
+                    "fail_count"
+                ),
+                fn.first(fn.when(fn.col("part_error").isNotNull(), fn.col("part_error"))).alias(
+                    "first_error"
+                ),
             )
             .withColumn(
                 "final_status",
-                fn.when(fn.col("fail_count") > 0, fn.lit("failed"))
-                .otherwise(fn.lit("completed")),
+                fn.when(fn.col("fail_count") > 0, fn.lit("failed")).otherwise(fn.lit("completed")),
             )
             .withColumn(
                 "error_message",
-                fn.when(fn.col("fail_count") > 0, fn.col("first_error"))
-                .otherwise(fn.lit(None).cast("string")),
+                fn.when(fn.col("fail_count") > 0, fn.col("first_error")).otherwise(
+                    fn.lit(None).cast("string")
+                ),
             )
         )
 
@@ -310,6 +308,7 @@ def _make_split_handler(source_table: str):
         _logger.info(f"Batch {batch_id}: MERGE complete")
 
     return _process_split_batch
+
 
 # ---------------------------------------------------------------------------
 # UDF — split multipart bundle → individual DICOMs (no pydicom)
@@ -362,12 +361,14 @@ def stow_split_udf(
             if part.lower().startswith("boundary="):
                 boundary = part.split("=", 1)[1].strip().strip('"')
         if not boundary:
-            return [{
-                "output_path": "",
-                "file_size": 0,
-                "status": "FAILED",
-                "error_message": "No boundary found in content_type",
-            }]
+            return [
+                {
+                    "output_path": "",
+                    "file_size": 0,
+                    "status": "FAILED",
+                    "error_message": "No boundary found in content_type",
+                }
+            ]
 
         # ── Parse multipart bundle using mmap (memory-efficient) ──────
         delimiter = f"--{boundary}".encode()
@@ -387,16 +388,20 @@ def stow_split_udf(
                     content_start = seg_start + delim_len
 
                     # Closing delimiter "--boundary--" marks end of message
-                    if (content_start + 2 <= file_size
-                            and mm[content_start:content_start + 2] == b"--"):
+                    if (
+                        content_start + 2 <= file_size
+                        and mm[content_start : content_start + 2] == b"--"
+                    ):
                         break
 
                     next_delim = mm.find(delimiter, content_start)
                     seg_end = next_delim if next_delim != -1 else file_size
 
                     # Skip leading CRLF after delimiter line
-                    if (content_start + 2 <= seg_end
-                            and mm[content_start:content_start + 2] == b"\r\n"):
+                    if (
+                        content_start + 2 <= seg_end
+                        and mm[content_start : content_start + 2] == b"\r\n"
+                    ):
                         content_start += 2
 
                     # Header / body separator
@@ -409,8 +414,7 @@ def stow_split_udf(
                     body_end = seg_end
 
                     # Trim trailing CRLF before next delimiter
-                    if (body_end >= body_start + 2
-                            and mm[body_end - 2:body_end] == b"\r\n"):
+                    if body_end >= body_start + 2 and mm[body_end - 2 : body_end] == b"\r\n":
                         body_end -= 2
 
                     body_len = body_end - body_start
@@ -429,21 +433,25 @@ def stow_split_udf(
                             out.write(mm[offset:end])
                             offset = end
 
-                    results.append({
-                        "output_path": f"dbfs:{output_path}",
-                        "file_size": body_len,
-                        "status": "SUCCESS",
-                        "error_message": None,
-                    })
+                    results.append(
+                        {
+                            "output_path": f"dbfs:{output_path}",
+                            "file_size": body_len,
+                            "status": "SUCCESS",
+                            "error_message": None,
+                        }
+                    )
 
                     seg_start = next_delim
 
     except Exception as e:
-        results.append({
-            "output_path": "",
-            "file_size": 0,
-            "status": "FAILED",
-            "error_message": str(e) + "\n" + traceback.format_exc(),
-        })
+        results.append(
+            {
+                "output_path": "",
+                "file_size": 0,
+                "status": "FAILED",
+                "error_message": str(e) + "\n" + traceback.format_exc(),
+            }
+        )
 
     return results

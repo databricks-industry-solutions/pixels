@@ -25,13 +25,11 @@ import time
 from databricks.sdk.core import Config
 from fastapi import HTTPException, Request
 
-from dbx.pixels.lakebase import LakebaseUtils, RLS_ENABLED
+from dbx.pixels.lakebase import RLS_ENABLED, LakebaseUtils
 from dbx.pixels.logging import LoggerProvider
 
-from ..sql_client import USE_USER_AUTH, DatabricksSQLClient
+from ..sql_client import USE_USER_AUTH, DatabricksSQLClient, validate_table_name
 from ..wrapper import DICOMwebDatabricksWrapper
-from ..sql_client import validate_table_name
-
 
 logger = LoggerProvider("DICOMweb.Handlers")
 
@@ -127,6 +125,7 @@ def get_sql_client() -> DatabricksSQLClient:
 # Token resolution — same approach for both SQL and file operations
 # ---------------------------------------------------------------------------
 
+
 def resolve_user_token(request: Request) -> str:
     """
     Extract the user's forwarded access token (OBO mode only).
@@ -139,7 +138,7 @@ def resolve_user_token(request: Request) -> str:
         raise HTTPException(
             status_code=401,
             detail="User authorization (OBO) is enabled but no "
-                   "X-Forwarded-Access-Token header was found",
+            "X-Forwarded-Access-Token header was found",
         )
     return token
 
@@ -158,7 +157,7 @@ _app_header_factory = None
 def _is_token_expiring(token: str, buffer_sec: int = 300) -> bool:
     """
     Check if a JWT is expired or expiring within *buffer_sec*.
-    
+
     Decodes the unverified payload (middle part) to read the 'exp' claim.
     Returns True if the token is invalid, expired, or closing to expiry.
     """
@@ -166,17 +165,17 @@ def _is_token_expiring(token: str, buffer_sec: int = 300) -> bool:
         parts = token.split(".")
         if len(parts) != 3:
             return True  # Not a valid JWT format -> force refresh
-        
+
         # Padding for base64 decoding
         payload_b64 = parts[1]
         padding = "=" * (4 - (len(payload_b64) % 4))
         payload_json = base64.urlsafe_b64decode(payload_b64 + padding)
         claims = json.loads(payload_json)
-        
+
         exp = claims.get("exp")
         if not exp:
             return True  # No expiry -> assume it might be old/invalid
-            
+
         # Check against current time + buffer
         return time.time() + buffer_sec >= exp
     except Exception as exc:
@@ -199,15 +198,15 @@ def app_token_provider() -> str:
     authentication flow can succeed.
     """
     global _app_cfg, _app_header_factory, _app_refreshing
-    
+
     # 1. Initialize if needed
     if _app_cfg is None:
         _app_cfg = Config()
         _app_header_factory = _app_cfg.authenticate()
-    
+
     # 2. Get current headers/token
     headers = _app_header_factory() if callable(_app_header_factory) else _app_header_factory
-    
+
     if headers is None:
         # Token refresh returned None — reset so next call re-authenticates
         logger.warning("SDK header factory returned None — resetting Config for re-auth")
@@ -333,7 +332,9 @@ def _get_app_wrapper(pixels_table: str) -> DICOMwebDatabricksWrapper:
     return _app_wrapper
 
 
-def _build_obo_wrapper(request: Request, pixels_table: str | None = None) -> DICOMwebDatabricksWrapper:
+def _build_obo_wrapper(
+    request: Request, pixels_table: str | None = None
+) -> DICOMwebDatabricksWrapper:
     """
     Build a per-request wrapper for OBO (user auth) mode.
 
@@ -365,13 +366,13 @@ def get_dicomweb_wrapper(request: Request) -> DICOMwebDatabricksWrapper:
     * **App auth** — returns the module-level singleton (token auto-refreshes).
     * **User auth (OBO)** — returns a fresh per-request wrapper.
     """
-    pixels_table = request.cookies.get("pixels_table") or os.getenv("DATABRICKS_PIXELS_TABLE") 
-    
+    pixels_table = request.cookies.get("pixels_table") or os.getenv("DATABRICKS_PIXELS_TABLE")
+
     if not pixels_table:
         raise HTTPException(status_code=500, detail="DATABRICKS_PIXELS_TABLE not configured")
-    
+
     validate_table_name(pixels_table)
-    
+
     if USE_USER_AUTH:
         return _build_obo_wrapper(request, pixels_table)
     return _get_app_wrapper(pixels_table)

@@ -36,10 +36,10 @@ from urllib.parse import quote
 
 import httpx
 
-
 # ---------------------------------------------------------------------------
 # Token resolution
 # ---------------------------------------------------------------------------
+
 
 def _resolve_token(args: argparse.Namespace) -> str:
     """Return a bearer token, trying CLI flag → env var → SDK in order."""
@@ -52,6 +52,7 @@ def _resolve_token(args: argparse.Namespace) -> str:
 
     try:
         from databricks.sdk.core import Config
+
         kwargs = {}
         if args.profile:
             kwargs["profile"] = args.profile
@@ -62,7 +63,7 @@ def _resolve_token(args: argparse.Namespace) -> str:
             auth = headers.get("Authorization", "")
             if auth.startswith("Bearer "):
                 return auth[7:]
-    except Exception as exc:
+    except Exception:
         pass
 
     print(
@@ -199,10 +200,7 @@ async def _maybe_add_wado_endpoints(
         study_uid, series_uid, sop_uid = await _discover_wado_uids(
             args.base_url, token, args.timeout
         )
-        print(
-            "WADO UID discovery: "
-            f"study={study_uid}, series={series_uid}, sop={sop_uid}"
-        )
+        print("WADO UID discovery: " f"study={study_uid}, series={series_uid}, sop={sop_uid}")
     else:
         print(
             "WADO UID source: using CLI values "
@@ -217,16 +215,12 @@ async def _maybe_add_wado_endpoints(
     wado_eps = [
         {
             "method": "GET",
-            "path": (
-                f"/api/dicomweb/studies/{s_study}/series/{s_series}/metadata"
-            ),
+            "path": (f"/api/dicomweb/studies/{s_study}/series/{s_series}/metadata"),
             "tag": "WADO-series-metadata",
         },
         {
             "method": "GET",
-            "path": (
-                f"/api/dicomweb/studies/{s_study}/series/{s_series}/instances/{s_sop}"
-            ),
+            "path": (f"/api/dicomweb/studies/{s_study}/series/{s_series}/instances/{s_sop}"),
             "tag": "WADO-instance",
         },
         {
@@ -305,6 +299,7 @@ class LevelReport:
 # Worker
 # ---------------------------------------------------------------------------
 
+
 def _auth_headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
@@ -331,6 +326,7 @@ async def _fire(
 # Run one concurrency level
 # ---------------------------------------------------------------------------
 
+
 async def _run_level(
     base_url: str,
     concurrency: int,
@@ -347,12 +343,11 @@ async def _run_level(
             return await _fire(client, base_url, ep, timeout)
 
     async with httpx.AsyncClient(
-        http2=True, verify=False, headers=_auth_headers(token),
+        http2=True,
+        verify=False,
+        headers=_auth_headers(token),
     ) as client:
-        tasks = [
-            _bounded(client, endpoints[i % len(endpoints)])
-            for i in range(total_requests)
-        ]
+        tasks = [_bounded(client, endpoints[i % len(endpoints)]) for i in range(total_requests)]
         wall_start = time.monotonic()
         results: list[RequestResult] = await asyncio.gather(*tasks)
         report.wall_time = time.monotonic() - wall_start
@@ -428,6 +423,7 @@ def _diagnose(reports: list[LevelReport]):
 # Detailed per-endpoint breakdown
 # ---------------------------------------------------------------------------
 
+
 async def _run_per_endpoint(
     base_url: str,
     concurrency: int,
@@ -438,8 +434,9 @@ async def _run_per_endpoint(
 ):
     """Fire *requests_each* requests per endpoint at a fixed concurrency."""
     print(f"\n{'='*60}")
-    print(f"Per-endpoint breakdown (concurrency={concurrency}, "
-          f"{requests_each} reqs per endpoint)")
+    print(
+        f"Per-endpoint breakdown (concurrency={concurrency}, " f"{requests_each} reqs per endpoint)"
+    )
     print(f"{'='*60}")
 
     sem = asyncio.Semaphore(concurrency)
@@ -449,7 +446,9 @@ async def _run_per_endpoint(
             return await _fire(client, base_url, ep, timeout)
 
     async with httpx.AsyncClient(
-        http2=True, verify=False, headers=_auth_headers(token),
+        http2=True,
+        verify=False,
+        headers=_auth_headers(token),
     ) as client:
         for ep in endpoints:
             tasks = [_bounded(client, ep) for _ in range(requests_each)]
@@ -477,6 +476,7 @@ async def _run_per_endpoint(
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def _main(args: argparse.Namespace):
     token = _resolve_token(args)
     token_preview = token[:8] + "..." if len(token) > 12 else "***"
@@ -488,7 +488,9 @@ async def _main(args: argparse.Namespace):
     print(f"Timeout:     {args.timeout}s")
 
     async with httpx.AsyncClient(
-        http2=True, verify=False, headers=_auth_headers(token),
+        http2=True,
+        verify=False,
+        headers=_auth_headers(token),
     ) as c:
         try:
             r = await c.get(f"{args.base_url.rstrip('/')}/health", timeout=args.timeout)
@@ -514,7 +516,12 @@ async def _main(args: argparse.Namespace):
 
     for conc in args.concurrency:
         report = await _run_level(
-            args.base_url, conc, args.requests_per_level, args.timeout, eps, token,
+            args.base_url,
+            conc,
+            args.requests_per_level,
+            args.timeout,
+            eps,
+            token,
         )
         reports.append(report)
         print(_row(report))
@@ -540,51 +547,66 @@ def main():
         description="DICOMweb Gateway concurrency & performance test",
     )
     parser.add_argument(
-        "--base-url", required=True,
+        "--base-url",
+        required=True,
         help="Gateway root URL, e.g. https://my-app.databricksapps.com",
     )
     parser.add_argument(
         "--token",
         help="Databricks personal access token (or set DATABRICKS_TOKEN env var). "
-             "Falls back to Databricks SDK auto-config if omitted.",
+        "Falls back to Databricks SDK auto-config if omitted.",
     )
     parser.add_argument(
         "--profile",
         help="Databricks CLI profile name (used when --token is not provided)",
     )
     parser.add_argument(
-        "--concurrency", type=int, nargs="+", default=[1, 5, 10, 20],
+        "--concurrency",
+        type=int,
+        nargs="+",
+        default=[1, 5, 10, 20],
         help="Concurrency levels to test (default: 1 5 10 20)",
     )
     parser.add_argument(
-        "--requests-per-level", type=int, default=30,
+        "--requests-per-level",
+        type=int,
+        default=30,
         help="Total requests per concurrency level (default: 30)",
     )
     parser.add_argument(
-        "--timeout", type=float, default=60.0,
+        "--timeout",
+        type=float,
+        default=60.0,
         help="Per-request timeout in seconds (default: 60)",
     )
     parser.add_argument(
-        "--proxy-only", action="store_true",
+        "--proxy-only",
+        action="store_true",
         help="Skip /health and /api/dicomweb/ (local endpoints) — "
-             "only test endpoints that hit the serving model",
+        "only test endpoints that hit the serving model",
     )
     parser.add_argument(
-        "--per-endpoint", action="store_true",
+        "--per-endpoint",
+        action="store_true",
         help="Also run a per-endpoint breakdown after the main ramp",
     )
     parser.add_argument(
-        "--per-endpoint-conc", type=int, default=10,
+        "--per-endpoint-conc",
+        type=int,
+        default=10,
         help="Concurrency for per-endpoint breakdown (default: 10)",
     )
     parser.add_argument(
-        "--per-endpoint-reqs", type=int, default=20,
+        "--per-endpoint-reqs",
+        type=int,
+        default=20,
         help="Requests per endpoint in breakdown (default: 20)",
     )
     parser.add_argument(
-        "--include-wado", action="store_true",
+        "--include-wado",
+        action="store_true",
         help="Include WADO endpoints in the benchmark. If UIDs are not "
-             "provided, one instance is auto-discovered via QIDO.",
+        "provided, one instance is auto-discovered via QIDO.",
     )
     parser.add_argument(
         "--study-uid",
@@ -599,14 +621,17 @@ def main():
         help="SOPInstanceUID for WADO tests (optional with --include-wado)",
     )
     parser.add_argument(
-        "--frame-number", type=int, default=1,
+        "--frame-number",
+        type=int,
+        default=1,
         help="Frame number for WADO-RS frame test (default: 1)",
     )
     parser.add_argument(
-        "--tags", nargs="+",
+        "--tags",
+        nargs="+",
         help="Optional endpoint tag filter, e.g. "
-             "--tags WADO-instance WADO-frames-1 WADO-URI-instance "
-             "or --tags WADO-instance,WADO-frames-1",
+        "--tags WADO-instance WADO-frames-1 WADO-URI-instance "
+        "or --tags WADO-instance,WADO-frames-1",
     )
     args = parser.parse_args()
     asyncio.run(_main(args))

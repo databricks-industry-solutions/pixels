@@ -25,6 +25,7 @@ logger = LoggerProvider("DICOMweb.Metrics")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _bytes_to_mb(b: int) -> float:
     """Convert bytes → megabytes, rounded to 2 decimals."""
     return round(b / (1024 * 1024), 2)
@@ -33,6 +34,7 @@ def _bytes_to_mb(b: int) -> float:
 # ---------------------------------------------------------------------------
 # Snapshot collector
 # ---------------------------------------------------------------------------
+
 
 def collect_metrics() -> dict:
     """
@@ -81,6 +83,7 @@ def collect_metrics() -> dict:
 # One-line log summary
 # ---------------------------------------------------------------------------
 
+
 def _log_metrics_summary():
     """Write a compact metrics line to the application log."""
     try:
@@ -116,9 +119,7 @@ _metrics_task: asyncio.Task | None = None
 
 async def _periodic_logger(interval_seconds: int):
     """Async loop that logs metrics at a fixed interval."""
-    logger.info(
-        f"Periodic metrics logger started (every {interval_seconds}s)"
-    )
+    logger.info(f"Periodic metrics logger started (every {interval_seconds}s)")
     while True:
         await asyncio.sleep(interval_seconds)
         _log_metrics_summary()
@@ -138,7 +139,4 @@ def start_metrics_logger(interval_seconds: int = 300):
         return  # already running
 
     loop = asyncio.get_event_loop()
-    _metrics_task = loop.create_task(
-        _periodic_logger(interval_seconds)
-    )
-
+    _metrics_task = loop.create_task(_periodic_logger(interval_seconds))

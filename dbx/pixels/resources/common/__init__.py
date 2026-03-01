@@ -21,4 +21,3 @@ Usage::
     app = FastAPI(...)
     register_all_common_routes(app)
 """
-

@@ -188,4 +188,3 @@ async def insert_redaction_job(
         "status": "inserted",
         "statement_id": result.get("statement_id"),
     }
-

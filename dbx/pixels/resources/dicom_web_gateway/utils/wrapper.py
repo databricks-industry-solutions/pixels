@@ -27,7 +27,6 @@ from .cache import bot_cache, instance_path_cache
 from .dicom_io import (
     _HEADER_EXTENDED_BYTES,
     _HEADER_INITIAL_BYTES,
-    _PIXEL_DATA_MARKER,
     _extract_from_extended_offset_table,
     _fetch_bytes_range,
     _find_pixel_data_pos,
@@ -75,11 +74,13 @@ _WADO_PREFETCH_WAIT_S = float(os.environ.get("PIXELS_WADO_PREFETCH_WAIT_S", "0.0
 # Both helpers submit work to the prefetcher's thread pool so they share
 # the existing worker budget without spawning extra threads.
 
+
 def _touch_lakebase(lb, filename: str, uc_table: str) -> None:
     """
     Fire-and-forget: update ``last_used_at`` and increment ``access_count``
     for *filename* in Lakebase.  Failures are logged at DEBUG level only.
     """
+
     def _run():
         try:
             lb.touch_frame_ranges(filename, uc_table)
@@ -206,22 +207,36 @@ class DICOMwebDatabricksWrapper:
         query, sql_params = build_study_query(self._table, params)
         results = self._query(query, sql_params)
         columns = [
-            "PatientName", "PatientID", "StudyInstanceUID", "StudyDate",
-            "AccessionNumber", "StudyDescription", "Modality", "ModalitiesInStudy",
-            "NumberOfStudyRelatedSeries", "NumberOfStudyRelatedInstances",
+            "PatientName",
+            "PatientID",
+            "StudyInstanceUID",
+            "StudyDate",
+            "AccessionNumber",
+            "StudyDescription",
+            "Modality",
+            "ModalitiesInStudy",
+            "NumberOfStudyRelatedSeries",
+            "NumberOfStudyRelatedInstances",
         ]
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS: found {len(formatted)} studies")
         return formatted
 
-    def search_for_series(self, study_instance_uid: str, params: Dict[str, Any] | None = None) -> List[Dict]:
+    def search_for_series(
+        self, study_instance_uid: str, params: Dict[str, Any] | None = None
+    ) -> List[Dict]:
         """QIDO-RS: search for series within a study."""
         logger.debug(f"QIDO-RS: series search in study {study_instance_uid}")
         query, sql_params = build_series_query(self._table, study_instance_uid, params or {})
         results = self._query(query, sql_params)
         columns = [
-            "StudyInstanceUID", "SeriesInstanceUID", "Modality", "SeriesNumber",
-            "SeriesDescription", "SeriesDate", "NumberOfSeriesRelatedInstances",
+            "StudyInstanceUID",
+            "SeriesInstanceUID",
+            "Modality",
+            "SeriesNumber",
+            "SeriesDescription",
+            "SeriesDate",
+            "NumberOfSeriesRelatedInstances",
         ]
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS: found {len(formatted)} series")
@@ -234,15 +249,23 @@ class DICOMwebDatabricksWrapper:
         query, sql_params = build_all_series_query(self._table)
         results = self._query(query, sql_params)
         columns = [
-            "StudyInstanceUID", "SeriesInstanceUID", "Modality", "SeriesNumber",
-            "SeriesDescription", "SeriesDate", "NumberOfSeriesRelatedInstances",
+            "StudyInstanceUID",
+            "SeriesInstanceUID",
+            "Modality",
+            "SeriesNumber",
+            "SeriesDescription",
+            "SeriesDate",
+            "NumberOfSeriesRelatedInstances",
         ]
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS bulk: found {len(formatted)} series across all studies")
         return formatted
 
     def search_for_instances(
-        self, study_instance_uid: str, series_instance_uid: str, params: Dict[str, Any] | None = None
+        self,
+        study_instance_uid: str,
+        series_instance_uid: str,
+        params: Dict[str, Any] | None = None,
     ) -> List[Dict]:
         """QIDO-RS: search for instances within a series.
 
@@ -252,7 +275,10 @@ class DICOMwebDatabricksWrapper:
         """
         logger.debug(f"QIDO-RS: instances search in series {series_instance_uid}")
         query, sql_params = build_instances_query(
-            self._table, study_instance_uid, series_instance_uid, params or {},
+            self._table,
+            study_instance_uid,
+            series_instance_uid,
+            params or {},
         )
         results = self._query(query, sql_params)
 
@@ -270,7 +296,9 @@ class DICOMwebDatabricksWrapper:
                 cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
         if cache_entries:
             instance_path_cache.batch_put(
-                self._table, cache_entries, user_groups=self._user_groups,
+                self._table,
+                cache_entries,
+                user_groups=self._user_groups,
             )
             logger.debug(
                 f"Pre-warmed instance path cache with {len(cache_entries)} entries "
@@ -302,7 +330,8 @@ class DICOMwebDatabricksWrapper:
                     for uid, info in cache_entries.items()
                 ]
                 self._lb.insert_instance_paths_batch(
-                    lb_entries, allowed_groups=self._user_groups,
+                    lb_entries,
+                    allowed_groups=self._user_groups,
                 )
             except Exception as exc:
                 logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
@@ -323,17 +352,25 @@ class DICOMwebDatabricksWrapper:
                 )
             if cache_entries:
                 file_prefetcher._pool.submit(
-                    self._preload_series_bots, dict(cache_entries),
+                    self._preload_series_bots,
+                    dict(cache_entries),
                 )
                 logger.debug(
-                    f"Background BOT preload scheduled for "
-                    f"{len(cache_entries)} instances"
+                    f"Background BOT preload scheduled for " f"{len(cache_entries)} instances"
                 )
         # ──────────────────────────────────────────────────────────────
 
         columns = [
-            "StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID", "SOPClassUID",
-            "InstanceNumber", "Rows", "Columns", "NumberOfFrames", "path", "local_path",
+            "StudyInstanceUID",
+            "SeriesInstanceUID",
+            "SOPInstanceUID",
+            "SOPClassUID",
+            "InstanceNumber",
+            "Rows",
+            "Columns",
+            "NumberOfFrames",
+            "path",
+            "local_path",
         ]
         formatted = format_dicomweb_response(results, columns)
         logger.info(f"QIDO-RS: found {len(formatted)} instances")
@@ -364,9 +401,7 @@ class DICOMwebDatabricksWrapper:
         Raises:
             HTTPException 404: If no instances are found for the series.
         """
-        logger.debug(
-            f"Resolve paths: study={study_instance_uid}, series={series_instance_uid}"
-        )
+        logger.debug(f"Resolve paths: study={study_instance_uid}, series={series_instance_uid}")
 
         # ── Tier 2: Lakebase persistent cache ────────────────────────
         # (Tier 1 is keyed by individual SOP UIDs, not by series, so we
@@ -374,13 +409,17 @@ class DICOMwebDatabricksWrapper:
         if self._lb:
             try:
                 lb_results = self._lb.retrieve_instance_paths_by_series(
-                    study_instance_uid, series_instance_uid, self._table,
+                    study_instance_uid,
+                    series_instance_uid,
+                    self._table,
                     user_groups=self._user_groups,
                 )
                 if lb_results:
                     # Promote to tier 1
                     instance_path_cache.batch_put(
-                        self._table, lb_results, user_groups=self._user_groups,
+                        self._table,
+                        lb_results,
+                        user_groups=self._user_groups,
                     )
                     paths = {uid: info["path"] for uid, info in lb_results.items()}
                     logger.debug(f"Resolve paths: {len(paths)} paths from Lakebase")
@@ -390,7 +429,9 @@ class DICOMwebDatabricksWrapper:
 
         # ── Tier 3: SQL warehouse ────────────────────────────────────
         query, sql_params = build_instances_query(
-            self._table, study_instance_uid, series_instance_uid,
+            self._table,
+            study_instance_uid,
+            series_instance_uid,
         )
         results = self._query(query, sql_params)
 
@@ -420,7 +461,9 @@ class DICOMwebDatabricksWrapper:
         # Pre-warm caches (tier 1 + tier 2) ────────────────────────────
         if cache_entries:
             instance_path_cache.batch_put(
-                self._table, cache_entries, user_groups=self._user_groups,
+                self._table,
+                cache_entries,
+                user_groups=self._user_groups,
             )
             if self._lb:
                 try:
@@ -436,7 +479,8 @@ class DICOMwebDatabricksWrapper:
                         for uid, info in cache_entries.items()
                     ]
                     self._lb.insert_instance_paths_batch(
-                        lb_entries, allowed_groups=self._user_groups,
+                        lb_entries,
+                        allowed_groups=self._user_groups,
                     )
                 except Exception as exc:
                     logger.warning(f"Lakebase path batch persist failed (non-fatal): {exc}")
@@ -449,7 +493,9 @@ class DICOMwebDatabricksWrapper:
     # ------------------------------------------------------------------
 
     @timing_decorator
-    def retrieve_series_metadata(self, study_instance_uid: str, series_instance_uid: str) -> Iterator[str]:
+    def retrieve_series_metadata(
+        self, study_instance_uid: str, series_instance_uid: str
+    ) -> Iterator[str]:
         """
         WADO-RS: stream DICOM metadata for every instance in a series.
 
@@ -461,7 +507,9 @@ class DICOMwebDatabricksWrapper:
         """
         logger.debug(f"WADO-RS: metadata for series {series_instance_uid}")
         query, params = build_series_metadata_query(
-            self._table, study_instance_uid, series_instance_uid,
+            self._table,
+            study_instance_uid,
+            series_instance_uid,
         )
         row_stream = self._query_stream(query, params)
 
@@ -511,7 +559,9 @@ class DICOMwebDatabricksWrapper:
 
         # --- Resolve SOP UID → file path (3-tier: memory → Lakebase → SQL) ---
         local_path = self._resolve_instance_path(
-            study_instance_uid, series_instance_uid, sop_instance_uid,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
         )
 
         # --- Check prefetch cache (instant if background download finished) ---
@@ -574,7 +624,9 @@ class DICOMwebDatabricksWrapper:
 
         # --- Resolve SOP UID → file path (3-tier) ---
         path = self._resolve_instance_path(
-            study_instance_uid, series_instance_uid, sop_instance_uid,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
         )
         db_file = DatabricksFile.from_full_path(path)
         filename = db_file.full_path
@@ -582,14 +634,20 @@ class DICOMwebDatabricksWrapper:
 
         # --- Try fast path: BOT already cached (tier 1 / 2) ---
         fast_result = self._try_cached_frames(
-            db_file, filename, token, frame_numbers,
+            db_file,
+            filename,
+            token,
+            frame_numbers,
         )
         if fast_result is not None:
             return fast_result
 
         # --- Slow path: progressive streaming (tier 3) ---
         return self._progressive_frame_retrieval(
-            db_file, filename, token, frame_numbers,
+            db_file,
+            filename,
+            token,
+            frame_numbers,
         )
 
     @timing_decorator
@@ -612,7 +670,9 @@ class DICOMwebDatabricksWrapper:
             ``fragments``).
         """
         path = self._resolve_instance_path(
-            study_instance_uid, series_instance_uid, sop_instance_uid,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
         )
         db_file = DatabricksFile.from_full_path(path)
         filename = db_file.full_path
@@ -627,7 +687,9 @@ class DICOMwebDatabricksWrapper:
         if self._lb:
             try:
                 lb_frames = self._lb.retrieve_all_frame_ranges(
-                    filename, self._table, user_groups=self._user_groups,
+                    filename,
+                    self._table,
+                    user_groups=self._user_groups,
                 )
                 if lb_frames:
                     tsuid = lb_frames[0].get("transfer_syntax_uid") if lb_frames else None
@@ -635,12 +697,16 @@ class DICOMwebDatabricksWrapper:
                         try:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get(
-                                "Value", ["1.2.840.10008.1.2.1"],
+                                "Value",
+                                ["1.2.840.10008.1.2.1"],
                             )[0]
                         except Exception:
                             tsuid = "1.2.840.10008.1.2.1"
                     bot_cache.put_from_lakebase(
-                        filename, self._table, lb_frames, tsuid,
+                        filename,
+                        self._table,
+                        lb_frames,
+                        tsuid,
                     )
                     _touch_lakebase(self._lb, filename, self._table)
                     return {
@@ -659,7 +725,9 @@ class DICOMwebDatabricksWrapper:
         if self._lb and bot_data.get("frames"):
             try:
                 self._lb.insert_frame_ranges(
-                    filename, bot_data["frames"], self._table,
+                    filename,
+                    bot_data["frames"],
+                    self._table,
                     transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                     allowed_groups=self._user_groups,
                 )
@@ -713,7 +781,11 @@ class DICOMwebDatabricksWrapper:
                     state = progressive_streamer.get_state(filename)
                     return (
                         self._generate_from_cache(
-                            db_file, token, frame_numbers, frames_by_idx, state,
+                            db_file,
+                            token,
+                            frame_numbers,
+                            frames_by_idx,
+                            state,
                         ),
                         tsuid,
                     )
@@ -723,7 +795,9 @@ class DICOMwebDatabricksWrapper:
                 logger.debug(f"Checking Lakebase for {filename}")
                 t0 = time.time()
                 lb_frames = self._lb.retrieve_all_frame_ranges(
-                    filename, self._table, user_groups=self._user_groups,
+                    filename,
+                    self._table,
+                    user_groups=self._user_groups,
                 )
                 logger.debug(f"Lakebase lookup took {time.time() - t0:.4f}s")
 
@@ -732,25 +806,32 @@ class DICOMwebDatabricksWrapper:
                     lb_idx = {f["frame_number"]: f for f in lb_frames}
 
                     if all((fn - 1) in lb_idx for fn in frame_numbers):
-                        tsuid = (
-                            (cached_bot or {}).get("transfer_syntax_uid")
-                            or (lb_frames[0].get("transfer_syntax_uid") if lb_frames else None)
+                        tsuid = (cached_bot or {}).get("transfer_syntax_uid") or (
+                            lb_frames[0].get("transfer_syntax_uid") if lb_frames else None
                         )
                         if not tsuid:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get(
-                                "Value", ["1.2.840.10008.1.2.1"],
+                                "Value",
+                                ["1.2.840.10008.1.2.1"],
                             )[0]
 
                         bot_cache.put_from_lakebase(
-                            filename, self._table, lb_frames, tsuid,
+                            filename,
+                            self._table,
+                            lb_frames,
+                            tsuid,
                         )
                         _touch_lakebase(self._lb, filename, self._table)
                         logger.debug("Promoted Lakebase → memory cache")
                         state = progressive_streamer.get_state(filename)
                         return (
                             self._generate_from_cache(
-                                db_file, token, frame_numbers, lb_idx, state,
+                                db_file,
+                                token,
+                                frame_numbers,
+                                lb_idx,
+                                state,
                             ),
                             tsuid,
                         )
@@ -758,8 +839,7 @@ class DICOMwebDatabricksWrapper:
             raise
         except Exception as exc:
             logger.warning(
-                f"Cached frame lookup failed ({exc}), "
-                f"falling back to progressive streaming"
+                f"Cached frame lookup failed ({exc}), " f"falling back to progressive streaming"
             )
 
         return None
@@ -782,11 +862,12 @@ class DICOMwebDatabricksWrapper:
             if state is not None and state.is_complete and not state.has_error:
                 try:
                     content = get_file_part_local(
-                        state.local_path, state.data_start, meta,
+                        state.local_path,
+                        state.data_start,
+                        meta,
                     )
                     logger.debug(
-                        f"local read frame {fn}: "
-                        f"{time.time() - t0:.4f}s, {len(content)} bytes"
+                        f"local read frame {fn}: " f"{time.time() - t0:.4f}s, {len(content)} bytes"
                     )
                 except Exception:
                     content = get_file_part(token, db_file, meta)
@@ -797,8 +878,7 @@ class DICOMwebDatabricksWrapper:
             else:
                 content = get_file_part(token, db_file, meta)
                 logger.debug(
-                    f"get_file_part frame {fn}: "
-                    f"{time.time() - t0:.4f}s, {len(content)} bytes"
+                    f"get_file_part frame {fn}: " f"{time.time() - t0:.4f}s, {len(content)} bytes"
                 )
 
             content = DICOMwebDatabricksWrapper._strip_item_header(content, fn)
@@ -819,6 +899,7 @@ class DICOMwebDatabricksWrapper:
         without EOT.
         """
         from io import BytesIO
+
         import pydicom
 
         logger.debug(f"Progressive frame retrieval for {filename}")
@@ -838,14 +919,23 @@ class DICOMwebDatabricksWrapper:
         if not is_compressed:
             # Uncompressed: analytical BOT (existing fast path)
             return self._uncompressed_frames(
-                db_file, token, ds, pixel_data_pos,
-                number_of_frames, transfer_syntax_uid, frame_numbers, filename,
+                db_file,
+                token,
+                ds,
+                pixel_data_pos,
+                number_of_frames,
+                transfer_syntax_uid,
+                frame_numbers,
+                filename,
                 raw,
             )
 
         # ── Compressed: try Extended Offset Table first ──────────────
         eot_frames = _extract_from_extended_offset_table(
-            ds, raw, pixel_data_pos, number_of_frames,
+            ds,
+            raw,
+            pixel_data_pos,
+            number_of_frames,
         )
         if eot_frames is not None:
             logger.debug(
@@ -861,21 +951,31 @@ class DICOMwebDatabricksWrapper:
             }
             bot_cache.put(filename, self._table, bot_data)
             self._persist_bot_to_lakebase(
-                filename, eot_frames, transfer_syntax_uid,
+                filename,
+                eot_frames,
+                transfer_syntax_uid,
             )
 
             frames_by_idx = {f["frame_number"]: f for f in eot_frames}
             return (
                 self._generate_from_cache(
-                    db_file, token, frame_numbers, frames_by_idx,
+                    db_file,
+                    token,
+                    frame_numbers,
+                    frames_by_idx,
                 ),
                 transfer_syntax_uid,
             )
 
         # ── Compressed: progressive streaming ─────────────────────────
         state = progressive_streamer.get_or_start_stream(
-            filename, token, db_file, pixel_data_pos,
-            number_of_frames, raw, transfer_syntax_uid,
+            filename,
+            token,
+            db_file,
+            pixel_data_pos,
+            number_of_frames,
+            raw,
+            transfer_syntax_uid,
         )
 
         # Register inline capture for requested frames
@@ -920,7 +1020,9 @@ class DICOMwebDatabricksWrapper:
                 if os.path.exists(state.local_path):
                     try:
                         content = get_file_part_local(
-                            state.local_path, state.data_start, frame_meta,
+                            state.local_path,
+                            state.data_start,
+                            frame_meta,
                         )
                         logger.debug(
                             f"local read frame {fn}: "
@@ -928,14 +1030,13 @@ class DICOMwebDatabricksWrapper:
                             f"{len(content)} bytes"
                         )
                         content = DICOMwebDatabricksWrapper._strip_item_header(
-                            content, fn,
+                            content,
+                            fn,
                         )
                         yield content
                         continue
                     except Exception as exc:
-                        logger.warning(
-                            f"Local cache read failed for frame {fn}: {exc}"
-                        )
+                        logger.warning(f"Local cache read failed for frame {fn}: {exc}")
 
                 # Fallback: remote byte-range read
                 content = get_file_part(token, db_file, frame_meta)
@@ -945,15 +1046,19 @@ class DICOMwebDatabricksWrapper:
                     f"{len(content)} bytes"
                 )
                 content = DICOMwebDatabricksWrapper._strip_item_header(
-                    content, fn,
+                    content,
+                    fn,
                 )
                 yield content
 
             # After all frames served, cache the full BOT if stream is done
             if state.is_complete and not state.has_error:
                 self._cache_progressive_bot(
-                    filename, state, transfer_syntax_uid,
-                    pixel_data_pos, number_of_frames,
+                    filename,
+                    state,
+                    transfer_syntax_uid,
+                    pixel_data_pos,
+                    number_of_frames,
                 )
 
         return generate(), transfer_syntax_uid
@@ -976,13 +1081,15 @@ class DICOMwebDatabricksWrapper:
         frames: list[dict] = []
         for idx in range(number_of_frames):
             offset = (idx * item_length) + header_size
-            frames.append({
-                "frame_number": idx,
-                "frame_size": item_length,
-                "start_pos": pixel_data_pos + offset,
-                "end_pos": pixel_data_pos + offset + item_length - 1,
-                "pixel_data_pos": pixel_data_pos,
-            })
+            frames.append(
+                {
+                    "frame_number": idx,
+                    "frame_size": item_length,
+                    "start_pos": pixel_data_pos + offset,
+                    "end_pos": pixel_data_pos + offset + item_length - 1,
+                    "pixel_data_pos": pixel_data_pos,
+                }
+            )
 
         bot_data = {
             "transfer_syntax_uid": transfer_syntax_uid,
@@ -997,7 +1104,10 @@ class DICOMwebDatabricksWrapper:
         frames_by_idx = {f["frame_number"]: f for f in frames}
         return (
             self._generate_from_cache(
-                db_file, token, frame_numbers, frames_by_idx,
+                db_file,
+                token,
+                frame_numbers,
+                frames_by_idx,
             ),
             transfer_syntax_uid,
         )
@@ -1012,9 +1122,7 @@ class DICOMwebDatabricksWrapper:
     ) -> None:
         """Promote a completed progressive stream's BOT to the cache tiers."""
         try:
-            frames = [
-                state.frames[i] for i in sorted(state.frames.keys())
-            ]
+            frames = [state.frames[i] for i in sorted(state.frames.keys())]
             bot_data = {
                 "transfer_syntax_uid": transfer_syntax_uid,
                 "frames": frames,
@@ -1024,11 +1132,12 @@ class DICOMwebDatabricksWrapper:
             }
             bot_cache.put(filename, self._table, bot_data)
             self._persist_bot_to_lakebase(
-                filename, frames, transfer_syntax_uid,
+                filename,
+                frames,
+                transfer_syntax_uid,
             )
             logger.debug(
-                f"Promoted progressive BOT to cache: "
-                f"{len(frames)} frames for {filename}"
+                f"Promoted progressive BOT to cache: " f"{len(frames)} frames for {filename}"
             )
         except Exception as exc:
             logger.warning(f"Failed to cache progressive BOT: {exc}")
@@ -1044,7 +1153,9 @@ class DICOMwebDatabricksWrapper:
             try:
                 t0 = time.time()
                 self._lb.insert_frame_ranges(
-                    filename, frames, self._table,
+                    filename,
+                    frames,
+                    self._table,
                     transfer_syntax_uid=transfer_syntax_uid,
                     allowed_groups=self._user_groups,
                 )
@@ -1088,9 +1199,7 @@ class DICOMwebDatabricksWrapper:
             study_instance_uid,
             series_instance_uid,
         )
-        logger.debug(
-            f"Series pre-warm scheduled for {series_instance_uid} (background)"
-        )
+        logger.debug(f"Series pre-warm scheduled for {series_instance_uid} (background)")
 
     def _prime_series_task(
         self,
@@ -1118,7 +1227,9 @@ class DICOMwebDatabricksWrapper:
                 try:
                     t0 = time.time()
                     lb_entries = self._lb.retrieve_instance_paths_by_series(
-                        study_instance_uid, series_instance_uid, self._table,
+                        study_instance_uid,
+                        series_instance_uid,
+                        self._table,
                         user_groups=self._user_groups,
                     )
                     elapsed = time.time() - t0
@@ -1129,15 +1240,15 @@ class DICOMwebDatabricksWrapper:
                             f"{len(cache_entries)} instances in {elapsed:.4f}s"
                         )
                 except Exception as exc:
-                    logger.warning(
-                        f"Series pre-warm: Lakebase lookup failed ({exc})"
-                    )
+                    logger.warning(f"Series pre-warm: Lakebase lookup failed ({exc})")
 
             # ── Tier 3: SQL warehouse (~0.3 s, one-time per series) ────
             if not cache_entries:
                 t0 = time.time()
                 query, params = build_series_instance_paths_query(
-                    self._table, study_instance_uid, series_instance_uid,
+                    self._table,
+                    study_instance_uid,
+                    series_instance_uid,
                 )
                 results = self._query(query, params)
                 elapsed = time.time() - t0
@@ -1170,16 +1281,14 @@ class DICOMwebDatabricksWrapper:
                             for uid, info in cache_entries.items()
                         ]
                         self._lb.insert_instance_paths_batch(
-                            lb_records, allowed_groups=self._user_groups,
+                            lb_records,
+                            allowed_groups=self._user_groups,
                         )
                         logger.debug(
-                            f"Series pre-warm: persisted "
-                            f"{len(lb_records)} paths to Lakebase"
+                            f"Series pre-warm: persisted " f"{len(lb_records)} paths to Lakebase"
                         )
                     except Exception as exc:
-                        logger.warning(
-                            f"Series pre-warm: Lakebase persist failed ({exc})"
-                        )
+                        logger.warning(f"Series pre-warm: Lakebase persist failed ({exc})")
 
             if not cache_entries:
                 logger.warning("Series pre-warm: no instances found")
@@ -1187,11 +1296,12 @@ class DICOMwebDatabricksWrapper:
 
             # ── Push into in-memory cache ──────────────────────────────
             instance_path_cache.batch_put(
-                self._table, cache_entries, user_groups=self._user_groups,
+                self._table,
+                cache_entries,
+                user_groups=self._user_groups,
             )
             logger.debug(
-                f"Series pre-warm: cached {len(cache_entries)} instance paths "
-                f"in memory"
+                f"Series pre-warm: cached {len(cache_entries)} instance paths " f"in memory"
             )
 
             # ── Schedule file prefetch ──────────────────────────────────
@@ -1254,7 +1364,8 @@ class DICOMwebDatabricksWrapper:
             try:
                 t0 = time.time()
                 lb_batch = self._lb.retrieve_frame_ranges_batch(
-                    list(needs_bot.keys()), uc_table,
+                    list(needs_bot.keys()),
+                    uc_table,
                     user_groups=self._user_groups,
                 )
                 elapsed = time.time() - t0
@@ -1270,7 +1381,8 @@ class DICOMwebDatabricksWrapper:
                         try:
                             meta = get_file_metadata(token, db_file)
                             tsuid = meta.get("00020010", {}).get(
-                                "Value", ["1.2.840.10008.1.2.1"],
+                                "Value",
+                                ["1.2.840.10008.1.2.1"],
                             )[0]
                         except Exception:
                             tsuid = "1.2.840.10008.1.2.1"
@@ -1283,14 +1395,9 @@ class DICOMwebDatabricksWrapper:
                 logger.warning(f"BOT preload: Lakebase batch failed ({exc})")
 
         # ── Tier 3: compute BOTs for remaining files ──────────────────
-        remaining = {
-            fn: path for fn, path in needs_bot.items()
-            if fn not in loaded_from_lb
-        }
+        remaining = {fn: path for fn, path in needs_bot.items() if fn not in loaded_from_lb}
         if not remaining:
-            logger.info(
-                f"BOT preload complete: {len(loaded_from_lb)} loaded from Lakebase"
-            )
+            logger.info(f"BOT preload complete: {len(loaded_from_lb)} loaded from Lakebase")
             return
 
         logger.debug(f"BOT preload: computing BOTs for {len(remaining)} files")
@@ -1311,7 +1418,9 @@ class DICOMwebDatabricksWrapper:
                 if self._lb and frames:
                     try:
                         self._lb.insert_frame_ranges(
-                            filename, frames, uc_table,
+                            filename,
+                            frames,
+                            uc_table,
                             transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                             allowed_groups=self._user_groups,
                         )
@@ -1321,19 +1430,13 @@ class DICOMwebDatabricksWrapper:
                         )
 
                 logger.debug(
-                    f"BOT preload: {len(frames)} frames for "
-                    f"{filename} in {elapsed:.3f}s"
+                    f"BOT preload: {len(frames)} frames for " f"{filename} in {elapsed:.3f}s"
                 )
             except Exception as exc:
-                logger.warning(
-                    f"BOT preload: computation failed for {filename}: {exc}"
-                )
+                logger.warning(f"BOT preload: computation failed for {filename}: {exc}")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futures = [
-                pool.submit(_compute_single, fn, path)
-                for fn, path in remaining.items()
-            ]
+            futures = [pool.submit(_compute_single, fn, path) for fn, path in remaining.items()]
             concurrent.futures.wait(futures)
 
         logger.info(
@@ -1374,7 +1477,9 @@ class DICOMwebDatabricksWrapper:
         """
         # ── Tier 1: in-memory cache (µs) ──────────────────────────────
         path_info = instance_path_cache.get(
-            sop_instance_uid, self._table, user_groups=self._user_groups,
+            sop_instance_uid,
+            self._table,
+            user_groups=self._user_groups,
         )
         if path_info:
             return path_info["path"]
@@ -1384,15 +1489,18 @@ class DICOMwebDatabricksWrapper:
             try:
                 t0 = time.time()
                 lb_info = self._lb.retrieve_instance_path(
-                    study_instance_uid, series_instance_uid,
-                    sop_instance_uid, self._table,
+                    study_instance_uid,
+                    series_instance_uid,
+                    sop_instance_uid,
+                    self._table,
                     user_groups=self._user_groups,
                 )
                 logger.debug(f"Lakebase path lookup took {time.time() - t0:.4f}s")
                 if lb_info:
                     logger.debug(f"Instance path Lakebase HIT for {sop_instance_uid}")
                     instance_path_cache.put(
-                        sop_instance_uid, self._table,
+                        sop_instance_uid,
+                        self._table,
                         {"path": lb_info["path"], "num_frames": lb_info["num_frames"]},
                         user_groups=self._user_groups,
                     )
@@ -1403,7 +1511,10 @@ class DICOMwebDatabricksWrapper:
         # ── Tier 3: SQL warehouse (~300 ms) ───────────────────────────
         logger.debug(f"Instance path cache MISS — querying SQL for {sop_instance_uid}")
         query, params = build_instance_path_query(
-            self._table, study_instance_uid, series_instance_uid, sop_instance_uid,
+            self._table,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
         )
         results = self._query(query, params)
         if not results or not results[0]:
@@ -1414,7 +1525,8 @@ class DICOMwebDatabricksWrapper:
 
         # Promote to tier 1
         instance_path_cache.put(
-            sop_instance_uid, self._table,
+            sop_instance_uid,
+            self._table,
             {"path": local_path, "num_frames": num_frames},
             user_groups=self._user_groups,
         )
@@ -1423,14 +1535,16 @@ class DICOMwebDatabricksWrapper:
         if self._lb:
             try:
                 self._lb.insert_instance_paths_batch(
-                    [{
-                        "sop_instance_uid": sop_instance_uid,
-                        "study_instance_uid": study_instance_uid,
-                        "series_instance_uid": series_instance_uid,
-                        "local_path": local_path,
-                        "num_frames": num_frames,
-                        "uc_table_name": self._table,
-                    }],
+                    [
+                        {
+                            "sop_instance_uid": sop_instance_uid,
+                            "study_instance_uid": study_instance_uid,
+                            "series_instance_uid": series_instance_uid,
+                            "local_path": local_path,
+                            "num_frames": num_frames,
+                            "uc_table_name": self._table,
+                        }
+                    ],
                     allowed_groups=self._user_groups,
                 )
             except Exception as exc:
@@ -1466,7 +1580,9 @@ class DICOMwebDatabricksWrapper:
         """
         # --- resolve SOP UID → file path (3-tier) ---
         path = self._resolve_instance_path(
-            study_instance_uid, series_instance_uid, sop_instance_uid,
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
         )
 
         db_file = DatabricksFile.from_full_path(path)
@@ -1488,7 +1604,9 @@ class DICOMwebDatabricksWrapper:
                 logger.debug(f"Checking Lakebase for {filename}")
                 t0 = time.time()
                 lb_frames = self._lb.retrieve_all_frame_ranges(
-                    filename, self._table, user_groups=self._user_groups,
+                    filename,
+                    self._table,
+                    user_groups=self._user_groups,
                 )
                 logger.debug(f"Lakebase lookup took {time.time() - t0:.4f}s")
 
@@ -1497,13 +1615,14 @@ class DICOMwebDatabricksWrapper:
                     lb_idx = {f["frame_number"]: f for f in lb_frames}
 
                     if all((fn - 1) in lb_idx for fn in frame_numbers):
-                        tsuid = (
-                            (cached_bot or {}).get("transfer_syntax_uid")
-                            or (lb_frames[0].get("transfer_syntax_uid") if lb_frames else None)
+                        tsuid = (cached_bot or {}).get("transfer_syntax_uid") or (
+                            lb_frames[0].get("transfer_syntax_uid") if lb_frames else None
                         )
                         if not tsuid:
                             meta = get_file_metadata(token, db_file)
-                            tsuid = meta.get("00020010", {}).get("Value", ["1.2.840.10008.1.2.1"])[0]
+                            tsuid = meta.get("00020010", {}).get("Value", ["1.2.840.10008.1.2.1"])[
+                                0
+                            ]
 
                         bot_cache.put_from_lakebase(filename, self._table, lb_frames, tsuid)
                         logger.debug("Promoted Lakebase → memory cache")
@@ -1516,7 +1635,9 @@ class DICOMwebDatabricksWrapper:
             logger.debug(f"Cache MISS — computing full BOT for {filename}")
             t0 = time.time()
             bot_data = compute_full_bot(
-                token, db_file, capture_frames=capture_set,
+                token,
+                db_file,
+                capture_frames=capture_set,
             )
             logger.debug(
                 f"compute_full_bot took {time.time() - t0:.4f}s — "
@@ -1529,7 +1650,9 @@ class DICOMwebDatabricksWrapper:
                 try:
                     t0 = time.time()
                     self._lb.insert_frame_ranges(
-                        filename, bot_data["frames"], self._table,
+                        filename,
+                        bot_data["frames"],
+                        self._table,
                         transfer_syntax_uid=bot_data.get("transfer_syntax_uid"),
                         allowed_groups=self._user_groups,
                     )

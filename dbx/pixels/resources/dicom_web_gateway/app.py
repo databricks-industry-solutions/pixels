@@ -72,47 +72,47 @@ import logging
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import psutil
-from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
-
-from dbx.pixels.resources.common.middleware import LoggingMiddleware
-
 from utils.cache import bot_cache, instance_path_cache
 from utils.dicom_io import file_prefetcher
 from utils.handlers import (
-    dicomweb_qido_studies,
-    dicomweb_qido_series,
+    dicomweb_prime_series,
     dicomweb_qido_all_series,
     dicomweb_qido_instances,
-    dicomweb_wado_series_metadata,
+    dicomweb_qido_series,
+    dicomweb_qido_studies,
+    dicomweb_resolve_paths,
+    dicomweb_stow_studies,
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
+    dicomweb_wado_series_metadata,
     dicomweb_wado_uri,
-    dicomweb_stow_studies,
-    dicomweb_resolve_paths,
-    dicomweb_prime_series,
 )
+
+from dbx.pixels.resources.common.middleware import LoggingMiddleware
 
 try:
     from utils.handlers import dicomweb_resolve_frame_ranges
 except ImportError:
     dicomweb_resolve_frame_ranges = None
 
-from metrics_store import get_store
+from utils.metrics_store import get_store
 
 logger = logging.getLogger("DICOMweb.Gateway")
 
 _METRICS_INTERVAL = float(os.getenv("DICOMWEB_METRICS_INTERVAL", "1"))
-_WADO_DIAG_HEADERS = os.getenv(
-    "DICOMWEB_WADO_DIAG_HEADERS", "false"
-).strip().lower() in ("1", "true", "yes")
+_WADO_DIAG_HEADERS = os.getenv("DICOMWEB_WADO_DIAG_HEADERS", "false").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 # Shared async HTTP client — available for future async Volumes reads.
 _http_client: httpx.AsyncClient | None = None
@@ -120,6 +120,7 @@ _http_client: httpx.AsyncClient | None = None
 # ---------------------------------------------------------------------------
 # Startup BOT cache preload
 # ---------------------------------------------------------------------------
+
 
 def _startup_bot_preload() -> None:
     """
@@ -131,8 +132,8 @@ def _startup_bot_preload() -> None:
     configured ``max_entries`` limit.  The LRU cache handles any overflow
     automatically, so no RAM budget arithmetic is needed.
     """
-    from utils.handlers._common import lb_utils
     from utils.cache import bot_cache
+    from utils.handlers._common import lb_utils
 
     if lb_utils is None:
         logger.info("Startup BOT preload: Lakebase not configured — skipping")
@@ -184,7 +185,9 @@ def _startup_bot_preload() -> None:
         elapsed = time.perf_counter() - t0
         logger.info(
             "Startup BOT preload complete: %d loaded, %d errors — %.1fs",
-            loaded, errors, elapsed,
+            loaded,
+            errors,
+            elapsed,
         )
 
         # Re-use BOT filenames to preload instance paths in one query.
@@ -193,11 +196,10 @@ def _startup_bot_preload() -> None:
     # ── Instance-path cache preload ────────────────────────────────────────
     try:
         from utils.cache import instance_path_cache
+
         t1 = time.perf_counter()
         if all_filenames:
-            path_map = lb_utils.retrieve_instance_paths_by_local_paths(
-                all_filenames, uc_table
-            )
+            path_map = lb_utils.retrieve_instance_paths_by_local_paths(all_filenames, uc_table)
         else:
             path_map = lb_utils.retrieve_instance_paths_for_preload(
                 uc_table_name=uc_table, limit=limit
@@ -218,6 +220,7 @@ def _startup_bot_preload() -> None:
     except Exception as exc:
         logger.warning("Startup instance-path preload failed (non-fatal): %s", exc)
 
+
 # ---------------------------------------------------------------------------
 # Gateway request counters
 # ---------------------------------------------------------------------------
@@ -225,7 +228,7 @@ def _startup_bot_preload() -> None:
 _gw_req_count = 0
 _gw_req_errors = 0
 _gw_req_latency_sum = 0.0
-_gw_req_in_flight = 0   # gauge: requests currently being processed
+_gw_req_in_flight = 0  # gauge: requests currently being processed
 
 
 def _record_request(elapsed: float, is_error: bool):
@@ -284,10 +287,7 @@ def _snapshot_and_reset() -> dict:
         "request_count": _gw_req_count,
         "error_count": _gw_req_errors,
         "latency_sum_s": round(_gw_req_latency_sum, 4),
-        "avg_latency_s": (
-            round(_gw_req_latency_sum / _gw_req_count, 4)
-            if _gw_req_count else 0
-        ),
+        "avg_latency_s": (round(_gw_req_latency_sum / _gw_req_count, 4) if _gw_req_count else 0),
         "in_flight": max(_gw_req_in_flight, 0),  # gauge — not reset
         "system": _collect_system_metrics(),
         "caches": _collect_cache_metrics(),
@@ -321,6 +321,7 @@ async def _broadcast_metrics(data: dict):
 # Background metrics reporter
 # ---------------------------------------------------------------------------
 
+
 async def _metrics_reporter():
     """Flush gateway stats to Lakebase and push to WebSocket clients."""
     store = get_store()
@@ -347,17 +348,20 @@ async def _metrics_reporter():
                     logger.error("Lakebase read for WS broadcast: %s", exc)
 
             if not payload["gateway"]:
-                payload["gateway"] = [{
-                    "source": "gateway",
-                    "recorded_at": datetime.now(timezone.utc).isoformat(),
-                    "metrics": gw_snapshot,
-                }]
+                payload["gateway"] = [
+                    {
+                        "source": "gateway",
+                        "recorded_at": datetime.now(timezone.utc).isoformat(),
+                        "metrics": gw_snapshot,
+                    }
+                ]
             await _broadcast_metrics(payload)
 
 
 # ---------------------------------------------------------------------------
 # FastAPI application
 # ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def _lifespan(application: FastAPI):
@@ -368,6 +372,7 @@ async def _lifespan(application: FastAPI):
     # parallelism under bursty WADO traffic.
     try:
         import anyio
+
         anyio_tokens = int(os.getenv("DICOMWEB_ANYIO_THREAD_TOKENS", "128"))
         limiter = anyio.to_thread.current_default_thread_limiter()
         limiter.total_tokens = max(1, anyio_tokens)
@@ -397,10 +402,8 @@ async def _lifespan(application: FastAPI):
 
     # Log STOW upload mode clearly so operators can see at a glance
     # which path is active without needing to inspect env vars manually.
-    from utils.cloud_direct_upload import (
-        DIRECT_UPLOAD_ENABLED,
-        probe_direct_upload,
-    )
+    from utils.cloud_direct_upload import DIRECT_UPLOAD_ENABLED, probe_direct_upload
+
     if DIRECT_UPLOAD_ENABLED:
         # Run synchronously so credentials are cached before the first upload request
         # arrives.  probe_direct_upload() also calls get_temp_credentials(), which
@@ -425,6 +428,7 @@ async def _lifespan(application: FastAPI):
     # Graceful shutdown — flush any buffered STOW audit records before exit
     try:
         from utils.handlers._stow import _stow_record_buffer
+
         _stow_record_buffer.stop()
     except Exception:
         pass
@@ -435,18 +439,17 @@ async def _lifespan(application: FastAPI):
     await _http_client.aclose()
     _http_client = None
 
+
 app = FastAPI(
     title="DICOMweb Gateway",
-    description=(
-        "Full DICOMweb-compliant API backed by "
-        "Databricks SQL, Lakebase, and Volumes"
-    ),
+    description=("Full DICOMweb-compliant API backed by " "Databricks SQL, Lakebase, and Volumes"),
     version="2.0.0",
     lifespan=_lifespan,
 )
 
 
 # ── QIDO-RS ──────────────────────────────────────────────────────────────
+
 
 @app.get("/api/dicomweb/studies", tags=["QIDO-RS"])
 def search_studies(request: Request):
@@ -471,19 +474,24 @@ def search_series(request: Request, study_uid: str):
     tags=["QIDO-RS"],
 )
 def search_instances(
-    request: Request, study_uid: str, series_uid: str,
+    request: Request,
+    study_uid: str,
+    series_uid: str,
 ):
     return dicomweb_qido_instances(request, study_uid, series_uid)
 
 
 # ── WADO-RS ──────────────────────────────────────────────────────────────
 
+
 @app.get(
     "/api/dicomweb/studies/{study_uid}/series/{series_uid}/metadata",
     tags=["WADO-RS"],
 )
 def retrieve_series_metadata(
-    request: Request, study_uid: str, series_uid: str,
+    request: Request,
+    study_uid: str,
+    series_uid: str,
 ):
     return dicomweb_wado_series_metadata(request, study_uid, series_uid)
 
@@ -501,22 +509,29 @@ def retrieve_instance_frames(
     frame_list: str,
 ):
     return dicomweb_wado_instance_frames(
-        request, study_uid, series_uid, sop_uid, frame_list,
+        request,
+        study_uid,
+        series_uid,
+        sop_uid,
+        frame_list,
     )
 
 
 @app.get(
-    "/api/dicomweb/studies/{study_uid}/series/{series_uid}"
-    "/instances/{sop_uid}",
+    "/api/dicomweb/studies/{study_uid}/series/{series_uid}" "/instances/{sop_uid}",
     tags=["WADO-RS"],
 )
 def retrieve_instance(
-    request: Request, study_uid: str, series_uid: str, sop_uid: str,
+    request: Request,
+    study_uid: str,
+    series_uid: str,
+    sop_uid: str,
 ):
     return dicomweb_wado_instance(request, study_uid, series_uid, sop_uid)
 
 
 # ── WADO-URI (legacy) ────────────────────────────────────────────────────
+
 
 @app.get("/api/dicomweb/wado", tags=["WADO-URI"])
 def wado_uri(request: Request):
@@ -535,6 +550,7 @@ def wado_uri_base(request: Request):
 
 # ── STOW-RS ──────────────────────────────────────────────────────────────
 
+
 @app.post("/api/dicomweb/studies/{study_uid}", tags=["STOW-RS"])
 async def store_instances_study(request: Request, study_uid: str):
     return await dicomweb_stow_studies(request, study_uid)
@@ -547,12 +563,14 @@ async def store_instances(request: Request):
 
 # ── Auxiliary ────────────────────────────────────────────────────────────
 
+
 @app.post("/api/dicomweb/resolve_paths", tags=["Path Resolution"])
 async def resolve_paths(request: Request):
     return await dicomweb_resolve_paths(request)
 
 
 if dicomweb_resolve_frame_ranges is not None:
+
     @app.post("/api/dicomweb/resolve_frame_ranges", tags=["Frame Resolution"])
     async def resolve_frame_ranges(request: Request):
         return await dicomweb_resolve_frame_ranges(request)
@@ -594,10 +612,10 @@ def dicomweb_root():
 # ── Monitoring ───────────────────────────────────────────────────────────
 
 _METRICS_WINDOWS: dict[str, int] = {
-    "5m":  5 * 60,
+    "5m": 5 * 60,
     "30m": 30 * 60,
-    "1h":  60 * 60,
-    "8h":  8 * 60 * 60,
+    "1h": 60 * 60,
+    "8h": 8 * 60 * 60,
 }
 
 
@@ -627,19 +645,19 @@ def stow_status():
     probe_error : str | null
         Reason string when the direct-upload probe failed at startup.
     """
-    from utils.cloud_direct_upload import (
-        DIRECT_UPLOAD_ENABLED,
-        probe_direct_upload,
-    )
+    from utils.cloud_direct_upload import DIRECT_UPLOAD_ENABLED, probe_direct_upload
+
     probe = probe_direct_upload()
-    return JSONResponse(content={
-        "direct_upload_enabled": DIRECT_UPLOAD_ENABLED,
-        "mode": probe["mode"],
-        "provider": probe.get("provider"),
-        "cloud_url": probe.get("cloud_url"),
-        "volumes_concurrency": int(os.getenv("STOW_VOLUMES_CONCURRENCY", "8")),
-        "probe_error": probe.get("error"),
-    })
+    return JSONResponse(
+        content={
+            "direct_upload_enabled": DIRECT_UPLOAD_ENABLED,
+            "mode": probe["mode"],
+            "provider": probe.get("provider"),
+            "cloud_url": probe.get("cloud_url"),
+            "volumes_concurrency": int(os.getenv("STOW_VOLUMES_CONCURRENCY", "8")),
+            "probe_error": probe.get("error"),
+        }
+    )
 
 
 @app.get("/api/metrics", tags=["Monitoring"])
@@ -667,12 +685,14 @@ def metrics(window: str = "5m"):
             )
         except Exception as exc:
             logger.error("Metrics Lakebase read: %s", exc)
-    return JSONResponse(content={
-        "gateway": rows,
-        "window": window,
-        "system": _collect_system_metrics(),
-        "caches": _collect_cache_metrics(),
-    })
+    return JSONResponse(
+        content={
+            "gateway": rows,
+            "window": window,
+            "system": _collect_system_metrics(),
+            "caches": _collect_cache_metrics(),
+        }
+    )
 
 
 @app.websocket("/ws/metrics")
@@ -693,12 +713,14 @@ async def ws_metrics(websocket: WebSocket):
 def dashboard():
     """Serve the live metrics dashboard."""
     import pathlib
+
     html_path = pathlib.Path(__file__).parent / "pages" / "dashboard.html"
     html = html_path.read_text()
     return HTMLResponse(content=html)
 
 
 # ── Health ───────────────────────────────────────────────────────────────
+
 
 @app.get("/health", tags=["Health"])
 def health():
@@ -788,9 +810,11 @@ class _InstrumentMiddleware:
                     max(_gw_req_in_flight, 0),
                 )
 
+
 app.add_middleware(_InstrumentMiddleware)
 app.add_middleware(LoggingMiddleware)
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)

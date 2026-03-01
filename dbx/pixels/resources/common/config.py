@@ -55,6 +55,7 @@ def get_warehouse_id() -> str:
 # Request-scoped helpers
 # ---------------------------------------------------------------------------
 
+
 def get_pixels_table(request) -> str:
     """Return the active pixels table from the cookie or environment."""
     if request.cookies.get("pixels_table"):
@@ -82,4 +83,3 @@ def log(message, request, log_type="info"):
         logger.debug(f"{email} | {message}")
     else:
         logger.info(f"{email} | {message}")
-

@@ -47,7 +47,6 @@ import os
 import re
 import threading
 import time
-from io import BytesIO
 from typing import AsyncIterator
 
 import requests as _requests
@@ -60,13 +59,16 @@ logger = LoggerProvider("DICOMweb.CloudUpload")
 # Feature flag
 # ---------------------------------------------------------------------------
 
-DIRECT_UPLOAD_ENABLED: bool = (
-    os.getenv("STOW_DIRECT_CLOUD_UPLOAD", "false").lower() in ("1", "true", "yes")
+DIRECT_UPLOAD_ENABLED: bool = os.getenv("STOW_DIRECT_CLOUD_UPLOAD", "false").lower() in (
+    "1",
+    "true",
+    "yes",
 )
 
 # ---------------------------------------------------------------------------
 # SDK-based host / token resolution
 # ---------------------------------------------------------------------------
+
 
 def _sdk_host_and_token() -> tuple[str, str]:
     """
@@ -78,6 +80,7 @@ def _sdk_host_and_token() -> tuple[str, str]:
     identity — without requiring a raw ``DATABRICKS_TOKEN`` env var.
     """
     from databricks.sdk.core import Config
+
     cfg = Config()
     headers = cfg.authenticate()
     if callable(headers):
@@ -91,11 +94,11 @@ def _sdk_host_and_token() -> tuple[str, str]:
 # In-process caches (one per process / uvicorn worker)
 # ---------------------------------------------------------------------------
 
-_storage_location_cache: dict[str, str] = {}   # uc_volume_name → cloud_url
+_storage_location_cache: dict[str, str] = {}  # uc_volume_name → cloud_url
 _cred_cache: dict[str, tuple[dict, float]] = {}  # credential_name → (creds, expiry_ts)
 _cred_inflight: dict[str, threading.Event] = {}  # credential_name → Event (stampede guard)
 _cache_lock = threading.Lock()
-_CRED_EXPIRE_BUFFER_S = 300   # refresh 5 minutes before actual expiry
+_CRED_EXPIRE_BUFFER_S = 300  # refresh 5 minutes before actual expiry
 
 # Module-level WorkspaceClient — created once, reused across all credential
 # vends.  Creating WorkspaceClient() per call forces repeated SDK config
@@ -111,6 +114,7 @@ def _get_workspace_client():
         with _wc_lock:
             if _workspace_client is None:
                 from databricks.sdk import WorkspaceClient
+
                 _workspace_client = WorkspaceClient()
     return _workspace_client
 
@@ -119,6 +123,7 @@ def _get_workspace_client():
 # Path utilities
 # ---------------------------------------------------------------------------
 
+
 def _volumes_to_uc_name_and_relative(volumes_path: str) -> tuple[str, str]:
     """
     Split ``/Volumes/catalog/schema/volume/a/b/c`` into
@@ -126,9 +131,7 @@ def _volumes_to_uc_name_and_relative(volumes_path: str) -> tuple[str, str]:
     """
     parts = volumes_path.strip("/").split("/")
     if len(parts) < 4 or parts[0].lower() != "volumes":
-        raise ValueError(
-            f"Expected /Volumes/catalog/schema/volume/… path, got: {volumes_path}"
-        )
+        raise ValueError(f"Expected /Volumes/catalog/schema/volume/… path, got: {volumes_path}")
     uc_name = f"{parts[1]}.{parts[2]}.{parts[3]}"
     relative = "/".join(parts[4:]) if len(parts) > 4 else ""
     return uc_name, relative
@@ -169,9 +172,7 @@ def _get_storage_location(host: str, token: str, uc_volume_name: str) -> str:
     with _cache_lock:
         _storage_location_cache[uc_volume_name] = storage_location
 
-    logger.info(
-        "Resolved storage location: %s → %s", uc_volume_name, storage_location
-    )
+    logger.info("Resolved storage location: %s → %s", uc_volume_name, storage_location)
     return storage_location
 
 
@@ -222,9 +223,7 @@ def _get_service_credential_name(host: str, token: str, cloud_url: str) -> str:
         if cloud_url.startswith(url) and cred_name:
             with _cache_lock:
                 _service_credential_cache[url] = cred_name
-            logger.info(
-                "Auto-discovered service credential '%s' for %s", cred_name, cloud_url
-            )
+            logger.info("Auto-discovered service credential '%s' for %s", cred_name, cloud_url)
             return cred_name
 
     raise RuntimeError(
@@ -295,9 +294,9 @@ def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
     creds: dict = {}
     if result.aws_temp_credentials:
         creds["aws_temp_credentials"] = {
-            "access_key_id":     result.aws_temp_credentials.access_key_id,
+            "access_key_id": result.aws_temp_credentials.access_key_id,
             "secret_access_key": result.aws_temp_credentials.secret_access_key,
-            "session_token":     result.aws_temp_credentials.session_token,
+            "session_token": result.aws_temp_credentials.session_token,
         }
     elif result.azure_user_delegation_sas:
         creds["azure_sas_token"] = result.azure_user_delegation_sas.sas_token
@@ -324,6 +323,7 @@ def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
 # Async → sync queue bridge (streaming upload to cloud SDKs)
 # ---------------------------------------------------------------------------
 
+
 class _SyncQueueReader:
     """
     Wraps an ``asyncio.Queue`` as a **synchronous** file-like ``read()``
@@ -343,9 +343,9 @@ class _SyncQueueReader:
     def read(self, n: int = -1) -> bytes:
         while not self._done and (n < 0 or len(self._buf) < n):
             try:
-                chunk = asyncio.run_coroutine_threadsafe(
-                    self._queue.get(), self._loop
-                ).result(timeout=120)
+                chunk = asyncio.run_coroutine_threadsafe(self._queue.get(), self._loop).result(
+                    timeout=120
+                )
                 if chunk is None:
                     self._done = True
                 else:
@@ -368,6 +368,7 @@ class _SyncQueueReader:
 # Per-provider write functions (synchronous — run via asyncio.to_thread)
 # ---------------------------------------------------------------------------
 
+
 def _write_s3(
     reader: _SyncQueueReader,
     cloud_url: str,
@@ -375,10 +376,11 @@ def _write_s3(
     content_length: int | None,
 ) -> None:
     """Stream *reader* to S3 using boto3 ``upload_fileobj``."""
+    from urllib.parse import urlparse
+
     import boto3
     from boto3.s3.transfer import TransferConfig
     from botocore.config import Config as BotoConfig
-    from urllib.parse import urlparse
 
     parsed = urlparse(cloud_url)
     bucket = parsed.netloc
@@ -408,7 +410,9 @@ def _write_s3(
         extra["ContentLength"] = content_length
 
     s3.upload_fileobj(
-        reader, bucket, key,
+        reader,
+        bucket,
+        key,
         ExtraArgs=extra if extra else None,
         Config=transfer_cfg,
     )
@@ -450,18 +454,18 @@ def _write_gcs(
     creds: dict,
 ) -> None:
     """Stream *reader* to GCS using a short-lived OAuth2 token."""
+    from urllib.parse import urlparse
+
     from google.cloud import storage as gcs
     from google.oauth2.credentials import Credentials
-    from urllib.parse import urlparse
 
     parsed = urlparse(cloud_url)
     bucket_name = parsed.netloc
     blob_name = parsed.path.lstrip("/")
 
     # Databricks returns the token in different shapes depending on config
-    access_token = (
-        creds.get("access_token")
-        or (creds.get("gcp_service_account_token") or {}).get("access_token")
+    access_token = creds.get("access_token") or (creds.get("gcp_service_account_token") or {}).get(
+        "access_token"
     )
     client = gcs.Client(credentials=Credentials(token=access_token), project=None)
     bucket = client.bucket(bucket_name)
@@ -473,6 +477,7 @@ def _write_gcs(
 # ---------------------------------------------------------------------------
 # Public async API
 # ---------------------------------------------------------------------------
+
 
 def _detect_provider(cloud_url: str) -> str:
     if cloud_url.startswith("s3://"):
@@ -544,7 +549,8 @@ async def async_stream_to_cloud(
     t_end = time.time()
     logger.info(
         "Direct cloud upload complete: %s  bytes=%d  creds=%.2fs  upload=%.2fs  total=%.2fs",
-        cloud_url, total_size,
+        cloud_url,
+        total_size,
         t_creds - t_start,
         t_end - t_creds,
         t_end - t_start,
@@ -567,7 +573,11 @@ async def async_direct_volumes_upload(
     """
     cloud_url = await asyncio.to_thread(resolve_cloud_url, host, token, volumes_path)
     return await async_stream_to_cloud(
-        token, host, cloud_url, body_stream, content_length,
+        token,
+        host,
+        cloud_url,
+        body_stream,
+        content_length,
     )
 
 
@@ -620,8 +630,7 @@ def probe_direct_upload() -> dict:
 
         result.update({"mode": "direct_cloud", "provider": provider, "cloud_url": cloud_url})
         logger.info(
-            "STOW upload mode: DIRECT CLOUD (%s)  "
-            "storage_location=%s  volume=%s",
+            "STOW upload mode: DIRECT CLOUD (%s)  " "storage_location=%s  volume=%s",
             provider.upper(),
             cloud_url,
             volumes_path,
@@ -640,8 +649,7 @@ def probe_direct_upload() -> dict:
             )
         else:
             logger.warning(
-                "STOW upload mode: FILES API  (direct cloud probe failed)\n"
-                "  Reason: %s",
+                "STOW upload mode: FILES API  (direct cloud probe failed)\n" "  Reason: %s",
                 msg,
             )
 

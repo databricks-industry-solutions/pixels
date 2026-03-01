@@ -45,9 +45,9 @@ logger = LoggerProvider("DICOMweb.IO")
 # ---------------------------------------------------------------------------
 # Resource budget constants
 # ---------------------------------------------------------------------------
-_CPU_BUDGET_RATIO = 0.80          # use at most 80 % of available cores
+_CPU_BUDGET_RATIO = 0.80  # use at most 80 % of available cores
 _RAM_BUDGET_RATIO = float(os.environ.get("PIXELS_PREFETCH_RAM_RATIO", "0.50"))
-_DISK_TOTAL_BYTES = 100 * 1024 ** 3   # 100 GB assumed disk
+_DISK_TOTAL_BYTES = 100 * 1024**3  # 100 GB assumed disk
 _DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
 
 
@@ -62,19 +62,16 @@ _DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
 # PUT is included in the allowed methods because it is idempotent.
 
 _retry_strategy = Retry(
-    total=3,                          # up to 3 retries (4 attempts total)
-    backoff_factor=1,                 # wait 1s, 2s, 4s between retries
-    status_forcelist=[502, 503, 504], # retry on gateway / server errors
+    total=3,  # up to 3 retries (4 attempts total)
+    backoff_factor=1,  # wait 1s, 2s, 4s between retries
+    status_forcelist=[502, 503, 504],  # retry on gateway / server errors
     allowed_methods=["GET", "HEAD", "PUT", "OPTIONS"],  # PUT is idempotent
-    raise_on_status=False,            # let caller inspect the response
+    raise_on_status=False,  # let caller inspect the response
 )
 
-_SESSION_POOL_CONNECTIONS = int(
-    os.environ.get("PIXELS_FILES_POOL_CONNECTIONS", "20")
-)
-_SESSION_POOL_MAXSIZE = int(
-    os.environ.get("PIXELS_FILES_POOL_MAXSIZE", "100")
-)
+_SESSION_POOL_CONNECTIONS = int(os.environ.get("PIXELS_FILES_POOL_CONNECTIONS", "20"))
+_SESSION_POOL_MAXSIZE = int(os.environ.get("PIXELS_FILES_POOL_MAXSIZE", "100"))
+
 
 def _build_pooled_session(pool_connections: int, pool_maxsize: int) -> requests.Session:
     """Create a ``requests.Session`` with a tuned connection pool."""
@@ -99,9 +96,7 @@ _live_session = _build_pooled_session(
 _PREFETCH_POOL_CONNECTIONS = int(
     os.environ.get("PIXELS_PREFETCH_POOL_CONNECTIONS", str(_SESSION_POOL_CONNECTIONS))
 )
-_PREFETCH_POOL_MAXSIZE = int(
-    os.environ.get("PIXELS_PREFETCH_POOL_MAXSIZE", "50")
-)
+_PREFETCH_POOL_MAXSIZE = int(os.environ.get("PIXELS_PREFETCH_POOL_MAXSIZE", "50"))
 _prefetch_session = _build_pooled_session(
     _PREFETCH_POOL_CONNECTIONS,
     _PREFETCH_POOL_MAXSIZE,
@@ -138,6 +133,7 @@ def _get_upload_client():  # return type annotated lazily to avoid top-level htt
     global _upload_client
     if _upload_client is None:
         import httpx
+
         _upload_client = httpx.AsyncClient(
             http2=False,  # HTTP/1.1 — dedicated connection per upload stream
             limits=httpx.Limits(
@@ -167,6 +163,7 @@ def _get_upload_semaphore():
     global _upload_semaphore
     if _upload_semaphore is None:
         import asyncio as _asyncio
+
         _upload_semaphore = _asyncio.Semaphore(_VOLUMES_UPLOAD_CONCURRENCY)
     return _upload_semaphore
 
@@ -174,6 +171,7 @@ def _get_upload_semaphore():
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _auth_headers(token: str) -> dict[str, str]:
     """Standard auth + UA headers for the Databricks Files API."""
@@ -186,6 +184,7 @@ def _auth_headers(token: str) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # Buffered stream reader (for sequential parsing of HTTP streams)
 # ---------------------------------------------------------------------------
+
 
 class BufferedStreamReader:
     """
@@ -302,6 +301,7 @@ class BufferedStreamReader:
 # Byte-range file access (buffered — for frames / small reads)
 # ---------------------------------------------------------------------------
 
+
 def _fetch_bytes_range(
     token: str,
     db_file: DatabricksFile,
@@ -357,6 +357,7 @@ def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
 # Streaming file access (zero-copy — for full instance retrieval)
 # ---------------------------------------------------------------------------
 
+
 def stream_file(
     token: str,
     db_file: DatabricksFile,
@@ -388,8 +389,7 @@ def stream_file(
         body = response.text
         response.close()
         raise RuntimeError(
-            f"Failed to stream {db_file.file_path} "
-            f"(HTTP {response.status_code}): {body}"
+            f"Failed to stream {db_file.file_path} " f"(HTTP {response.status_code}): {body}"
         )
 
     content_length = response.headers.get("Content-Length")
@@ -470,15 +470,21 @@ async def async_stream_to_volumes(
 
     # ── Direct cloud upload fast path (External Volumes only) ─────────────
     from .cloud_direct_upload import DIRECT_UPLOAD_ENABLED, async_direct_volumes_upload
+
     if DIRECT_UPLOAD_ENABLED:
         try:
             return await async_direct_volumes_upload(
-                token, host, volume_path, body_stream, content_length,
+                token,
+                host,
+                volume_path,
+                body_stream,
+                content_length,
             )
         except Exception as exc:
             logger.warning(
                 "Direct cloud upload failed (%s) — falling back to Files API: %s",
-                type(exc).__name__, exc,
+                type(exc).__name__,
+                exc,
             )
             # body_stream may be partially consumed; the Files API fallback
             # below will receive whatever remains (or raise its own error).
@@ -605,7 +611,7 @@ class FilePrefetcher:
     tune with ``PIXELS_BACKGROUND_POOL_WORKERS`` when prefetch is off.
     """
 
-    _DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024   # 10 MB
+    _DEFAULT_MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 
     def __init__(
         self,
@@ -614,9 +620,11 @@ class FilePrefetcher:
         max_file_bytes: int | None = None,
     ):
         # ── Enabled / disabled via env var ───────────────────────────
-        self._enabled = os.environ.get(
-            "PIXELS_PREFETCH_ENABLED", "false"
-        ).strip().lower() in ("1", "true", "yes")
+        self._enabled = os.environ.get("PIXELS_PREFETCH_ENABLED", "false").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
 
         # ── CPU budget ──────────────────────────────────────────────
         cpu_count = os.cpu_count() or 4
@@ -633,7 +641,8 @@ class FilePrefetcher:
             self._max_workers = max_workers or max(1, disabled_workers)
 
         self._pool = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self._max_workers, thread_name_prefix="volprefetch",
+            max_workers=self._max_workers,
+            thread_name_prefix="volprefetch",
         )
 
         # ── RAM budget ──────────────────────────────────────────────
@@ -641,7 +650,7 @@ class FilePrefetcher:
         if max_memory_bytes is not None:
             self._max_memory_bytes = max_memory_bytes
         elif _env_mb is not None:
-            self._max_memory_bytes = int(float(_env_mb) * 1024 ** 2)
+            self._max_memory_bytes = int(float(_env_mb) * 1024**2)
         else:
             total = psutil.virtual_memory().total
             self._max_memory_bytes = int(total * _RAM_BUDGET_RATIO) if self._enabled else 0
@@ -651,7 +660,7 @@ class FilePrefetcher:
         if max_file_bytes is not None:
             self._max_file_bytes = max_file_bytes
         elif _env_file_mb is not None:
-            self._max_file_bytes = int(float(_env_file_mb) * 1024 ** 2)
+            self._max_file_bytes = int(float(_env_file_mb) * 1024**2)
         else:
             self._max_file_bytes = self._DEFAULT_MAX_FILE_BYTES
 
@@ -773,13 +782,13 @@ class FilePrefetcher:
                 "cached": len(self._cache),
                 "pending": len(self._pending),
                 "total": len(self._cache) + len(self._pending),
-                "memory_used_mb": round(self._memory_used / (1024 ** 2), 2),
-                "memory_budget_mb": round(self._max_memory_bytes / (1024 ** 2), 2),
+                "memory_used_mb": round(self._memory_used / (1024**2), 2),
+                "memory_budget_mb": round(self._max_memory_bytes / (1024**2), 2),
                 "memory_skipped": self._memory_skipped,
                 "evicted": self._evicted_count,
                 "hits": self._hits,
                 "misses": self._misses,
-                "max_file_size_mb": round(self._max_file_bytes / (1024 ** 2), 2),
+                "max_file_size_mb": round(self._max_file_bytes / (1024**2), 2),
                 "files_skipped_too_large": self._files_skipped_too_large,
                 "pool_workers": self._max_workers,
             }
@@ -787,7 +796,9 @@ class FilePrefetcher:
     # -- internal ---------------------------------------------------------
 
     def _on_download_complete(
-        self, path: str, future: concurrent.futures.Future,
+        self,
+        path: str,
+        future: concurrent.futures.Future,
     ) -> None:
         """Callback fired when a download Future resolves."""
         try:
@@ -822,14 +833,14 @@ class FilePrefetcher:
         db_file = DatabricksFile.from_full_path(path)
         headers = _auth_headers(token)
         response = _prefetch_session.get(
-            db_file.to_api_url(), headers=headers, stream=True,
+            db_file.to_api_url(),
+            headers=headers,
+            stream=True,
         )
 
         if response.status_code != 200:
             response.close()
-            raise RuntimeError(
-                f"Prefetch HTTP {response.status_code} for {path}"
-            )
+            raise RuntimeError(f"Prefetch HTTP {response.status_code} for {path}")
 
         # ── Check file size before downloading the body ─────────────
         content_length = int(response.headers.get("Content-Length", 0))
@@ -857,6 +868,7 @@ file_prefetcher = FilePrefetcher()
 # ---------------------------------------------------------------------------
 # Progressive file streamer (single-writer, multi-reader frame delivery)
 # ---------------------------------------------------------------------------
+
 
 class _CaptureSlot:
     """Holds a frame capture request and its result."""
@@ -951,7 +963,10 @@ class _FileStreamState:
     # -- writer API (called by the stream worker) -------------------------
 
     def publish_frame(
-        self, frame_idx: int, frame_meta: dict, frame_data: bytes | None = None,
+        self,
+        frame_idx: int,
+        frame_meta: dict,
+        frame_data: bytes | None = None,
     ) -> None:
         """Publish a frame offset and optionally fill a capture slot."""
         with self._condition:
@@ -994,7 +1009,7 @@ class ProgressiveFileStreamer:
     """
 
     _DEFAULT_CACHE_DIR = "/tmp/pixels_frame_cache"
-    _DEFAULT_MAX_CACHE_BYTES = 50 * 1024 ** 3  # 50 GB
+    _DEFAULT_MAX_CACHE_BYTES = 50 * 1024**3  # 50 GB
 
     def __init__(
         self,
@@ -1004,13 +1019,14 @@ class ProgressiveFileStreamer:
         self._states: dict[str, _FileStreamState] = {}
         self._lock = threading.Lock()
         self._cache_dir = cache_dir or os.environ.get(
-            "PIXELS_FRAME_CACHE_DIR", self._DEFAULT_CACHE_DIR,
+            "PIXELS_FRAME_CACHE_DIR",
+            self._DEFAULT_CACHE_DIR,
         )
         _env_cache_gb = os.environ.get("PIXELS_FRAME_CACHE_MAX_GB")
         if max_cache_bytes is not None:
             self._max_cache_bytes = max_cache_bytes
         elif _env_cache_gb is not None:
-            self._max_cache_bytes = int(float(_env_cache_gb) * 1024 ** 3)
+            self._max_cache_bytes = int(float(_env_cache_gb) * 1024**3)
         else:
             self._max_cache_bytes = self._DEFAULT_MAX_CACHE_BYTES
         os.makedirs(self._cache_dir, exist_ok=True)
@@ -1066,8 +1082,12 @@ class ProgressiveFileStreamer:
 
         file_prefetcher._pool.submit(
             self._stream_worker,
-            state, token, db_file, pixel_data_pos,
-            number_of_frames, data_start,
+            state,
+            token,
+            db_file,
+            pixel_data_pos,
+            number_of_frames,
+            data_start,
         )
         logger.debug(
             f"Progressive stream started for {db_file.file_path} "
@@ -1096,7 +1116,9 @@ class ProgressiveFileStreamer:
         tee_fh = None
         try:
             response = _session.get(
-                db_file.to_api_url(), headers=headers, stream=True,
+                db_file.to_api_url(),
+                headers=headers,
+                stream=True,
             )
             if response.status_code not in (200, 206):
                 body = response.text[:500]
@@ -1108,21 +1130,23 @@ class ProgressiveFileStreamer:
 
             tee_fh = open(state.local_path, "wb")
             reader = BufferedStreamReader(
-                response, chunk_size=256 * 1024,
-                start_position=data_start, tee_file=tee_fh,
+                response,
+                chunk_size=256 * 1024,
+                start_position=data_start,
+                tee_file=tee_fh,
             )
 
             frame_idx = 0
             # 1. Consume BOT
             tag_bytes = reader.read_exact(8)
             if tag_bytes[:4] != _ITEM_TAG:
-                 raise ValueError(f"Progressive stream: expected BOT Item at {reader.position-8}")
+                raise ValueError(f"Progressive stream: expected BOT Item at {reader.position-8}")
             bot_length = struct.unpack("<I", tag_bytes[4:8])[0]
             bot_data = reader.read_exact(bot_length)
             bot_offsets = []
             if bot_length > 0 and (bot_length % 4 == 0):
                 bot_offsets = list(struct.unpack(f"<{bot_length//4}I", bot_data))
-            
+
             first_frag_tag_pos = reader.position
             fragments = []
 
@@ -1136,15 +1160,17 @@ class ProgressiveFileStreamer:
                 if tag == _SEQ_DELIM_TAG:
                     break
                 if tag != _ITEM_TAG:
-                    logger.warning(f"Unexpected tag 0x{tag.hex()} during stream at {reader.position-8}")
+                    logger.warning(
+                        f"Unexpected tag 0x{tag.hex()} during stream at {reader.position-8}"
+                    )
                     break
-                
+
                 length = struct.unpack("<I", tag_bytes[4:8])[0]
                 start_pos = reader.position
                 fragments.append({"start": start_pos, "length": length})
-                
+
                 # Check if we need to capture any frames that might be in this fragment
-                # Since we don't know the grouping yet, this is tricky. 
+                # Since we don't know the grouping yet, this is tricky.
                 # For now, we'll just write EVERYTHING to the tee_fh (which is already happening).
                 reader.skip(length)
 
@@ -1161,8 +1187,7 @@ class ProgressiveFileStreamer:
                 )
 
             frames_list = _group_fragments(
-                fragments, number_of_frames, bot_offsets,
-                first_frag_tag_pos, pixel_data_pos
+                fragments, number_of_frames, bot_offsets, first_frag_tag_pos, pixel_data_pos
             )
 
             if not frames_list:
@@ -1204,10 +1229,7 @@ class ProgressiveFileStreamer:
         """JSON-serialisable snapshot of active/completed streams."""
         with self._lock:
             active = sum(1 for s in self._states.values() if not s.is_complete)
-            complete = sum(
-                1 for s in self._states.values()
-                if s.is_complete and not s.has_error
-            )
+            complete = sum(1 for s in self._states.values() if s.is_complete and not s.has_error)
             errored = sum(1 for s in self._states.values() if s.has_error)
             return {
                 "cache_dir": self._cache_dir,
@@ -1225,6 +1247,7 @@ progressive_streamer = ProgressiveFileStreamer()
 # ---------------------------------------------------------------------------
 # Local cache file reader
 # ---------------------------------------------------------------------------
+
 
 def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
     """
@@ -1246,6 +1269,7 @@ def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
 # ---------------------------------------------------------------------------
 # DICOM metadata
 # ---------------------------------------------------------------------------
+
 
 def get_file_metadata(token: str, db_file: DatabricksFile) -> dict:
     """
@@ -1362,13 +1386,15 @@ def _extract_from_extended_offset_table(
         # Frame pixel data starts 8 bytes later (after tag + length).
         frame_data_start = data_start + offsets[idx] + 8
         frame_data_length = lengths[idx]
-        frames.append({
-            "frame_number": idx,
-            "frame_size": frame_data_length,
-            "start_pos": frame_data_start,
-            "end_pos": frame_data_start + frame_data_length - 1,
-            "pixel_data_pos": pixel_data_pos,
-        })
+        frames.append(
+            {
+                "frame_number": idx,
+                "frame_size": frame_data_length,
+                "start_pos": frame_data_start,
+                "end_pos": frame_data_start + frame_data_length - 1,
+                "pixel_data_pos": pixel_data_pos,
+            }
+        )
 
     return frames
 
@@ -1395,20 +1421,25 @@ def _extract_from_basic_offsets(f, pixel_data_pos: int, endianness: str) -> list
     for idx in range(len(basic_offsets) - 1):
         frame_size = basic_offsets[idx + 1] - basic_offsets[idx]
         end_pos = start_pos + frame_size
-        frames.append({
-            "frame_number": idx,
-            "frame_size": frame_size,
-            "start_pos": start_pos,
-            "end_pos": end_pos,
-            "pixel_data_pos": pixel_data_pos,
-        })
+        frames.append(
+            {
+                "frame_number": idx,
+                "frame_size": frame_size,
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "pixel_data_pos": pixel_data_pos,
+            }
+        )
         start_pos = end_pos
 
     return frames
 
 
 def _extract_last_frame(
-    f, frames: list[dict], basic_offsets: list, pixel_data_pos: int,
+    f,
+    frames: list[dict],
+    basic_offsets: list,
+    pixel_data_pos: int,
     data_start: int | None = None,
 ) -> dict | None:
     """
@@ -1443,8 +1474,14 @@ def _extract_last_frame(
     return None
 
 
-def _legacy_extract_frames(f, number_of_frames: int, pixel_data_pos: int,
-                           frame_limit: int, start_pos: int, frame_index: int) -> list[dict]:
+def _legacy_extract_frames(
+    f,
+    number_of_frames: int,
+    pixel_data_pos: int,
+    frame_limit: int,
+    start_pos: int,
+    frame_index: int,
+) -> list[dict]:
     """
     Fallback frame extraction by scanning for Item delimiters sequentially.
 
@@ -1461,20 +1498,22 @@ def _legacy_extract_frames(f, number_of_frames: int, pixel_data_pos: int,
         if delimiter == -1:
             break
 
-        item_length = struct.unpack("<I", file_content[delimiter + 4: delimiter + 8])[0]
+        item_length = struct.unpack("<I", file_content[delimiter + 4 : delimiter + 8])[0]
         start_pos = start_pos + delimiter + 8
         end_pos = start_pos + item_length
 
         if start_pos == end_pos:
             continue
 
-        frames.append({
-            "frame_number": frame_index,
-            "frame_size": item_length,
-            "start_pos": start_pos,
-            "end_pos": end_pos,
-            "pixel_data_pos": pixel_data_pos,
-        })
+        frames.append(
+            {
+                "frame_number": frame_index,
+                "frame_size": item_length,
+                "start_pos": start_pos,
+                "end_pos": end_pos,
+                "pixel_data_pos": pixel_data_pos,
+            }
+        )
         start_pos = end_pos
         frame_index += 1
 
@@ -1487,6 +1526,7 @@ def _legacy_extract_frames(f, number_of_frames: int, pixel_data_pos: int,
 # ---------------------------------------------------------------------------
 # Streaming BOT computation (O(metadata) memory)
 # ---------------------------------------------------------------------------
+
 
 def _compute_bot_via_stream(
     token: str,
@@ -1506,7 +1546,9 @@ def _compute_bot_via_stream(
     if response.status_code not in (200, 206):
         body = response.text[:500]
         response.close()
-        raise RuntimeError(f"Streaming BOT: HTTP {response.status_code} for {db_file.file_path}: {body}")
+        raise RuntimeError(
+            f"Streaming BOT: HTTP {response.status_code} for {db_file.file_path}: {body}"
+        )
 
     reader = BufferedStreamReader(response, chunk_size=256 * 1024, start_position=bot_item_pos)
     fragments = []
@@ -1532,7 +1574,9 @@ def _compute_bot_via_stream(
                 break
             if tag != _ITEM_TAG:
                 # Some files might have garbage or multiple sequence delimiters
-                logger.warning(f"Unexpected tag 0x{tag.hex()} during BOT scan at {reader.position-8}")
+                logger.warning(
+                    f"Unexpected tag 0x{tag.hex()} during BOT scan at {reader.position-8}"
+                )
                 break
 
             length = struct.unpack("<I", tag_bytes[4:8])[0]
@@ -1542,8 +1586,11 @@ def _compute_bot_via_stream(
 
         # 3. Group fragments into frames
         frames = _group_fragments(
-            fragments, number_of_frames, bot_offsets, 
-            first_frag_tag_pos, pixel_data_pos,
+            fragments,
+            number_of_frames,
+            bot_offsets,
+            first_frag_tag_pos,
+            pixel_data_pos,
         )
     finally:
         reader.close()
@@ -1552,11 +1599,11 @@ def _compute_bot_via_stream(
 
 
 def _group_fragments(
-    fragments: list[dict], 
-    num_frames: int, 
+    fragments: list[dict],
+    num_frames: int,
     bot_offsets: list[int],
     first_frag_tag_pos: int,
-    pixel_data_pos: int
+    pixel_data_pos: int,
 ) -> list[dict]:
     """Group raw DICOM items into frames."""
     if not fragments:
@@ -1566,14 +1613,16 @@ def _group_fragments(
     if num_frames == 1:
         start = fragments[0]["start"]
         end = fragments[-1]["start"] + fragments[-1]["length"] - 1
-        return [{
-            "frame_number": 0,
-            "frame_size": sum(f["length"] for f in fragments),
-            "start_pos": start,
-            "end_pos": end,
-            "pixel_data_pos": pixel_data_pos,
-            "fragments": fragments
-        }]
+        return [
+            {
+                "frame_number": 0,
+                "frame_size": sum(f["length"] for f in fragments),
+                "start_pos": start,
+                "end_pos": end,
+                "pixel_data_pos": pixel_data_pos,
+                "fragments": fragments,
+            }
+        ]
 
     # Case B: Multiple frames with BOT
     # Note: bot_offsets[i] is the relative position of the ITEM TAG of the 1st fragment of frame i
@@ -1582,36 +1631,44 @@ def _group_fragments(
         frag_idx = 0
         for i in range(num_frames):
             target_abs_tag_pos = first_frag_tag_pos + bot_offsets[i]
-            
+
             # Collect fragments starting from target_abs_tag_pos
             # until we hit the next offset or end of fragments.
             current_frame_frags = []
-            
+
             # Skip any fragments before this offset (shouldn't happen if BOT is correct)
-            while frag_idx < len(fragments) and (fragments[frag_idx]["start"] - 8) < target_abs_tag_pos:
+            while (
+                frag_idx < len(fragments)
+                and (fragments[frag_idx]["start"] - 8) < target_abs_tag_pos
+            ):
                 frag_idx += 1
-            
+
             # Determine the boundary of the next frame
             if i + 1 < num_frames:
-                next_frame_tag_pos = first_frag_tag_pos + bot_offsets[i+1]
+                next_frame_tag_pos = first_frag_tag_pos + bot_offsets[i + 1]
             else:
-                next_frame_tag_pos = 1e18 # Effectively infinity for DICOM files
-            
-            while frag_idx < len(fragments) and (fragments[frag_idx]["start"] - 8) < next_frame_tag_pos:
+                next_frame_tag_pos = 1e18  # Effectively infinity for DICOM files
+
+            while (
+                frag_idx < len(fragments)
+                and (fragments[frag_idx]["start"] - 8) < next_frame_tag_pos
+            ):
                 current_frame_frags.append(fragments[frag_idx])
                 frag_idx += 1
-            
+
             if current_frame_frags:
                 start = current_frame_frags[0]["start"]
                 end = current_frame_frags[-1]["start"] + current_frame_frags[-1]["length"] - 1
-                frames.append({
-                    "frame_number": i,
-                    "frame_size": sum(f["length"] for f in current_frame_frags),
-                    "start_pos": start,
-                    "end_pos": end,
-                    "pixel_data_pos": pixel_data_pos,
-                    "fragments": current_frame_frags
-                })
+                frames.append(
+                    {
+                        "frame_number": i,
+                        "frame_size": sum(f["length"] for f in current_frame_frags),
+                        "start_pos": start,
+                        "end_pos": end,
+                        "pixel_data_pos": pixel_data_pos,
+                        "fragments": current_frame_frags,
+                    }
+                )
         if len(frames) == num_frames:
             return frames
 
@@ -1619,14 +1676,16 @@ def _group_fragments(
     frames = []
     for i in range(min(num_frames, len(fragments))):
         f = fragments[i]
-        frames.append({
-            "frame_number": i,
-            "frame_size": f["length"],
-            "start_pos": f["start"],
-            "end_pos": f["start"] + f["length"] - 1,
-            "pixel_data_pos": pixel_data_pos,
-            "fragments": [f]
-        })
+        frames.append(
+            {
+                "frame_number": i,
+                "frame_size": f["length"],
+                "start_pos": f["start"],
+                "end_pos": f["start"] + f["length"] - 1,
+                "pixel_data_pos": pixel_data_pos,
+                "fragments": [f],
+            }
+        )
     return frames
 
 
@@ -1661,7 +1720,7 @@ def _pixel_data_header_size(raw: bytes, pixel_data_pos: int) -> int:
     vr = raw[pixel_data_pos + 4 : pixel_data_pos + 6]
     if vr.isalpha():
         return 12  # explicit VR — tag(4) + VR(2) + reserved(2) + len(4)
-    return 8       # implicit VR — tag(4) + len(4)
+    return 8  # implicit VR — tag(4) + len(4)
 
 
 def _uncompressed_frame_length(ds) -> int:
@@ -1757,9 +1816,6 @@ def _find_pixel_data_pos(raw: bytes) -> int:
         return positions[-1]
 
 
-
-
-
 def compute_full_bot(
     token: str,
     db_file: DatabricksFile,
@@ -1831,36 +1887,41 @@ def compute_full_bot(
         header_size = _pixel_data_header_size(raw, pixel_data_pos)
         for idx in range(number_of_frames):
             offset = (idx * item_length) + header_size
-            frames.append({
-                "frame_number": idx,
-                "frame_size": item_length,
-                "start_pos": pixel_data_pos + offset,
-                "end_pos": pixel_data_pos + offset + item_length - 1,
-                "pixel_data_pos": pixel_data_pos,
-            })
+            frames.append(
+                {
+                    "frame_number": idx,
+                    "frame_size": item_length,
+                    "start_pos": pixel_data_pos + offset,
+                    "end_pos": pixel_data_pos + offset + item_length - 1,
+                    "pixel_data_pos": pixel_data_pos,
+                }
+            )
     else:
         # ── Compressed: try efficient strategies before full-file download ──
 
         # Strategy 1: Extended Offset Table (zero extra I/O) ─────────────
         frames = _extract_from_extended_offset_table(
-            ds, raw, pixel_data_pos, number_of_frames,
+            ds,
+            raw,
+            pixel_data_pos,
+            number_of_frames,
         )
         if frames is not None:
             logger.debug(
-                f"BOT from Extended Offset Table: {len(frames)} frames "
-                f"(zero additional I/O)"
+                f"BOT from Extended Offset Table: {len(frames)} frames " f"(zero additional I/O)"
             )
         else:
             # Strategy 2: Streaming Item tag scan (O(metadata) memory) ───
             try:
                 frames, captured_frame_data = _compute_bot_via_stream(
-                    token, db_file, pixel_data_pos,
-                    number_of_frames, raw,
+                    token,
+                    db_file,
+                    pixel_data_pos,
+                    number_of_frames,
+                    raw,
                     capture_frames=capture_frames,
                 )
-                logger.debug(
-                    f"BOT from streaming scan: {len(frames)} frames"
-                )
+                logger.debug(f"BOT from streaming scan: {len(frames)} frames")
             except Exception as stream_exc:
                 logger.warning(
                     f"Streaming BOT scan failed ({stream_exc}), "
@@ -1876,12 +1937,11 @@ def compute_full_bot(
 
             f = BytesIO(raw)
             try:
-                endianness = (
-                    "<" if ds.file_meta.TransferSyntaxUID.is_little_endian
-                    else ">"
-                )
+                endianness = "<" if ds.file_meta.TransferSyntaxUID.is_little_endian else ">"
                 frames = _extract_from_basic_offsets(
-                    f, pixel_data_pos, endianness,
+                    f,
+                    pixel_data_pos,
+                    endianness,
                 )
 
                 if len(frames) < number_of_frames:
@@ -1890,29 +1950,31 @@ def compute_full_bot(
                     offset_pos = buf.find(b"\xfe\xff\x00\xe0")
                     f.seek(pixel_data_pos + offset_pos)
                     offsets = pydicom.encaps.parse_basic_offsets(
-                        f, endianness=endianness,
+                        f,
+                        endianness=endianness,
                     )
                     data_start = f.tell()
 
                     last = _extract_last_frame(
-                        f, frames, offsets, pixel_data_pos,
+                        f,
+                        frames,
+                        offsets,
+                        pixel_data_pos,
                         data_start=data_start,
                     )
                     if last:
                         frames.append(last)
-                        logger.debug(
-                            f"BOT: recovered last frame "
-                            f"{last['frame_number']}"
-                        )
+                        logger.debug(f"BOT: recovered last frame " f"{last['frame_number']}")
             except Exception as exc:
-                logger.warning(
-                    f"BOT parsing failed ({exc}), "
-                    f"falling back to sequential scan"
-                )
+                logger.warning(f"BOT parsing failed ({exc}), " f"falling back to sequential scan")
                 f = BytesIO(raw)
                 frames = _legacy_extract_frames(
-                    f, number_of_frames, pixel_data_pos,
-                    number_of_frames, pixel_data_pos, 0,
+                    f,
+                    number_of_frames,
+                    pixel_data_pos,
+                    number_of_frames,
+                    pixel_data_pos,
+                    0,
                 )
 
     logger.info(f"BOT computed: {len(frames)} frames for {db_file.file_path}")
@@ -1924,4 +1986,3 @@ def compute_full_bot(
         "num_frames": number_of_frames,
         "captured_frame_data": captured_frame_data,
     }
-

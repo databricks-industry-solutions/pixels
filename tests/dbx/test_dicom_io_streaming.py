@@ -29,10 +29,10 @@ import pydicom
 import pytest
 
 from dbx.pixels.resources.dicom_web.utils.dicom_io import (
-    BufferedStreamReader,
     _ITEM_TAG,
     _PIXEL_DATA_MARKER,
     _SEQ_DELIM_TAG,
+    BufferedStreamReader,
     _extract_from_extended_offset_table,
     _find_bot_item,
     _find_data_start,
@@ -41,10 +41,10 @@ from dbx.pixels.resources.dicom_web.utils.dicom_io import (
     _uncompressed_frame_length,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers to build synthetic DICOM byte sequences
 # ---------------------------------------------------------------------------
+
 
 def _make_item(data: bytes) -> bytes:
     """Build a DICOM Item element: tag (4) + length (4) + data."""
@@ -96,6 +96,7 @@ def _make_encapsulated_pixel_data(
 # ---------------------------------------------------------------------------
 # BufferedStreamReader tests
 # ---------------------------------------------------------------------------
+
 
 class TestBufferedStreamReader:
 
@@ -168,6 +169,7 @@ class TestBufferedStreamReader:
 # _find_data_start tests
 # ---------------------------------------------------------------------------
 
+
 class TestFindDataStart:
 
     def test_empty_bot(self):
@@ -196,6 +198,7 @@ class TestFindDataStart:
 # _extract_from_extended_offset_table tests
 # ---------------------------------------------------------------------------
 
+
 class TestExtendedOffsetTable:
 
     def test_no_eot_returns_none(self):
@@ -223,7 +226,10 @@ class TestExtendedOffsetTable:
         ds.ExtendedOffsetTableLengths = struct.pack("<Q", 500)
 
         frames = _extract_from_extended_offset_table(
-            ds, raw, pixel_data_pos, number_of_frames=1,
+            ds,
+            raw,
+            pixel_data_pos,
+            number_of_frames=1,
         )
         assert frames is not None
         assert len(frames) == 1
@@ -250,7 +256,10 @@ class TestExtendedOffsetTable:
         ds.ExtendedOffsetTableLengths = struct.pack(f"<{len(lengths)}Q", *lengths)
 
         frames = _extract_from_extended_offset_table(
-            ds, raw, pixel_data_pos, number_of_frames=3,
+            ds,
+            raw,
+            pixel_data_pos,
+            number_of_frames=3,
         )
         assert frames is not None
         assert len(frames) == 3
@@ -266,7 +275,10 @@ class TestExtendedOffsetTable:
 
         raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[b"x"])
         result = _extract_from_extended_offset_table(
-            ds, raw, pixel_data_pos, number_of_frames=1,
+            ds,
+            raw,
+            pixel_data_pos,
+            number_of_frames=1,
         )
         assert result is None
 
@@ -275,12 +287,15 @@ class TestExtendedOffsetTable:
 # Streaming BOT scan integration test (with mocked HTTP)
 # ---------------------------------------------------------------------------
 
+
 class TestComputeBotViaStream:
     """Tests the streaming scanner using mocked HTTP responses."""
 
     def test_basic_streaming_scan(self):
         """Verify the streaming scanner correctly identifies frame positions."""
-        from dbx.pixels.resources.dicom_web.utils.dicom_io import _compute_bot_via_stream
+        from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+            _compute_bot_via_stream,
+        )
 
         f0 = b"A" * 100
         f1 = b"B" * 200
@@ -302,9 +317,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch(
-            "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-        ) as mock_session:
+        with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(
@@ -327,7 +340,9 @@ class TestComputeBotViaStream:
 
     def test_streaming_scan_with_capture(self):
         """Verify inline frame capture during streaming scan."""
-        from dbx.pixels.resources.dicom_web.utils.dicom_io import _compute_bot_via_stream
+        from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+            _compute_bot_via_stream,
+        )
 
         f0 = b"A" * 50
         f1 = b"B" * 75
@@ -345,9 +360,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch(
-            "dbx.pixels.resources.dicom_web.utils.dicom_io._session"
-        ) as mock_session:
+        with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(
@@ -371,6 +384,7 @@ class TestComputeBotViaStream:
 # ---------------------------------------------------------------------------
 # _find_pixel_data_pos tests — robust detection of the top-level (7FE0,0010)
 # ---------------------------------------------------------------------------
+
 
 class TestFindPixelDataPos:
     """
@@ -396,8 +410,8 @@ class TestFindPixelDataPos:
         one nested inside an Icon Image Sequence and one at the top level.
         """
         from pydicom.dataset import Dataset, FileMetaDataset
-        from pydicom.uid import ExplicitVRLittleEndian
         from pydicom.sequence import Sequence
+        from pydicom.uid import ExplicitVRLittleEndian
 
         file_meta = FileMetaDataset()
         file_meta.MediaStorageSOPClassUID = "1.2.840.10008.5.1.4.1.1.2"
@@ -490,16 +504,13 @@ class TestFindPixelDataPos:
             raw = f.read()
 
         positions = self._count_markers(raw)
-        assert len(positions) == 2, (
-            f"Expected 2 Pixel Data tags, got {len(positions)}"
-        )
+        assert len(positions) == 2, f"Expected 2 Pixel Data tags, got {len(positions)}"
 
         result = _find_pixel_data_pos(raw)
 
         # Must NOT return the first (nested) tag.
         assert result != positions[0], (
-            f"Returned nested tag at {positions[0]} instead of "
-            f"top-level tag at {positions[1]}"
+            f"Returned nested tag at {positions[0]} instead of " f"top-level tag at {positions[1]}"
         )
         # Must return the second (top-level) tag.
         assert result == positions[1]
@@ -547,13 +558,8 @@ class TestFindPixelDataPos:
         naive_pos = raw.find(_PIXEL_DATA_MARKER)
         robust_pos = _find_pixel_data_pos(raw)
 
-        assert naive_pos != robust_pos, (
-            "Naive find should disagree with robust find for this file"
-        )
-        assert naive_pos < robust_pos, (
-            "Naive find returns the earlier (nested) tag"
-        )
-
+        assert naive_pos != robust_pos, "Naive find should disagree with robust find for this file"
+        assert naive_pos < robust_pos, "Naive find returns the earlier (nested) tag"
 
     # -- tests with synthetic DICOM bytes ----------------------------------
 
@@ -563,9 +569,7 @@ class TestFindPixelDataPos:
         raw = self._build_dicom_with_icon(pixel_data, icon_data=b"\xFF" * 4)
 
         positions = self._count_markers(raw)
-        assert len(positions) == 2, (
-            f"Expected 2 markers in synthetic file, got {len(positions)}"
-        )
+        assert len(positions) == 2, f"Expected 2 markers in synthetic file, got {len(positions)}"
 
         result = _find_pixel_data_pos(raw)
         assert result == positions[-1]
@@ -627,14 +631,13 @@ class TestFindPixelDataPos:
 
         naive = raw.find(_PIXEL_DATA_MARKER)
         robust = _find_pixel_data_pos(raw)
-        assert robust == naive, (
-            f"{filename}: robust={robust} != naive={naive}"
-        )
+        assert robust == naive, f"{filename}: robust={robust} != naive={naive}"
 
 
 # ---------------------------------------------------------------------------
 # _pixel_data_header_size / _uncompressed_frame_length tests
 # ---------------------------------------------------------------------------
+
 
 class TestUncompressedFrameHelpers:
     """
