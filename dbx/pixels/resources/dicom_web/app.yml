@@ -1,0 +1,30 @@
+command: 
+  - "hypercorn"
+  - "app:app"
+
+env:
+  # ── Required ────────────────────────────────────────────────────────────────
+  - name: "DICOMWEB_GATEWAY_URL"
+    value: "https://pixels-dicomweb-gateway-7474654130285494.aws.databricksapps.com"
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "serverless_lh10u9_catalog.tcia.object_catalog"
+
+  # ── MONAI serving ───────────────────────────────────────────────────────────
+  - name: "MONAI_SERVING_ENDPOINT"
+    valueFrom: "serving_endpoint"
+
+  # ── Authentication ──────────────────────────────────────────────────────────
+  - name: "DICOMWEB_USE_USER_AUTH"
+    value: "false"
+
+  # ── HTTP client tuning ──────────────────────────────────────────────────────
+  - name: "DICOMWEB_MAX_CONNECTIONS"
+    value: "200"
+  - name: "DICOMWEB_MAX_KEEPALIVE"
+    value: "100"
+
+  # ── Logging ─────────────────────────────────────────────────────────────────
+  - name: "DB_PIXELS_LOG_LEVEL"
+    value: "INFO"

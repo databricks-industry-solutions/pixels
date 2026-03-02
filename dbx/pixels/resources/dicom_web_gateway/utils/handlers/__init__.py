@@ -1,0 +1,50 @@
+"""
+DICOMweb handler package — re-exports all public handler functions.
+
+Submodules
+----------
+_common   — Shared singletons, authentication, and wrapper factory
+_qido     — QIDO-RS (study / series / instance search)
+_wado     — WADO-RS, WADO-URI, and path resolution
+_stow     — STOW-RS (instance storage with early return + caching)
+"""
+
+from ._qido import (
+    dicomweb_qido_all_series,
+    dicomweb_qido_instances,
+    dicomweb_qido_series,
+    dicomweb_qido_studies,
+)
+from ._stow import dicomweb_stow_studies
+from ._wado import (
+    dicomweb_perf_compare,
+    dicomweb_prime_series,
+    dicomweb_resolve_frame_ranges,
+    dicomweb_resolve_paths,
+    dicomweb_wado_instance,
+    dicomweb_wado_instance_frames,
+    dicomweb_wado_series_metadata,
+    dicomweb_wado_uri,
+)
+
+__all__ = [
+    # QIDO-RS
+    "dicomweb_qido_studies",
+    "dicomweb_qido_series",
+    "dicomweb_qido_all_series",
+    "dicomweb_qido_instances",
+    # WADO-RS / WADO-URI
+    "dicomweb_wado_series_metadata",
+    "dicomweb_wado_instance",
+    "dicomweb_wado_instance_frames",
+    "dicomweb_wado_uri",
+    # STOW-RS
+    "dicomweb_stow_studies",
+    # Path / frame range resolution
+    "dicomweb_resolve_paths",
+    "dicomweb_resolve_frame_ranges",
+    # Debug / performance
+    "dicomweb_perf_compare",
+    # Priming (cache warm-up)
+    "dicomweb_prime_series",
+]

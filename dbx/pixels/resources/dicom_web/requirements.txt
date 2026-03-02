@@ -1,0 +1,8 @@
+databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels@feature/dicomweb_servign
+databricks-sql-connector>=3.0.0
+databricks-sdk
+requests-toolbelt
+httpx[http2]
+psycopg2-binary
+python-multipart
+hypercorn

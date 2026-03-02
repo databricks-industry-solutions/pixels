@@ -6,3 +6,4 @@ from dbx.pixels.dicom.dicom_presidio_transformer import PresidioTransformer
 from dbx.pixels.dicom.dicom_thumbnail_extractor import DicomThumbnailExtractor
 from dbx.pixels.dicom.dicom_xform_patcher import DicomPatcher
 from dbx.pixels.dicom.redactor import Redactor
+from dbx.pixels.dicom.stow import StowProcessor

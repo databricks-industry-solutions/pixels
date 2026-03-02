@@ -1,0 +1,84 @@
+command: 
+  - "hypercorn"
+  - "app:app"
+
+env:
+  # ── Required ────────────────────────────────────────────────────────────────
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "serverless_lh10u9_catalog.tcia.object_catalog"
+
+  # ── Lakebase (tier-2 persistent cache) ──────────────────────────────────────
+  - name: "LAKEBASE_INSTANCE_NAME"
+    value: "pixels-lakebase"
+  - name: "LAKEBASE_INIT_DB"
+    value: "false"
+
+  # ── STOW-RS ─────────────────────────────────────────────────────────────────
+  - name: "DATABRICKS_STOW_VOLUME_PATH"
+    value: "/Volumes/serverless_lh10u9_catalog/tcia/pixels_volume/stow/"
+  - name: "STOW_DIRECT_CLOUD_UPLOAD"
+    value: "false"
+  - name: "STOW_SERVICE_CREDENTIAL_NAME"
+    value: ""
+  - name: "STOW_VOLUMES_CONCURRENCY"
+    value: "8"
+  - name: "STOW_STREAMING_MAX_BYTES"
+    value: "5242880"
+  - name: "STOW_THREAD_POOL_SIZE"
+    value: "64"
+  - name: "STOW_SQL_BATCH_SIZE"
+    value: "100"
+  - name: "STOW_SQL_FLUSH_INTERVAL_S"
+    value: "2.0"
+
+  # ── In-memory caches ────────────────────────────────────────────────────────
+  - name: "PIXELS_BOT_CACHE_MAX_ENTRIES"
+    value: "1000000"
+  - name: "PIXELS_PATH_CACHE_MAX_ENTRIES"
+    value: "1000000"
+
+  # ── File prefetcher (async Volumes read-ahead) ───────────────────────────────
+  - name: "PIXELS_PREFETCH_ENABLED"
+    value: "false"
+  - name: "PIXELS_PREFETCH_RAM_RATIO"
+    value: "0.50"
+  - name: "PIXELS_PREFETCH_MAX_MEMORY_MB"
+    value: "2048"
+  - name: "PIXELS_PREFETCH_MAX_FILE_MB"
+    value: "512"
+  - name: "PIXELS_WADO_PREFETCH_WAIT_S"
+    value: "0.05"
+  - name: "PIXELS_BACKGROUND_POOL_WORKERS"
+    value: "16"
+  - name: "PIXELS_FILES_POOL_CONNECTIONS"
+    value: "20"
+  - name: "PIXELS_FILES_POOL_MAXSIZE"
+    value: "200"
+  - name: "PIXELS_PREFETCH_POOL_CONNECTIONS"
+    value: "20"
+  - name: "PIXELS_PREFETCH_POOL_MAXSIZE"
+    value: "50"
+
+  # ── Disk frame cache (local SSD) ────────────────────────────────────────────
+  - name: "PIXELS_FRAME_CACHE_DIR"
+    value: "/tmp/pixels_frame_cache"
+  - name: "PIXELS_FRAME_CACHE_MAX_GB"
+    value: "50"
+
+  # ── Gateway tuning ───────────────────────────────────────────────────────────
+  - name: "DICOMWEB_MAX_CONNECTIONS"
+    value: "200"
+  - name: "DICOMWEB_MAX_KEEPALIVE"
+    value: "100"
+  - name: "DICOMWEB_METRICS_INTERVAL"
+    value: "1"
+  - name: "DICOMWEB_ANYIO_THREAD_TOKENS"
+    value: "128"
+  - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
+    value: "false"
+
+  # ── Logging ─────────────────────────────────────────────────────────────────
+  - name: "DB_PIXELS_LOG_LEVEL"
+    value: "INFO"

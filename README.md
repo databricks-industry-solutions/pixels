@@ -82,6 +82,12 @@ The architecture processes data in stages:
 
 This architecture is designed to handle healthcare imaging data securely while enabling advanced analytics and AI-driven insights.
 
+## DICOMweb Apps Reference
+For the Databricks Apps architecture and operations guide (viewer app, gateway app,
+QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
+
+- [`README_DICOMWEB.md`](README_DICOMWEB.md)
+
 
 ---
 ## Getting started
@@ -235,10 +241,10 @@ DICOM file Ingestion works with Shared, Dedicated and Serverless Compute types.
 
 
 ## About `dbx.pixels`
-Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning, AI/BI Dashboarding, Genie Spaces.
+Reliably turn millions of image files into SQL-accessible metadata; Enable Deep Learning, AI/BI dashboarding, and Genie Spaces.
 
 - tags: 
-dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
+dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mammograms, dcm file, dicomweb
 ---
 
 ## About DICOM

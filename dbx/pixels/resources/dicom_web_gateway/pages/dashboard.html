@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOMweb Gateway Metrics</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --accent: #f472b6;
+            --teal: #2dd4bf;
+            --orange: #fb923c;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #4ade80;
+            --warning: #facc15;
+            --error: #fb7185;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 2.25rem;
+            margin: 0 0 1.5rem 0;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ── Status bar ────────────────────────────────────────── */
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dim);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .status-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            box-shadow: none;
+        }
+
+        .dot.live {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.5; }
+        }
+
+        /* ── Section headers ──────────────────────────────────── */
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            margin: 1.5rem 0 0.75rem 0;
+            width: 100%;
+            max-width: 1200px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.4rem;
+        }
+
+        /* ── KPI tiles ─────────────────────────────────────────── */
+
+        .kpi-row {
+            display: grid;
+            gap: 0.75rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+        .kpi-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .kpi-row.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+        .kpi {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+
+        .kpi:hover { border-color: rgba(255, 255, 255, 0.2); }
+
+        .kpi-label {
+            display: block;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-dim);
+            margin-bottom: 0.25rem;
+        }
+
+        .kpi-value {
+            display: block;
+            font-size: 1.35rem;
+            font-weight: 600;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text);
+            transition: color 0.3s;
+        }
+
+        .kpi-sub {
+            display: block;
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            margin-top: 0.15rem;
+        }
+
+        /* ── Chart grid ────────────────────────────────────────── */
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 1rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .chart-card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin: 0 0 0.6rem 0;
+            color: var(--text-dim);
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 180px;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Time-window selector ─────────────────────────────── */
+
+        .window-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .window-label {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .window-selector {
+            display: flex;
+            gap: 0;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 2rem;
+            padding: 3px;
+            backdrop-filter: blur(12px);
+        }
+
+        .win-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.35rem 1rem;
+            border-radius: 1.5rem;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .win-btn:hover:not(.active) {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .win-btn.active {
+            background: var(--primary);
+            color: #0f172a;
+            font-weight: 600;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+        }
+
+        footer {
+            margin-top: 2rem;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 900px) {
+            .kpi-row.cols-4 { grid-template-columns: repeat(2, 1fr); }
+            .kpi-row.cols-5 { grid-template-columns: repeat(3, 1fr); }
+            .kpi-row.cols-6 { grid-template-columns: repeat(3, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 500px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr) !important; }
+            body { padding: 1rem; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>DICOMweb Gateway Dashboard</h1>
+
+    <div class="status-bar">
+        <div class="status-group">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-text">Connecting&hellip;</span>
+        </div>
+        <span id="timestamp">&mdash;</span>
+    </div>
+
+    <div class="window-bar">
+        <span class="window-label">View</span>
+        <div class="window-selector">
+            <button class="win-btn active" data-window="5m">5 min</button>
+            <button class="win-btn" data-window="30m">30 min</button>
+            <button class="win-btn" data-window="1h">1 hour</button>
+            <button class="win-btn" data-window="8h">8 hours</button>
+        </div>
+    </div>
+
+    <!-- ── Request Metrics ────────────────────────────────────── -->
+    <div class="section-title">Request Metrics</div>
+    <div class="kpi-row cols-5">
+        <div class="kpi">
+            <span class="kpi-label">In Flight</span>
+            <span class="kpi-value" id="kpi-inflight">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Completed / tick</span>
+            <span class="kpi-value" id="kpi-req">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Errors / tick</span>
+            <span class="kpi-value" id="kpi-err">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Avg Latency</span>
+            <span class="kpi-value" id="kpi-lat">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Error Rate</span>
+            <span class="kpi-value" id="kpi-erate">&mdash;</span>
+        </div>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h2>Request Throughput</h2>
+            <div class="chart-wrap"><canvas id="chart-throughput"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2>Latency (ms)</h2>
+            <div class="chart-wrap"><canvas id="chart-latency"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ── System Resources ──────────────────────────────────── -->
+    <div class="section-title">System Resources</div>
+    <div class="kpi-row cols-6">
+        <div class="kpi">
+            <span class="kpi-label">Process CPU</span>
+            <span class="kpi-value" id="kpi-cpu-proc">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">System CPU</span>
+            <span class="kpi-value" id="kpi-cpu-sys">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Process RSS</span>
+            <span class="kpi-value" id="kpi-mem-rss">&mdash;</span>
+            <span class="kpi-sub" id="kpi-mem-vms-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">System Memory</span>
+            <span class="kpi-value" id="kpi-mem-sys">&mdash;</span>
+            <span class="kpi-sub" id="kpi-mem-avail-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Threads</span>
+            <span class="kpi-value" id="kpi-threads">&mdash;</span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Net Connections</span>
+            <span class="kpi-value" id="kpi-conns">&mdash;</span>
+        </div>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h2>CPU Usage (%)</h2>
+            <div class="chart-wrap"><canvas id="chart-cpu"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2>Memory (MB)</h2>
+            <div class="chart-wrap"><canvas id="chart-memory"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ── Cache Statistics ──────────────────────────────────── -->
+    <div class="section-title">Cache Statistics</div>
+    <div class="kpi-row cols-6">
+        <div class="kpi">
+            <span class="kpi-label">BOT Entries</span>
+            <span class="kpi-value" id="kpi-bot-entries">&mdash;</span>
+            <span class="kpi-sub" id="kpi-bot-max-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">BOT Hit Rate</span>
+            <span class="kpi-value" id="kpi-bot-hitrate">&mdash;</span>
+            <span class="kpi-sub" id="kpi-bot-hm-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Path Entries</span>
+            <span class="kpi-value" id="kpi-path-entries">&mdash;</span>
+            <span class="kpi-sub" id="kpi-path-max-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Path Hit Rate</span>
+            <span class="kpi-value" id="kpi-path-hitrate">&mdash;</span>
+            <span class="kpi-sub" id="kpi-path-hm-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Prefetcher Cached</span>
+            <span class="kpi-value" id="kpi-pf-cached">&mdash;</span>
+            <span class="kpi-sub" id="kpi-pf-pending-sub"></span>
+        </div>
+        <div class="kpi">
+            <span class="kpi-label">Prefetch Memory</span>
+            <span class="kpi-value" id="kpi-pf-mem">&mdash;</span>
+            <span class="kpi-sub" id="kpi-pf-budget-sub"></span>
+        </div>
+    </div>
+
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h2>Cache Hit Rate (%)</h2>
+            <div class="chart-wrap"><canvas id="chart-hitrate"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h2>Cache Entries</h2>
+            <div class="chart-wrap"><canvas id="chart-entries"></canvas></div>
+        </div>
+    </div>
+
+    <footer>
+        DICOMweb Gateway Monitoring &bull; Live via WebSocket &bull; Data from Lakebase
+    </footer>
+
+    <script>
+        /* ── Configuration ──────────────────────────────────────── */
+
+        var REST_ENDPOINT = '/api/metrics';
+        var MAX_POINTS = 300;
+
+        /* ── Time-window state ──────────────────────────────────── */
+
+        var selectedWindow = '5m';
+
+        // Seconds in each window + how often (ms) to auto-refresh via REST
+        var WINDOW_CFG = {
+            '5m':  { seconds: 300,   refresh: null   },
+            '30m': { seconds: 1800,  refresh: 30000  },
+            '1h':  { seconds: 3600,  refresh: 60000  },
+            '8h':  { seconds: 28800, refresh: 300000 }
+        };
+
+        var windowRefreshTimer = null;
+
+        /* ── WebSocket state ────────────────────────────────────── */
+
+        var ws = null;
+        var reconnectTimer = null;
+        var reconnectDelay = 1000;
+        var MAX_RECONNECT_DELAY = 30000;
+        var restFallback = null;
+
+        /* ── Time-series buffers ───────────────────────────────── */
+
+        var labels = [];
+        var gwBuf   = { req: [], err: [], lat: [], inflight: [] };
+        var cpuBuf  = { proc: [], sys: [] };
+        var memBuf  = { rss: [], sysPct: [] };
+        var cacheBuf = { botHit: [], pathHit: [], botEntries: [], pathEntries: [], pfCached: [] };
+
+        var ALL_BUFS = [
+            labels,
+            gwBuf.req, gwBuf.err, gwBuf.lat, gwBuf.inflight,
+            cpuBuf.proc, cpuBuf.sys,
+            memBuf.rss, memBuf.sysPct,
+            cacheBuf.botHit, cacheBuf.pathHit,
+            cacheBuf.botEntries, cacheBuf.pathEntries, cacheBuf.pfCached
+        ];
+
+        function clearBuffers() {
+            ALL_BUFS.forEach(function (a) { a.length = 0; });
+        }
+
+        /* ── DOM helpers ────────────────────────────────────────── */
+
+        function setKpi(id, text, level) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.innerText = text;
+            var palette = { good: '#4ade80', warn: '#facc15', bad: '#fb7185' };
+            el.style.color = palette[level] || '#f8fafc';
+        }
+
+        function setSub(id, text) {
+            var el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        function setStatus(state) {
+            var dot = document.getElementById('status-dot');
+            var txt = document.getElementById('status-text');
+            if (state === 'connected') {
+                dot.className = 'dot live';
+                txt.innerText = 'Connected (live)';
+            } else {
+                dot.className = 'dot';
+                txt.innerText = 'Reconnecting\u2026';
+            }
+        }
+
+        function parseHitRate(str) {
+            if (!str || str === 'N/A') return 0;
+            return parseFloat(str.replace('%', '')) || 0;
+        }
+
+        /* ── Timestamp formatting ───────────────────────────────── */
+
+        function fmtTs(isoStr) {
+            var d = isoStr ? new Date(isoStr) : new Date();
+            if (selectedWindow === '5m') {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            }
+            if (selectedWindow === '8h') {
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        /* ── Chart.js setup ─────────────────────────────────────── */
+
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 11;
+
+        function makeOpts(yOverride) {
+            var base = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 10, padding: 10, usePointStyle: true }
+                    },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                        ticks: { maxTicksLimit: 6, maxRotation: 0 }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    }
+                },
+                elements: {
+                    point: { radius: 0, hoverRadius: 3 },
+                    line: { tension: 0.35, borderWidth: 1.5 }
+                }
+            };
+            if (yOverride) Object.assign(base.scales.y, yOverride);
+            return base;
+        }
+
+        function ds(label, data, hex, extra) {
+            var r = parseInt(hex.slice(1, 3), 16);
+            var g = parseInt(hex.slice(3, 5), 16);
+            var b = parseInt(hex.slice(5, 7), 16);
+            var out = {
+                label: label,
+                data: data,
+                borderColor: hex,
+                backgroundColor: 'rgba(' + r + ',' + g + ',' + b + ',0.06)',
+                fill: true
+            };
+            if (extra) Object.assign(out, extra);
+            return out;
+        }
+
+        /* ── Request charts ───────────────────────────────────── */
+
+        var chartThroughput = new Chart(document.getElementById('chart-throughput'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('In Flight', gwBuf.inflight, '#34d399', { fill: false }),
+                    ds('Completed', gwBuf.req, '#38bdf8'),
+                    ds('Errors', gwBuf.err, '#fb7185', { fill: false, borderDash: [4, 2] })
+                ]
+            },
+            options: makeOpts()
+        });
+
+        var chartLatency = new Chart(document.getElementById('chart-latency'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('Avg Latency', gwBuf.lat, '#818cf8')
+                ]
+            },
+            options: makeOpts({ ticks: { callback: function (v) { return v + ' ms'; } } })
+        });
+
+        /* ── System charts ────────────────────────────────────── */
+
+        var chartCpu = new Chart(document.getElementById('chart-cpu'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('Process', cpuBuf.proc, '#38bdf8'),
+                    ds('System', cpuBuf.sys, '#fb923c')
+                ]
+            },
+            options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
+        });
+
+        var chartMemory = new Chart(document.getElementById('chart-memory'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('Process RSS', memBuf.rss, '#818cf8'),
+                    ds('System Used %', memBuf.sysPct, '#f472b6', { yAxisID: 'yPct' })
+                ]
+            },
+            options: (function () {
+                var opts = makeOpts();
+                opts.scales.yPct = {
+                    position: 'right',
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { drawOnChartArea: false },
+                    ticks: { callback: function (v) { return v + '%'; } }
+                };
+                opts.scales.y.title = { display: true, text: 'MB', color: '#94a3b8' };
+                return opts;
+            })()
+        });
+
+        /* ── Cache charts ─────────────────────────────────────── */
+
+        var chartHitRate = new Chart(document.getElementById('chart-hitrate'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('BOT Hit %', cacheBuf.botHit, '#2dd4bf'),
+                    ds('Path Hit %', cacheBuf.pathHit, '#fb923c')
+                ]
+            },
+            options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
+        });
+
+        var chartEntries = new Chart(document.getElementById('chart-entries'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    ds('BOT Entries', cacheBuf.botEntries, '#2dd4bf'),
+                    ds('Path Entries', cacheBuf.pathEntries, '#fb923c'),
+                    ds('Prefetch Cached', cacheBuf.pfCached, '#818cf8', { borderDash: [4, 2] })
+                ]
+            },
+            options: makeOpts()
+        });
+
+        var allCharts = [chartThroughput, chartLatency, chartCpu, chartMemory, chartHitRate, chartEntries];
+
+        /* ── Append a single row to all rolling buffers ─────────── */
+
+        function appendRowToBuffers(row) {
+            var gm = row.metrics || {};
+            var ts = fmtTs(row.recorded_at);
+
+            if (labels.length >= MAX_POINTS) {
+                ALL_BUFS.forEach(function (a) { a.shift(); });
+            }
+
+            labels.push(ts);
+            gwBuf.req.push(gm.request_count || 0);
+            gwBuf.err.push(gm.error_count || 0);
+            gwBuf.lat.push(Math.round((gm.avg_latency_s || 0) * 1000));
+            gwBuf.inflight.push(gm.in_flight || 0);
+
+            var sys = gm.system || {};
+            cpuBuf.proc.push(sys.cpu_percent_process || 0);
+            cpuBuf.sys.push(sys.cpu_percent_system || 0);
+            memBuf.rss.push(sys.memory_rss_mb || 0);
+            memBuf.sysPct.push(sys.system_memory_used_percent || 0);
+
+            var caches = gm.caches || {};
+            var botStats  = caches.bot_cache          || {};
+            var pathStats = caches.instance_path_cache || {};
+            var pfStats   = caches.prefetcher          || {};
+            cacheBuf.botHit.push(parseHitRate(botStats.hit_rate));
+            cacheBuf.pathHit.push(parseHitRate(pathStats.hit_rate));
+            cacheBuf.botEntries.push(botStats.entries || 0);
+            cacheBuf.pathEntries.push(pathStats.entries || 0);
+            cacheBuf.pfCached.push(pfStats.cached || pfStats.done || 0);
+        }
+
+        /* ── Rebuild charts from a historical batch ─────────────── */
+
+        function rebuildFromHistory(rows) {
+            // rows comes DESC (newest first) from the API — reverse for display
+            var chronoRows = rows.slice().reverse();
+            clearBuffers();
+            chronoRows.forEach(appendRowToBuffers);
+            allCharts.forEach(function (ch) { ch.update('none'); });
+        }
+
+        /* ── Update KPI tiles from a metrics snapshot ────────────── */
+
+        function updateKpis(gm, sys, caches) {
+            gm = gm || {};
+            var reqCount  = gm.request_count || 0;
+            var errCount  = gm.error_count   || 0;
+            var avgLat    = Math.round((gm.avg_latency_s || 0) * 1000);
+            var inFlight  = gm.in_flight != null ? gm.in_flight : '—';
+
+            setKpi('kpi-inflight', inFlight,
+                inFlight === 0 ? null : inFlight < 10 ? 'good' : inFlight < 20 ? 'warn' : 'bad');
+            setKpi('kpi-req', reqCount, reqCount > 0 ? 'good' : null);
+            setKpi('kpi-err', errCount,
+                errCount === 0 ? 'good' : errCount < 5 ? 'warn' : 'bad');
+            setKpi('kpi-lat', avgLat + ' ms',
+                avgLat < 100 ? 'good' : avgLat < 500 ? 'warn' : 'bad');
+
+            var errRatePct = reqCount > 0 ? (errCount / reqCount) * 100 : 0;
+            setKpi('kpi-erate', errRatePct.toFixed(1) + '%',
+                errRatePct < 1 ? 'good' : errRatePct < 5 ? 'warn' : 'bad');
+
+            var cpuProc = 0, cpuSys = 0, memRss = 0, memVms = 0;
+            var sysMemPct = 0, sysMemAvail = 0, threads = 0, conns = 'N/A';
+
+            if (sys) {
+                cpuProc    = sys.cpu_percent_process       || 0;
+                cpuSys     = sys.cpu_percent_system        || 0;
+                memRss     = sys.memory_rss_mb             || 0;
+                memVms     = sys.memory_vms_mb             || 0;
+                sysMemPct  = sys.system_memory_used_percent  || 0;
+                sysMemAvail = sys.system_memory_available_mb || 0;
+                threads    = sys.threads_active            || 0;
+                conns      = sys.network_connections;
+                if (conns < 0) conns = 'N/A';
+            }
+
+            setKpi('kpi-cpu-proc', cpuProc.toFixed(1) + '%',
+                cpuProc < 50 ? 'good' : cpuProc < 80 ? 'warn' : 'bad');
+            setKpi('kpi-cpu-sys', cpuSys.toFixed(1) + '%',
+                cpuSys < 70 ? 'good' : cpuSys < 90 ? 'warn' : 'bad');
+            setKpi('kpi-mem-rss', memRss + ' MB', null);
+            setSub('kpi-mem-vms-sub', 'VMS: ' + memVms + ' MB');
+            setKpi('kpi-mem-sys', sysMemPct.toFixed(1) + '%',
+                sysMemPct < 70 ? 'good' : sysMemPct < 90 ? 'warn' : 'bad');
+            setSub('kpi-mem-avail-sub', 'Avail: ' + sysMemAvail + ' MB');
+            setKpi('kpi-threads', threads, null);
+            setKpi('kpi-conns', conns, null);
+
+            var botStats  = (caches && caches.bot_cache)           || {};
+            var pathStats = (caches && caches.instance_path_cache) || {};
+            var pfStats   = (caches && caches.prefetcher)          || {};
+
+            var botHitPct  = parseHitRate(botStats.hit_rate);
+            var pathHitPct = parseHitRate(pathStats.hit_rate);
+
+            setKpi('kpi-bot-entries', botStats.entries || 0, null);
+            setSub('kpi-bot-max-sub', 'max: ' + (botStats.max_entries || 0));
+            setKpi('kpi-bot-hitrate', botStats.hit_rate || 'N/A',
+                botHitPct > 80 ? 'good' : botHitPct > 50 ? 'warn' : botHitPct > 0 ? 'bad' : null);
+            setSub('kpi-bot-hm-sub', (botStats.hits || 0) + ' hits / ' + (botStats.misses || 0) + ' miss');
+
+            setKpi('kpi-path-entries', pathStats.entries || 0, null);
+            setSub('kpi-path-max-sub', 'max: ' + (pathStats.max_entries || 0));
+            setKpi('kpi-path-hitrate', pathStats.hit_rate || 'N/A',
+                pathHitPct > 80 ? 'good' : pathHitPct > 50 ? 'warn' : pathHitPct > 0 ? 'bad' : null);
+            setSub('kpi-path-hm-sub', (pathStats.hits || 0) + ' hits / ' + (pathStats.misses || 0) + ' miss');
+
+            var pfCached    = pfStats.cached || pfStats.done || 0;
+            var pfPending   = pfStats.pending || 0;
+            var pfMemUsed   = pfStats.memory_used_mb   || 0;
+            var pfMemBudget = pfStats.memory_budget_mb || 0;
+
+            setKpi('kpi-pf-cached', pfCached, null);
+            setSub('kpi-pf-pending-sub', pfPending + ' pending, ' + (pfStats.evicted || 0) + ' evicted');
+            setKpi('kpi-pf-mem', pfMemUsed + ' MB', null);
+            setSub('kpi-pf-budget-sub', 'budget: ' + pfMemBudget + ' MB');
+        }
+
+        /* ── WebSocket live-update handler ──────────────────────── */
+
+        function updateDashboard(data) {
+            var gRows  = data.gateway || [];
+            var gLatest = gRows.length ? gRows[0] : null;
+
+            if (gLatest) {
+                appendRowToBuffers(gLatest);
+                if (gLatest.recorded_at) {
+                    document.getElementById('timestamp').innerText =
+                        new Date(gLatest.recorded_at).toLocaleTimeString();
+                }
+            }
+
+            var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
+            var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
+            updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
+
+            allCharts.forEach(function (ch) { ch.update('none'); });
+            setStatus('connected');
+        }
+
+        /* ── REST history fetch (window selector) ───────────────── */
+
+        function fetchWindowData(win) {
+            fetch(REST_ENDPOINT + '?window=' + win, { credentials: 'include' })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    var gRows = data.gateway || [];
+                    if (gRows.length) {
+                        rebuildFromHistory(gRows);
+                        var gLatest = gRows[0];
+                        if (gLatest && gLatest.recorded_at) {
+                            document.getElementById('timestamp').innerText =
+                                new Date(gLatest.recorded_at).toLocaleTimeString();
+                        }
+                        var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
+                        var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
+                        updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
+                    }
+                    setStatus('connected');
+                })
+                .catch(function () { setStatus('disconnected'); });
+        }
+
+        /* ── Window selector logic ──────────────────────────────── */
+
+        function selectWindow(win) {
+            selectedWindow = win;
+
+            document.querySelectorAll('.win-btn').forEach(function (btn) {
+                btn.classList.toggle('active', btn.dataset.window === win);
+            });
+
+            if (windowRefreshTimer) {
+                clearTimeout(windowRefreshTimer);
+                windowRefreshTimer = null;
+            }
+
+            fetchWindowData(win);
+
+            var cfg = WINDOW_CFG[win];
+            if (cfg && cfg.refresh) {
+                (function schedule() {
+                    windowRefreshTimer = setTimeout(function () {
+                        if (selectedWindow === win) {
+                            fetchWindowData(win);
+                            schedule();
+                        }
+                    }, cfg.refresh);
+                })();
+            }
+        }
+
+        document.querySelectorAll('.win-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () { selectWindow(btn.dataset.window); });
+        });
+
+        /* ── REST fallback (when WebSocket is down) ─────────────── */
+
+        function fetchRest() {
+            fetch(REST_ENDPOINT + '?window=5m', { credentials: 'include' })
+                .then(function (res) { return res.json(); })
+                .then(updateDashboard)
+                .catch(function () { setStatus('disconnected'); });
+        }
+
+        /* ── WebSocket with auto-reconnect ──────────────────────── */
+
+        function connectWebSocket() {
+            var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(proto + '//' + location.host + '/ws/metrics');
+
+            ws.onopen = function () {
+                reconnectDelay = 1000;
+                if (restFallback) { clearInterval(restFallback); restFallback = null; }
+                setStatus('connected');
+            };
+
+            ws.onmessage = function (event) {
+                updateDashboard(JSON.parse(event.data));
+            };
+
+            ws.onclose = function () {
+                setStatus('disconnected');
+                scheduleReconnect();
+            };
+
+            ws.onerror = function () { ws.close(); };
+        }
+
+        function scheduleReconnect() {
+            if (reconnectTimer) return;
+            if (!restFallback) {
+                restFallback = setInterval(fetchRest, 3000);
+            }
+            reconnectTimer = setTimeout(function () {
+                reconnectTimer = null;
+                connectWebSocket();
+            }, reconnectDelay);
+            reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+        }
+
+        /* ── Bootstrap ──────────────────────────────────────────── */
+
+        fetchWindowData('5m');
+        connectWebSocket();
+    </script>
+
+</body>
+
+</html>
