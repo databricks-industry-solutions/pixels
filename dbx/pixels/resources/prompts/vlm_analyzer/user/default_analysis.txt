@@ -5,11 +5,3 @@ Please analyze the provided medical image and provide a comprehensive diagnostic
 2. Any visible abnormalities or findings
 3. The clinical notes provided
 4. Relevant metadata
-
-Provide your response in JSON format with the following structure:
-{
-    "findings": "Description of key findings",
-    "impression": "Clinical impression",
-    "recommendations": "Suggested next steps or additional studies if needed"
-}
-
