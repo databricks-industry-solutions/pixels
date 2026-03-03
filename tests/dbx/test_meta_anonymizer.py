@@ -111,7 +111,10 @@ def test_anonymize_metadata_with_real_dicognito_and_ff3():
 
     cipher.alphabet = "0123456789"
     expected_uid = ".".join(
-        [cipher.encrypt(part) if len(part) > 5 else part for part in original_study_instance_uid.split(".")]
+        [
+            cipher.encrypt(part) if len(part) > 5 else part
+            for part in original_study_instance_uid.split(".")
+        ]
     )
     cipher.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^_-"
     expected_patient_id = cipher.encrypt(original_patient_id)
