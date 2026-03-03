@@ -37,8 +37,8 @@ _HEADER_BUF_SIZE = 64 * 1024  # 64 KB — enough for virtually all DICOM headers
 
 # DICOM tag bytes (little-endian) for the UIDs we need
 _TAG_SOP_INSTANCE_UID = b"\x08\x00\x18\x00"  # (0008,0018)
-_TAG_STUDY_INSTANCE_UID = b"\x20\x00\x0D\x00"  # (0020,000D)
-_TAG_SERIES_INSTANCE_UID = b"\x20\x00\x0E\x00"  # (0020,000E)
+_TAG_STUDY_INSTANCE_UID = b"\x20\x00\x0d\x00"  # (0020,000D)
+_TAG_SERIES_INSTANCE_UID = b"\x20\x00\x0e\x00"  # (0020,000E)
 _TAG_NUMBER_OF_FRAMES = b"\x28\x00\x08\x00"  # (0028,0008)
 
 # Known Explicit VR codes that use a 2-byte length field (short form)

@@ -565,8 +565,8 @@ class TestFindPixelDataPos:
 
     def test_synthetic_dual_tag(self):
         """Synthetic DICOM with Icon Image Sequence (two pixel data tags)."""
-        pixel_data = b"\xAA" * 32  # 4x4 16-bit
-        raw = self._build_dicom_with_icon(pixel_data, icon_data=b"\xFF" * 4)
+        pixel_data = b"\xaa" * 32  # 4x4 16-bit
+        raw = self._build_dicom_with_icon(pixel_data, icon_data=b"\xff" * 4)
 
         positions = self._count_markers(raw)
         assert len(positions) == 2, f"Expected 2 markers in synthetic file, got {len(positions)}"
