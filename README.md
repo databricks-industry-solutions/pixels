@@ -88,6 +88,11 @@ QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
 - [`README_DICOMWEB.md`](README_DICOMWEB.md)
 
+The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
+workspace workflows. For production DICOMweb deployments with the split
+`dicom_web` + `dicom_web_gateway` Databricks Apps architecture, use
+`README_DICOMWEB.md` as the source of truth.
+
 
 ---
 ## Getting started

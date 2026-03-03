@@ -46,10 +46,10 @@ handler execution).
 │  dicom_web  (Databricks App — Viewer)                           │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │ Middleware stack (outermost → innermost)                │    │
-│  │  1. SelectiveGZipMiddleware                             │    │
-│  │  2. TokenMiddleware  — injects OHIF config tokens       │    │
-│  │  3. LoggingMiddleware — per-request structured logs     │    │
+│  │ Middleware stack                                        │    │
+│  │  • SelectiveGZipMiddleware                              │    │
+│  │  • TokenMiddleware  — injects OHIF config tokens        │    │
+│  │  • LoggingMiddleware — per-request structured logs      │    │
 │  └──────────────┬──────────────────────────────────────────┘    │
 │                 │                                               │
 │  ┌──────────────▼──────────────────────────────────────────┐    │
@@ -145,11 +145,11 @@ over a small number of connections.
 ### Middleware Stack
 
 
-| Layer     | Class               | Effect                                                                                                                                                                                                                           |
-| --------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Outermost | `TokenMiddleware`   | Intercepts `app-config-custom.js` to inject `{PIXELS_TABLE}`, `{ROUTER_BASENAME}`, `{DEFAULT_DATA_SOURCE}`, `{DICOMWEB_ROOT}`. Intercepts `/local` for local file browsing. Patches the HTJ2K WASM decoder path in OHIF bundles. |
-| Middle    | `LoggingMiddleware` | Structured per-request log: method, path, status, elapsed ms, `X-Forwarded-Email`.                                                                                                                                               |
-| Inner     | `CORSMiddleware`    | Standard CORS headers.                                                                                                                                                                                                           |
+| Class                      | Effect                                                                                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SelectiveGZipMiddleware`  | Applies gzip compression for eligible responses while skipping configured paths (for example instance retrieval paths).                                                                                                         |
+| `TokenMiddleware`          | Intercepts `app-config-custom.js` to inject `{PIXELS_TABLE}`, `{ROUTER_BASENAME}`, `{DEFAULT_DATA_SOURCE}`, `{DICOMWEB_ROOT}`. Intercepts `/local` for local file browsing. Patches the HTJ2K WASM decoder path in OHIF bundles. |
+| `LoggingMiddleware`        | Structured per-request log: method, path, status, elapsed ms, `X-Forwarded-Email`.                                                                                                                                               |
 
 
 ### Common Routes
@@ -322,14 +322,14 @@ See §7 for the detailed dual-path design.
 | `STOW_SQL_BATCH_SIZE`           | `100`                                                 | Max STOW audit records per SQL batch INSERT                                        |
 | `STOW_SQL_FLUSH_INTERVAL_S`     | `2.0`                                                 | Max seconds between STOW audit record flushes                                      |
 | `STOW_VOLUMES_CONCURRENCY`      | `8`                                                   | Semaphore limit for concurrent Volumes PUT requests                                |
-| `PIXELS_BOT_CACHE_MAX_ENTRIES`  | `100000`                                              | In-memory BOT cache capacity                                                       |
-| `PIXELS_PATH_CACHE_MAX_ENTRIES` | `100000`                                              | In-memory instance-path cache capacity                                             |
+| `PIXELS_BOT_CACHE_MAX_ENTRIES`  | `1000000`                                             | In-memory BOT cache capacity                                                       |
+| `PIXELS_PATH_CACHE_MAX_ENTRIES` | `1000000`                                             | In-memory instance-path cache capacity                                             |
 | `PIXELS_PREFETCH_ENABLED`       | `false`                                               | Enable background file prefetch into RAM                                           |
 | `PIXELS_PREFETCH_RAM_RATIO`     | `0.50`                                                | Fraction of total RAM for prefetch buffer (when no explicit cap)                   |
 | `PIXELS_PREFETCH_MAX_MEMORY_MB` | —                                                     | Hard cap on prefetch buffer in MB                                                  |
 | `PIXELS_PREFETCH_MAX_FILE_MB`   | `512`                                                 | Skip prefetching files larger than this                                            |
 | `PIXELS_FRAME_CACHE_DIR`        | `/tmp/pixels_frame_cache`                             | Directory for on-disk frame cache                                                  |
-| `PIXELS_FRAME_CACHE_MAX_GB`     | `10`                                                  | Max size of on-disk frame cache                                                    |
+| `PIXELS_FRAME_CACHE_MAX_GB`     | `50`                                                  | Max size of on-disk frame cache                                                    |
 | `DICOMWEB_MAX_CONNECTIONS`      | `200`                                                 | Max concurrent outbound HTTP connections to Volumes                                |
 | `DICOMWEB_MAX_KEEPALIVE`        | `100`                                                 | Max keepalive connections                                                          |
 | `DICOMWEB_METRICS_INTERVAL`     | `1`                                                   | Seconds between metrics snapshots                                                  |
