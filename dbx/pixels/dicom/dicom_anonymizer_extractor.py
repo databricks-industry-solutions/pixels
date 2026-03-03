@@ -137,7 +137,6 @@ class DicomAnonymizerExtractor(Transformer):
             anon -- Set to True if accessing S3 and the bucket is public
             """
             import simplejson as json
-
             from pydicom import dcmread
 
             try:

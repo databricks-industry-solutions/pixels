@@ -62,7 +62,7 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
         del ds["7FE00010"]
 
     js = ds.to_json_dict() | js
-    
+
     if deep:
         a = check_pixel_data(ds)
     if deep and a is not None:
