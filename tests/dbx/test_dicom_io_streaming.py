@@ -28,7 +28,7 @@ from unittest.mock import MagicMock, patch
 import pydicom
 import pytest
 
-from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
     _ITEM_TAG,
     _PIXEL_DATA_MARKER,
     _SEQ_DELIM_TAG,
