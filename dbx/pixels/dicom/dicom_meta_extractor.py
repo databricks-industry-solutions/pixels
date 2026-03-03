@@ -64,7 +64,7 @@ class DicomMetaExtractor(Transformer):
             deep -- True if deep inspection of the Dicom header is required
             anon -- Set to True if accessing S3 and the bucket is public
             """
-            import json
+            import simplejson as json
 
             from pydicom import dcmread
 
@@ -75,7 +75,7 @@ class DicomMetaExtractor(Transformer):
                     if deep:
                         meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
-                    return json.dumps(meta_js, allow_nan=False)
+                    return json.dumps(meta_js, ignore_nan=True)
             except Exception as err:
                 except_str = str(
                     {
