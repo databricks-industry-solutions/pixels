@@ -293,7 +293,7 @@ class TestComputeBotViaStream:
 
     def test_basic_streaming_scan(self):
         """Verify the streaming scanner correctly identifies frame positions."""
-        from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+        from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
             _compute_bot_via_stream,
         )
 
@@ -317,7 +317,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
+        with patch("dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(
@@ -340,7 +340,7 @@ class TestComputeBotViaStream:
 
     def test_streaming_scan_with_capture(self):
         """Verify inline frame capture during streaming scan."""
-        from dbx.pixels.resources.dicom_web.utils.dicom_io import (
+        from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
             _compute_bot_via_stream,
         )
 
@@ -360,7 +360,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch("dbx.pixels.resources.dicom_web.utils.dicom_io._session") as mock_session:
+        with patch("dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(
