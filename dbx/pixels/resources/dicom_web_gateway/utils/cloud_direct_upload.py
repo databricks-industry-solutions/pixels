@@ -259,15 +259,17 @@ def get_temp_credentials(host: str, token: str, cloud_url: str) -> dict:
 
         # Stampede guard: if another thread is already fetching, wait for it
         # instead of making N simultaneous SDK calls under high concurrency.
+        is_fetcher = False
+        waiter_event = None
         if cache_key in _cred_inflight:
-            event = _cred_inflight[cache_key]
+            waiter_event = _cred_inflight[cache_key]
         else:
-            event = threading.Event()
-            _cred_inflight[cache_key] = event
-            event = None  # this thread is the fetcher
+            waiter_event = threading.Event()
+            _cred_inflight[cache_key] = waiter_event
+            is_fetcher = True
 
-    if event is not None:
-        event.wait(timeout=30)
+    if not is_fetcher:
+        waiter_event.wait(timeout=30)
         with _cache_lock:
             entry = _cred_cache.get(cache_key)
             if entry and entry[1] > now:
