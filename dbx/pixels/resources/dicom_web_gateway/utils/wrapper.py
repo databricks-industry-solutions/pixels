@@ -203,7 +203,12 @@ class DICOMwebDatabricksWrapper:
     @timing_decorator
     def search_for_studies(self, params: Dict[str, Any]) -> List[Dict]:
         """QIDO-RS: search for studies."""
-        logger.debug(f"QIDO-RS: studies search, params={params}")
+        param_keys = [str(k) for k in params.keys()] if params else []
+        logger.debug(
+            "QIDO-RS: studies search, param_keys=%s param_count=%d",
+            param_keys,
+            len(param_keys),
+        )
         query, sql_params = build_study_query(self._table, params)
         results = self._query(query, sql_params)
         columns = [

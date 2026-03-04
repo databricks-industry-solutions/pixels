@@ -197,7 +197,13 @@ class DatabricksSQLClient:
         Raises:
             HTTPException: On SQL execution failure.
         """
-        logger.debug(f"SQL: {query}  params={parameters}")
+        param_keys = [str(k) for k in parameters.keys()] if parameters else []
+        logger.debug(
+            "SQL: %s  param_keys=%s param_count=%d",
+            query,
+            param_keys,
+            len(param_keys),
+        )
 
         is_obo = USE_USER_AUTH and user_token is not None
         max_attempts = 1 if is_obo else 2
@@ -281,7 +287,13 @@ class DatabricksSQLClient:
         Raises:
             HTTPException: On SQL execution failure.
         """
-        logger.debug(f"SQL (stream): {query}  params={parameters}")
+        param_keys = [str(k) for k in parameters.keys()] if parameters else []
+        logger.debug(
+            "SQL (stream): %s  param_keys=%s param_count=%d",
+            query,
+            param_keys,
+            len(param_keys),
+        )
 
         is_obo = USE_USER_AUTH and user_token is not None
         max_attempts = 1 if is_obo else 2
