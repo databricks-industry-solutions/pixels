@@ -17,7 +17,6 @@ from ._qido import (
 )
 from ._stow import dicomweb_stow_studies
 from ._wado import (
-    dicomweb_perf_compare,
     dicomweb_prime_series,
     dicomweb_resolve_frame_ranges,
     dicomweb_resolve_paths,
@@ -43,8 +42,6 @@ __all__ = [
     # Path / frame range resolution
     "dicomweb_resolve_paths",
     "dicomweb_resolve_frame_ranges",
-    # Debug / performance
-    "dicomweb_perf_compare",
     # Priming (cache warm-up)
     "dicomweb_prime_series",
 ]
