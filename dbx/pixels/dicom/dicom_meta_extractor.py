@@ -58,7 +58,9 @@ class DicomMetaExtractor(Transformer):
         """
 
         @pandas_udf(t.StringType())
-        def dicom_meta_udf(paths: pd.Series, deep_flags: pd.Series, anon_flags: pd.Series) -> pd.Series:
+        def dicom_meta_udf(
+            paths: pd.Series, deep_flags: pd.Series, anon_flags: pd.Series
+        ) -> pd.Series:
             """Extract metadata from header of dicom image files (Pandas UDF)
             params:
             paths -- Series of local paths like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
@@ -93,7 +95,7 @@ class DicomMetaExtractor(Transformer):
             results = []
             for path, deep, anon in zip(paths, deep_flags, anon_flags):
                 results.append(process_single_file(path, deep, anon))
-            
+
             return pd.Series(results)
 
         self.check_input_type(df.schema)
