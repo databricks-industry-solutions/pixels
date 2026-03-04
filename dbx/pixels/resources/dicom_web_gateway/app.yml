@@ -7,7 +7,7 @@ env:
   - name: "DATABRICKS_WAREHOUSE_ID"
     valueFrom: "sql_warehouse"
   - name: "DATABRICKS_PIXELS_TABLE"
-    value: "serverless_lh10u9_catalog.tcia.object_catalog"
+    value: "{PIXELS_TABLE}"
 
   # ── Lakebase (tier-2 persistent cache) ──────────────────────────────────────
   - name: "LAKEBASE_INSTANCE_NAME"
@@ -17,7 +17,7 @@ env:
 
   # ── STOW-RS ─────────────────────────────────────────────────────────────────
   - name: "DATABRICKS_STOW_VOLUME_PATH"
-    value: "/Volumes/serverless_lh10u9_catalog/tcia/pixels_volume/stow/"
+    value: "{STOW_VOLUME_PATH}"
   - name: "STOW_DIRECT_CLOUD_UPLOAD"
     value: "false"
   - name: "STOW_SERVICE_CREDENTIAL_NAME"
