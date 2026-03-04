@@ -272,6 +272,8 @@ DICOM® is recognized by the International Organization for Standardization as t
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
 | dbx.pixels           | Scale out image processing library  | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Python api for DICOM files          | MIT                           | https://github.com/pydicom/pydicom                      |
+| pylibjpeg            | JPEG codec framework for DICOM decoding | MIT                        | https://github.com/pydicom/pylibjpeg                    |
+| pylibjpeg-libjpeg    | libjpeg plugin for pylibjpeg (JPEG/JPEG-LS decode) | GPL-3.0-or-later | https://github.com/pydicom/pylibjpeg-libjpeg            |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 | gdcm                 | Parse DICOM files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |
