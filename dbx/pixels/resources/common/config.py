@@ -45,9 +45,10 @@ def get_monai_endpoint() -> str:
 
 
 def get_warehouse_id() -> str:
-    """Return the Databricks SQL Warehouse ID (asserts if unset)."""
+    """Return the Databricks SQL Warehouse ID (raises if unset)."""
     wid = os.getenv("DATABRICKS_WAREHOUSE_ID", None)
-    assert wid is not None, "[DATABRICKS_WAREHOUSE_ID] is not set, check app.yml"
+    if not wid:
+        raise ValueError("[DATABRICKS_WAREHOUSE_ID] is not set, check app.yml")
     return wid
 
 
