@@ -46,7 +46,8 @@ def _read_static_file(path: str) -> bytes:
     calls return the cached bytes.  Either way, keeping it off the event loop
     avoids stalling concurrent requests.
     """
-    return open(path, "rb").read()
+    with open(path, "rb") as f:
+        return f.read()
 
 
 async def _read_static_file_async(path: str) -> bytes:
@@ -85,7 +86,8 @@ class TokenMiddleware:
         # Read the config template once at startup.  The file is the same for
         # all users; per-user values ({PIXELS_TABLE} etc.) are substituted at
         # request time and never stored.
-        self._config_template: bytes = open(f"{ohif_path}/{ohif_config_file}.js", "rb").read()
+        with open(f"{ohif_path}/{ohif_config_file}.js", "rb") as f:
+            self._config_template = f.read()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
