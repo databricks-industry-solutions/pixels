@@ -805,7 +805,7 @@ async def _handle_streaming(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Streaming split failed ({type(exc).__name__}): {exc}",
+            detail="Internal server error -- check gateway logs for details",
         )
 
     succeeded = [r for r in part_results if r["status"] == "SUCCESS"]

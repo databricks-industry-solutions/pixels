@@ -577,7 +577,10 @@ class DICOMwebDatabricksWrapper:
             return stream_file(self._token, db_file)
         except Exception as exc:
             logger.error(f"Error streaming instance: {exc}")
-            raise HTTPException(status_code=500, detail=f"Error streaming instance: {exc}")
+            raise HTTPException(
+                status_code=500,
+                detail="Internal server error -- check gateway logs for details",
+            )
 
     # ------------------------------------------------------------------
     # WADO-RS — PACS-style frame retrieval (3-tier cache, streaming)

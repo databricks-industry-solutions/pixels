@@ -248,7 +248,10 @@ class DatabricksSQLClient:
                     else:
                         self._release_app_connection(conn, failed=failed)
 
-        raise HTTPException(status_code=500, detail=f"SQL query failed: {last_exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error -- check gateway logs for details",
+        )
 
     def execute_stream(
         self,
@@ -318,7 +321,10 @@ class DatabricksSQLClient:
                     continue
 
                 logger.error(f"SQL execution failed: {exc}")
-                raise HTTPException(status_code=500, detail=f"SQL query failed: {exc}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Internal server error -- check gateway logs for details",
+                )
 
         def _rows() -> Iterator[list[Any]]:
             row_failed = False
