@@ -101,6 +101,7 @@ workspace workflows. For production DICOMweb deployments with the split
 
 2. Attach a notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS)
 3. Run [`config/setup.py`]($./config/setup) from the notebook. This will install the pixels package onto your workspace
+4. If you need additional libraries to decode or encode DICOM pixel data, use the pydicom guidance to pick the right optional codec package(s): [pydicom pixel data decompression guide](https://github.com/pydicom/pydicom?tab=readme-ov-file#decompressing-pixel-data).
 
 
 ## Run pipeline as a job
@@ -273,7 +274,7 @@ DICOM® is recognized by the International Organization for Standardization as t
 | dbx.pixels           | Scale out image processing library  | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Python api for DICOM files          | MIT                           | https://github.com/pydicom/pydicom                      |
 | pylibjpeg            | JPEG codec framework for DICOM decoding | MIT                        | https://github.com/pydicom/pylibjpeg                    |
-| pylibjpeg-libjpeg    | libjpeg plugin for pylibjpeg (JPEG/JPEG-LS decode) | GPL-3.0-or-later | https://github.com/pydicom/pylibjpeg-libjpeg            |
+| pylibjpeg-openjpeg   | OpenJPEG plugin for pylibjpeg (JPEG 2000 decode) | MIT             | https://github.com/pydicom/pylibjpeg-openjpeg           |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 | gdcm                 | Parse DICOM files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |

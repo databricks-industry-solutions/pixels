@@ -2,7 +2,6 @@ pandas
 numpy==1.26.4
 pydicom==3.0.1
 pylibjpeg
-pylibjpeg-libjpeg
 pylibjpeg-openjpeg
 s3fs==2025.9.0
 Pillow
