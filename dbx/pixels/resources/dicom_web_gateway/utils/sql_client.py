@@ -231,7 +231,6 @@ class DatabricksSQLClient:
 
             except Exception as exc:
                 failed = True
-                last_exc = exc
                 if attempt + 1 < max_attempts:
                     logger.warning(
                         "SQL execution failed (attempt %d/%d), "
