@@ -26,6 +26,7 @@ When ``Content-Length`` is absent or ≤ threshold, the streaming path is used.
 
 import asyncio
 import concurrent.futures
+import hashlib
 import json
 import os
 import time
@@ -75,8 +76,8 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
     1. ``X-Forwarded-Email`` header (set by the Databricks Apps proxy).
     2. ``Authorization`` bearer token → Databricks SCIM ``/Me`` endpoint.
 
-    Results are cached by token prefix (first 16 chars) so repeated
-    uploads by the same session don't repeat the SCIM call.  Returns
+    Results are cached by a hash of the full token so repeated uploads
+    by the same session don't repeat the SCIM call. Returns
     ``None`` silently on any failure — user email is *nice-to-have*,
     not critical.
     """
@@ -86,7 +87,7 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
         return email
 
     # ── 2. SCIM /Me (external clients with just a bearer token) ───────
-    cache_key = token[:16] if token else ""
+    cache_key = hashlib.sha256(token.encode("utf-8")).hexdigest() if token else ""
     if cache_key in _token_email_cache:
         return _token_email_cache[cache_key]
 
