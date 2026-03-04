@@ -229,20 +229,23 @@ _gw_req_count = 0
 _gw_req_errors = 0
 _gw_req_latency_sum = 0.0
 _gw_req_in_flight = 0  # gauge: requests currently being processed
+_gw_req_lock = threading.Lock()
 
 
 def _record_request(elapsed: float, is_error: bool):
     global _gw_req_count, _gw_req_errors, _gw_req_latency_sum, _gw_req_in_flight
-    _gw_req_count += 1
-    _gw_req_latency_sum += elapsed
-    if is_error:
-        _gw_req_errors += 1
-    _gw_req_in_flight -= 1
+    with _gw_req_lock:
+        _gw_req_count += 1
+        _gw_req_latency_sum += elapsed
+        if is_error:
+            _gw_req_errors += 1
+        _gw_req_in_flight -= 1
 
 
 def _record_request_start():
     global _gw_req_in_flight
-    _gw_req_in_flight += 1
+    with _gw_req_lock:
+        _gw_req_in_flight += 1
 
 
 def _bytes_to_mb(b: int) -> float:
@@ -283,18 +286,24 @@ def _collect_cache_metrics() -> dict:
 
 def _snapshot_and_reset() -> dict:
     global _gw_req_count, _gw_req_errors, _gw_req_latency_sum
+    with _gw_req_lock:
+        request_count = _gw_req_count
+        error_count = _gw_req_errors
+        latency_sum_s = _gw_req_latency_sum
+        in_flight = max(_gw_req_in_flight, 0)  # gauge -- not reset
+        _gw_req_count = 0
+        _gw_req_errors = 0
+        _gw_req_latency_sum = 0.0
+
     snap = {
-        "request_count": _gw_req_count,
-        "error_count": _gw_req_errors,
-        "latency_sum_s": round(_gw_req_latency_sum, 4),
-        "avg_latency_s": (round(_gw_req_latency_sum / _gw_req_count, 4) if _gw_req_count else 0),
-        "in_flight": max(_gw_req_in_flight, 0),  # gauge — not reset
+        "request_count": request_count,
+        "error_count": error_count,
+        "latency_sum_s": round(latency_sum_s, 4),
+        "avg_latency_s": (round(latency_sum_s / request_count, 4) if request_count else 0),
+        "in_flight": in_flight,
         "system": _collect_system_metrics(),
         "caches": _collect_cache_metrics(),
     }
-    _gw_req_count = 0
-    _gw_req_errors = 0
-    _gw_req_latency_sum = 0.0
     return snap
 
 
