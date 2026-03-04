@@ -1686,7 +1686,10 @@ class DICOMwebDatabricksWrapper:
             raise
         except Exception as exc:
             logger.error(f"Frame offset resolution error: {exc}")
-            raise HTTPException(status_code=500, detail=f"Error resolving frame offsets: {exc}")
+            raise HTTPException(
+                status_code=500,
+                detail="Internal server error -- check gateway logs for details",
+            )
 
     @staticmethod
     def _strip_item_header(frame_content: bytes, frame_num: int) -> bytes:

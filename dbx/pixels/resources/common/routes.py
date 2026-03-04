@@ -381,9 +381,14 @@ def register_redaction_routes(app: FastAPI):
                 else:
                     raise ValueError("SDK Config did not produce a Bearer token")
             except Exception as exc:
+                log(
+                    f"App-auth fallback failed while creating redaction job: {exc}",
+                    request,
+                    "error",
+                )
                 raise HTTPException(
                     status_code=500,
-                    detail=f"No X-Forwarded-Access-Token header and app-auth fallback failed: {exc}",
+                    detail="Internal server error -- check application logs for details",
                 )
 
         pixels_table = get_pixels_table(request)

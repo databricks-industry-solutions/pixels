@@ -948,7 +948,7 @@ async def _handle_legacy_spark(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Upload failed ({type(exc).__name__}): {exc}",
+            detail="Internal server error -- check gateway logs for details",
         )
     _t_upload = _time.perf_counter()
 
