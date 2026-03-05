@@ -7,9 +7,6 @@ from io import BytesIO
 import fsspec
 import pandas as pd
 from PIL import Image
-from pyspark.ml.image import ImageSchema
-from pyspark.sql.functions import pandas_udf, udf
-from pyspark.sql.types import ArrayType, StringType
 
 from dbx.pixels.logging import LoggerProvider
 
@@ -20,6 +17,8 @@ def to_image(data: bytes):
     """Converts PNG image based bytes data and converts it into OpenCV compatible Image type. This is the basis of diplaying images stored in Spark dataframes witin Databricks.
     :param bytes data - PNG image bytes
     """
+    from pyspark.ml.image import ImageSchema
+
     sig = hashlib.md5(data).hexdigest()
 
     b = BytesIO(initial_bytes=data)
@@ -59,8 +58,7 @@ def _file_reader_helper(path):
     return fp.read()
 
 
-@udf
-def identify_type_udf(path: str):
+def _identify_type(path: str):
     """Identifies the file type of a file based on the magic string."""
     import magic
 
@@ -124,9 +122,26 @@ def unzip(raw_path, unzipped_base_path):
     return to_return
 
 
-@pandas_udf(ArrayType(StringType()))
-def unzip_pandas_udf(col1, col2):
+def _unzip_pandas(col1, col2):
     return pd.Series([unzip(path, volume_base_path) for path, volume_base_path in zip(col1, col2)])
+
+
+# ── PySpark UDFs are created lazily (only when accessed) ─────────────
+def __getattr__(name):
+    if name == "identify_type_udf":
+        from pyspark.sql.functions import udf
+
+        value = udf(_identify_type)
+        globals()[name] = value
+        return value
+    if name == "unzip_pandas_udf":
+        from pyspark.sql.functions import pandas_udf
+        from pyspark.sql.types import ArrayType, StringType
+
+        value = pandas_udf(ArrayType(StringType()))(_unzip_pandas)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def call_llm_serving_endpoint(

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixels Server Metrics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #38bdf8;
+            --secondary: #818cf8;
+            --accent: #f472b6;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #4ade80;
+            --warning: #facc15;
+            --error: #fb7185;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+        }
+
+        .card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 1.25rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .metric .label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: baseline;
+            gap: 0.25rem;
+        }
+
+        .metric .unit {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-dim);
+        }
+
+        .progress-container {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            color: var(--text-dim);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Pixels Live Metrics</h1>
+
+    <div class="status">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">Connected</span>
+        <span style="margin-left: 1rem;" id="timestamp">—</span>
+    </div>
+
+    <div class="dashboard">
+        <!-- System Box -->
+        <div class="card">
+            <h2>🖥️ System Resources</h2>
+            <div class="metric-group">
+                <div class="metric">
+                    <span class="label">CPU Usage (Process)</span>
+                    <span class="value" id="cpu-process">0<span class="unit">%</span></span>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="cpu-process-bar"></div>
+                    </div>
+                </div>
+                <div class="metric">
+                    <span class="label">RAM Usage (RSS)</span>
+                    <span class="value" id="ram-rss">0<span class="unit">MB</span></span>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">Threads</span>
+                        <span class="value" id="threads">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Network</span>
+                        <span class="value" id="conns">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Memory Box -->
+        <div class="card">
+            <h2>🧠 System Memory</h2>
+            <div class="metric-group">
+                <div class="metric">
+                    <span class="label">Global Memory Pressure</span>
+                    <span class="value" id="sys-mem-percent">0<span class="unit">%</span></span>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="sys-mem-bar"></div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">Available</span>
+                        <span class="value" id="sys-mem-avail">0<span class="unit">MB</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Total</span>
+                        <span class="value" id="sys-mem-total">0<span class="unit">MB</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caches Box -->
+        <div class="card">
+            <h2>💾 Application Caches</h2>
+            <div class="metric-group">
+                <div class="metric">
+                    <span class="label">BOT Cache Hit Rate</span>
+                    <span class="value" id="bot-hit">0<span class="unit">%</span></span>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="bot-hit-bar"></div>
+                    </div>
+                </div>
+                <div class="metric">
+                    <span class="label">Path Cache Hit Rate</span>
+                    <span class="value" id="path-hit">0<span class="unit">%</span></span>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="path-hit-bar"></div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">BOT Entries</span>
+                        <span class="value" id="bot-entries">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Path Entries</span>
+                        <span class="value" id="path-entries">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prefetcher Box -->
+        <div class="card">
+            <h2>🚀 Prefetcher</h2>
+            <div class="metric-group">
+                <div class="metric">
+                    <span class="label">Memory Usage</span>
+                    <span class="value" id="pref-mem">0<span class="unit">MB</span></span>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="pref-mem-bar"></div>
+                    </div>
+                    <span class="label" style="font-size: 0.6rem; margin-top: 0.2rem;" id="pref-budget">Budget: 0
+                        MB</span>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">Cached</span>
+                        <span class="value" style="color: var(--success);" id="pref-cached">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Pending</span>
+                        <span class="value" style="color: var(--warning);" id="pref-pending">0</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="metric">
+                        <span class="label">Hits</span>
+                        <span class="value" style="color: var(--success);" id="pref-hits">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="label">Evicted</span>
+                        <span class="value" style="color: var(--warning);" id="pref-evicted">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        DICOMweb Server Monitoring &bull; Polling every 2s
+    </footer>
+
+    <script>
+        const endpoint = '/api/metrics';
+
+        async function update() {
+            try {
+                const res = await fetch(endpoint, { credentials: 'include' });
+                const data = await res.json();
+
+                // Timestamp
+                document.getElementById('timestamp').innerText = new Date(data.timestamp).toLocaleTimeString();
+
+                // System
+                const sys = data.system;
+                document.getElementById('cpu-process').childNodes[0].nodeValue = sys.cpu_percent_process;
+                document.getElementById('cpu-process-bar').style.width = Math.min(sys.cpu_percent_process, 100) + '%';
+                document.getElementById('ram-rss').childNodes[0].nodeValue = sys.memory_rss_mb;
+                document.getElementById('threads').innerText = sys.threads_active;
+                document.getElementById('conns').innerText = sys.network_connections;
+
+                // Global Mem
+                document.getElementById('sys-mem-percent').childNodes[0].nodeValue = sys.system_memory_used_percent;
+                document.getElementById('sys-mem-bar').style.width = sys.system_memory_used_percent + '%';
+                document.getElementById('sys-mem-avail').childNodes[0].nodeValue = sys.system_memory_available_mb;
+                document.getElementById('sys-mem-total').childNodes[0].nodeValue = sys.system_memory_total_mb;
+
+                // Caches
+                const c = data.caches;
+                const botHit = parseFloat(c.bot_cache.hit_rate.replace('%', ''));
+                document.getElementById('bot-hit').childNodes[0].nodeValue = botHit;
+                document.getElementById('bot-hit-bar').style.width = botHit + '%';
+                document.getElementById('bot-entries').innerText = c.bot_cache.entries;
+
+                const pathHit = parseFloat(c.instance_path_cache.hit_rate.replace('%', ''));
+                document.getElementById('path-hit').childNodes[0].nodeValue = pathHit;
+                document.getElementById('path-hit-bar').style.width = pathHit + '%';
+                document.getElementById('path-entries').innerText = c.instance_path_cache.entries;
+
+                // Prefetcher
+                const p = data.prefetcher;
+                document.getElementById('pref-mem').childNodes[0].nodeValue = p.memory_used_mb;
+                const prefPerc = (p.memory_used_mb / p.memory_budget_mb) * 100;
+                document.getElementById('pref-mem-bar').style.width = Math.min(prefPerc, 100) + '%';
+                document.getElementById('pref-budget').innerText = `Budget: ${p.memory_budget_mb} MB`;
+                document.getElementById('pref-cached').innerText = p.cached;
+                document.getElementById('pref-pending').innerText = p.pending;
+                document.getElementById('pref-hits').innerText = p.hits;
+                document.getElementById('pref-evicted').innerText = p.evicted;
+
+                // Status
+                document.getElementById('status-dot').style.background = 'var(--success)';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px var(--success)';
+                document.getElementById('status-text').innerText = 'Connected';
+
+            } catch (err) {
+                console.error('Failed to fetch metrics:', err);
+                document.getElementById('status-dot').style.background = 'var(--error)';
+                document.getElementById('status-dot').style.boxShadow = '0 0 8px var(--error)';
+                document.getElementById('status-text').innerText = 'Disconnected';
+            }
+        }
+
+        setInterval(update, 2000);
+        update();
+    </script>
+</body>
+
+</html>

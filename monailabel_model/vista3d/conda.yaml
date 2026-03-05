@@ -38,4 +38,5 @@ dependencies:
   - huggingface_hub
   - simpleitk
   - databricks-sdk==0.84
+  - pylibjpeg-openjpeg
 name: mlflow-env

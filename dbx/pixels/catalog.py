@@ -133,7 +133,7 @@ class Catalog:
         )
 
     def __streamReader(
-        self, path: str, pattern: str = "*", recurse: bool = True, maxFilesPerTrigger: int = 1000
+        self, path: str, pattern: str = "*", recurse: bool = True, maxFilesPerTrigger: int = 50000
     ):
         return (
             self._spark.readStream.format("cloudFiles")
@@ -156,7 +156,7 @@ class Catalog:
         triggerAvailableNow: bool = None,
         extractZip: bool = False,
         extractZipBasePath: str = None,
-        maxFilesPerTrigger: int = 1000,
+        maxFilesPerTrigger: int = 50000,
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
