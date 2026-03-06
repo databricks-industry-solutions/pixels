@@ -217,6 +217,11 @@ class DBModel(mlflow.pyfunc.PythonModel):
             label_prompt = self.EVERYTHING_PROMPT
             if "label_prompt" in input and input["label_prompt"] is not None:
                 label_prompt = input["label_prompt"]
+            else:
+                # Optional safety guard for large auto-seg payloads in OHIF.
+                max_default_labels = int(os.getenv("MONAI_DEFAULT_MAX_LABEL_PROMPT", "0"))
+                if max_default_labels > 0 and isinstance(label_prompt, list):
+                    label_prompt = label_prompt[:max_default_labels]
         
         if "pixels_table" in input and input["pixels_table"] is not None:
             table = input["pixels_table"]

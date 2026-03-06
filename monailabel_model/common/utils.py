@@ -58,7 +58,8 @@ def to_nrrd(file_path, pixel_type="uint16"):
     if file_path.endswith(".nii.gz") or file_path.endswith(".nii") or file_path.endswith(".dcm"):
         img = sitk.ReadImage(file_path, outputPixelType=output_pixel_type)
         output_file = tempfile.NamedTemporaryFile(suffix=".nrrd").name
-        sitk.WriteImage(img, output_file)
+        # Compressed NRRD reduces payload size sent to OHIF.
+        sitk.WriteImage(img, output_file, useCompression=True)
         return output_file
     else:
         raise Exception("Unable to convert file", file_path)

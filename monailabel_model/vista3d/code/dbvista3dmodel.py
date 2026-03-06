@@ -1,6 +1,7 @@
 import mlflow
 import logging
 import os
+from typing import Sequence
 
 from common.abstractmodel import DBModel
 from common.utils import series_to_nifti
@@ -25,7 +26,7 @@ class DBVISTA3DModel(DBModel):
             132  # airway
         ]
     )  
-    EVERYTHING_PROMPT = list(set([i + 1 for i in range(133)]) - IGNORE_PROMPT)
+    EVERYTHING_PROMPT = sorted(list(set([i + 1 for i in range(133)]) - IGNORE_PROMPT))
 
     def __init__(self, volumes_compatible=False):
         super().__init__(volumes_compatible=volumes_compatible)
@@ -71,6 +72,82 @@ class DBVISTA3DModel(DBModel):
         if not file_path.startswith("/tmp/vista/bundles/vista3d/models/prediction/") or ".." in file_path:
             raise Exception("Invalid file path", file_path)
 
+    def _prune_segmentation_labels(self, seg_path: str, label_prompt: Sequence[int] | None = None) -> None:
+        """
+        Reduce segmentation payload size for OHIF by dropping tiny labels and capping
+        the number of kept labels. This is especially important for VISTA3D auto mode,
+        where dozens of low-volume classes can cause browser OOM during 3D conversion.
+        """
+        import numpy as np
+        import SimpleITK as sitk
+
+        max_labels = int(os.getenv("VISTA3D_MAX_OUTPUT_LABELS", "0"))
+        min_voxels = int(os.getenv("VISTA3D_MIN_LABEL_VOXELS", "0"))
+
+        if max_labels <= 0 and min_voxels <= 0:
+            return
+
+        img = sitk.ReadImage(seg_path)
+        seg = sitk.GetArrayFromImage(img)
+
+        labels, counts = np.unique(seg, return_counts=True)
+        non_bg = labels != 0
+        labels = labels[non_bg]
+        counts = counts[non_bg]
+
+        if labels.size == 0:
+            return
+
+        # Prefer labels explicitly requested by prompt when a cap is enabled.
+        prompt_set = set(int(v) for v in (label_prompt or []))
+
+        ranked = sorted(
+            zip(labels.tolist(), counts.tolist()),
+            key=lambda x: x[1],
+            reverse=True,
+        )
+
+        keep_labels: list[int] = []
+        for label_value, voxel_count in ranked:
+            if min_voxels > 0 and voxel_count < min_voxels:
+                continue
+            if max_labels > 0 and len(keep_labels) >= max_labels:
+                break
+            if prompt_set and int(label_value) not in prompt_set:
+                continue
+            keep_labels.append(int(label_value))
+
+        # If prompt filtering removed everything, fall back to size-based selection.
+        if not keep_labels:
+            for label_value, voxel_count in ranked:
+                if min_voxels > 0 and voxel_count < min_voxels:
+                    continue
+                if max_labels > 0 and len(keep_labels) >= max_labels:
+                    break
+                keep_labels.append(int(label_value))
+
+        if not keep_labels:
+            return
+
+        keep_set = set(keep_labels)
+        all_label_set = set(int(v) for v in labels.tolist())
+        if keep_set == all_label_set:
+            return
+
+        filtered = np.where(np.isin(seg, list(keep_set)), seg, 0).astype(seg.dtype, copy=False)
+        out = sitk.GetImageFromArray(filtered)
+        out.CopyInformation(img)
+        sitk.WriteImage(out, seg_path, useCompression=True)
+
+        logger.warning(
+            "VISTA3D output pruned: kept=%d/%d labels (min_voxels=%d, max_labels=%d) at %s",
+            len(keep_set),
+            len(all_label_set),
+            min_voxels,
+            max_labels,
+            seg_path,
+        )
+
     @mlflow.trace(span_type="MONAI")
     def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
         from vista3d_bundle.scripts.infer import InferClass
@@ -83,4 +160,5 @@ class DBVISTA3DModel(DBModel):
         self.logger.warning(f"Inference completed on image: {series_dir}")
 
         out_seg_path = pred.meta['saved_to']
+        self._prune_segmentation_labels(out_seg_path, label_prompt=label_prompt)
         return series_dir, out_seg_path
