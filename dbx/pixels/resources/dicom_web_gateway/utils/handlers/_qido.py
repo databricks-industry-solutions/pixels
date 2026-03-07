@@ -14,18 +14,37 @@ from .. import timing_decorator
 from ._common import get_dicomweb_wrapper
 
 
+def _query_params_to_dict(request: Request) -> dict:
+    """
+    Convert query params to a dict while preserving repeated keys as lists.
+
+    `dict(request.query_params)` drops repeated keys (keeps only the last value),
+    which breaks multi-valued DICOM filters such as ModalitiesInStudy.
+    """
+    normalized: dict[str, str | list[str]] = {}
+    for key, value in request.query_params.multi_items():
+        current = normalized.get(key)
+        if current is None:
+            normalized[key] = value
+        elif isinstance(current, list):
+            current.append(value)
+        else:
+            normalized[key] = [current, value]
+    return normalized
+
+
 @timing_decorator
 def dicomweb_qido_studies(request: Request) -> Response:
     """GET /api/dicomweb/studies — search for studies."""
     wrapper = get_dicomweb_wrapper(request)
-    results = wrapper.search_for_studies(dict(request.query_params))
+    results = wrapper.search_for_studies(_query_params_to_dict(request))
     return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")
 
 
 def dicomweb_qido_series(request: Request, study_instance_uid: str) -> Response:
     """GET /api/dicomweb/studies/{study}/series"""
     wrapper = get_dicomweb_wrapper(request)
-    results = wrapper.search_for_series(study_instance_uid, dict(request.query_params))
+    results = wrapper.search_for_series(study_instance_uid, _query_params_to_dict(request))
     return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")
 
 
@@ -43,6 +62,6 @@ def dicomweb_qido_instances(
     """GET /api/dicomweb/studies/{study}/series/{series}/instances"""
     wrapper = get_dicomweb_wrapper(request)
     results = wrapper.search_for_instances(
-        study_instance_uid, series_instance_uid, dict(request.query_params)
+        study_instance_uid, series_instance_uid, _query_params_to_dict(request)
     )
     return Response(content=json.dumps(results, indent=2), media_type="application/dicom+json")

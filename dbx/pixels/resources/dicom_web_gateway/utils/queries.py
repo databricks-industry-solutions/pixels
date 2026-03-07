@@ -72,17 +72,23 @@ def build_study_query(pixels_table: str, params: Dict[str, Any]) -> tuple[str, d
     if "ModalitiesInStudy" in params or "00080061" in params:
         modalities = params.get("ModalitiesInStudy", params.get("00080061", ""))
         if isinstance(modalities, str):
-            modalities = [modalities]
-        placeholders = []
-        for i, mod in enumerate(modalities):
-            key = f"mod_{i}"
-            placeholders.append(f"%({key})s")
-            sql_params[key] = mod
-        in_clause = ", ".join(placeholders)
-        filters.append(
-            f"(meta:['00080060'].Value[0]::String IN ({in_clause}) OR "
-            f"meta:['00080061'].Value[0]::String IN ({in_clause}))"
-        )
+            # Accept both repeated params (?ModalitiesInStudy=CT&ModalitiesInStudy=PT)
+            # and comma-separated values (?ModalitiesInStudy=CT,PT).
+            modalities = [m.strip() for m in modalities.split(",") if m.strip()]
+        else:
+            modalities = [str(m).strip() for m in modalities if str(m).strip()]
+
+        if modalities:
+            placeholders = []
+            for i, mod in enumerate(modalities):
+                key = f"mod_{i}"
+                placeholders.append(f"%({key})s")
+                sql_params[key] = mod
+            in_clause = ", ".join(placeholders)
+            filters.append(
+                f"(meta:['00080060'].Value[0]::String IN ({in_clause}) OR "
+                f"meta:['00080061'].Value[0]::String IN ({in_clause}))"
+            )
 
     # Study Date (single value or range YYYYMMDD-YYYYMMDD)
     if "StudyDate" in params or "00080020" in params:
