@@ -50,10 +50,10 @@ class MetricsStore:
             self._schema = _DEFAULT_SCHEMA
 
         instance_name = os.getenv("LAKEBASE_INSTANCE_NAME", "pixels-lakebase")
-        branch = os.getenv("LAKEBASE_BRANCH_NAME", "main")
+        branch = os.getenv("LAKEBASE_BRANCH_NAME", "production")
         self._project_rn = f"projects/{instance_name}"
         self._branch_rn = f"{self._project_rn}/branches/{branch}"
-        self._endpoint_rn = f"{self._branch_rn}/endpoints/{instance_name}"
+        self._endpoint_rn = f"{self._branch_rn}/endpoints/primary"
 
         self._host: str | None = None
         self._resolve_host()
