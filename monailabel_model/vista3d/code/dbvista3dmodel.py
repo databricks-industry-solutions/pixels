@@ -148,6 +148,50 @@ class DBVISTA3DModel(DBModel):
             seg_path,
         )
 
+    def _downsample_segmentation(self, seg_path: str) -> None:
+        """
+        Downsample segmentation geometry to reduce OHIF labelmap->surface memory/CPU.
+        Uses nearest-neighbor to preserve label IDs.
+        """
+        import numpy as np
+        import SimpleITK as sitk
+
+        factor = float(os.getenv("VISTA3D_OHIF_DOWNSAMPLE_FACTOR", "2.0"))
+        if factor <= 1.0:
+            return
+
+        img = sitk.ReadImage(seg_path)
+        old_size = np.array(img.GetSize(), dtype=np.int64)      # (x, y, z)
+        old_spacing = np.array(img.GetSpacing(), dtype=np.float64)
+        new_size = np.maximum(1, np.floor(old_size / factor).astype(np.int64))
+
+        if np.array_equal(old_size, new_size):
+            return
+
+        # Keep the same physical extent: spacing scales with size ratio.
+        new_spacing = old_spacing * (old_size / new_size)
+
+        resampled = sitk.Resample(
+            img,
+            size=[int(v) for v in new_size.tolist()],
+            transform=sitk.Transform(),
+            interpolator=sitk.sitkNearestNeighbor,
+            outputOrigin=img.GetOrigin(),
+            outputSpacing=[float(v) for v in new_spacing.tolist()],
+            outputDirection=img.GetDirection(),
+            defaultPixelValue=0,
+            outputPixelType=img.GetPixelID(),
+        )
+
+        sitk.WriteImage(resampled, seg_path, useCompression=True)
+        logger.warning(
+            "VISTA3D output downsampled by %.2fx: size %s -> %s (%s)",
+            factor,
+            tuple(int(v) for v in old_size.tolist()),
+            tuple(int(v) for v in new_size.tolist()),
+            seg_path,
+        )
+
     @mlflow.trace(span_type="MONAI")
     def model_infer(self, datastore, series_uid, label_prompt=None, points=None, point_labels=None, torch_device=None, file_ext=".nii.gz"):
         from vista3d_bundle.scripts.infer import InferClass
@@ -161,4 +205,7 @@ class DBVISTA3DModel(DBModel):
 
         out_seg_path = pred.meta['saved_to']
         self._prune_segmentation_labels(out_seg_path, label_prompt=label_prompt)
+        # Downsample only for OHIF path (.nii/.nii.gz) to reduce browser-side OOM.
+        if str(file_ext).lower() in (".nii", ".nii.gz"):
+            self._downsample_segmentation(out_seg_path)
         return series_dir, out_seg_path
