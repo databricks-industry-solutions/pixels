@@ -68,7 +68,7 @@ window.config = {
         enableStudyLazyLoad: !0,
         supportsFuzzyMatching: !1,
         supportsWildcard: !0,
-        staticWado: !0,
+        staticWado: 0,
         singlepart: "bulkdata,video",
         bulkDataURI: {
           enabled: !0,
