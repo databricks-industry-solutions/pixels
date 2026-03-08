@@ -5,4 +5,4 @@ requests-toolbelt
 httpx[http2]
 psycopg2-binary
 python-multipart
-hypercorn
+hypercorn[h2]
