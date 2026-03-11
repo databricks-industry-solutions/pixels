@@ -255,7 +255,6 @@ class LakebaseUtils:
         # Build resource names
         self.project_resource_name = f"projects/{self.instance_name}"
         self.branch_resource_name = f"{self.project_resource_name}/branches/{self.branch_name}"
-        self.endpoint_resource_name = f"{self.branch_resource_name}/endpoints/primary"
 
         if user is None:
             self.user = self.workspace_client.current_user.me().user_name
@@ -309,8 +308,14 @@ class LakebaseUtils:
 
         # 3. Ensure Endpoint exists
         try:
-            endpoint = self.workspace_client.postgres.get_endpoint(self.endpoint_resource_name)
-            logger.info(f"Lakebase endpoint '{self.instance_name}' exists.")
+            endpoints = list(
+                self.workspace_client.postgres.list_endpoints(self.branch_resource_name)
+            )
+            endpoint = next(
+                e for e in endpoints if e.status.endpoint_type.value == "ENDPOINT_TYPE_READ_WRITE"
+            )
+            self.endpoint_resource_name = endpoint.name
+            logger.info(f"Lakebase R/W endpoint exists with name {endpoint.name.split(' / ')[-1]}.")
         except Exception:
             if create_instance:
                 logger.info(
@@ -327,6 +332,7 @@ class LakebaseUtils:
                         )
                     ),
                 )
+                self.endpoint_resource_name = endpoint.name
                 time.sleep(10)
             else:
                 raise Exception(f"Lakebase endpoint '{self.instance_name}' does not exist")
