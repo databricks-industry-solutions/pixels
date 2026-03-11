@@ -315,7 +315,7 @@ class LakebaseUtils:
                 e for e in endpoints if e.status.endpoint_type.value == "ENDPOINT_TYPE_READ_WRITE"
             )
             self.endpoint_resource_name = endpoint.name
-            logger.info(f"Lakebase R/W endpoint exists with name {endpoint.name.split(" / ")[-1]}.")
+            logger.info(f"Lakebase R/W endpoint exists with name {endpoint.name.split(' / ')[-1]}.")
         except Exception:
             if create_instance:
                 logger.info(
@@ -745,8 +745,7 @@ class LakebaseUtils:
         # avoids the json_agg / OID-114 deserialization issue where psycopg2
         # may return the json type as Python None if the JSON adapter is not
         # registered in the connection context.
-        query = sql.SQL(
-            """
+        query = sql.SQL("""
             SELECT
                 filename,
                 COUNT(*)                             AS frame_count,
@@ -776,8 +775,7 @@ class LakebaseUtils:
             GROUP BY filename
             ORDER BY priority_score DESC
             LIMIT %s
-            """
-        ).format(table=sql.Identifier(self.schema, table))
+            """).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
