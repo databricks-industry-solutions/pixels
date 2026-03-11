@@ -115,6 +115,28 @@ To enable incremental processing you need to set `streaming` and `streamCheckpoi
 catalog_df = catalog.catalog(path, streaming=True, streamCheckpointBasePath=<checkpointPath>)
 ```
 
+### Optional: managed file events with Auto Loader
+For higher scalability, you can enable managed file events for discovery instead of directory listing.
+
+```python
+catalog_df = catalog.catalog(
+  path,
+  streaming=True,
+  streamCheckpointBasePath=<checkpointPath>,
+  useManagedFileEvents=True,
+  includeExistingFiles=True,
+  allowOverwrites=False,
+  maxFileAge="90 days"
+)
+```
+
+Best practices:
+- Use Unity Catalog Volumes or external locations governed by Unity Catalog.
+- Ensure the stream runs at least once every 7 days to keep file events warm.
+- Keep `allowOverwrites=False` unless upstream systems can overwrite files.
+- Use `maxFileAge` to bound discovery windows for large/high-churn landing zones.
+- Reuse a stable checkpoint path across runs to avoid reprocessing.
+
 ## Built-in unzip
 Automatically extracts zip files in the defined volume path.
 If extractZip is not enabled then zip files will be ignored.
