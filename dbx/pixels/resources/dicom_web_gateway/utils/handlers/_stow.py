@@ -570,9 +570,9 @@ def _read_dicom_uids(token: str, path: str) -> dict | None:
             return None
 
         return {
-            "sop_uid": sop_uid,
-            "study_uid": study_uid or "",
-            "series_uid": series_uid or "",
+            "sop_instance_uid": sop_uid,
+            "study_instance_uid": study_uid or "",
+            "series_instance_uid": series_uid or "",
             "num_frames": num_frames,
             "path": db_file.full_path,
         }
@@ -642,9 +642,9 @@ def _cache_streaming_results(
             continue
         entries.append(
             {
-                "sop_uid": r["sop_uid"],
-                "study_uid": r.get("study_uid", ""),
-                "series_uid": r.get("series_uid", ""),
+                "sop_instance_uid": r["sop_uid"],
+                "study_instance_uid": r.get("study_uid", ""),
+                "series_instance_uid": r.get("series_uid", ""),
                 "num_frames": r.get("num_frames", 1),
                 "path": r["output_path"],
             }
@@ -667,10 +667,12 @@ def _populate_cache(
     # ── Tier 1: in-memory cache ───────────────────────────────────────
     for r in entries:
         instance_path_cache.put(
-            r["sop_uid"],
+            r["sop_instance_uid"],
             uc_table,
             {"path": r["path"], "num_frames": r["num_frames"]},
             user_groups=user_groups,
+            study_instance_uid=r.get("study_instance_uid", "") or study_instance_uid or "",
+            series_instance_uid=r.get("series_instance_uid", ""),
         )
 
     logger.info(f"STOW-RS cache: Tier 1 (memory) — cached {len(entries)} instance path(s)")
@@ -680,9 +682,11 @@ def _populate_cache(
         try:
             lb_entries = [
                 {
-                    "sop_instance_uid": r["sop_uid"],
-                    "study_instance_uid": r["study_uid"] or study_instance_uid or "",
-                    "series_instance_uid": r["series_uid"],
+                    "sop_instance_uid": r["sop_instance_uid"],
+                    "study_instance_uid": r.get("study_instance_uid", "")
+                    or study_instance_uid
+                    or "",
+                    "series_instance_uid": r.get("series_instance_uid", ""),
                     "local_path": r["path"],
                     "num_frames": r["num_frames"],
                     "uc_table_name": uc_table,
