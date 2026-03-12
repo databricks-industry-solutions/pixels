@@ -41,44 +41,41 @@ for _mod_name in list(sys.modules):
                 del sys.modules[_mod_name]
 # --------------------------------------------------------------------------
 
-import json
 import struct
-import threading
 import time
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Module-under-test imports
-# ---------------------------------------------------------------------------
-
+from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
+    _cache_streaming_results,
+    _derive_stow_table,
+    _extract_tag,
+    _fire_stow_job,
+    _poll_stow_status,
+    _resolve_stow_targets,
+    _resolve_user_email,
+    _StowRecordBuffer,
+    _token_email_cache,
+    _write_stow_records,
+    _write_stow_records_completed,
+)
+from dbx.pixels.resources.dicom_web_gateway.utils.multipart_stream import (
+    _TAG_SOP_INSTANCE_UID,
+    _TAG_STUDY_INSTANCE_UID,
+    _scan_uid_tag,
+    extract_dicom_uids,
+)
 from dbx.pixels.resources.dicom_web_gateway.utils.queries import (
     build_stow_insert_completed_query,
     build_stow_insert_query,
     build_stow_poll_query,
 )
-from dbx.pixels.resources.dicom_web_gateway.utils.multipart_stream import (
-    _scan_uid_tag,
-    _TAG_SOP_INSTANCE_UID,
-    _TAG_STUDY_INSTANCE_UID,
-    _TAG_SERIES_INSTANCE_UID,
-    extract_dicom_uids,
-)
-from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
-    _derive_stow_table,
-    _extract_tag,
-    _resolve_stow_targets,
-    _resolve_user_email,
-    _StowRecordBuffer,
-    _write_stow_records,
-    _write_stow_records_completed,
-    _fire_stow_job,
-    _poll_stow_status,
-    _cache_streaming_results,
-    _token_email_cache,
-)
+
+# ---------------------------------------------------------------------------
+# Module-under-test imports
+# ---------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -244,9 +241,7 @@ class TestResolveUserEmail:
         request.headers = {}
         mock_resp = MagicMock()
         mock_resp.ok = True
-        mock_resp.json.return_value = {
-            "emails": [{"value": "scim@example.com", "primary": True}]
-        }
+        mock_resp.json.return_value = {"emails": [{"value": "scim@example.com", "primary": True}]}
         mock_requests.get.return_value = mock_resp
 
         with patch.dict("os.environ", {"DATABRICKS_HOST": "https://myhost.cloud.databricks.com"}):
@@ -260,9 +255,7 @@ class TestResolveUserEmail:
         request.headers = {}
         mock_resp = MagicMock()
         mock_resp.ok = True
-        mock_resp.json.return_value = {
-            "emails": [{"value": "scim@example.com", "primary": True}]
-        }
+        mock_resp.json.return_value = {"emails": [{"value": "scim@example.com", "primary": True}]}
         mock_requests.get.return_value = mock_resp
 
         with patch.dict("os.environ", {"DATABRICKS_HOST": "https://myhost.cloud.databricks.com"}):
@@ -767,9 +760,7 @@ class TestBuildStowInsertCompletedQuery:
                 "output_paths": '["path1.dcm"]',
             }
         ]
-        query, params = build_stow_insert_completed_query(
-            "main.pixels.stow_operations", records
-        )
+        query, params = build_stow_insert_completed_query("main.pixels.stow_operations", records)
         assert "'completed'" in query
         assert "output_paths" in query
         assert params["output_paths_0"] == '["path1.dcm"]'
@@ -956,8 +947,8 @@ class TestDicomwebStowStudies:
     @pytest.mark.asyncio
     async def test_routes_to_legacy_for_large_uploads(self):
         from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
-            dicomweb_stow_studies,
             _STOW_STREAMING_MAX_BYTES,
+            dicomweb_stow_studies,
         )
 
         request = MagicMock()
