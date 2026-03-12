@@ -683,7 +683,9 @@ def _populate_cache(
             lb_entries = [
                 {
                     "sop_instance_uid": r["sop_instance_uid"],
-                    "study_instance_uid": r.get("study_instance_uid", "") or study_instance_uid or "",
+                    "study_instance_uid": r.get("study_instance_uid", "")
+                    or study_instance_uid
+                    or "",
                     "series_instance_uid": r.get("series_instance_uid", ""),
                     "local_path": r["path"],
                     "num_frames": r["num_frames"],
