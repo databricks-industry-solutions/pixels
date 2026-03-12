@@ -208,7 +208,7 @@ class Catalog:
           Defaults to False.
         - maxFileAge (str, optional): Maximum age of files considered for ingestion by Auto Loader (for example: "90 days").
           Defaults to None (Auto Loader default).
-        
+
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
         """
