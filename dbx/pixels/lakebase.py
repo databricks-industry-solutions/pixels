@@ -1046,16 +1046,18 @@ class LakebaseUtils:
         uc_table_name: str,
         table: str = INSTANCE_PATHS_TABLE,
         user_groups: list[str] | None = None,
-    ) -> dict[str, dict] | None:
+    ) -> list[dict] | None:
         """
         Retrieve all cached instance paths for a series from a specific UC table.
 
         Returns:
-            ``{sop_uid: {path, num_frames, ...}}`` dict, or ``None`` if
-            no entries exist for the series.
+            List of dicts with ``study_instance_uid``, ``series_instance_uid``,
+            ``sop_instance_uid``, ``path``, and ``num_frames``; or ``None``
+            if no entries exist for the series.
         """
         query = sql.SQL(
-            "SELECT sop_instance_uid, local_path, num_frames "
+            "SELECT sop_instance_uid, local_path, num_frames, "
+            "study_instance_uid, series_instance_uid "
             "FROM {} WHERE study_instance_uid = %s AND series_instance_uid = %s "
             "AND uc_table_name = %s"
         ).format(sql.Identifier(self.schema, table))
@@ -1066,14 +1068,23 @@ class LakebaseUtils:
         )
         if not results:
             return None
-        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in results}
+        return [
+            {
+                "study_instance_uid": row[3],
+                "series_instance_uid": row[4],
+                "sop_instance_uid": row[0],
+                "path": row[1],
+                "num_frames": int(row[2]),
+            }
+            for row in results
+        ]
 
     def retrieve_instance_paths_by_local_paths(
         self,
         local_paths: list[str],
         uc_table_name: str,
         table: str = INSTANCE_PATHS_TABLE,
-    ) -> dict[str, dict]:
+    ) -> list[dict]:
         """
         Retrieve SOP-instance-path entries for an arbitrary list of file paths.
 
@@ -1088,30 +1099,41 @@ class LakebaseUtils:
             uc_table_name:  Fully-qualified UC table name.
 
         Returns:
-            ``{sop_instance_uid: {"path": local_path, "num_frames": int}}``
-            for every path that has a matching row in the table.
+            List of dicts with ``study_instance_uid``, ``series_instance_uid``,
+            ``sop_instance_uid``, ``path``, and ``num_frames`` for every path
+            that has a matching row in the table.
         """
         if not local_paths:
-            return {}
+            return []
 
         query = sql.SQL(
-            "SELECT sop_instance_uid, local_path, num_frames "
+            "SELECT sop_instance_uid, local_path, num_frames, "
+            "study_instance_uid, series_instance_uid "
             "FROM {table} "
             "WHERE local_path = ANY(%s) AND uc_table_name = %s"
         ).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (local_paths, uc_table_name))
         if not rows:
-            return {}
+            return []
 
-        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in rows}
+        return [
+            {
+                "study_instance_uid": row[3],
+                "series_instance_uid": row[4],
+                "sop_instance_uid": row[0],
+                "path": row[1],
+                "num_frames": int(row[2]),
+            }
+            for row in rows
+        ]
 
     def retrieve_instance_paths_for_preload(
         self,
         uc_table_name: str,
         limit: int = 10_000,
         table: str = INSTANCE_PATHS_TABLE,
-    ) -> dict[str, dict]:
+    ) -> list[dict]:
         """
         Retrieve up to ``limit`` instance-path entries for startup cache warmup.
 
@@ -1120,7 +1142,8 @@ class LakebaseUtils:
         directly from Lakebase ``instance_paths``.
         """
         query = sql.SQL(
-            "SELECT sop_instance_uid, local_path, num_frames "
+            "SELECT sop_instance_uid, local_path, num_frames, "
+            "study_instance_uid, series_instance_uid "
             "FROM {table} "
             "WHERE uc_table_name = %s "
             "LIMIT %s"
@@ -1128,9 +1151,18 @@ class LakebaseUtils:
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         if not rows:
-            return {}
+            return []
 
-        return {row[0]: {"path": row[1], "num_frames": int(row[2])} for row in rows}
+        return [
+            {
+                "study_instance_uid": row[3],
+                "series_instance_uid": row[4],
+                "sop_instance_uid": row[0],
+                "path": row[1],
+                "num_frames": int(row[2]),
+            }
+            for row in rows
+        ]
 
     def insert_instance_paths_batch(
         self,
