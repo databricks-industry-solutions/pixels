@@ -61,7 +61,12 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     if "7FE00010" in ds:
         del ds["7FE00010"]
 
-    js = ds.to_json_dict() | js
+    js = ds.to_json_dict()
+
+    # Include file meta header tags (group 0002), which are stored separately
+    # from the main dataset and are otherwise missing from the JSON payload.
+    if hasattr(ds, "file_meta") and ds.file_meta is not None:
+        js.update(ds.file_meta.to_json_dict())
 
     if deep:
         a = check_pixel_data(ds)
