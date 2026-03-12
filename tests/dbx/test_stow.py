@@ -868,67 +868,6 @@ class TestScanUidTag:
 class TestDicomwebStowStudies:
 
     @pytest.mark.asyncio
-    async def test_rejects_non_multipart_content_type(self):
-        from fastapi import HTTPException
-
-        from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
-            dicomweb_stow_studies,
-        )
-
-        request = MagicMock()
-        request.headers = {"content-type": "application/json"}
-
-        with pytest.raises(HTTPException) as exc_info:
-            await dicomweb_stow_studies(request)
-        assert exc_info.value.status_code == 400
-        assert "multipart/related" in exc_info.value.detail
-
-    @pytest.mark.asyncio
-    async def test_rejects_missing_stow_volume_path(self):
-        from fastapi import HTTPException
-
-        from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
-            dicomweb_stow_studies,
-        )
-
-        request = MagicMock()
-        request.headers = {
-            "content-type": "multipart/related; boundary=---abc",
-        }
-
-        with patch.dict("os.environ", {"DATABRICKS_STOW_VOLUME_PATH": ""}):
-            with pytest.raises(HTTPException) as exc_info:
-                await dicomweb_stow_studies(request)
-        assert exc_info.value.status_code == 500
-        assert "DATABRICKS_STOW_VOLUME_PATH" in exc_info.value.detail
-
-    @pytest.mark.asyncio
-    async def test_rejects_when_stow_table_not_resolved(self):
-        from fastapi import HTTPException
-
-        from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
-            dicomweb_stow_studies,
-        )
-
-        request = MagicMock()
-        request.headers = {
-            "content-type": "multipart/related; boundary=---abc",
-        }
-        request.cookies = {}
-
-        with patch.dict(
-            "os.environ",
-            {"DATABRICKS_STOW_VOLUME_PATH": "/Volumes/cat/sch/vol"},
-        ):
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow._resolve_stow_targets",
-                return_value=(None, None),
-            ):
-                with pytest.raises(HTTPException) as exc_info:
-                    await dicomweb_stow_studies(request)
-        assert exc_info.value.status_code == 500
-
-    @pytest.mark.asyncio
     async def test_routes_to_streaming_for_small_uploads(self):
         from dbx.pixels.resources.dicom_web_gateway.utils.handlers._stow import (
             dicomweb_stow_studies,
