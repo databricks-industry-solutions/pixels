@@ -214,7 +214,9 @@ class InstancePathCache:
         series_instance_uid: str = "",
     ) -> Optional[dict]:
         """Get cached path info for a SOP Instance UID."""
-        key = self._key(study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups)
+        key = self._key(
+            study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups
+        )
         with self._lock:
             if key in self._cache:
                 self._cache.move_to_end(key)
@@ -233,7 +235,9 @@ class InstancePathCache:
         series_instance_uid: str = "",
     ):
         """Cache path info for a SOP Instance UID."""
-        key = self._key(study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups)
+        key = self._key(
+            study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups
+        )
         with self._lock:
             self._cache[key] = path_info
             self._cache.move_to_end(key)

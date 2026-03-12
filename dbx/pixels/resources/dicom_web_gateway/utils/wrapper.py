@@ -295,13 +295,15 @@ class DICOMwebDatabricksWrapper:
         cache_entries: list[dict] = []
         for row in results:
             if row and len(row) >= 10 and row[2] and row[9]:
-                cache_entries.append({
-                    "study_instance_uid": str(row[0]) if row[0] else "",
-                    "series_instance_uid": str(row[1]) if row[1] else "",
-                    "sop_instance_uid": str(row[2]),
-                    "path": str(row[9]),
-                    "num_frames": int(row[7]) if row[7] else 1,
-                })
+                cache_entries.append(
+                    {
+                        "study_instance_uid": str(row[0]) if row[0] else "",
+                        "series_instance_uid": str(row[1]) if row[1] else "",
+                        "sop_instance_uid": str(row[2]),
+                        "path": str(row[9]),
+                        "num_frames": int(row[7]) if row[7] else 1,
+                    }
+                )
         if cache_entries:
             instance_path_cache.batch_put(
                 self._table,
@@ -464,13 +466,15 @@ class DICOMwebDatabricksWrapper:
                 local_path = str(row[9])
                 num_frames = int(row[7]) if row[7] else 1
                 paths[sop_uid] = local_path
-                cache_entries.append({
-                    "study_instance_uid": study_instance_uid,
-                    "series_instance_uid": series_instance_uid,
-                    "sop_instance_uid": sop_uid,
-                    "path": local_path,
-                    "num_frames": num_frames,
-                })
+                cache_entries.append(
+                    {
+                        "study_instance_uid": study_instance_uid,
+                        "series_instance_uid": series_instance_uid,
+                        "sop_instance_uid": sop_uid,
+                        "path": local_path,
+                        "num_frames": num_frames,
+                    }
+                )
 
         # Pre-warm caches (tier 1 + tier 2) ────────────────────────────
         if cache_entries:
@@ -1272,13 +1276,15 @@ class DICOMwebDatabricksWrapper:
 
                 for row in results:
                     if row and len(row) >= 3 and row[0] and row[1]:
-                        cache_entries.append({
-                            "study_instance_uid": study_instance_uid,
-                            "series_instance_uid": series_instance_uid,
-                            "sop_instance_uid": str(row[0]),
-                            "path": str(row[1]),
-                            "num_frames": int(row[2]),
-                        })
+                        cache_entries.append(
+                            {
+                                "study_instance_uid": study_instance_uid,
+                                "series_instance_uid": series_instance_uid,
+                                "sop_instance_uid": str(row[0]),
+                                "path": str(row[1]),
+                                "num_frames": int(row[2]),
+                            }
+                        )
 
                 logger.debug(
                     f"Series pre-warm: SQL returned "
