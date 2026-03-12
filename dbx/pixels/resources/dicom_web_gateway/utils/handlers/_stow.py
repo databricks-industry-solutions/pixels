@@ -160,7 +160,7 @@ def _resolve_stow_targets(request: Request | None) -> tuple[str | None, str | No
     1. Prefer ``pixels_table`` cookie (multi-table mode).
     2. Fall back to ``DATABRICKS_PIXELS_TABLE``.
     """
-    cookie_pixels_table = (request.cookies.get("pixels_table", "").strip() if request else "")
+    cookie_pixels_table = request.cookies.get("pixels_table", "").strip() if request else ""
     candidate_catalog_table = cookie_pixels_table or (_default_stow_catalog_table or "")
     if not candidate_catalog_table:
         return None, None
@@ -848,9 +848,7 @@ async def dicomweb_stow_studies(
 
     stow_table, catalog_table = _resolve_stow_targets(request)
     if not stow_table:
-        logger.error(
-            "STOW-RS: stow table target not resolved (cannot continue safely)"
-        )
+        logger.error("STOW-RS: stow table target not resolved (cannot continue safely)")
         raise HTTPException(
             status_code=500,
             detail="STOW table not configured or invalid",
