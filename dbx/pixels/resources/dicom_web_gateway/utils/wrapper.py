@@ -292,13 +292,18 @@ class DICOMwebDatabricksWrapper:
         #   [0] StudyInstanceUID  [1] SeriesInstanceUID  [2] SOPInstanceUID
         #   [3] SOPClassUID  [4] InstanceNumber  [5] Rows  [6] Columns
         #   [7] NumberOfFrames  [8] path  [9] local_path
-        cache_entries: dict[str, dict] = {}
+        cache_entries: list[dict] = []
         for row in results:
             if row and len(row) >= 10 and row[2] and row[9]:
-                sop_uid = str(row[2])
-                local_path = str(row[9])
-                num_frames = int(row[7]) if row[7] else 1
-                cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
+                cache_entries.append(
+                    {
+                        "study_instance_uid": str(row[0]) if row[0] else "",
+                        "series_instance_uid": str(row[1]) if row[1] else "",
+                        "sop_instance_uid": str(row[2]),
+                        "path": str(row[9]),
+                        "num_frames": int(row[7]) if row[7] else 1,
+                    }
+                )
         if cache_entries:
             instance_path_cache.batch_put(
                 self._table,
@@ -325,14 +330,14 @@ class DICOMwebDatabricksWrapper:
             try:
                 lb_entries = [
                     {
-                        "sop_instance_uid": uid,
-                        "study_instance_uid": study_instance_uid,
-                        "series_instance_uid": series_instance_uid,
-                        "local_path": info["path"],
-                        "num_frames": info.get("num_frames", 1),
+                        "sop_instance_uid": e["sop_instance_uid"],
+                        "study_instance_uid": e["study_instance_uid"],
+                        "series_instance_uid": e["series_instance_uid"],
+                        "local_path": e["path"],
+                        "num_frames": e["num_frames"],
                         "uc_table_name": self._table,
                     }
-                    for uid, info in cache_entries.items()
+                    for e in cache_entries
                 ]
                 self._lb.insert_instance_paths_batch(
                     lb_entries,
@@ -348,7 +353,7 @@ class DICOMwebDatabricksWrapper:
         # WADO-RS frame requests skip the per-instance computation.
         # Skip if the series was already primed (downloads already scheduled).
         if not already_primed:
-            prefetch_paths = [info["path"] for info in cache_entries.values()]
+            prefetch_paths = [e["path"] for e in cache_entries]
             if prefetch_paths:
                 n = file_prefetcher.schedule(self._token, prefetch_paths)
                 logger.debug(
@@ -358,7 +363,7 @@ class DICOMwebDatabricksWrapper:
             if cache_entries:
                 file_prefetcher._pool.submit(
                     self._preload_series_bots,
-                    dict(cache_entries),
+                    list(cache_entries),
                 )
                 logger.debug(
                     f"Background BOT preload scheduled for " f"{len(cache_entries)} instances"
@@ -426,7 +431,7 @@ class DICOMwebDatabricksWrapper:
                         lb_results,
                         user_groups=self._user_groups,
                     )
-                    paths = {uid: info["path"] for uid, info in lb_results.items()}
+                    paths = {entry["sop_instance_uid"]: entry["path"] for entry in lb_results}
                     logger.debug(f"Resolve paths: {len(paths)} paths from Lakebase")
                     return paths
             except Exception as exc:
@@ -454,14 +459,22 @@ class DICOMwebDatabricksWrapper:
         #   [3] SOPClassUID  [4] InstanceNumber  [5] Rows  [6] Columns
         #   [7] NumberOfFrames  [8] path  [9] local_path
         paths: dict[str, str] = {}
-        cache_entries: dict[str, dict] = {}
+        cache_entries: list[dict] = []
         for row in results:
             if row and len(row) >= 10 and row[2] and row[9]:
                 sop_uid = str(row[2])
                 local_path = str(row[9])
                 num_frames = int(row[7]) if row[7] else 1
                 paths[sop_uid] = local_path
-                cache_entries[sop_uid] = {"path": local_path, "num_frames": num_frames}
+                cache_entries.append(
+                    {
+                        "study_instance_uid": study_instance_uid,
+                        "series_instance_uid": series_instance_uid,
+                        "sop_instance_uid": sop_uid,
+                        "path": local_path,
+                        "num_frames": num_frames,
+                    }
+                )
 
         # Pre-warm caches (tier 1 + tier 2) ────────────────────────────
         if cache_entries:
@@ -474,14 +487,14 @@ class DICOMwebDatabricksWrapper:
                 try:
                     lb_entries = [
                         {
-                            "sop_instance_uid": uid,
-                            "study_instance_uid": study_instance_uid,
-                            "series_instance_uid": series_instance_uid,
-                            "local_path": info["path"],
-                            "num_frames": info.get("num_frames", 1),
+                            "sop_instance_uid": e["sop_instance_uid"],
+                            "study_instance_uid": e["study_instance_uid"],
+                            "series_instance_uid": e["series_instance_uid"],
+                            "local_path": e["path"],
+                            "num_frames": e["num_frames"],
                             "uc_table_name": self._table,
                         }
-                        for uid, info in cache_entries.items()
+                        for e in cache_entries
                     ]
                     self._lb.insert_instance_paths_batch(
                         lb_entries,
@@ -1228,7 +1241,7 @@ class DICOMwebDatabricksWrapper:
         * Passed to the file prefetcher
         """
         try:
-            cache_entries: dict[str, dict] = {}
+            cache_entries: list[dict] = []
 
             # ── Tier 2: Lakebase series-level lookup (ms) ──────────────
             if self._lb:
@@ -1263,11 +1276,15 @@ class DICOMwebDatabricksWrapper:
 
                 for row in results:
                     if row and len(row) >= 3 and row[0] and row[1]:
-                        sop_uid = str(row[0])
-                        cache_entries[sop_uid] = {
-                            "path": str(row[1]),
-                            "num_frames": int(row[2]),
-                        }
+                        cache_entries.append(
+                            {
+                                "study_instance_uid": study_instance_uid,
+                                "series_instance_uid": series_instance_uid,
+                                "sop_instance_uid": str(row[0]),
+                                "path": str(row[1]),
+                                "num_frames": int(row[2]),
+                            }
+                        )
 
                 logger.debug(
                     f"Series pre-warm: SQL returned "
@@ -1279,14 +1296,14 @@ class DICOMwebDatabricksWrapper:
                     try:
                         lb_records = [
                             {
-                                "sop_instance_uid": uid,
-                                "study_instance_uid": study_instance_uid,
-                                "series_instance_uid": series_instance_uid,
-                                "local_path": info["path"],
-                                "num_frames": info.get("num_frames", 1),
+                                "sop_instance_uid": e["sop_instance_uid"],
+                                "study_instance_uid": e["study_instance_uid"],
+                                "series_instance_uid": e["series_instance_uid"],
+                                "local_path": e["path"],
+                                "num_frames": e["num_frames"],
                                 "uc_table_name": self._table,
                             }
-                            for uid, info in cache_entries.items()
+                            for e in cache_entries
                         ]
                         self._lb.insert_instance_paths_batch(
                             lb_records,
@@ -1313,7 +1330,7 @@ class DICOMwebDatabricksWrapper:
             )
 
             # ── Schedule file prefetch ──────────────────────────────────
-            paths = [info["path"] for info in cache_entries.values()]
+            paths = [e["path"] for e in cache_entries]
             n_pf = file_prefetcher.schedule(self._token, paths)
             logger.debug(
                 f"Series pre-warm: {n_pf} prefetch tasks scheduled "
@@ -1332,7 +1349,7 @@ class DICOMwebDatabricksWrapper:
 
     def _preload_series_bots(
         self,
-        cache_entries: dict[str, dict],
+        cache_entries: list[dict],
     ) -> None:
         """
         Preload the in-memory BOT cache for all instances in a series.
@@ -1353,7 +1370,7 @@ class DICOMwebDatabricksWrapper:
         uc_table = self._table
 
         needs_bot: dict[str, str] = {}
-        for info in cache_entries.values():
+        for info in cache_entries:
             local_path = info["path"]
             db_file = DatabricksFile.from_full_path(local_path)
             filename = db_file.full_path
@@ -1488,6 +1505,8 @@ class DICOMwebDatabricksWrapper:
             sop_instance_uid,
             self._table,
             user_groups=self._user_groups,
+            study_instance_uid=study_instance_uid,
+            series_instance_uid=series_instance_uid,
         )
         if path_info:
             return path_info["path"]
@@ -1511,6 +1530,8 @@ class DICOMwebDatabricksWrapper:
                         self._table,
                         {"path": lb_info["path"], "num_frames": lb_info["num_frames"]},
                         user_groups=self._user_groups,
+                        study_instance_uid=study_instance_uid,
+                        series_instance_uid=series_instance_uid,
                     )
                     return lb_info["path"]
             except Exception as exc:
@@ -1537,6 +1558,8 @@ class DICOMwebDatabricksWrapper:
             self._table,
             {"path": local_path, "num_frames": num_frames},
             user_groups=self._user_groups,
+            study_instance_uid=study_instance_uid,
+            series_instance_uid=series_instance_uid,
         )
 
         # Persist to tier 2 (Lakebase)
