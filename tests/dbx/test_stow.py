@@ -41,6 +41,26 @@ for _mod_name in list(sys.modules):
                 del sys.modules[_mod_name]
 # --------------------------------------------------------------------------
 
+# Mock heavy / unavailable third-party modules that are pulled in
+# transitively via handlers/__init__.py → _qido/_wado → _common → sql_client / lakebase.
+# These are not needed by the _stow unit tests.
+from unittest import mock as _mock
+
+for _dep in [
+    "databricks.sql",
+    "databricks.sql.client",
+    "databricks.sdk",
+    "databricks.sdk.core",
+    "databricks.sdk.service",
+    "databricks.sdk.service.postgres",
+    "psycopg2",
+    "psycopg2.sql",
+    "psycopg2.extras",
+    "psycopg2.pool",
+    "psutil",
+]:
+    sys.modules.setdefault(_dep, _mock.MagicMock())
+
 import struct
 import time
 from io import BytesIO
