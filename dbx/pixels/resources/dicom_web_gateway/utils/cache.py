@@ -186,29 +186,37 @@ class InstancePathCache:
 
     @staticmethod
     def _key(
+        study_instance_uid: str,
+        series_instance_uid: str,
         sop_instance_uid: str,
         uc_table: str,
         user_groups: list[str] | None = None,
     ) -> str:
         """
-        Build a composite cache key, optionally scoped to the user's groups.
+        Build a composite cache key from the full DICOM identifier triple,
+        optionally scoped to the user's groups.
 
-        When *user_groups* is provided, a short hash is appended so that
-        users with different group sets get independent cache entries.
+        Using all three UIDs prevents collisions when different studies or
+        series contain instances that share the same SOPInstanceUID.
         """
         gk = _groups_hash(user_groups)
+        base = f"{study_instance_uid}\x00{series_instance_uid}\x00{sop_instance_uid}\x00{uc_table}"
         if gk:
-            return f"{sop_instance_uid}\x00{uc_table}\x00{gk}"
-        return f"{sop_instance_uid}\x00{uc_table}"
+            return f"{base}\x00{gk}"
+        return base
 
     def get(
         self,
         sop_instance_uid: str,
         uc_table: str,
         user_groups: list[str] | None = None,
+        study_instance_uid: str = "",
+        series_instance_uid: str = "",
     ) -> Optional[dict]:
         """Get cached path info for a SOP Instance UID."""
-        key = self._key(sop_instance_uid, uc_table, user_groups)
+        key = self._key(
+            study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups
+        )
         with self._lock:
             if key in self._cache:
                 self._cache.move_to_end(key)
@@ -223,9 +231,13 @@ class InstancePathCache:
         uc_table: str,
         path_info: dict,
         user_groups: list[str] | None = None,
+        study_instance_uid: str = "",
+        series_instance_uid: str = "",
     ):
         """Cache path info for a SOP Instance UID."""
-        key = self._key(sop_instance_uid, uc_table, user_groups)
+        key = self._key(
+            study_instance_uid, series_instance_uid, sop_instance_uid, uc_table, user_groups
+        )
         with self._lock:
             self._cache[key] = path_info
             self._cache.move_to_end(key)
@@ -235,19 +247,45 @@ class InstancePathCache:
     def batch_put(
         self,
         uc_table: str,
-        entries: dict[str, dict],
+        entries: list[dict] | dict[str, dict],
         user_groups: list[str] | None = None,
     ):
         """
-        Cache multiple SOP Instance UID → path_info mappings at once.
+        Cache multiple instance path mappings at once.
+
+        *entries* is a list of dicts, each containing:
+        - ``study_instance_uid``
+        - ``series_instance_uid``
+        - ``sop_instance_uid``
+        - ``path``
+        - ``num_frames``
 
         Used to **pre-warm** the cache after a QIDO-RS instance query so
         that subsequent WADO-RS calls skip the SQL lookup entirely.
         """
+        # Normalise legacy dict format {sop_uid: {path, num_frames}}
+        if isinstance(entries, dict):
+            entries = [
+                {
+                    "sop_instance_uid": uid,
+                    "path": info["path"],
+                    "num_frames": info.get("num_frames", 1),
+                    "study_instance_uid": info.get("study_instance_uid", ""),
+                    "series_instance_uid": info.get("series_instance_uid", ""),
+                }
+                for uid, info in entries.items()
+            ]
+
         with self._lock:
-            for uid, info in entries.items():
-                key = self._key(uid, uc_table, user_groups)
-                self._cache[key] = info
+            for entry in entries:
+                key = self._key(
+                    entry.get("study_instance_uid", ""),
+                    entry.get("series_instance_uid", ""),
+                    entry["sop_instance_uid"],
+                    uc_table,
+                    user_groups,
+                )
+                self._cache[key] = {"path": entry["path"], "num_frames": entry["num_frames"]}
                 self._cache.move_to_end(key)
             while len(self._cache) > self._max_entries:
                 self._cache.popitem(last=False)

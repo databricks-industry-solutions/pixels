@@ -486,7 +486,7 @@ Request for frames
 │  Tier 1: In-Memory LRU Cache  (microseconds)             │
 │                                                          │
 │  BOTCache          — filename+table → frame offsets      │
-│  InstancePathCache — SOP UID+table  → file path          │
+│  InstancePathCache — Study+Series+SOP UID+table → path   │
 │                                                          │
 │  Both implemented as OrderedDict with a threading.Lock.  │
 │  Thread-safe, evicts LRU entries when max_entries hit.   │
