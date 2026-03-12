@@ -671,6 +671,8 @@ def _populate_cache(
             uc_table,
             {"path": r["path"], "num_frames": r["num_frames"]},
             user_groups=user_groups,
+            study_instance_uid=r.get("study_uid", "") or study_instance_uid or "",
+            series_instance_uid=r.get("series_uid", ""),
         )
 
     logger.info(f"STOW-RS cache: Tier 1 (memory) — cached {len(entries)} instance path(s)")
