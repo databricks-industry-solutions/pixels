@@ -247,13 +247,13 @@ class InstancePathCache:
     def batch_put(
         self,
         uc_table: str,
-        entries: list[dict],
+        entries: list[dict] | dict[str, dict],
         user_groups: list[str] | None = None,
     ):
         """
         Cache multiple instance path mappings at once.
 
-        Each entry in *entries* must contain:
+        *entries* is a list of dicts, each containing:
         - ``study_instance_uid``
         - ``series_instance_uid``
         - ``sop_instance_uid``
@@ -263,6 +263,19 @@ class InstancePathCache:
         Used to **pre-warm** the cache after a QIDO-RS instance query so
         that subsequent WADO-RS calls skip the SQL lookup entirely.
         """
+        # Normalise legacy dict format {sop_uid: {path, num_frames}}
+        if isinstance(entries, dict):
+            entries = [
+                {
+                    "sop_instance_uid": uid,
+                    "path": info["path"],
+                    "num_frames": info.get("num_frames", 1),
+                    "study_instance_uid": info.get("study_instance_uid", ""),
+                    "series_instance_uid": info.get("series_instance_uid", ""),
+                }
+                for uid, info in entries.items()
+            ]
+
         with self._lock:
             for entry in entries:
                 key = self._key(
