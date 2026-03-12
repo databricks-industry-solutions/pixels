@@ -932,7 +932,18 @@ class DICOMwebDatabricksWrapper:
             raw = _fetch_bytes_range(token, db_file, 0, _HEADER_EXTENDED_BYTES)
             pixel_data_pos = _find_pixel_data_pos(raw)
 
-        ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+        try:
+            ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+        except Exception:
+            # Header too large for initial fetch (common with RTDOSE, large
+            # sequence elements).  Retry with extended range — mirrors the
+            # pattern in get_file_metadata().
+            if len(raw) < _HEADER_EXTENDED_BYTES:
+                raw = _fetch_bytes_range(token, db_file, 0, _HEADER_EXTENDED_BYTES)
+                pixel_data_pos = _find_pixel_data_pos(raw)
+                ds = pydicom.dcmread(BytesIO(raw), stop_before_pixels=True)
+            else:
+                raise
         transfer_syntax_uid = str(ds.file_meta.TransferSyntaxUID)
         is_compressed = ds.file_meta.TransferSyntaxUID.is_compressed
         number_of_frames = int(ds.get("NumberOfFrames", 1))
