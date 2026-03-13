@@ -460,8 +460,7 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
             return job_id
         else:
             logger.warning(
-                f"STOW-RS: job creation failed (HTTP {resp.status_code}): "
-                f"{resp.text[:300]}"
+                f"STOW-RS: job creation failed (HTTP {resp.status_code}): " f"{resp.text[:300]}"
             )
     except Exception as exc:
         logger.warning(f"STOW-RS: job creation failed: {exc}")
@@ -927,10 +926,9 @@ async def dicomweb_stow_studies(
 
     # ── Landing-zone configuration ─────────────────────────────────────
     # Prefer the per-request cookie (seg_dest_dir), fall back to env var.
-    stow_base = (
-        request.cookies.get("seg_dest_dir", "").rstrip("/")
-        or os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
-    )
+    stow_base = request.cookies.get("seg_dest_dir", "").rstrip("/") or os.getenv(
+        "DATABRICKS_STOW_VOLUME_PATH", ""
+    ).rstrip("/")
     if not stow_base:
         logger.error("STOW-RS: no STOW volume path (cookie or DATABRICKS_STOW_VOLUME_PATH)")
         raise HTTPException(
@@ -1076,9 +1074,7 @@ async def _handle_streaming(
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(
-            _fire_stow_job, token, pixels_table=req_pixels_table
-        )
+        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -1199,7 +1195,6 @@ async def _handle_legacy_spark(
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
-        "stow_table": stow_table,
         "file_id": file_id,
         "volume_path": dest_path,
         "file_size": file_size,
@@ -1245,9 +1240,7 @@ async def _handle_legacy_spark(
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(
-            _fire_stow_job, token, pixels_table=req_pixels_table
-        )
+        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
