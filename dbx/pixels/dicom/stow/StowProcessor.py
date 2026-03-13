@@ -57,7 +57,7 @@ class StowProcessor:
         processor.split_bundles(
             source_table='cat.schema.stow_operations',
             volume='cat.schema.pixels_volume',
-            checkpoint_location='/Volumes/.../stow/_checkpoints/split',
+            checkpoint_location='/Volumes/.../stow/checkpoints/split',
         )
 
         # Task 2 (stow_meta_extract notebook, depends on Task 1)
@@ -66,7 +66,7 @@ class StowProcessor:
             source_table='cat.schema.stow_operations',
             catalog_table='cat.schema.object_catalog',
             volume='cat.schema.pixels_volume',
-            checkpoint_location='/Volumes/.../stow/_checkpoints/meta',
+            checkpoint_location='/Volumes/.../stow/checkpoints/meta',
         )
     """
 
@@ -175,7 +175,7 @@ class StowProcessor:
         catalog.catalog(
             path=catalog._volume_path,
             streaming=True,
-            streamCheckpointBasePath=f"{catalog._volume_path}/_checkpoints/stow_extract-{catalog_table}/",
+            streamCheckpointBasePath=f"{catalog._volume_path}/checkpoints/stow_extract-{catalog_table}/",
         )
 
         extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
