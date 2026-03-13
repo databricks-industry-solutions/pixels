@@ -647,8 +647,8 @@ Client body
 async_stream_to_volumes()
   → PUT /Volumes/…/stow/{date}/{uuid}.mpr   (single concatenated file)
   │
-  ├─ Buffer STOW audit record in _StowRecordBuffer
-  │   (flushed every 2s or every 100 records via background thread)
+  ├─ INSERT STOW audit record (`status='pending'`) synchronously
+  │   (fail-fast: SQL permission/config errors return HTTP 500)
   ├─ asyncio.create_task(_background_fire())
   │   → trigger {APP_NAME}_stow_processor Spark job
   │       Task 1 (split): .mpr → individual .dcm files
@@ -664,6 +664,16 @@ up the new `.mpr` file.
 
 Both paths write to `{catalog}.{schema}.stow_operations`:
 
+**Target table resolution (per request):**
+
+1. Read `pixels_table` cookie (if present).
+2. Fall back to `DATABRICKS_PIXELS_TABLE`.
+3. Derive the tracking table as `{catalog}.{schema}.stow_operations`
+   from the resolved `catalog.schema.table`.
+
+If the cookie value is invalid, the gateway logs a warning and falls back to
+`DATABRICKS_PIXELS_TABLE`.
+
 
 | Column         | Streaming path                         | Legacy path                  |
 | -------------- | -------------------------------------- | ---------------------------- |
@@ -675,9 +685,9 @@ Both paths write to `{catalog}.{schema}.stow_operations`:
 | `user_email`   | From `X-Forwarded-Email` or SCIM `/Me` | Same                         |
 
 
-The `_StowRecordBuffer` coalesces concurrent uploads into batch INSERTs,
-capped at `STOW_SQL_BATCH_SIZE` rows and flushed every `STOW_SQL_FLUSH_INTERVAL_S`
-seconds. This is flushed to zero during graceful shutdown.
+If the STOW audit INSERT fails (for example missing `INSERT` privileges on
+`{catalog}.{schema}.stow_operations` in OBO mode), the gateway returns
+`HTTP 500` so the client can act on the error.
 
 ### User Email Resolution
 
@@ -755,8 +765,10 @@ the token, group memberships, and `pixels_table` (from cookie) can differ
 per user.
 - The user's bearer token is taken from the `X-Forwarded-Access-Token` header
 (set by the Databricks Apps proxy). Missing token → HTTP 401.
-- `pixels_table` is resolved from `pixels_table` cookie → `DATABRICKS_PIXELS_TABLE`
-env var (in that priority order).
+- For query/read handlers, `pixels_table` is resolved from `pixels_table` cookie
+  → `DATABRICKS_PIXELS_TABLE` env var (in that priority order).
+- For STOW-RS, the same resolution is used to pick the catalog table, then
+  `stow_operations` is derived in the same `{catalog}.{schema}`.
 
 ### Row-Level Security (RLS)
 
@@ -855,7 +867,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | Variable                              | Required       | Default                   | Notes                                                         |
 | ------------------------------------- | -------------- | ------------------------- | ------------------------------------------------------------- |
 | `DATABRICKS_WAREHOUSE_ID`             | Yes            | —                         | SQL Warehouse ID                                              |
-| `DATABRICKS_PIXELS_TABLE`             | Yes            | —                         | `catalog.schema.table`                                        |
+| `DATABRICKS_PIXELS_TABLE`             | Yes            | —                         | `catalog.schema.table` (STOW fallback when `pixels_table` cookie is missing/invalid) |
 | `LAKEBASE_INSTANCE_NAME`              | No             | `pixels-lakebase`         | Lakebase instance                                             |
 | `LAKEBASE_INIT_DB`                    | No             | `false`                   | Run DDL on startup                                            |
 | `DATABRICKS_STOW_VOLUME_PATH`         | Yes (for STOW) | —                         | Base path for uploads                                         |

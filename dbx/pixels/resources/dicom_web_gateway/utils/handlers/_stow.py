@@ -47,7 +47,7 @@ from ..queries import (
     build_stow_insert_query,
     build_stow_poll_query,
 )
-from ..sql_client import USE_USER_AUTH, DatabricksSQLClient
+from ..sql_client import USE_USER_AUTH, DatabricksSQLClient, validate_table_name
 from ._common import (
     app_token_provider,
     get_sql_client,
@@ -157,6 +157,62 @@ if _stow_volume_path_env:
     _vol_parts = _stow_volume_path_env.strip("/").split("/")
     if len(_vol_parts) >= 4 and _vol_parts[0] == "Volumes":
         _stow_volume_uc = f"{_vol_parts[1]}.{_vol_parts[2]}.{_vol_parts[3]}"
+
+
+def _derive_stow_table(catalog_table: str) -> str | None:
+    """Convert ``catalog.schema.table`` into ``catalog.schema.stow_operations``."""
+    parts = catalog_table.split(".")
+    if len(parts) != 3:
+        return None
+    return f"{parts[0]}.{parts[1]}.stow_operations"
+
+
+def _resolve_stow_targets(request: Request | None) -> tuple[str | None, str | None]:
+    """
+    Resolve per-request STOW targets:
+
+    1. Prefer ``pixels_table`` cookie (multi-table mode).
+    2. Fall back to ``DATABRICKS_PIXELS_TABLE``.
+    """
+    cookie_pixels_table = request.cookies.get("pixels_table", "").strip() if request else ""
+    candidate_catalog_table = cookie_pixels_table or (_default_stow_catalog_table or "")
+    if not candidate_catalog_table:
+        return None, None
+
+    try:
+        validate_table_name(candidate_catalog_table)
+    except ValueError:
+        # Invalid per-request override: gracefully use the default table.
+        if cookie_pixels_table and _default_stow_catalog_table:
+            logger.warning(
+                "STOW-RS: invalid pixels_table cookie '%s' — falling back to DATABRICKS_PIXELS_TABLE",
+                cookie_pixels_table,
+            )
+            try:
+                validate_table_name(_default_stow_catalog_table)
+            except ValueError:
+                logger.warning(
+                    "STOW-RS: default DATABRICKS_PIXELS_TABLE is invalid ('%s')",
+                    _default_stow_catalog_table,
+                )
+                return None, None
+            candidate_catalog_table = _default_stow_catalog_table
+        else:
+            logger.warning(
+                "STOW-RS: invalid DATABRICKS_PIXELS_TABLE value ('%s')",
+                candidate_catalog_table,
+            )
+            return None, None
+
+    stow_table = _derive_stow_table(candidate_catalog_table)
+    if not stow_table:
+        logger.warning(
+            "STOW-RS: unable to derive stow_operations table from '%s'",
+            candidate_catalog_table,
+        )
+        return None, None
+
+    return stow_table, candidate_catalog_table
 
 
 # ---------------------------------------------------------------------------
@@ -272,6 +328,8 @@ def _write_stow_records(
     sql_client: DatabricksSQLClient,
     token: str | None,
     records: list[dict],
+    *,
+    raise_on_error: bool = False,
 ) -> None:
     """INSERT tracking rows into ``stow_operations`` (status='pending').
 
@@ -880,6 +938,14 @@ async def dicomweb_stow_studies(
             detail="STOW volume path not configured",
         )
 
+    stow_table, catalog_table = _resolve_stow_targets(request)
+    if not stow_table:
+        logger.error("STOW-RS: stow table target not resolved (cannot continue safely)")
+        raise HTTPException(
+            status_code=500,
+            detail="STOW table not configured or invalid",
+        )
+
     # ── Auth token ─────────────────────────────────────────────────────
     token = resolve_user_token(request) if USE_USER_AUTH else app_token_provider()
 
@@ -898,10 +964,24 @@ async def dicomweb_stow_studies(
         pass  # Unknown size — default to streaming
 
     if use_streaming:
-        return await _handle_streaming(request, stow_base, token, content_type, study_instance_uid)
+        return await _handle_streaming(
+            request,
+            stow_base,
+            token,
+            content_type,
+            study_instance_uid,
+            stow_table=stow_table,
+            catalog_table=catalog_table,
+        )
     else:
         return await _handle_legacy_spark(
-            request, stow_base, token, content_type, study_instance_uid
+            request,
+            stow_base,
+            token,
+            content_type,
+            study_instance_uid,
+            stow_table=stow_table,
+            catalog_table=catalog_table,
         )
 
 
@@ -916,6 +996,9 @@ async def _handle_streaming(
     token: str,
     content_type: str,
     study_instance_uid: str | None,
+    *,
+    stow_table: str | None,
+    catalog_table: str | None,
 ) -> Response:
     """
     Stream-and-split: parse multipart boundaries on-the-fly, write each
@@ -969,6 +1052,7 @@ async def _handle_streaming(
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
+        "stow_table": stow_table,
         "file_id": file_id,
         "volume_path": stow_base,
         "file_size": total_size,
@@ -1064,6 +1148,9 @@ async def _handle_legacy_spark(
     token: str,
     content_type: str,
     study_instance_uid: str | None,
+    *,
+    stow_table: str | None,
+    catalog_table: str | None,
 ) -> Response:
     """
     Legacy path for large uploads: stream the entire multipart body to a
@@ -1112,6 +1199,7 @@ async def _handle_legacy_spark(
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
+        "stow_table": stow_table,
         "file_id": file_id,
         "volume_path": dest_path,
         "file_size": file_size,
@@ -1133,11 +1221,23 @@ async def _handle_legacy_spark(
         _t_sql - _t0,
     )
 
-    # ── Buffer the audit record — flushed in batches of up to STOW_SQL_BATCH_SIZE
-    # rows every STOW_SQL_FLUSH_INTERVAL_S seconds.  The file is already safely
-    # on S3/Volumes so the SQL write does not block the HTTP response.
+    # ── Persist audit row before returning so auth/permission failures are
+    # surfaced to the caller (especially in OBO mode).
     sql_client = get_sql_client()
-    _stow_record_buffer.append(record, sql_client=sql_client, token=token)
+    try:
+        await asyncio.to_thread(
+            _write_stow_records,
+            sql_client,
+            token,
+            [record],
+            raise_on_error=True,
+        )
+    except Exception as exc:
+        logger.error(f"STOW-RS [legacy]: tracking INSERT failed for {file_id}: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to write STOW tracking record; verify table permissions",
+        )
 
     # ── Fire Spark job in the background — do NOT await ────────────────
 
