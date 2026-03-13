@@ -127,7 +127,6 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
 # STOW config (derived from env vars at module load time)
 # ---------------------------------------------------------------------------
 
-_stow_table: str | None = None
 _stow_catalog_table: str | None = None  # e.g. "main.pixels_solacc.object_catalog"
 _stow_volume_uc: str | None = None  # e.g. "main.pixels_solacc.pixels_volume"
 
@@ -135,8 +134,22 @@ _pixels_table_env = os.getenv("DATABRICKS_PIXELS_TABLE", "")
 if _pixels_table_env:
     _parts = _pixels_table_env.split(".")
     if len(_parts) == 3:
-        _stow_table = f"{_parts[0]}.{_parts[1]}.stow_operations"
         _stow_catalog_table = _pixels_table_env
+
+
+def _derive_stow_table(pixels_table: str | None) -> str | None:
+    """Derive the ``stow_operations`` table from a ``catalog.schema.table`` pixels_table."""
+    if not pixels_table:
+        return None
+    parts = pixels_table.split(".")
+    if len(parts) == 3:
+        return f"{parts[0]}.{parts[1]}.stow_operations"
+    return None
+
+
+def _resolve_pixels_table(request: Request) -> str | None:
+    """Extract ``pixels_table`` from the request cookie, falling back to env var."""
+    return request.cookies.get("pixels_table") or _stow_catalog_table
 
 _stow_volume_path_env = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "")
 if _stow_volume_path_env:
@@ -259,39 +272,52 @@ def _write_stow_records(
     token: str | None,
     records: list[dict],
 ) -> None:
-    """INSERT tracking rows into ``stow_operations`` (status='pending')."""
-    if not _stow_table or not records:
+    """INSERT tracking rows into ``stow_operations`` (status='pending').
+
+    Each record must contain a ``stow_table`` key.  Records are grouped
+    by target table so a single buffer flush can serve multiple schemas.
+    """
+    if not records:
         return
-    try:
-        query, params = build_stow_insert_query(_stow_table, records)
-        sql_client.execute(
-            query,
-            parameters=params,
-            user_token=token if USE_USER_AUTH else None,
-        )
-        logger.info(f"STOW tracking: inserted {len(records)} record(s)")
-    except Exception as exc:
-        logger.error(f"STOW tracking INSERT failed: {exc}")
+    # Group records by their target stow_operations table
+    by_table: dict[str, list[dict]] = {}
+    for rec in records:
+        tbl = rec.pop("stow_table", None) or _derive_stow_table(_stow_catalog_table)
+        if tbl:
+            by_table.setdefault(tbl, []).append(rec)
+    for stow_table, batch in by_table.items():
+        try:
+            query, params = build_stow_insert_query(stow_table, batch)
+            sql_client.execute(
+                query,
+                parameters=params,
+                user_token=token if USE_USER_AUTH else None,
+            )
+            logger.info(f"STOW tracking: inserted {len(batch)} record(s) into {stow_table}")
+        except Exception as exc:
+            logger.error(f"STOW tracking INSERT into {stow_table} failed: {exc}")
 
 
 def _write_stow_records_completed(
     sql_client: DatabricksSQLClient,
     token: str | None,
     records: list[dict],
+    stow_table: str | None = None,
 ) -> None:
     """INSERT tracking rows as ``completed`` with ``output_paths`` pre-populated."""
-    if not _stow_table or not records:
+    stow_table = stow_table or _derive_stow_table(_stow_catalog_table)
+    if not stow_table or not records:
         return
     try:
-        query, params = build_stow_insert_completed_query(_stow_table, records)
+        query, params = build_stow_insert_completed_query(stow_table, records)
         sql_client.execute(
             query,
             parameters=params,
             user_token=token if USE_USER_AUTH else None,
         )
-        logger.info(f"STOW tracking: inserted {len(records)} completed record(s)")
+        logger.info(f"STOW tracking: inserted {len(records)} completed record(s) into {stow_table}")
     except Exception as exc:
-        logger.error(f"STOW tracking INSERT (completed) failed: {exc}")
+        logger.error(f"STOW tracking INSERT (completed) into {stow_table} failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -575,6 +601,7 @@ def _poll_stow_status(
     sql_client: DatabricksSQLClient,
     token: str | None,
     file_id: str,
+    stow_table: str | None = None,
 ) -> dict:
     """
     Poll the ``stow_operations`` table until Phase 1 (split) completes.
@@ -582,14 +609,15 @@ def _poll_stow_status(
     Only used by the **legacy Spark path** — the streaming path skips
     this entirely because the split is done in-process.
     """
-    if not _stow_table:
+    stow_table = stow_table or _derive_stow_table(_stow_catalog_table)
+    if not stow_table:
         return {
             "status": "skipped",
             "output_paths": [],
             "error_message": "stow_table not configured",
         }
 
-    query, params = build_stow_poll_query(_stow_table, file_id)
+    query, params = build_stow_poll_query(stow_table, file_id)
     start = time.monotonic()
 
     while time.monotonic() - start < _STOW_TABLE_POLL_TIMEOUT:
@@ -890,9 +918,12 @@ async def _handle_streaming(
     """
     file_id = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    req_pixels_table = _resolve_pixels_table(request)
+    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [streaming]: file_id={file_id}, "
+        f"pixels_table={req_pixels_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
@@ -946,10 +977,11 @@ async def _handle_streaming(
     # Offloaded to a thread so the blocking SQL round-trip does not stall
     # the asyncio event loop and freeze every other in-flight upload.
     sql_client = get_sql_client()
-    await asyncio.to_thread(_write_stow_records_completed, sql_client, token, [record])
+    await asyncio.to_thread(
+        _write_stow_records_completed, sql_client, token, [record], stow_table=req_stow_table
+    )
 
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
-    req_pixels_table = request.cookies.get("pixels_table") or _stow_catalog_table
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
         job_status = await asyncio.to_thread(
@@ -964,7 +996,7 @@ async def _handle_streaming(
     # which is a synchronous Lakebase (PostgreSQL) write.
     cached_entries: list[dict] = []
     if succeeded and token:
-        uc_table = _stow_catalog_table or ""
+        uc_table = req_pixels_table or ""
         user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
         cached_entries = await asyncio.to_thread(
             _cache_streaming_results,
@@ -1033,9 +1065,12 @@ async def _handle_legacy_spark(
     current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     dest_path = f"{stow_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    req_pixels_table = _resolve_pixels_table(request)
+    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [legacy]: streaming request to {dest_path}, "
+        f"pixels_table={req_pixels_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
@@ -1077,6 +1112,7 @@ async def _handle_legacy_spark(
         "client_ip": client_ip,
         "user_email": user_email,
         "user_agent": user_agent,
+        "stow_table": req_stow_table,
     }
 
     _t_sql = _time.perf_counter()
@@ -1095,7 +1131,6 @@ async def _handle_legacy_spark(
     _stow_record_buffer.append(record, sql_client=sql_client, token=token)
 
     # ── Fire Spark job in the background — do NOT await ────────────────
-    req_pixels_table = request.cookies.get("pixels_table") or _stow_catalog_table
 
     async def _background_fire():
         if not token:
