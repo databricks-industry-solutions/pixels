@@ -151,6 +151,7 @@ def _resolve_pixels_table(request: Request) -> str | None:
     """Extract ``pixels_table`` from the request cookie, falling back to env var."""
     return request.cookies.get("pixels_table") or _stow_catalog_table
 
+
 _stow_volume_path_env = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "")
 if _stow_volume_path_env:
     _vol_parts = _stow_volume_path_env.strip("/").split("/")
@@ -867,12 +868,16 @@ async def dicomweb_stow_studies(
         )
 
     # ── Landing-zone configuration ─────────────────────────────────────
-    stow_base = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
+    # Prefer the per-request cookie (seg_dest_dir), fall back to env var.
+    stow_base = (
+        request.cookies.get("seg_dest_dir", "").rstrip("/")
+        or os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
+    )
     if not stow_base:
-        logger.error("STOW-RS: DATABRICKS_STOW_VOLUME_PATH env var not set")
+        logger.error("STOW-RS: no STOW volume path (cookie or DATABRICKS_STOW_VOLUME_PATH)")
         raise HTTPException(
             status_code=500,
-            detail="DATABRICKS_STOW_VOLUME_PATH not configured",
+            detail="STOW volume path not configured",
         )
 
     # ── Auth token ─────────────────────────────────────────────────────
@@ -928,10 +933,13 @@ async def _handle_streaming(
     )
 
     # ── Stream-and-split to Volumes ────────────────────────────────────
+    # Scope the landing zone by table name so different pixels_table
+    # cookies land in separate directory trees.
+    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
     try:
         part_results = await async_stream_split_to_volumes(
             token,
-            stow_base,
+            table_scoped_base,
             request.stream(),
             content_type,
         )
@@ -1062,8 +1070,9 @@ async def _handle_legacy_spark(
     single ``.mpr`` file on Volumes, then trigger a Spark job to split it.
     """
     file_id = uuid.uuid4().hex
-    current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    dest_path = f"{stow_base}/{current_date}/{file_id}.mpr"
+    current_date = datetime.now(timezone.utc).strftime("%Y/%m/%d")
+    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
+    dest_path = f"{table_scoped_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     req_pixels_table = _resolve_pixels_table(request)
     req_stow_table = _derive_stow_table(req_pixels_table)
