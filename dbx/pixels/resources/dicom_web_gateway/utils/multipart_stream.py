@@ -19,6 +19,7 @@ import asyncio
 import os
 import struct
 import uuid
+from datetime import date as _date
 from io import BytesIO
 from typing import AsyncIterator
 
@@ -358,7 +359,8 @@ async def _upload_one_part(
         sop_uid = uids["sop_uid"] or fallback_id
         num_frames = uids["num_frames"]
 
-        dest_path = f"{stow_base}/{study_uid}/{series_uid}/{sop_uid}.dcm"
+        _today = _date.today()
+        dest_path = f"{stow_base}/{_today:%Y}/{_today:%m}/{_today:%d}/{study_uid}/{series_uid}/{sop_uid}.dcm"
         api_path = dest_path.lstrip("/")
         url = f"https://{host}/api/2.0/fs/files/{api_path}"
 

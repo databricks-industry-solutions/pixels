@@ -127,16 +127,30 @@ def _resolve_user_email(request: Request, token: str) -> str | None:
 # STOW config (derived from env vars at module load time)
 # ---------------------------------------------------------------------------
 
-_default_stow_table: str | None = None
-_default_stow_catalog_table: str | None = None  # e.g. "main.pixels_solacc.object_catalog"
+_stow_catalog_table: str | None = None  # e.g. "main.pixels_solacc.object_catalog"
 _stow_volume_uc: str | None = None  # e.g. "main.pixels_solacc.pixels_volume"
 
 _pixels_table_env = os.getenv("DATABRICKS_PIXELS_TABLE", "")
 if _pixels_table_env:
     _parts = _pixels_table_env.split(".")
     if len(_parts) == 3:
-        _default_stow_table = f"{_parts[0]}.{_parts[1]}.stow_operations"
-        _default_stow_catalog_table = _pixels_table_env
+        _stow_catalog_table = _pixels_table_env
+
+
+def _derive_stow_table(pixels_table: str | None) -> str | None:
+    """Derive the ``stow_operations`` table from a ``catalog.schema.table`` pixels_table."""
+    if not pixels_table:
+        return None
+    parts = pixels_table.split(".")
+    if len(parts) == 3:
+        return f"{parts[0]}.{parts[1]}.stow_operations"
+    return None
+
+
+def _resolve_pixels_table(request: Request) -> str | None:
+    """Extract ``pixels_table`` from the request cookie, falling back to env var."""
+    return request.cookies.get("pixels_table") or _stow_catalog_table
+
 
 _stow_volume_path_env = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "")
 if _stow_volume_path_env:
@@ -317,75 +331,52 @@ def _write_stow_records(
     *,
     raise_on_error: bool = False,
 ) -> None:
-    """INSERT tracking rows into ``stow_operations`` (status='pending')."""
+    """INSERT tracking rows into ``stow_operations`` (status='pending').
+
+    Each record must contain a ``stow_table`` key.  Records are grouped
+    by target table so a single buffer flush can serve multiple schemas.
+    """
     if not records:
         return
-    grouped_records: dict[str, list[dict]] = {}
-    for record in records:
-        stow_table = record.get("stow_table") or _default_stow_table
-        if not stow_table:
-            continue
-        grouped_records.setdefault(stow_table, []).append(record)
-
-    if not grouped_records:
-        return
-
-    for stow_table, table_records in grouped_records.items():
+    # Group records by their target stow_operations table
+    by_table: dict[str, list[dict]] = {}
+    for rec in records:
+        tbl = rec.pop("stow_table", None) or _derive_stow_table(_stow_catalog_table)
+        if tbl:
+            by_table.setdefault(tbl, []).append(rec)
+    for stow_table, batch in by_table.items():
         try:
-            query, params = build_stow_insert_query(stow_table, table_records)
+            query, params = build_stow_insert_query(stow_table, batch)
             sql_client.execute(
                 query,
                 parameters=params,
                 user_token=token if USE_USER_AUTH else None,
             )
-            logger.info(
-                "STOW tracking: inserted %d record(s) into %s",
-                len(table_records),
-                stow_table,
-            )
+            logger.info(f"STOW tracking: inserted {len(batch)} record(s) into {stow_table}")
         except Exception as exc:
-            logger.error(f"STOW tracking INSERT failed for {stow_table}: {exc}")
-            if raise_on_error:
-                raise
+            logger.error(f"STOW tracking INSERT into {stow_table} failed: {exc}")
 
 
 def _write_stow_records_completed(
     sql_client: DatabricksSQLClient,
     token: str | None,
     records: list[dict],
-    *,
-    raise_on_error: bool = False,
+    stow_table: str | None = None,
 ) -> None:
     """INSERT tracking rows as ``completed`` with ``output_paths`` pre-populated."""
-    if not records:
+    stow_table = stow_table or _derive_stow_table(_stow_catalog_table)
+    if not stow_table or not records:
         return
-    grouped_records: dict[str, list[dict]] = {}
-    for record in records:
-        stow_table = record.get("stow_table") or _default_stow_table
-        if not stow_table:
-            continue
-        grouped_records.setdefault(stow_table, []).append(record)
-
-    if not grouped_records:
-        return
-
-    for stow_table, table_records in grouped_records.items():
-        try:
-            query, params = build_stow_insert_completed_query(stow_table, table_records)
-            sql_client.execute(
-                query,
-                parameters=params,
-                user_token=token if USE_USER_AUTH else None,
-            )
-            logger.info(
-                "STOW tracking: inserted %d completed record(s) into %s",
-                len(table_records),
-                stow_table,
-            )
-        except Exception as exc:
-            logger.error(f"STOW tracking INSERT (completed) failed for {stow_table}: {exc}")
-            if raise_on_error:
-                raise
+    try:
+        query, params = build_stow_insert_completed_query(stow_table, records)
+        sql_client.execute(
+            query,
+            parameters=params,
+            user_token=token if USE_USER_AUTH else None,
+        )
+        logger.info(f"STOW tracking: inserted {len(records)} completed record(s) into {stow_table}")
+    except Exception as exc:
+        logger.error(f"STOW tracking INSERT (completed) into {stow_table} failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -396,12 +387,95 @@ _stow_job_id: int | None = None
 _stow_job_resolved = False
 
 
+_PIXELS_GIT_URL = "https://github.com/databricks-industry-solutions/pixels"
+_PIXELS_GIT_BRANCH = "main"
+
+
+def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
+    """
+    Create the STOW processor job via the Jobs REST API.
+
+    Notebooks are sourced directly from the Pixels solution accelerator
+    Git repository, so no workspace-local files are required.
+
+    Returns the new job ID or ``None`` on failure.
+    """
+    payload = {
+        "name": job_name,
+        "git_source": {
+            "git_url": _PIXELS_GIT_URL,
+            "git_provider": "gitHub",
+            "git_branch": _PIXELS_GIT_BRANCH,
+        },
+        "tasks": [
+            {
+                "task_key": "stow_split",
+                "notebook_task": {
+                    "notebook_path": "workflow/stow_split",
+                    "source": "GIT",
+                },
+                "environment_key": "default",
+                "disable_auto_optimization": False,
+            },
+            {
+                "task_key": "stow_meta_extract",
+                "notebook_task": {
+                    "notebook_path": "workflow/stow_meta_extract",
+                    "source": "GIT",
+                },
+                "depends_on": [{"task_key": "stow_split"}],
+                "environment_key": "default",
+                "disable_auto_optimization": False,
+            },
+        ],
+        "environments": [
+            {
+                "environment_key": "default",
+                "spec": {
+                    "client": "4",
+                },
+            }
+        ],
+        "max_concurrent_runs": 1,
+        "tags": {
+            "app": os.getenv("DATABRICKS_APP_NAME", ""),
+            "purpose": "stow_processor",
+        },
+        "parameters": [
+            {"name": "pixels_table", "default": _stow_catalog_table or ""},
+            {"name": "volume", "default": _stow_volume_uc or ""},
+        ],
+    }
+
+    try:
+        resp = _requests.post(
+            f"https://{host}/api/2.1/jobs/create",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+        if resp.ok:
+            job_id = resp.json().get("job_id")
+            logger.info(f"STOW-RS: created job '{job_name}' (id={job_id})")
+            return job_id
+        else:
+            logger.warning(
+                f"STOW-RS: job creation failed (HTTP {resp.status_code}): " f"{resp.text[:300]}"
+            )
+    except Exception as exc:
+        logger.warning(f"STOW-RS: job creation failed: {exc}")
+
+    return None
+
+
 def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
     """
-    Resolve the STOW processor job ID by name.
+    Resolve the STOW processor job ID by name, creating it if absent.
 
     The job name follows the convention ``<DATABRICKS_APP_NAME>_stow_processor``.
-    The lookup is done once and cached for the lifetime of the process.
+    If the job does not exist it will be created automatically via the
+    Jobs REST API with notebooks sourced from the Pixels Git repository.
+    The lookup result is cached for the lifetime of the process.
     """
     global _stow_job_id, _stow_job_resolved
     if _stow_job_resolved:
@@ -428,7 +502,10 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
                 _stow_job_id = jobs[0]["job_id"]
                 logger.info(f"STOW-RS: resolved job '{job_name}' → id {_stow_job_id}")
             else:
-                logger.warning(f"STOW-RS: no job found with name '{job_name}'")
+                logger.warning(
+                    f"STOW-RS: no job found with name '{job_name}' — attempting creation"
+                )
+                _stow_job_id = _create_stow_job(host, headers, job_name)
         else:
             logger.warning(
                 f"STOW-RS: job list lookup failed (HTTP {resp.status_code}): " f"{resp.text[:200]}"
@@ -450,9 +527,8 @@ _STOW_TABLE_POLL_TIMEOUT = 5 * 60  # max wait for Phase 1
 
 def _fire_stow_job(
     token: str,
-    *,
-    catalog_table: str | None = None,
-    volume_uc: str | None = None,
+    pixels_table: str | None = None,
+    volume: str | None = None,
 ) -> dict:
     """
     Trigger the STOW processing Spark job **without waiting**.
@@ -469,6 +545,13 @@ def _fire_stow_job(
     full job to finish.
 
     Run-coalescing: at most one running + one queued.
+
+    Args:
+        token: Bearer token for the Databricks API.
+        pixels_table: Per-request ``pixels_table`` (from cookie or env).
+            Falls back to the module-level ``_stow_catalog_table``.
+        volume: Per-request volume UC name.  Falls back to the
+            module-level ``_stow_volume_uc``.
 
     Returns:
         A status dict, e.g.::
@@ -532,14 +615,14 @@ def _fire_stow_job(
         run_now_url = f"https://{host}/api/2.1/jobs/run-now"
         run_payload: dict = {"job_id": job_id}
 
-        resolved_catalog_table = catalog_table or _default_stow_catalog_table
-        resolved_volume_uc = volume_uc or _stow_volume_uc
-        if resolved_catalog_table or resolved_volume_uc:
+        effective_table = pixels_table or _stow_catalog_table
+        effective_volume = volume or _stow_volume_uc
+        if effective_table or effective_volume:
             job_params: dict[str, str] = {}
-            if resolved_catalog_table:
-                job_params["catalog_table"] = resolved_catalog_table
-            if resolved_volume_uc:
-                job_params["volume"] = resolved_volume_uc
+            if effective_table:
+                job_params["pixels_table"] = effective_table
+            if effective_volume:
+                job_params["volume"] = effective_volume
             run_payload["job_parameters"] = job_params
 
         resp = _requests.post(
@@ -584,15 +667,15 @@ def _poll_stow_status(
     Only used by the **legacy Spark path** — the streaming path skips
     this entirely because the split is done in-process.
     """
-    resolved_stow_table = stow_table or _default_stow_table
-    if not resolved_stow_table:
+    stow_table = stow_table or _derive_stow_table(_stow_catalog_table)
+    if not stow_table:
         return {
             "status": "skipped",
             "output_paths": [],
             "error_message": "stow_table not configured",
         }
 
-    query, params = build_stow_poll_query(resolved_stow_table, file_id)
+    query, params = build_stow_poll_query(stow_table, file_id)
     start = time.monotonic()
 
     while time.monotonic() - start < _STOW_TABLE_POLL_TIMEOUT:
@@ -842,12 +925,15 @@ async def dicomweb_stow_studies(
         )
 
     # ── Landing-zone configuration ─────────────────────────────────────
-    stow_base = os.getenv("DATABRICKS_STOW_VOLUME_PATH", "").rstrip("/")
+    # Prefer the per-request cookie (seg_dest_dir), fall back to env var.
+    stow_base = request.cookies.get("seg_dest_dir", "").rstrip("/") or os.getenv(
+        "DATABRICKS_STOW_VOLUME_PATH", ""
+    ).rstrip("/")
     if not stow_base:
-        logger.error("STOW-RS: DATABRICKS_STOW_VOLUME_PATH env var not set")
+        logger.error("STOW-RS: no STOW volume path (cookie or DATABRICKS_STOW_VOLUME_PATH)")
         raise HTTPException(
             status_code=500,
-            detail="DATABRICKS_STOW_VOLUME_PATH not configured",
+            detail="STOW volume path not configured",
         )
 
     stow_table, catalog_table = _resolve_stow_targets(request)
@@ -918,17 +1004,23 @@ async def _handle_streaming(
     """
     file_id = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    req_pixels_table = _resolve_pixels_table(request)
+    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [streaming]: file_id={file_id}, "
+        f"pixels_table={req_pixels_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
     # ── Stream-and-split to Volumes ────────────────────────────────────
+    # Scope the landing zone by table name so different pixels_table
+    # cookies land in separate directory trees.
+    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
     try:
         part_results = await async_stream_split_to_volumes(
             token,
-            stow_base,
+            table_scoped_base,
             request.stream(),
             content_type,
         )
@@ -975,29 +1067,14 @@ async def _handle_streaming(
     # Offloaded to a thread so the blocking SQL round-trip does not stall
     # the asyncio event loop and freeze every other in-flight upload.
     sql_client = get_sql_client()
-    try:
-        await asyncio.to_thread(
-            _write_stow_records_completed,
-            sql_client,
-            token,
-            [record],
-            raise_on_error=True,
-        )
-    except Exception as exc:
-        logger.error(f"STOW-RS [streaming]: tracking INSERT failed for {file_id}: {exc}")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to write STOW tracking record; verify table permissions",
-        )
+    await asyncio.to_thread(
+        _write_stow_records_completed, sql_client, token, [record], stow_table=req_stow_table
+    )
 
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(
-            _fire_stow_job,
-            token,
-            catalog_table=catalog_table,
-        )
+        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -1007,7 +1084,7 @@ async def _handle_streaming(
     # which is a synchronous Lakebase (PostgreSQL) write.
     cached_entries: list[dict] = []
     if succeeded and token:
-        uc_table = catalog_table or ""
+        uc_table = req_pixels_table or ""
         user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
         cached_entries = await asyncio.to_thread(
             _cache_streaming_results,
@@ -1076,12 +1153,16 @@ async def _handle_legacy_spark(
     single ``.mpr`` file on Volumes, then trigger a Spark job to split it.
     """
     file_id = uuid.uuid4().hex
-    current_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    dest_path = f"{stow_base}/{current_date}/{file_id}.mpr"
+    current_date = datetime.now(timezone.utc).strftime("%Y/%m/%d")
+    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
+    dest_path = f"{table_scoped_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    req_pixels_table = _resolve_pixels_table(request)
+    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [legacy]: streaming request to {dest_path}, "
+        f"pixels_table={req_pixels_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
@@ -1114,7 +1195,6 @@ async def _handle_legacy_spark(
     user_agent = request.headers.get("User-Agent") or None
 
     record = {
-        "stow_table": stow_table,
         "file_id": file_id,
         "volume_path": dest_path,
         "file_size": file_size,
@@ -1124,6 +1204,7 @@ async def _handle_legacy_spark(
         "client_ip": client_ip,
         "user_email": user_email,
         "user_agent": user_agent,
+        "stow_table": req_stow_table,
     }
 
     _t_sql = _time.perf_counter()
@@ -1154,15 +1235,12 @@ async def _handle_legacy_spark(
         )
 
     # ── Fire Spark job in the background — do NOT await ────────────────
+
     async def _background_fire():
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(
-            _fire_stow_job,
-            token,
-            catalog_table=catalog_table,
-        )
+        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 

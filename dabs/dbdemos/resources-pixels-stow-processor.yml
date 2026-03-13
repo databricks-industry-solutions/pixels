@@ -1,0 +1,38 @@
+resources:
+  jobs:
+    pixels_stow_processor:
+      name: pixels-dicomweb_stow_processor
+      description: >
+        STOW-RS two-phase processor: Phase 1 splits multipart bundles into
+        individual DICOMs, Phase 2 extracts DICOM metadata into the catalog.
+      timeout_seconds: 7200
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: stow_split
+          notebook_task:
+            notebook_path: ../../workflow/stow_split
+            source: WORKSPACE
+          environment_key: default
+          disable_auto_optimization: false
+        - task_key: stow_meta_extract
+          notebook_task:
+            notebook_path: ../../workflow/stow_meta_extract
+            source: WORKSPACE
+          depends_on:
+            - task_key: stow_split
+          environment_key: default
+          disable_auto_optimization: false
+      environments:
+        - environment_key: default
+          spec:
+            client: "4"
+            dependencies:
+              - "databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels"
+      tags:
+        accelerator: pixels
+        purpose: stow_processor
+      parameters:
+        - name: pixels_table
+          default: ${var.table}
+        - name: volume
+          default: ${var.catalog}.${var.schema}.${var.volume}
