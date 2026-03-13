@@ -302,12 +302,96 @@ _stow_job_id: int | None = None
 _stow_job_resolved = False
 
 
+_PIXELS_GIT_URL = "https://github.com/databricks-industry-solutions/pixels"
+_PIXELS_GIT_BRANCH = "main"
+
+
+def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
+    """
+    Create the STOW processor job via the Jobs REST API.
+
+    Notebooks are sourced directly from the Pixels solution accelerator
+    Git repository, so no workspace-local files are required.
+
+    Returns the new job ID or ``None`` on failure.
+    """
+    payload = {
+        "name": job_name,
+        "git_source": {
+            "git_url": _PIXELS_GIT_URL,
+            "git_provider": "gitHub",
+            "git_branch": _PIXELS_GIT_BRANCH,
+        },
+        "tasks": [
+            {
+                "task_key": "stow_split",
+                "notebook_task": {
+                    "notebook_path": "workflow/stow_split",
+                    "source": "GIT",
+                },
+                "environment_key": "default",
+                "disable_auto_optimization": False,
+            },
+            {
+                "task_key": "stow_meta_extract",
+                "notebook_task": {
+                    "notebook_path": "workflow/stow_meta_extract",
+                    "source": "GIT",
+                },
+                "depends_on": [{"task_key": "stow_split"}],
+                "environment_key": "default",
+                "disable_auto_optimization": False,
+            },
+        ],
+        "environments": [
+            {
+                "environment_key": "default",
+                "spec": {
+                    "client": "4",
+                },
+            }
+        ],
+        "max_concurrent_runs": 1,
+        "tags": {
+            "app": os.getenv("DATABRICKS_APP_NAME", ""),
+            "purpose": "stow_processor",
+        },
+        "parameters": [
+            {"name": "pixels_table", "default": _stow_catalog_table or ""},
+            {"name": "volume", "default": _stow_volume_uc or ""},
+        ],
+    }
+
+    try:
+        resp = _requests.post(
+            f"https://{host}/api/2.1/jobs/create",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+        if resp.ok:
+            job_id = resp.json().get("job_id")
+            logger.info(f"STOW-RS: created job '{job_name}' (id={job_id})")
+            return job_id
+        else:
+            logger.warning(
+                f"STOW-RS: job creation failed (HTTP {resp.status_code}): "
+                f"{resp.text[:300]}"
+            )
+    except Exception as exc:
+        logger.warning(f"STOW-RS: job creation failed: {exc}")
+
+    return None
+
+
 def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
     """
-    Resolve the STOW processor job ID by name.
+    Resolve the STOW processor job ID by name, creating it if absent.
 
     The job name follows the convention ``<DATABRICKS_APP_NAME>_stow_processor``.
-    The lookup is done once and cached for the lifetime of the process.
+    If the job does not exist it will be created automatically via the
+    Jobs REST API with notebooks sourced from the Pixels Git repository.
+    The lookup result is cached for the lifetime of the process.
     """
     global _stow_job_id, _stow_job_resolved
     if _stow_job_resolved:
@@ -334,7 +418,10 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
                 _stow_job_id = jobs[0]["job_id"]
                 logger.info(f"STOW-RS: resolved job '{job_name}' → id {_stow_job_id}")
             else:
-                logger.warning(f"STOW-RS: no job found with name '{job_name}'")
+                logger.warning(
+                    f"STOW-RS: no job found with name '{job_name}' — attempting creation"
+                )
+                _stow_job_id = _create_stow_job(host, headers, job_name)
         else:
             logger.warning(
                 f"STOW-RS: job list lookup failed (HTTP {resp.status_code}): " f"{resp.text[:200]}"
@@ -354,7 +441,11 @@ _STOW_TABLE_POLL_INTERVAL = 30  # seconds between stow_operations polls
 _STOW_TABLE_POLL_TIMEOUT = 5 * 60  # max wait for Phase 1
 
 
-def _fire_stow_job(token: str) -> dict:
+def _fire_stow_job(
+    token: str,
+    pixels_table: str | None = None,
+    volume: str | None = None,
+) -> dict:
     """
     Trigger the STOW processing Spark job **without waiting**.
 
@@ -370,6 +461,13 @@ def _fire_stow_job(token: str) -> dict:
     full job to finish.
 
     Run-coalescing: at most one running + one queued.
+
+    Args:
+        token: Bearer token for the Databricks API.
+        pixels_table: Per-request ``pixels_table`` (from cookie or env).
+            Falls back to the module-level ``_stow_catalog_table``.
+        volume: Per-request volume UC name.  Falls back to the
+            module-level ``_stow_volume_uc``.
 
     Returns:
         A status dict, e.g.::
@@ -433,12 +531,14 @@ def _fire_stow_job(token: str) -> dict:
         run_now_url = f"https://{host}/api/2.1/jobs/run-now"
         run_payload: dict = {"job_id": job_id}
 
-        if _stow_catalog_table or _stow_volume_uc:
+        effective_table = pixels_table or _stow_catalog_table
+        effective_volume = volume or _stow_volume_uc
+        if effective_table or effective_volume:
             job_params: dict[str, str] = {}
-            if _stow_catalog_table:
-                job_params["catalog_table"] = _stow_catalog_table
-            if _stow_volume_uc:
-                job_params["volume"] = _stow_volume_uc
+            if effective_table:
+                job_params["pixels_table"] = effective_table
+            if effective_volume:
+                job_params["volume"] = effective_volume
             run_payload["job_parameters"] = job_params
 
         resp = _requests.post(
@@ -849,9 +949,12 @@ async def _handle_streaming(
     await asyncio.to_thread(_write_stow_records_completed, sql_client, token, [record])
 
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
+    req_pixels_table = request.cookies.get("pixels_table") or _stow_catalog_table
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(_fire_stow_job, token)
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, token, pixels_table=req_pixels_table
+        )
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -992,11 +1095,15 @@ async def _handle_legacy_spark(
     _stow_record_buffer.append(record, sql_client=sql_client, token=token)
 
     # ── Fire Spark job in the background — do NOT await ────────────────
+    req_pixels_table = request.cookies.get("pixels_table") or _stow_catalog_table
+
     async def _background_fire():
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(_fire_stow_job, token)
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, token, pixels_table=req_pixels_table
+        )
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
