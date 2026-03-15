@@ -30,7 +30,10 @@ print(f"catalog={catalog_name}, schema={uc_schema}, table={table}, volume={volum
 # COMMAND ----------
 
 # DBTITLE 1,Create Catalog, Schema, Volume
-spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog_name}")
+# Only create catalog if it doesn't exist — CREATE CATALOG IF NOT EXISTS
+# can fail on workspaces with Default Storage enabled.
+if spark.sql(f"SHOW CATALOGS LIKE '{catalog_name}'").count() == 0:
+    spark.sql(f"CREATE CATALOG {catalog_name}")
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {uc_schema}")
 spark.sql(f"CREATE VOLUME IF NOT EXISTS {volume}")
 
