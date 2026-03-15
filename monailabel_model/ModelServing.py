@@ -26,6 +26,9 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', f'{_nb_dir}
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', f'{_nb_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl', '--no-deps'])
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'monai==1.5.2', 'pytorch-ignite', '--no-deps'])
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'databricks-sdk==0.84', '--upgrade'])
+# Install dbx.pixels package (needed on classic GPU clusters where workspace code isn't on sys.path)
+_repo_root = os.path.dirname(_nb_dir)
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-e', _repo_root, '--no-deps'])
 
 # COMMAND ----------
 
@@ -287,10 +290,10 @@ delete_all_sercrets = False
 
 # COMMAND ----------
 
-from dbx.pixels.m2m import DatabricksM2MAuth
 from databricks.sdk import WorkspaceClient
 
 if use_service_principal:
+    from dbx.pixels.m2m import DatabricksM2MAuth
     try:
         m2m_client = DatabricksM2MAuth(
             principal_name=sp_name,
