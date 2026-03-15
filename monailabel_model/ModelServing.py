@@ -26,13 +26,19 @@ subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', f'{_nb_dir}
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', f'{_nb_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl', '--no-deps'])
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'monai==1.5.2', 'pytorch-ignite', '--no-deps'])
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'databricks-sdk==0.84', '--upgrade'])
-# Install dbx.pixels package (needed on classic GPU clusters where workspace code isn't on sys.path)
-_repo_root = os.path.dirname(_nb_dir)
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-e', _repo_root, '--no-deps'])
-
 # COMMAND ----------
 
 dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# Add repo root to sys.path so dbx.pixels is importable on classic GPU clusters
+import sys, os
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = '/Workspace' + os.path.dirname(_nb_ctx.notebookPath().get())
+_repo_root = os.path.dirname(_nb_dir)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 # COMMAND ----------
 
