@@ -486,23 +486,27 @@ except Exception as e:
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
-# MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
-# MAGIC with ct as (
-# MAGIC   select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
-# MAGIC   from ${table}
-# MAGIC   where meta:['00080008'] like '%AXIAL%'
-# MAGIC )
-# MAGIC
-# MAGIC select series_uid, parse_json(ai_query(
-# MAGIC   endpoint => '${serving_endpoint_name}',
-# MAGIC   request => named_struct(
-# MAGIC       'series_uid', series_uid,
-# MAGIC       'params', named_struct(
-# MAGIC                     'export_metrics', True,
-# MAGIC                     'export_overlays', False
-# MAGIC                 )
-# MAGIC   ),
-# MAGIC   returnType => 'STRING'
-# MAGIC )) as result from ct
+# === OPTIONAL | SQL ai_query test ===
+try:
+    _sql = f"""
+    -- Requires Databricks Runtime 15.2 and above or Serverless
+    with ct as (
+      select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
+      from {table}
+      where meta:['00080008'] like '%AXIAL%'
+    )
+    select series_uid, parse_json(ai_query(
+      endpoint => '{serving_endpoint_name}',
+      request => named_struct(
+          'series_uid', series_uid,
+          'params', named_struct(
+                        'export_metrics', True,
+                        'export_overlays', False
+                    )
+      ),
+      returnType => 'STRING'
+    )) as result from ct
+    """
+    display(spark.sql(_sql))
+except Exception as e:
+    print(f"SQL ai_query test skipped: {e}")
