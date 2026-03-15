@@ -400,6 +400,9 @@ except Exception as e:
     else:
         raise
 
+# Core install work is complete — exit cleanly when run as a job task.
+# The test cells below are for interactive use only.
+dbutils.notebook.exit("SUCCESS: endpoint created/updated")
 
 # COMMAND ----------
 
