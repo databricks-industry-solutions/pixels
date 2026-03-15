@@ -344,8 +344,12 @@ class LakebaseUtils:
     def get_or_create_sp_role(self, sp_client_id):
         roles = list(self.workspace_client.postgres.list_roles(self.branch_resource_name) or [])
         existing_role = next(
-            (r for r in roles if sp_client_id in r.name or
-             (hasattr(r, 'spec') and r.spec and r.spec.postgres_role == sp_client_id)),
+            (
+                r
+                for r in roles
+                if sp_client_id in r.name
+                or (hasattr(r, "spec") and r.spec and r.spec.postgres_role == sp_client_id)
+            ),
             None,
         )
 
@@ -373,7 +377,9 @@ class LakebaseUtils:
         except Exception as e:
             if "already exists" in str(e):
                 logger.info(f"Role for {sp_client_id} already exists, fetching it")
-                roles = list(self.workspace_client.postgres.list_roles(self.branch_resource_name) or [])
+                roles = list(
+                    self.workspace_client.postgres.list_roles(self.branch_resource_name) or []
+                )
                 return next((r for r in roles), None)
             raise
 
@@ -756,7 +762,8 @@ class LakebaseUtils:
         # avoids the json_agg / OID-114 deserialization issue where psycopg2
         # may return the json type as Python None if the JSON adapter is not
         # registered in the connection context.
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             SELECT
                 filename,
                 COUNT(*)                             AS frame_count,
@@ -786,7 +793,8 @@ class LakebaseUtils:
             GROUP BY filename
             ORDER BY priority_score DESC
             LIMIT %s
-            """).format(table=sql.Identifier(self.schema, table))
+            """
+        ).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
