@@ -377,23 +377,28 @@ else:
     conf_vars['CLIENT_APP_ID'] = client_app_id
     conf_vars['CLIENT_SECRET'] = client_secret
 
-endpoint = client.create_endpoint(
-    name=serving_endpoint_name,
-    config={
-        "served_entities": [
-            {
-                'entity_name': model_uc_name,
-                "entity_version": model_version,
-                "workload_size": "Small",
-                "workload_type": "GPU_MEDIUM",
-                "scale_to_zero_enabled": True,
-                'environment_vars': conf_vars,
-            }
-        ]
-    }
-)
+endpoint_config = {
+    "served_entities": [
+        {
+            'entity_name': model_uc_name,
+            "entity_version": model_version,
+            "workload_size": "Small",
+            "workload_type": "GPU_MEDIUM",
+            "scale_to_zero_enabled": True,
+            'environment_vars': conf_vars,
+        }
+    ]
+}
 
-print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
+try:
+    endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
+    print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
+except Exception as e:
+    if "already exists" in str(e).lower():
+        print(f"Endpoint {serving_endpoint_name} already exists, updating config")
+        endpoint = client.update_endpoint(endpoint=serving_endpoint_name, config=endpoint_config)
+    else:
+        raise
 
 
 # COMMAND ----------
