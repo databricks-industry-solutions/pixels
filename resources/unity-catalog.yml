@@ -1,0 +1,21 @@
+resources:
+  schemas:
+    pixels_schema:
+      name: ${var.schema}
+      catalog_name: ${var.catalog}
+      comment: "Pixels Medical Imaging solution accelerator"
+      grants:
+        - privileges:
+            - SELECT
+          principal: "account users"
+
+  volumes:
+    pixels_volume:
+      name: ${var.volume_name}
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      comment: "DICOM files, segmentation exports, and STOW uploads"
+      grants:
+        - privileges:
+            - READ_VOLUME
+          principal: "account users"

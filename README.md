@@ -97,16 +97,12 @@ workspace workflows. For production DICOMweb deployments with the split
 ---
 ## Getting started
 
-1. To run this accelerator, [clone](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) this repo into a Databricks workspace. 
+See **[INSTALL.md](INSTALL.md)** for complete installation instructions using Databricks Asset Bundles.
 
-2. Attach a notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS)
-3. Run [`config/setup.py`]($./config/setup) from the notebook. This will install the pixels package onto your workspace
-4. If you need additional libraries to decode or encode DICOM pixel data, use the pydicom guidance to pick the right optional codec package(s): [pydicom pixel data decompression guide](https://github.com/pydicom/pydicom?tab=readme-ov-file#decompressing-pixel-data).
-
-
-## Run pipeline as a job
-1. Attach the [`RUNME`]($./RUNME) notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS). 2. Execute the notebook via Run-All. You can configure the notebook tasks run by the job in `job_json`
-A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. The cost associated with running the accelerator is the user's responsibility.
+```bash
+databricks bundle deploy -t dev
+databricks bundle run pixels_install -t dev
+```
 
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
