@@ -83,4 +83,4 @@ resources:
       environments:
         - environment_key: serverless
           spec:
-            client: "1"
+            client: "4"
