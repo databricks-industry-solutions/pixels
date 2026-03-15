@@ -51,23 +51,14 @@ resources:
             - task_key: 01_dcm_ingest
           environment_key: serverless
 
-        # ── Step 3: Vista3D Model Serving (GPU cluster) ─────────────
+        # ── Step 3: Vista3D Model Serving (serverless) ────────────
         - task_key: 03_vista3d_model
           notebook_task:
             notebook_path: ../monailabel_model/ModelServing.py
             source: WORKSPACE
           depends_on:
             - task_key: 01_dcm_ingest
-          new_cluster:
-            spark_version: "16.4.x-gpu-ml-scala2.12"
-            node_type_id: "g5.2xlarge"
-            num_workers: 0
-            data_security_mode: "SINGLE_USER"
-            spark_conf:
-              spark.master: "local[*]"
-              spark.databricks.cluster.profile: "singleNode"
-            custom_tags:
-              ResourceClass: "SingleNode"
+          environment_key: serverless
 
         # ── Step 4: Genie Space (serverless) ────────────────────────
         - task_key: 04_genie_space
@@ -76,6 +67,17 @@ resources:
             source: WORKSPACE
           depends_on:
             - task_key: 01_dcm_ingest
+          environment_key: serverless
+
+        # ── Step 10: Validate all services ─────────────────────────
+        - task_key: 10_validate
+          notebook_task:
+            notebook_path: ../resources/10-validate.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 02_deploy_apps
+            - task_key: 03_vista3d_model
+            - task_key: 04_genie_space
           environment_key: serverless
 
       environments:
