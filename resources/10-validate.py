@@ -87,26 +87,28 @@ for fn in _functions:
 # DBTITLE 1,Dashboard
 print("=== Dashboard ===")
 
-_dashboard = None
+_dashboard_json = None
 try:
-    dashboards = list(w.lakeview.list())
-    match = [d for d in dashboards if d.display_name and "Pixels" in d.display_name]
+    _dash_resp = _requests.get(f"{_host}/api/2.0/lakeview/dashboards", headers=_auth_headers, params={"page_size": 100})
+    _dash_resp.raise_for_status()
+    _all_dashboards = _dash_resp.json().get("dashboards", [])
+    match = [d for d in _all_dashboards if "Pixels" in d.get("display_name", "")]
     if match:
-        check("Dashboard", match[0].display_name, True, f"id={match[0].dashboard_id}")
-        _dashboard = w.lakeview.get(match[0].dashboard_id)
+        _d = match[0]
+        check("Dashboard", _d["display_name"], True, f"id={_d['dashboard_id']}")
+        # Fetch full dashboard to get serialized_dashboard with queries
+        _full_resp = _requests.get(f"{_host}/api/2.0/lakeview/dashboards/{_d['dashboard_id']}", headers=_auth_headers)
+        _full_resp.raise_for_status()
+        _ser = _full_resp.json().get("serialized_dashboard", "")
+        _dashboard_json = _json.loads(_ser) if _ser else {}
     else:
         check("Dashboard", "Pixels dashboard", False, "no dashboard with 'Pixels' in name")
 except Exception as e:
     check("Dashboard", "Pixels dashboard", False, str(e)[:120])
 
 # Run each dashboard dataset query to catch SQL errors
-if _dashboard and _dashboard.serialized_dashboard:
-    try:
-        _dash_json = _json.loads(_dashboard.serialized_dashboard)
-    except Exception:
-        _dash_json = {}
-
-    for ds in _dash_json.get("datasets", []):
+if _dashboard_json:
+    for ds in _dashboard_json.get("datasets", []):
         ds_name = ds.get("displayName", ds.get("name", "unknown"))
         query_lines = ds.get("queryLines", [])
         if not query_lines:
@@ -149,9 +151,13 @@ except Exception as e:
     check("Lakebase", _lakebase_instance, False, str(e)[:120])
 
 try:
-    from dbx.pixels.lakebase import LakebaseUtils
-    lb = LakebaseUtils(instance_name=_lakebase_instance, uc_table_name=table)
-    result = lb.execute_query("SELECT 1 AS ping")
+    # Use REST API to execute a SQL query against Lakebase (avoids psycopg dependency)
+    _lb_sql_resp = _requests.post(
+        f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}/branches/production/endpoints/default:sqlQuery",
+        headers=_auth_headers,
+        json={"query": "SELECT 1 AS ping"},
+    )
+    _lb_sql_resp.raise_for_status()
     check("Lakebase", "SELECT 1 ping", True, "connected")
 except Exception as e:
     check("Lakebase", "SELECT 1 ping", False, str(e)[:120])
@@ -165,15 +171,18 @@ _app_names = ["pixels-dicomweb-gateway", "pixels-dicomweb"]
 
 for _app_name in _app_names:
     try:
-        _app = w.apps.get(_app_name)
-        _app_state = _app.app_status.state.value if _app.app_status and _app.app_status.state else "unknown"
+        _app_resp = _requests.get(f"{_host}/api/2.0/apps/{_app_name}", headers=_auth_headers)
+        _app_resp.raise_for_status()
+        _app_data = _app_resp.json()
+        _app_state = _app_data.get("app_status", {}).get("state", "unknown")
         is_running = _app_state == "RUNNING"
         check("Apps", f"{_app_name} state", is_running, _app_state)
 
         # Health check
-        if _app.url:
+        _app_url = _app_data.get("url", "")
+        if _app_url:
             try:
-                resp = _requests.get(f"{_app.url}/health", timeout=10, headers=_auth_headers)
+                resp = _requests.get(f"{_app_url}/health", timeout=10, headers=_auth_headers)
                 check("Apps", f"{_app_name} /health", resp.status_code == 200, f"HTTP {resp.status_code}")
             except Exception as e:
                 check("Apps", f"{_app_name} /health", False, str(e)[:120])

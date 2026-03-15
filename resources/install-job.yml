@@ -54,7 +54,7 @@ resources:
         # ── Step 3: Vista3D Model Serving (serverless) ────────────
         - task_key: 03_vista3d_model
           notebook_task:
-            notebook_path: ../monailabel_model/ModelServing.py
+            notebook_path: ../monailabel_model/VISTA3D.ipynb
             source: WORKSPACE
           depends_on:
             - task_key: 01_dcm_ingest
