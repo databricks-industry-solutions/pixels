@@ -8,45 +8,60 @@
         "-- variant friendly\n",
         "with base (\n",
         "  SELECT\n",
-        "    meta:['0020000D'].Value[0]::STRING StudyInstanceUID,\n",
-        "    meta:['00081030'].Value[0]::STRING StudyDescription,\n",
-        "    meta:['0020000E'].Value[0]::STRING SeriesInstanceUID,\n",
-        "    meta:['0008103E'].Value[0]::STRING SeriesDescription,\n",
-        "    meta:['00200010'].Value[0]::STRING StudyID,\n",
-        "  --  meta:['00200011'].Value[0]::STRING SeriesNumber,\n",
-        "  --  meta:['00200013'].Value[0]::STRING InstanceNumber,\n",
-        "    meta:['00100010'].Value[0].Alphabetic::STRING as PatientName,\n",
-        "    meta:['00100020'].Value[0]::STRING as PatientID,\n",
-        "    try_cast(try_to_timestamp(meta:['00100030'].Value[0]::STRING,\"yyyyMMdd\") as Date) as PatientBirthDate,\n",
-        "    try_cast(left(meta:['00101010'].Value[0],3)::STRING as int) as PatientAge,\n",
-        "    meta:['00100040'].Value[0]::STRING PatientSex,\n",
-        "    try_cast(try_to_timestamp(meta:['00080020'].Value[0]::STRING,\"yyyyMMdd\") as Date) as StudyDate,\n",
-        "    meta:['00080030'].Value[0]::STRING StudyTime,\n",
-        "    meta:['00080050'].Value[0]::STRING AccessionNumber,\n",
-        "    meta:['00080060'].Value[0]::STRING Modality,\n",
-        "    meta:['00080008'].Value[0]::STRING ImageType,\n",
-        "    meta:['00180015'].Value[0]::STRING BodyPartExamined,\n",
-        "    meta:['00181030'].Value[0]::STRING ProtocolName,\n",
-        "    meta:['00080070'].Value[0]::STRING Manufacturer,\n",
-        "    meta:['00080080'].Value[0]::STRING InstitutionName,\n",
-        "    meta:['00080081'].Value[0]::STRING InstitutionAddress,\n",
-        "    meta:['0018700A'].Value[0]::STRING DetectorManufacturerName,\n",
-        "    meta:['0018700B'].Value[0]::STRING DetectorManufacturersModelName,\n",
-        "    meta:['00189024'].Value[0]::STRING MRTransmitCoilManufacturerName,\n",
-        "    meta:['00189025'].Value[0]::STRING ReceiveCoilManufacturerName,\n",
-        "    meta:['00120063'].Value[0]::STRING DeidentificationMethod,\n",
-        "    meta:['0008001C'].Value[0]::STRING SyntheticData,\n",
-        "    meta:['00120064'].Value[0]::STRING CodingSchemeVersion,\n",
-        "    meta:['00282110'].Value[0]::STRING LossyImageCompression,\n",
-        "    meta:['00131010'].Value[0]::STRING Creator\n",
-        "  FROM identifier(:table)\n",
-        "  GROUP BY ALL\n",
-        "  ORDER BY StudyInstanceUID\n",
+        "    meta:[ '0020000D' ] . Value [ 0 ]::STRING StudyInstanceUID,\n",
+        "    meta:[ '00081030' ] . Value [ 0 ]::STRING StudyDescription,\n",
+        "    meta:[ '0020000E' ] . Value [ 0 ]::STRING SeriesInstanceUID,\n",
+        "    meta:[ '0008103E' ] . Value [ 0 ]::STRING SeriesDescription,\n",
+        "    meta:[ '00200010' ] . Value [ 0 ]::STRING StudyID,\n",
+        "    --  meta:['00200011'].Value[0]::STRING SeriesNumber,\n",
+        "    --  meta:['00200013'].Value[0]::STRING InstanceNumber,\n",
+        "    meta:[ '00100010' ] . Value [ 0 ] . Alphabetic::STRING as PatientName,\n",
+        "    meta:[ '00100020' ] . Value [ 0 ]::STRING as PatientID,\n",
+        "    try_cast(\n",
+        "      try_to_timestamp(meta:[ '00100030' ] . Value [ 0 ]::STRING, \"yyyyMMdd\") as Date\n",
+        "    ) as PatientBirthDate,\n",
+        "    try_cast(left(meta:[ '00101010' ] . Value [ 0 ], 3)::STRING as int) as PatientAge,\n",
+        "    meta:[ '00100040' ] . Value [ 0 ]::STRING PatientSex,\n",
+        "    try_cast(\n",
+        "      try_to_timestamp(meta:[ '00080020' ] . Value [ 0 ]::STRING, \"yyyyMMdd\") as Date\n",
+        "    ) as StudyDate,\n",
+        "    meta:[ '00080030' ] . Value [ 0 ]::STRING StudyTime,\n",
+        "    meta:[ '00080050' ] . Value [ 0 ]::STRING AccessionNumber,\n",
+        "    meta:[ '00080060' ] . Value [ 0 ]::STRING Modality,\n",
+        "    meta:[ '00080008' ] . Value [ 0 ]::STRING ImageType,\n",
+        "    meta:[ '00180015' ] . Value [ 0 ]::STRING BodyPartExamined,\n",
+        "    meta:[ '00181030' ] . Value [ 0 ]::STRING ProtocolName,\n",
+        "    meta:[ '00080070' ] . Value [ 0 ]::STRING Manufacturer,\n",
+        "    meta:[ '00080080' ] . Value [ 0 ]::STRING InstitutionName,\n",
+        "    meta:[ '00080081' ] . Value [ 0 ]::STRING InstitutionAddress,\n",
+        "    meta:[ '0018700A' ] . Value [ 0 ]::STRING DetectorManufacturerName,\n",
+        "    meta:[ '0018700B' ] . Value [ 0 ]::STRING DetectorManufacturersModelName,\n",
+        "    meta:[ '00189024' ] . Value [ 0 ]::STRING MRTransmitCoilManufacturerName,\n",
+        "    meta:[ '00189025' ] . Value [ 0 ]::STRING ReceiveCoilManufacturerName,\n",
+        "    meta:[ '00120063' ] . Value [ 0 ]::STRING DeidentificationMethod,\n",
+        "    meta:[ '0008001C' ] . Value [ 0 ]::STRING SyntheticData,\n",
+        "    meta:[ '00120064' ] . Value [ 0 ]::STRING CodingSchemeVersion,\n",
+        "    meta:[ '00282110' ] . Value [ 0 ]::STRING LossyImageCompression,\n",
+        "    meta:[ '00131010' ] . Value [ 0 ]::STRING Creator\n",
+        "  FROM\n",
+        "    identifier(:table)\n",
+        "  where meta:[ '0020000D' ] . Value [ 0 ]::STRING is not null\n",
+        "  GROUP BY\n",
+        "    ALL\n",
+        "  ORDER BY\n",
+        "    StudyInstanceUID\n",
         ")\n",
-        "SELECT \n",
-        "    concat('<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"',:viewer_host,'/ohif/viewer?StudyInstanceUIDs=',StudyInstanceUID,'\">view</a>') as url\n",
-        "    ,*\n",
-        "FROM base"
+        "SELECT\n",
+        "  concat(\n",
+        "    '<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"',\n",
+        "    :viewer_host,\n",
+        "    '/ohif/viewer?StudyInstanceUIDs=',\n",
+        "    StudyInstanceUID,\n",
+        "    '\">view</a>'\n",
+        "  ) as url,\n",
+        "  *\n",
+        "FROM\n",
+        "  base"
       ],
       "parameters": [
         {
@@ -58,7 +73,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixelsdev.object_catalog"
+                  "value": "serverless_lh10u9_catalog.tcia.object_catalog"
                 }
               ]
             }
@@ -73,15 +88,13 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "https://pixels-ohif-viewer-<workspaceid>.aws.databricksapps.com"
+                  "value": "https://pixels-dicomweb-<workspaceid>.aws.databricksapps.com"
                 }
               ]
             }
           }
         }
-      ],
-      "catalog": "hls_radiology",
-      "schema": "tcia"
+      ]
     },
     {
       "name": "9651ec0b",
@@ -111,13 +124,14 @@
       "queryLines": [
         "-- files analysis\n",
         "SELECT\n",
-        "  meta:['0020000D'].Value[0] StudyInstanceUID,\n",
-        "  meta:['0020000E'].Value[0] SeriesInstanceUID,\n",
-        "  meta:['00200011'].Value[0] SeriesNumber,\n",
-        "  meta:['00200013'].Value[0] InstanceNumber,\n",
-        "  meta:['00080018'].Value[0] SOPInstanceUID,\n",
-        "  * \n",
-        "FROM identifier(:table)"
+        "  meta:[ '0020000D' ] . Value [ 0 ] StudyInstanceUID,\n",
+        "  meta:[ '0020000E' ] . Value [ 0 ] SeriesInstanceUID,\n",
+        "  meta:[ '00200011' ] . Value [ 0 ] SeriesNumber,\n",
+        "  meta:[ '00200013' ] . Value [ 0 ] InstanceNumber,\n",
+        "  meta:[ '00080018' ] . Value [ 0 ] SOPInstanceUID,\n",
+        "  *\n",
+        "FROM\n",
+        "  identifier(:table)"
       ],
       "parameters": [
         {
@@ -129,7 +143,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixels_solacc.object_catalog"
+                  "value": "serverless_lh10u9_catalog.tcia.object_catalog"
                 }
               ]
             }
@@ -597,7 +611,7 @@
             "name": "a4259bfe",
             "queries": [
               {
-                "name": "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414ed78f19039d23dfe8dd0d6bae_table",
+                "name": "dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c7db397b680c381ad94_table",
                 "query": {
                   "datasetName": "9651ec0b",
                   "fields": [
@@ -614,9 +628,22 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_table",
+                "name": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c69b02a2bbadd60e31d_table",
                 "query": {
                   "datasetName": "ca4b24b9",
+                  "parameters": [
+                    {
+                      "name": "table",
+                      "keyword": "table"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c85abd69a9d4e7c7d13_table",
+                "query": {
+                  "datasetName": "b589b5b1",
                   "parameters": [
                     {
                       "name": "table",
@@ -629,23 +656,26 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "title": "Object Catalog",
+                "showTitle": true
+              },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
-                    "parameterName": "table",
-                    "queryName": "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_table"
+                    "fieldName": "table",
+                    "queryName": "dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c7db397b680c381ad94_table"
                   },
                   {
-                    "fieldName": "table",
-                    "displayName": "table",
-                    "queryName": "dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414ed78f19039d23dfe8dd0d6bae_table"
+                    "parameterName": "table",
+                    "queryName": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c69b02a2bbadd60e31d_table"
+                  },
+                  {
+                    "parameterName": "table",
+                    "queryName": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c85abd69a9d4e7c7d13_table"
                   }
                 ]
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Object Catalog"
               }
             }
           },
@@ -985,14 +1015,6 @@
                     {
                       "name": "Creator",
                       "expression": "`Creator`"
-                    },
-                    {
-                      "name": "modificationTime",
-                      "expression": "`modificationTime`"
-                    },
-                    {
-                      "name": "num_files",
-                      "expression": "`num_files`"
                     }
                   ],
                   "disaggregated": true
@@ -1000,856 +1022,333 @@
               }
             ],
             "spec": {
-              "version": 1,
+              "version": 2,
+              "rowsPerPage": 25,
+              "displayRowNumbers": false,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
                     "fieldName": "url",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100000,
-                    "title": "url",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": true,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false,
-                    "defaultColumnWidth": 75
+                    "useForSearch": false,
+                    "columnWidth": 75,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
                   },
                   {
                     "fieldName": "StudyInstanceUID",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100001,
-                    "title": "StudyInstanceUID",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "StudyDescription",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100002,
-                    "title": "StudyDescription",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "SeriesInstanceUID",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100003,
-                    "title": "SeriesInstanceUID",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "SeriesDescription",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100004,
-                    "title": "SeriesDescription",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "StudyID",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100005,
-                    "title": "StudyID",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "PatientName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100006,
-                    "title": "PatientName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "PatientID",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100007,
-                    "title": "PatientID",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "PatientBirthDate",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "date",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 100008,
-                    "title": "PatientBirthDate",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "contentAlignment": "right",
+                    "format": {
+                      "type": "moment.js",
+                      "format": "DD/MM/YYYY HH:mm:ss.SSS"
+                    },
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "PatientAge",
-                    "numberFormat": "0",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 100009,
-                    "title": "PatientAge",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "0"
+                    },
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "PatientSex",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100010,
-                    "title": "PatientSex",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "StudyDate",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "date",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 100011,
-                    "title": "StudyDate",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "contentAlignment": "right",
+                    "format": {
+                      "type": "moment.js",
+                      "format": "DD/MM/YYYY HH:mm:ss.SSS"
+                    },
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "StudyTime",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100012,
-                    "title": "StudyTime",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "AccessionNumber",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100013,
-                    "title": "AccessionNumber",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "Modality",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100014,
-                    "title": "Modality",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "ImageType",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100015,
-                    "title": "ImageType",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "BodyPartExamined",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100016,
-                    "title": "BodyPartExamined",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "ProtocolName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100017,
-                    "title": "ProtocolName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "Manufacturer",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100018,
-                    "title": "Manufacturer",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "InstitutionName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100019,
-                    "title": "InstitutionName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "InstitutionAddress",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100020,
-                    "title": "InstitutionAddress",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "DetectorManufacturerName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100021,
-                    "title": "DetectorManufacturerName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "DetectorManufacturersModelName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100022,
-                    "title": "DetectorManufacturersModelName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "MRTransmitCoilManufacturerName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100023,
-                    "title": "MRTransmitCoilManufacturerName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "ReceiveCoilManufacturerName",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100024,
-                    "title": "ReceiveCoilManufacturerName",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "DeidentificationMethod",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100025,
-                    "title": "DeidentificationMethod",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "SyntheticData",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100026,
-                    "title": "SyntheticData",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "CodingSchemeVersion",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100027,
-                    "title": "CodingSchemeVersion",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "LossyImageCompression",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100028,
-                    "title": "LossyImageCompression",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   },
                   {
                     "fieldName": "Creator",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "string",
-                    "displayAs": "string",
-                    "visible": true,
-                    "order": 100029,
-                    "title": "Creator",
-                    "allowSearch": false,
-                    "alignContent": "left",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
-                  },
-                  {
-                    "fieldName": "modificationTime",
-                    "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "datetime",
-                    "displayAs": "datetime",
-                    "visible": true,
-                    "order": 100030,
-                    "title": "modificationTime",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
-                  },
-                  {
-                    "fieldName": "num_files",
-                    "numberFormat": "0",
-                    "booleanValues": [
-                      "false",
-                      "true"
-                    ],
-                    "imageUrlTemplate": "{{ @ }}",
-                    "imageTitleTemplate": "{{ @ }}",
-                    "imageWidth": "",
-                    "imageHeight": "",
-                    "linkUrlTemplate": "{{ @ }}",
-                    "linkTextTemplate": "{{ @ }}",
-                    "linkTitleTemplate": "{{ @ }}",
-                    "linkOpenInNewTab": true,
-                    "type": "integer",
-                    "displayAs": "number",
-                    "visible": true,
-                    "order": 100031,
-                    "title": "num_files",
-                    "allowSearch": false,
-                    "alignContent": "right",
-                    "allowHTML": false,
-                    "highlightLinks": false,
-                    "useMonospaceFont": false,
-                    "preserveWhitespace": false
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
                   }
                 ]
-              },
-              "invisibleColumns": [],
-              "allowHTMLByDefault": false,
-              "itemsPerPage": 25,
-              "paginationSize": "default",
-              "condensed": true,
-              "withRowNumber": false
+              }
             }
           },
           "position": {
@@ -2492,6 +1991,7 @@
   "uiSettings": {
     "theme": {
       "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
-    }
+    },
+    "applyModeEnabled": false
   }
 }
