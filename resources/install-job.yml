@@ -1,0 +1,86 @@
+resources:
+  jobs:
+    pixels_install:
+      name: "Pixels Install"
+      description: "Full Pixels stack installation: ingest, apps, model, dashboard, genie"
+      timeout_seconds: 10800
+      max_concurrent_runs: 1
+      tags:
+        accelerator: pixels
+        group: HLS
+
+      parameters:
+        - name: path
+          default: "s3://hls-eng-data-public/dicom/landing_zone/*.zip"
+        - name: table
+          default: ${var.table}
+        - name: volume
+          default: ${var.volume}
+        - name: sqlWarehouseID
+          default: ${var.sql_warehouse}
+        - name: mode
+          default: "append"
+        - name: serving_endpoint_name
+          default: ${var.serving_endpoint_name}
+        - name: model_uc_name
+          default: ${var.model_uc_name}
+
+      tasks:
+        # ── Step 0: Initialize UC schema, volume, empty table ───────
+        - task_key: 00_init_schema
+          notebook_task:
+            notebook_path: ../resources/00-init-schema.sql
+            source: WORKSPACE
+          environment_key: serverless
+
+        # ── Step 1: Demo Data Ingest (serverless) ───────────────────
+        - task_key: 01_dcm_ingest
+          notebook_task:
+            notebook_path: ../01-dcm-demo.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 00_init_schema
+          environment_key: serverless
+
+        # ── Step 2: Deploy Apps + Lakebase (serverless) ─────────────
+        - task_key: 02_deploy_apps
+          notebook_task:
+            notebook_path: ../07-OHIF-Lakehouse-App.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 01_dcm_ingest
+          environment_key: serverless
+
+        # ── Step 3: Vista3D Model Serving (serverless) ────────────
+        - task_key: 03_vista3d_model
+          notebook_task:
+            notebook_path: ../monailabel_model/VISTA3D.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 01_dcm_ingest
+          environment_key: serverless
+
+        # ── Step 4: Genie Space (serverless) ────────────────────────
+        - task_key: 04_genie_space
+          notebook_task:
+            notebook_path: ../08-GenieSpace.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 01_dcm_ingest
+          environment_key: serverless
+
+        # ── Step 10: Validate all services ─────────────────────────
+        - task_key: 10_validate
+          notebook_task:
+            notebook_path: ../resources/10-validate.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 02_deploy_apps
+            - task_key: 03_vista3d_model
+            - task_key: 04_genie_space
+          environment_key: serverless
+
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "4"

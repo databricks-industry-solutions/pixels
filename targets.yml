@@ -1,0 +1,10 @@
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      source_linked_deployment: false
+  prod:
+    mode: production
+    presets:
+      source_linked_deployment: false

@@ -45,8 +45,14 @@ def init_env():
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
   table = dbutils.widgets.get("table")
 
-  if not spark.catalog.tableExists(table):
-      raise Exception("The configured table does not exist!")
+  try:
+    if not spark.catalog.tableExists(table):
+        raise Exception("The configured table does not exist!")
+  except Exception as e:
+    if "ABAC" in str(e) or "PERMISSION_DENIED" in str(e):
+      print(f"Skipping table existence check (ABAC policy on classic compute)")
+    else:
+      raise
 
   if sql_warehouse_id == "":
       raise Exception("SQL Warehouse ID is mandatory!")

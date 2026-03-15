@@ -1,0 +1,42 @@
+bundle:
+  name: pixels-install
+
+include:
+  - targets.yml
+  - resources/*.yml
+
+workspace:
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    default: "dmoore"
+  schema:
+    description: "Schema name"
+    default: "pixels"
+  table:
+    default: "${var.catalog}.${var.schema}.object_catalog"
+  volume_name:
+    description: "Volume name for DICOM files"
+    default: "pixels_volume"
+  volume:
+    default: "${var.catalog}.${var.schema}.${var.volume_name}"
+  serving_endpoint_name:
+    default: "pixels-monai-uc"
+  model_uc_name:
+    default: "${var.catalog}.${var.schema}.monai_pixels_model"
+  lakebase_instance_name:
+    default: "pixels-lakebase"
+  sql_warehouse:
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
+
+sync:
+  paths:
+    - .
+  exclude:
+    - images/*.gif
+    - monailabel_model/vista3d/code/vista3d_bundle/vista3d/**/*
+    - monailabel_model/vista3d/code/vista3d_bundle/assets/**/*
+    - dbx/pixels/resources/ohif/**/*

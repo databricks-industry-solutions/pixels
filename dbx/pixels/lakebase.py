@@ -343,18 +343,27 @@ class LakebaseUtils:
 
     def get_or_create_sp_role(self, sp_client_id):
         roles = list(self.workspace_client.postgres.list_roles(self.branch_resource_name) or [])
-        existing_role = next((r for r in roles if sp_client_id in r.name), None)
+        existing_role = next(
+            (
+                r
+                for r in roles
+                if sp_client_id in r.name
+                or (hasattr(r, "spec") and r.spec and r.spec.postgres_role == sp_client_id)
+            ),
+            None,
+        )
 
         if existing_role:
             logger.info(
                 f"Role for service principal {sp_client_id} already exists in branch {self.branch_name}"
             )
             return existing_role
-        else:
-            # Create the database instance role for the service principal
-            logger.info(
-                f"Creating role for service principal {sp_client_id} in branch {self.branch_name}"
-            )
+
+        # Create the database instance role for the service principal
+        logger.info(
+            f"Creating role for service principal {sp_client_id} in branch {self.branch_name}"
+        )
+        try:
             db_role = self.workspace_client.postgres.create_role(
                 parent=self.branch_resource_name,
                 role=Role(
@@ -365,6 +374,14 @@ class LakebaseUtils:
                 ),
             )
             return db_role
+        except Exception as e:
+            if "already exists" in str(e):
+                logger.info(f"Role for {sp_client_id} already exists, fetching it")
+                roles = list(
+                    self.workspace_client.postgres.list_roles(self.branch_resource_name) or []
+                )
+                return next((r for r in roles), None)
+            raise
 
     def _generate_credential(self):
         """
@@ -745,7 +762,8 @@ class LakebaseUtils:
         # avoids the json_agg / OID-114 deserialization issue where psycopg2
         # may return the json type as Python None if the JSON adapter is not
         # registered in the connection context.
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             SELECT
                 filename,
                 COUNT(*)                             AS frame_count,
@@ -775,7 +793,8 @@ class LakebaseUtils:
             GROUP BY filename
             ORDER BY priority_score DESC
             LIMIT %s
-            """).format(table=sql.Identifier(self.schema, table))
+            """
+        ).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []

@@ -58,7 +58,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixelsdev.object_catalog"
+                  "value": "dmoore.pixels.object_catalog"
                 }
               ]
             }
@@ -73,15 +73,15 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "https://pixels-ohif-viewer-<workspaceid>.aws.databricksapps.com"
+                  "value": "https://pixels-dicomweb-3464092709171785.aws.databricksapps.com"
                 }
               ]
             }
           }
         }
       ],
-      "catalog": "hls_radiology",
-      "schema": "tcia"
+      "catalog": "dmoore",
+      "schema": "pixels"
     },
     {
       "name": "9651ec0b",
@@ -129,7 +129,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixels_solacc.object_catalog"
+                  "value": "dmoore.pixels.object_catalog"
                 }
               ]
             }
