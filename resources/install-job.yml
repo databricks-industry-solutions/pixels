@@ -62,6 +62,7 @@ resources:
             spark_version: "16.4.x-gpu-ml-scala2.12"
             node_type_id: "g5.2xlarge"
             num_workers: 0
+            data_security_mode: "SINGLE_USER"
             spark_conf:
               spark.master: "local[*]"
               spark.databricks.cluster.profile: "singleNode"
