@@ -83,7 +83,8 @@ resources:
             - task_key: 02_deploy_apps
             - task_key: 03_vista3d_model
             - task_key: 04_genie_space
-          max_retries: 0
+          max_retries: 12
+          min_retry_interval_millis: 180000
           environment_key: serverless
 
       environments:

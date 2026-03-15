@@ -282,4 +282,4 @@ if passed == total:
 else:
     failed = [r for r in results if r["status"] == "FAIL"]
     fail_names = ", ".join(f"{r['service']}/{r['check']}" for r in failed[:5])
-    dbutils.notebook.exit(f"FAIL: {passed}/{total} — {fail_names}")
+    raise Exception(f"FAIL: {passed}/{total} — {fail_names}")
