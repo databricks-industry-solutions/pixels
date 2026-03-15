@@ -73,7 +73,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "serverless_lh10u9_catalog.tcia.object_catalog"
+                  "value": "main.pixels_solacc.object_catalog"
                 }
               ]
             }
@@ -143,7 +143,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "serverless_lh10u9_catalog.tcia.object_catalog"
+                  "value": "main.pixels_solacc.object_catalog"
                 }
               ]
             }
