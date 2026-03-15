@@ -16,10 +16,16 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install -r bundles/requirements.txt
-# MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
-# MAGIC %pip install monai==1.5.2 pytorch-ignite --no-deps
-# MAGIC %pip install databricks-sdk==0.84 --upgrade
+# Resolve absolute WSFS paths so pip install works on both serverless and classic GPU clusters
+import subprocess, sys, os
+
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = '/Workspace' + os.path.dirname(_nb_ctx.notebookPath().get())
+
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', f'{_nb_dir}/bundles/requirements.txt'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', f'{_nb_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl', '--no-deps'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'monai==1.5.2', 'pytorch-ignite', '--no-deps'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'databricks-sdk==0.84', '--upgrade'])
 
 # COMMAND ----------
 
