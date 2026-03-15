@@ -24,6 +24,14 @@ vs_catalog = "main"
 # COMMAND ----------
 
 # DBTITLE 1,Validation Helper
+import json as _json
+import re as _re
+import requests as _requests
+
+_host = os.environ["DATABRICKS_HOST"]
+_token = os.environ["DATABRICKS_TOKEN"]
+_auth_headers = {"Authorization": f"Bearer {_token}"}
+
 results = []
 
 def check(service, name, passed, detail=""):
@@ -78,8 +86,6 @@ for fn in _functions:
 
 # DBTITLE 1,Dashboard
 print("=== Dashboard ===")
-import json as _json
-import re as _re
 
 _dashboard = None
 try:
@@ -134,8 +140,11 @@ print("=== Lakebase ===")
 _lakebase_instance = "pixels-lakebase"
 
 try:
-    project = w.postgres.get_project(f"projects/{_lakebase_instance}")
-    check("Lakebase", _lakebase_instance, True, f"state={project.state.value if project.state else 'unknown'}")
+    _lb_resp = _requests.get(f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}", headers=_auth_headers)
+    _lb_resp.raise_for_status()
+    _lb_data = _lb_resp.json()
+    _proj_name = _lb_data.get("status", {}).get("display_name", _lakebase_instance)
+    check("Lakebase", _lakebase_instance, True, f"project={_proj_name}")
 except Exception as e:
     check("Lakebase", _lakebase_instance, False, str(e)[:120])
 
@@ -152,25 +161,24 @@ except Exception as e:
 # DBTITLE 1,Apps
 print("=== Apps ===")
 
-import requests as _requests
-
 _app_names = ["pixels-dicomweb-gateway", "pixels-dicomweb"]
 
-for app_name in _app_names:
+for _app_name in _app_names:
     try:
-        app = w.apps.get(app_name)
-        is_running = app.status and app.status.state and app.status.state.value == "RUNNING"
-        check("Apps", f"{app_name} state", is_running, app.status.state.value if app.status and app.status.state else "unknown")
+        _app = w.apps.get(_app_name)
+        _app_state = _app.app_status.state.value if _app.app_status and _app.app_status.state else "unknown"
+        is_running = _app_state == "RUNNING"
+        check("Apps", f"{_app_name} state", is_running, _app_state)
 
         # Health check
-        if app.url:
+        if _app.url:
             try:
-                resp = _requests.get(f"{app.url}/health", timeout=10, headers={"Authorization": f"Bearer {os.environ['DATABRICKS_TOKEN']}"})
-                check("Apps", f"{app_name} /health", resp.status_code == 200, f"HTTP {resp.status_code}")
+                resp = _requests.get(f"{_app.url}/health", timeout=10, headers=_auth_headers)
+                check("Apps", f"{_app_name} /health", resp.status_code == 200, f"HTTP {resp.status_code}")
             except Exception as e:
-                check("Apps", f"{app_name} /health", False, str(e)[:120])
+                check("Apps", f"{_app_name} /health", False, str(e)[:120])
     except Exception as e:
-        check("Apps", f"{app_name}", False, str(e)[:120])
+        check("Apps", f"{_app_name}", False, str(e)[:120])
 
 # COMMAND ----------
 
@@ -227,8 +235,7 @@ except Exception as e:
 print("=== Genie Space ===")
 
 try:
-    genie_api = f"{os.environ['DATABRICKS_HOST']}/api/2.0/genie/spaces"
-    resp = _requests.get(genie_api, headers={"Authorization": f"Bearer {os.environ['DATABRICKS_TOKEN']}"})
+    resp = _requests.get(f"{_host}/api/2.0/genie/spaces", headers=_auth_headers)
     resp.raise_for_status()
     spaces = resp.json().get("spaces", [])
     match = [s for s in spaces if s.get("title") == "Pixels - Genie"]

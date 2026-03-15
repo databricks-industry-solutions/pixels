@@ -1,47 +1,33 @@
-# Databricks notebook source
-# MAGIC %md
-# MAGIC # Initialize Unity Catalog Schema, Volume, and Tables
-# MAGIC
-# MAGIC Lightweight setup task that creates the UC catalog, schema, volume, and
-# MAGIC empty `object_catalog` table if they don't already exist. This must run
-# MAGIC before any other install tasks so that notebooks calling `init_env()`
-# MAGIC (which checks `spark.catalog.tableExists(table)`) don't fail.
-# MAGIC
-# MAGIC This notebook is self-contained — no dependency on `dbx.pixels`.
+-- Databricks notebook source
+-- MAGIC %md
+-- MAGIC # Initialize Unity Catalog Schema, Volume, and Tables
+-- MAGIC
+-- MAGIC Lightweight setup task that creates the UC catalog, schema, volume, and
+-- MAGIC empty `object_catalog` table if they don't already exist. This must run
+-- MAGIC before any other install tasks so that notebooks calling `init_env()`
+-- MAGIC (which checks `spark.catalog.tableExists(table)`) don't fail.
+-- MAGIC
+-- MAGIC This notebook is self-contained — no dependency on `dbx.pixels`.
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Collect Input Parameters
-dbutils.widgets.text("path", "s3://hls-eng-data-public/dicom/landing_zone/*.zip", label="1.0 Path to directory tree containing files")
-dbutils.widgets.text("table", "dmoore.pixels.object_catalog", label="2.0 Catalog Schema Table")
-dbutils.widgets.text("volume", "dmoore.pixels.pixels_volume", label="3.0 Catalog Schema Volume")
-dbutils.widgets.dropdown("mode", defaultValue="append", choices=["overwrite", "append"], label="4.0 Update mode")
+-- DBTITLE 1,Derive Parameters
+-- Job parameters (table, volume) are injected via ${param} interpolation.
+-- No CREATE WIDGET needed — serverless does not support it.
+DECLARE OR REPLACE VARIABLE uc_schema STRING DEFAULT split_part('${table}', '.', 1) || '.' || split_part('${table}', '.', 2);
 
-table = dbutils.widgets.get("table")
-volume = dbutils.widgets.get("volume")
+SELECT uc_schema AS uc_schema, '${table}' AS `table`, '${volume}' AS volume;
 
-catalog_name = table.split(".")[0]
-schema_name = table.split(".")[1]
-volume_name = volume.split(".")[2]
-uc_schema = f"{catalog_name}.{schema_name}"
+-- COMMAND ----------
 
-print(f"catalog={catalog_name}, schema={uc_schema}, table={table}, volume={volume}")
+-- DBTITLE 1,Create Schema and Volume (catalog must already exist)
+CREATE DATABASE IF NOT EXISTS IDENTIFIER(uc_schema);
+CREATE VOLUME IF NOT EXISTS ${volume};
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create Catalog, Schema, Volume
-# Only create catalog if it doesn't exist — CREATE CATALOG IF NOT EXISTS
-# can fail on workspaces with Default Storage enabled.
-if spark.sql(f"SHOW CATALOGS LIKE '{catalog_name}'").count() == 0:
-    spark.sql(f"CREATE CATALOG {catalog_name}")
-spark.sql(f"CREATE DATABASE IF NOT EXISTS {uc_schema}")
-spark.sql(f"CREATE VOLUME IF NOT EXISTS {volume}")
-
-# COMMAND ----------
-
-# DBTITLE 1,Create object_catalog table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {table} (
+-- DBTITLE 1,Create object_catalog table
+CREATE TABLE IF NOT EXISTS ${table} (
   path STRING NOT NULL COMMENT 'File path',
   modificationTime TIMESTAMP NOT NULL COMMENT 'Last modification time',
   length BIGINT NOT NULL COMMENT 'File length in bytes',
@@ -60,14 +46,12 @@ TBLPROPERTIES (
   'delta.enableDeletionVectors' = 'true',
   'delta.feature.deletionVectors' = 'supported',
   'delta.minReaderVersion' = '3',
-  'delta.minWriterVersion' = '7')
-""")
+  'delta.minWriterVersion' = '7');
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create object_catalog_unzip table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {table}_unzip (
+-- DBTITLE 1,Create object_catalog_unzip table
+CREATE TABLE IF NOT EXISTS ${table}_unzip (
   path STRING NOT NULL COMMENT 'Path of the extracted file from the zip in original_path',
   modificationTime TIMESTAMP NOT NULL COMMENT 'Creation timestamp of the zip file',
   length BIGINT NOT NULL COMMENT 'Size of the zip file',
@@ -81,14 +65,12 @@ TBLPROPERTIES (
   'delta.minReaderVersion' = '3',
   'delta.minWriterVersion' = '7',
   'delta.targetFileSize' = '1mb',
-  'delta.autoOptimize.autoCompact' = 'false')
-""")
+  'delta.autoOptimize.autoCompact' = 'false');
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create object_catalog_autoseg_result table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {table}_autoseg_result (
+-- DBTITLE 1,Create object_catalog_autoseg_result table
+CREATE TABLE IF NOT EXISTS ${table}_autoseg_result (
   series_uid STRING NOT NULL COMMENT 'Unique identifier of the DICOM series used',
   result STRING COMMENT 'File location of the generated DICOM segmentation file',
   error STRING COMMENT 'Error message if the segmentation process fails')
@@ -100,14 +82,12 @@ TBLPROPERTIES (
   'delta.minReaderVersion' = '3',
   'delta.minWriterVersion' = '7',
   'delta.targetFileSize' = '1mb',
-  'delta.autoOptimize.autoCompact' = 'false')
-""")
+  'delta.autoOptimize.autoCompact' = 'false');
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create object_catalog_redaction table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {table}_redaction (
+-- DBTITLE 1,Create object_catalog_redaction table
+CREATE TABLE IF NOT EXISTS ${table}_redaction (
   redaction_id STRING NOT NULL COMMENT 'Unique identifier for this redaction job',
   study_instance_uid STRING COMMENT 'DICOM Study Instance UID',
   series_instance_uid STRING COMMENT 'DICOM Series Instance UID',
@@ -140,14 +120,12 @@ TBLPROPERTIES (
   'delta.targetFileSize' = '256mb',
   'delta.autoOptimize.autoCompact' = 'true',
   'delta.autoOptimize.optimizeWrite' = 'true'
-)
-""")
+);
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create stow_operations table
-spark.sql(f"""
-CREATE TABLE IF NOT EXISTS {uc_schema}.stow_operations (
+-- DBTITLE 1,Create stow_operations table
+CREATE TABLE IF NOT EXISTS IDENTIFIER(uc_schema || '.stow_operations') (
   file_id          STRING    NOT NULL  COMMENT 'UUID assigned at upload time',
   volume_path      STRING    NOT NULL  COMMENT 'Full /Volumes/... path to the temp multipart bundle (.mpr)',
   file_size        BIGINT    NOT NULL  COMMENT 'Size in bytes of the uploaded multipart bundle',
@@ -174,26 +152,24 @@ TBLPROPERTIES (
   'delta.targetFileSize' = '256mb',
   'delta.autoOptimize.autoCompact' = 'true',
   'delta.autoOptimize.optimizeWrite' = 'true'
-)
-""")
+);
 
-# COMMAND ----------
+-- COMMAND ----------
 
-# DBTITLE 1,Create UC functions
-spark.sql(f"""
-CREATE OR REPLACE FUNCTION {uc_schema}.extract_tags(dicom_tags ARRAY<STRUCT<TAG STRING, KEYWORD STRING, VM STRING>>, meta STRING)
+-- DBTITLE 1,Create extract_tags function
+CREATE OR REPLACE FUNCTION IDENTIFIER(uc_schema || '.extract_tags')(dicom_tags ARRAY<STRUCT<TAG STRING, KEYWORD STRING, VM STRING>>, meta STRING)
   RETURNS MAP<STRING,STRING>
   LANGUAGE PYTHON
   AS $$
     import json
-    results = {{}}
+    results = {}
     def extract_tags(dicom_tag, meta):
-      result = {{}}
+      result = {}
       try:
         meta_json = json.loads(meta)
       except:
-        return {{}}
-      dicom_tag_json = {{"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}}
+        return {}
+      dicom_tag_json = {"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}
       key = dicom_tag_json["TAG"]
       if key in meta_json and 'Value' in meta_json[key]:
         if(dicom_tag_json['VM'] != '1'):
@@ -204,11 +180,12 @@ CREATE OR REPLACE FUNCTION {uc_schema}.extract_tags(dicom_tags ARRAY<STRUCT<TAG 
     for tag in dicom_tags:
       results = results | extract_tags(tag, meta)
     return results
-  $$
-""")
+  $$;
 
-spark.sql(f"""
-CREATE OR REPLACE FUNCTION {uc_schema}.extract_tag_value(dicom_tag STRUCT<TAG STRING, KEYWORD STRING, VM STRING>, meta STRING)
+-- COMMAND ----------
+
+-- DBTITLE 1,Create extract_tag_value function
+CREATE OR REPLACE FUNCTION IDENTIFIER(uc_schema || '.extract_tag_value')(dicom_tag STRUCT<TAG STRING, KEYWORD STRING, VM STRING>, meta STRING)
   RETURNS STRING
   LANGUAGE PYTHON
   AS $$
@@ -217,17 +194,16 @@ CREATE OR REPLACE FUNCTION {uc_schema}.extract_tag_value(dicom_tag STRUCT<TAG ST
       meta_json = json.loads(meta)
     except:
       return None
-    dicom_tag_json = {{"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}}
+    dicom_tag_json = {"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}
     key = dicom_tag_json["TAG"]
     if key in meta_json and 'Value' in meta_json[key]:
       if(dicom_tag_json['VM'] != '1'):
         return "<SEP>".join(meta_json[key]['Value'])
       else:
         return str(meta_json[key]['Value'][0])
-  $$
-""")
+  $$;
 
-# COMMAND ----------
+-- COMMAND ----------
 
-print(f"Initialized: table={table}, volume={volume}")
-print("All UC objects created successfully.")
+-- DBTITLE 1,Done
+SELECT 'All UC objects created successfully.' AS status, '${table}' AS `table`, '${volume}' AS volume;
