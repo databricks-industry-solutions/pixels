@@ -66,13 +66,16 @@ def remove_un_vr_elements(ds: Dataset) -> Dataset:
 
     return ds
 
-def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
+def extract_metadata(ds: Dataset, deep: bool = True, remove_un_vr_elements: bool = False) -> dict:
     """Extract metadata from header of dicom image file
     params:
       path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
       deep -- True if deep inspection of the Dicom header is required
+      remove_un_vr_elements -- True if UN VR elements should be removed from the dataset
     """
-    remove_un_vr_elements(ds)
+    if remove_un_vr_elements:
+        ds = remove_un_vr_elements(ds)
+    
     a = None
     js = {}
 

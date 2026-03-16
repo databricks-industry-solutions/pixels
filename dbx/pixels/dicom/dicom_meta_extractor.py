@@ -18,7 +18,7 @@ class DicomMetaExtractor(Transformer):
     headers over the network, maximizing I/O throughput on each Spark task.
     """
 
-    MAX_WORKERS = 20
+    MAX_WORKERS = 32
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class DicomMetaExtractor(Transformer):
         deep=False,
         useVariant=True,
         maxWorkers=None,
+        remove_un_vr_elements=False,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
@@ -37,7 +38,7 @@ class DicomMetaExtractor(Transformer):
         self.deep = deep
         self.useVariant = useVariant
         self.maxWorkers = maxWorkers if maxWorkers is not None else self.MAX_WORKERS
-
+        self.remove_un_vr_elements = remove_un_vr_elements
     def check_input_type(self, schema):
         field = schema[self.inputCol]
         if field.dataType != t.StringType():
@@ -80,12 +81,12 @@ class DicomMetaExtractor(Transformer):
             import simplejson as json
             from pydicom import dcmread
 
-            def _process_file(path: str, is_deep: bool, anon: bool) -> str:
+            def _process_file(path: str, deep: bool, anon: bool) -> str:
                 try:
                     fp, fsize = cloud_open(path, anon)
-                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not is_deep)) as dataset:
-                        meta_js = extract_metadata(dataset, is_deep)
-                        if is_deep:
+                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
+                        meta_js = extract_metadata(dataset, deep, remove_un_vr_elements=self.remove_un_vr_elements)
+                        if deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
                         return json.dumps(meta_js, ignore_nan=True)
