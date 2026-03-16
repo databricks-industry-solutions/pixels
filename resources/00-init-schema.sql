@@ -205,15 +205,5 @@ CREATE OR REPLACE FUNCTION IDENTIFIER(uc_schema || '.extract_tag_value')(dicom_t
 
 -- COMMAND ----------
 
--- DBTITLE 1,Tag All Assets
-ALTER SCHEMA IDENTIFIER(uc_schema) SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE ${table} SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE ${table}_unzip SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE ${table}_autoseg_result SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE ${table}_redaction SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IDENTIFIER(uc_schema || '.stow_operations') SET TAGS ('accelerator' = 'pixels');
-
--- COMMAND ----------
-
 -- DBTITLE 1,Done
 SELECT 'All UC objects created successfully.' AS status, '${table}' AS `table`, '${volume}' AS volume;
