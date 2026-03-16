@@ -165,6 +165,27 @@ metadata_df = DicomMetaAnonymizerExtractor(
 By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
 The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
 
+## Remove UN Tags
+DICOM files can contain elements with Value Representation `UN` (Unknown), which are tags that could not be resolved to a specific VR during parsing. These tags often carry unstructured or proprietary data that can bloat the extracted metadata, cause serialization issues, or introduce noise in downstream analytics.
+
+Pixels provides a built-in option to strip all `UN` VR elements from the dataset before metadata extraction. The removal is recursive, so `UN` elements nested inside sequences (`SQ`) are also cleaned up.
+
+To enable this feature, set `remove_un_tags=True` on the `DicomMetaExtractor`:
+```python
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import *
+
+catalog = Catalog(spark)
+catalog_df = catalog.catalog(<path>)
+
+meta_df = DicomMetaExtractor(
+    catalog,
+    remove_un_tags=True
+).transform(catalog_df)
+
+catalog.save(meta_df)
+```
+
 ---
 ## OHIF Viewer
 Inside `dbx.pixels` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 

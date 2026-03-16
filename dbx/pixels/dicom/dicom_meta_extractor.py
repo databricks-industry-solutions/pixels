@@ -18,7 +18,7 @@ class DicomMetaExtractor(Transformer):
     headers over the network, maximizing I/O throughput on each Spark task.
     """
 
-    MAX_WORKERS = 20
+    MAX_WORKERS = 32
 
     def __init__(
         self,
@@ -29,6 +29,7 @@ class DicomMetaExtractor(Transformer):
         deep=False,
         useVariant=True,
         maxWorkers=None,
+        remove_un_tags=False,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
@@ -37,6 +38,7 @@ class DicomMetaExtractor(Transformer):
         self.deep = deep
         self.useVariant = useVariant
         self.maxWorkers = maxWorkers if maxWorkers is not None else self.MAX_WORKERS
+        self.remove_un_tags = remove_un_tags
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -69,6 +71,7 @@ class DicomMetaExtractor(Transformer):
         output_col = self.outputCol
         deep = self.deep
         max_workers = self.maxWorkers
+        remove_un_tags = self.remove_un_tags
 
         # Build output schema: all existing columns + the new meta column (as StringType initially)
         out_schema = t.StructType(
@@ -80,12 +83,12 @@ class DicomMetaExtractor(Transformer):
             import simplejson as json
             from pydicom import dcmread
 
-            def _process_file(path: str, is_deep: bool, anon: bool) -> str:
+            def _process_file(path: str, deep: bool, anon: bool, remove_un_tags: bool) -> str:
                 try:
                     fp, fsize = cloud_open(path, anon)
-                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not is_deep)) as dataset:
-                        meta_js = extract_metadata(dataset, is_deep)
-                        if is_deep:
+                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
+                        meta_js = extract_metadata(dataset, deep, remove_un_tags=remove_un_tags)
+                        if deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
                         return json.dumps(meta_js, ignore_nan=True)
@@ -107,7 +110,7 @@ class DicomMetaExtractor(Transformer):
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     meta_results = list(
                         executor.map(
-                            lambda args: _process_file(args[0], deep, args[1]),
+                            lambda args: _process_file(args[0], deep, args[1], remove_un_tags),
                             zip(paths, anon_flags),
                         )
                     )
