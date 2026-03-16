@@ -22,24 +22,37 @@ volume_path = volume.replace(".", "/")
 # COMMAND ----------
 
 # DBTITLE 1,Check Endpoint State
-import mlflow
+import requests as _requests
 
-client = mlflow.deployments.get_deploy_client("databricks")
-endpoint_status = client.get_endpoint(serving_endpoint_name)
-ep_state = endpoint_status.get("state", {}).get("ready", "unknown")
-print(f"Endpoint {serving_endpoint_name}: {ep_state}")
+_host = os.environ["DATABRICKS_HOST"]
+_token = os.environ["DATABRICKS_TOKEN"]
+_headers = {"Authorization": f"Bearer {_token}"}
 
-if ep_state != "READY":
-    raise Exception(f"Endpoint {serving_endpoint_name} is {ep_state} — not READY yet")
+_ep_resp = _requests.get(f"{_host}/api/2.0/serving-endpoints/{serving_endpoint_name}", headers=_headers)
+_ep_resp.raise_for_status()
+_ep_data = _ep_resp.json()
+
+ep_ready = _ep_data.get("state", {}).get("ready", "unknown")
+ep_config_update = _ep_data.get("state", {}).get("config_update", "")
+print(f"Endpoint {serving_endpoint_name}: ready={ep_ready}, config_update={ep_config_update}")
+
+if ep_ready != "READY":
+    raise Exception(f"Endpoint {serving_endpoint_name} is {ep_ready} — not READY yet")
+
+if ep_config_update == "IN_PROGRESS":
+    raise Exception(f"Endpoint {serving_endpoint_name} has config update in progress — waiting")
 
 # COMMAND ----------
 
 # DBTITLE 1,Info Ping
+import mlflow
+
+client = mlflow.deployments.get_deploy_client("databricks")
 resp = client.predict(
     endpoint=serving_endpoint_name,
     inputs={"dataframe_records": [{"input": {"action": "info"}}]},
 )
-print(f"Info ping OK")
+print("Info ping OK")
 
 # COMMAND ----------
 
