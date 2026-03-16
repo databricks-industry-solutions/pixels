@@ -25,7 +25,6 @@
         "    try_cast(\n",
         "      try_to_timestamp(meta:[ '00080020' ] . Value [ 0 ]::STRING, \"yyyyMMdd\") as Date\n",
         "    ) as StudyDate,\n",
-        "    meta:[ '00080030' ] . Value [ 0 ]::STRING StudyTime,\n",
         "    meta:[ '00080050' ] . Value [ 0 ]::STRING AccessionNumber,\n",
         "    meta:[ '00080060' ] . Value [ 0 ]::STRING Modality,\n",
         "    meta:[ '00080008' ] . Value [ 0 ]::STRING ImageType,\n",
@@ -945,10 +944,6 @@
                       "expression": "`StudyDate`"
                     },
                     {
-                      "name": "StudyTime",
-                      "expression": "`StudyTime`"
-                    },
-                    {
                       "name": "AccessionNumber",
                       "expression": "`AccessionNumber`"
                     },
@@ -1160,16 +1155,6 @@
                       "type": "moment.js",
                       "format": "DD/MM/YYYY HH:mm:ss.SSS"
                     },
-                    "actions": {
-                      "hover": {
-                        "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
-                      }
-                    }
-                  },
-                  {
-                    "fieldName": "StudyTime",
-                    "useForSearch": false,
                     "actions": {
                       "hover": {
                         "type": "tooltip",
