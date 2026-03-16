@@ -206,13 +206,12 @@ CREATE OR REPLACE FUNCTION IDENTIFIER(uc_schema || '.extract_tag_value')(dicom_t
 -- COMMAND ----------
 
 -- DBTITLE 1,Tag All Assets
-ALTER SCHEMA IF EXISTS IDENTIFIER(uc_schema) SET TAGS ('accelerator' = 'pixels');
-ALTER VOLUME IF EXISTS ${volume} SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IF EXISTS ${table} SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IF EXISTS ${table}_unzip SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IF EXISTS ${table}_autoseg_result SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IF EXISTS ${table}_redaction SET TAGS ('accelerator' = 'pixels');
-ALTER TABLE IF EXISTS IDENTIFIER(uc_schema || '.stow_operations') SET TAGS ('accelerator' = 'pixels');
+ALTER SCHEMA IDENTIFIER(uc_schema) SET TAGS ('accelerator' = 'pixels');
+ALTER TABLE ${table} SET TAGS ('accelerator' = 'pixels');
+ALTER TABLE ${table}_unzip SET TAGS ('accelerator' = 'pixels');
+ALTER TABLE ${table}_autoseg_result SET TAGS ('accelerator' = 'pixels');
+ALTER TABLE ${table}_redaction SET TAGS ('accelerator' = 'pixels');
+ALTER TABLE IDENTIFIER(uc_schema || '.stow_operations') SET TAGS ('accelerator' = 'pixels');
 
 -- COMMAND ----------
 
