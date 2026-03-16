@@ -45,6 +45,26 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
         logger.error(f"AttributeError: {e}. pixel_array does not exist in ds")
         return None
 
+def remove_un_vr_elements(ds: Dataset) -> Dataset:
+    """
+    Recursively removes all elements with VR='UN' from a pydicom dataset.
+    """
+    # Create a list of tags to delete so we don't modify the dataset while iterating
+    tags_to_delete = []
+    
+    for elem in ds:
+        if elem.VR == "UN":
+            tags_to_delete.append(elem.tag)
+        elif elem.VR == "SQ":
+            # If the element is a sequence, recursively process each dataset within it
+            for item in elem:
+                remove_un_vr_elements(item)
+                
+    # Delete the identified tags from the current dataset level
+    for tag in tags_to_delete:
+        del ds[tag]
+
+    return ds
 
 def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
     """Extract metadata from header of dicom image file
@@ -52,6 +72,7 @@ def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
       path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
       deep -- True if deep inspection of the Dicom header is required
     """
+    remove_un_vr_elements(ds)
     a = None
     js = {}
 
