@@ -124,6 +124,22 @@ endpoint_config = {
     ],
 }
 
+# Check if endpoint already has this model version — skip update to avoid config churn
+import requests as _requests
+
+_host = os.environ["DATABRICKS_HOST"]
+_token = os.environ["DATABRICKS_TOKEN"]
+_ep_check = _requests.get(
+    f"{_host}/api/2.0/serving-endpoints/{serving_endpoint_name}",
+    headers={"Authorization": f"Bearer {_token}"},
+)
+if _ep_check.status_code == 200:
+    _ep_data = _ep_check.json()
+    _current_entities = _ep_data.get("config", {}).get("served_entities", [])
+    if _current_entities and str(_current_entities[0].get("entity_version")) == str(model_version):
+        print(f"Endpoint {serving_endpoint_name} already serving model version {model_version} — no update needed")
+        dbutils.notebook.exit(f"SUCCESS: endpoint already configured with version {model_version}")
+
 try:
     endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
     print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
