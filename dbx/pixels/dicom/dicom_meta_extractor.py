@@ -1,9 +1,11 @@
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
+from typing import Iterator
 
 import pandas as pd
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, expr, lit, pandas_udf
+from pyspark.sql.functions import expr, lit
 
 from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata
 
@@ -11,9 +13,13 @@ from dbx.pixels.dicom.dicom_utils import cloud_open, extract_metadata
 class DicomMetaExtractor(Transformer):
     """
     Transformer class to transform paths to Dicom files to Dicom metadata in JSON format.
+
+    Uses mapInPandas with a ThreadPoolExecutor to concurrently read DICOM file
+    headers over the network, maximizing I/O throughput on each Spark task.
     """
 
-    # Day extractor inherit of property of Transformer
+    MAX_WORKERS = 20
+
     def __init__(
         self,
         catalog,
@@ -22,26 +28,24 @@ class DicomMetaExtractor(Transformer):
         basePath="dbfs:/",
         deep=False,
         useVariant=True,
+        maxWorkers=None,
     ):
-        self.inputCol = inputCol  # the name of your columns
-        self.outputCol = outputCol  # the name of your output column
+        self.inputCol = inputCol
+        self.outputCol = outputCol
         self.basePath = basePath
         self.catalog = catalog
-        self.deep = (
-            deep  # If deep = True analyze also pixels_array data, may impact performance if enabled
-        )
+        self.deep = deep
         self.useVariant = useVariant
+        self.maxWorkers = maxWorkers if maxWorkers is not None else self.MAX_WORKERS
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
-        # assert that field is a datetype
         if field.dataType != t.StringType():
             raise Exception(
                 f"DicomMetaExtractor field {self.inputCol}, input type {field.dataType} did not match input type StringType"
             )
 
-        field = schema["extension"]  # file extension
-        # assert that field is a datetype
+        field = schema["extension"]
         if field.dataType != t.StringType():
             raise Exception(
                 f"DicomMetaExtractor field {field.name}, input type {field.dataType} did not match input type StringType"
@@ -49,34 +53,39 @@ class DicomMetaExtractor(Transformer):
 
     def _transform(self, df):
         """
-        Perform Dicom to metadata transformation.
+        Perform Dicom to metadata transformation using mapInPandas with
+        concurrent I/O via ThreadPoolExecutor.
+
         Input:
           col('extension')
           col('is_anon')
         Output:
           col(self.outputCol) # Dicom metadata header in JSON format
         """
+        self.check_input_type(df.schema)
+        df = df.withColumn("is_anon", lit(self.catalog.is_anon()))
 
-        @pandas_udf(t.StringType())
-        def dicom_meta_udf(
-            paths: pd.Series, deep_flags: pd.Series, anon_flags: pd.Series
-        ) -> pd.Series:
-            """Extract metadata from header of dicom image files (Pandas UDF)
-            params:
-            paths -- Series of local paths like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
-            deep_flags -- Series of boolean flags for deep inspection of the Dicom header
-            anon_flags -- Series of boolean flags for accessing S3 public buckets
-            """
+        input_col = self.inputCol
+        output_col = self.outputCol
+        deep = self.deep
+        max_workers = self.maxWorkers
+
+        # Build output schema: all existing columns + the new meta column (as StringType initially)
+        out_schema = t.StructType(
+            list(df.schema.fields) + [t.StructField(output_col, t.StringType(), True)]
+        )
+
+        def _extract_meta(iterator: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
+            """mapInPandas function that uses a thread pool for concurrent DICOM I/O."""
             import simplejson as json
             from pydicom import dcmread
 
-            def process_single_file(path: str, deep: bool, anon: bool) -> str:
-                """Process a single DICOM file and return JSON metadata"""
+            def _process_file(path: str, is_deep: bool, anon: bool) -> str:
                 try:
                     fp, fsize = cloud_open(path, anon)
-                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
-                        meta_js = extract_metadata(dataset, deep)
-                        if deep:
+                    with dcmread(fp, defer_size=1000, stop_before_pixels=(not is_deep)) as dataset:
+                        meta_js = extract_metadata(dataset, is_deep)
+                        if is_deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
                         return json.dumps(meta_js, ignore_nan=True)
@@ -91,18 +100,23 @@ class DicomMetaExtractor(Transformer):
                     )
                     return json.dumps(except_str)
 
-            # Process each row in the batch
-            results = []
-            for path, deep, anon in zip(paths, deep_flags, anon_flags):
-                results.append(process_single_file(path, deep, anon))
+            for pdf in iterator:
+                paths = pdf[input_col].tolist()
+                anon_flags = pdf["is_anon"].tolist()
 
-            return pd.Series(results)
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    meta_results = list(
+                        executor.map(
+                            lambda args: _process_file(args[0], deep, args[1]),
+                            zip(paths, anon_flags),
+                        )
+                    )
 
-        self.check_input_type(df.schema)
-        df = df.withColumn("is_anon", lit(self.catalog.is_anon()))
-        df = df.withColumn(
-            self.outputCol, dicom_meta_udf(col(self.inputCol), lit(self.deep), col("is_anon"))
-        )
+                pdf[output_col] = meta_results
+                yield pdf
+
+        df = df.mapInPandas(_extract_meta, schema=out_schema)
+
         if self.useVariant:
             df = df.withColumn(self.outputCol, expr(f"parse_json({self.outputCol})"))
         return df

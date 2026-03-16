@@ -57,7 +57,7 @@ class StowProcessor:
         processor.split_bundles(
             source_table='cat.schema.stow_operations',
             volume='cat.schema.pixels_volume',
-            checkpoint_location='/Volumes/.../stow/_checkpoints/split',
+            checkpoint_location='/Volumes/.../stow/checkpoints/split',
         )
 
         # Task 2 (stow_meta_extract notebook, depends on Task 1)
@@ -66,7 +66,7 @@ class StowProcessor:
             source_table='cat.schema.stow_operations',
             catalog_table='cat.schema.object_catalog',
             volume='cat.schema.pixels_volume',
-            checkpoint_location='/Volumes/.../stow/_checkpoints/meta',
+            checkpoint_location='/Volumes/.../stow/checkpoints/meta',
         )
     """
 
@@ -89,7 +89,6 @@ class StowProcessor:
     def split_bundles(
         self,
         source_table: str,
-        volume: str,
         checkpoint_location: str,
         max_files_per_trigger: int = 200,
     ):
@@ -97,19 +96,17 @@ class StowProcessor:
         Phase 1: split multipart bundles into individual DICOMs.
 
         * Reads ``stow_operations`` CDF (new inserts, ``status='pending'``).
-        * Applies ``stow_split_udf`` — splits on multipart boundary,
-          saves each part as ``<volume>/stow/<uuid>.dcm``.
+        * Applies ``stow_split_udf`` — writes split DICOMs next to the
+          source ``.mpr`` (directory tree already includes
+          ``<table>/yyyy/mm/dd/`` from the STOW handler).
         * MERGEs ``status='completed'``, ``output_paths=[…]`` back.
         * Uses ``trigger(availableNow=True)`` — drains and stops.
 
         Args:
             source_table: ``catalog.schema.stow_operations``.
-            volume: UC volume (``catalog.schema.volume_name``).
             checkpoint_location: Checkpoint path for this stream.
             max_files_per_trigger: Max files per micro-batch.
         """
-        volume_base = f"/Volumes/{volume.replace('.', '/')}"
-
         self.logger.info(f"Phase 1 (split): reading from {source_table}")
 
         stream_df = (
@@ -122,7 +119,7 @@ class StowProcessor:
             .filter(fn.col("status") == "pending")
             .withColumn(
                 "parts",
-                stow_split_udf(fn.col("volume_path"), fn.col("content_type"), fn.lit(volume_base)),
+                stow_split_udf(fn.col("volume_path"), fn.col("content_type")),
             )
         )
 
@@ -178,7 +175,7 @@ class StowProcessor:
         catalog.catalog(
             path=catalog._volume_path,
             streaming=True,
-            streamCheckpointBasePath=f"{catalog._volume_path}/_checkpoints/stow_extract-{catalog_table}/",
+            streamCheckpointBasePath=f"{catalog._volume_path}/checkpoints/stow_extract-{catalog_table}/",
         )
 
         extractor = DicomMetaExtractor(catalog, inputCol="local_path", deep=False)
@@ -319,7 +316,6 @@ def _make_split_handler(source_table: str):
 def stow_split_udf(
     volume_path: str,
     content_type: str,
-    volume_base: str,
 ) -> List[Dict]:
     """
     Split a multipart/related temp file into individual DICOM files.
@@ -328,20 +324,16 @@ def stow_split_udf(
     It **only splits and saves** — no pydicom processing.  Metadata
     extraction happens in Phase 2 via ``DicomMetaExtractor``.
 
-    1. Reads the temp bundle file from ``volume_path``.
-    2. Extracts the ``boundary`` from ``content_type``.
-    3. Splits the multipart body on the boundary.
-    4. For each part, saves the raw bytes as
-       ``<volume_base>/stow/<uuid>.dcm``.
+    Split DICOMs are written to the same directory as the source ``.mpr``
+    file.  The directory tree (``<table>/yyyy/mm/dd/``) is created by the
+    STOW handler at upload time.
 
     Args:
         volume_path: Path to the temp multipart file
-            (``/Volumes/…/<id>.mpr``).
+            (e.g. ``/Volumes/.../stow/cat.schema.table/2026/03/13/abc.mpr``).
         content_type: Full Content-Type header value including the
             boundary (e.g.
             ``multipart/related; type=application/dicom; boundary=abc``).
-        volume_base: Base volume path for saving individual DICOMs
-            (e.g. ``/Volumes/catalog/schema/volume``).
 
     Returns:
         List of dicts with ``output_path``, ``file_size``,
@@ -374,7 +366,9 @@ def stow_split_udf(
         delimiter = f"--{boundary}".encode()
         delim_len = len(delimiter)
 
-        stow_dir = f"{volume_base}/stow"
+        # The .mpr lives under <stow_base>/<table>/yyyy/mm/dd/<id>.mpr
+        # — write split DICOMs in the same directory.
+        stow_dir = _os.path.dirname(volume_path)
         _os.makedirs(stow_dir, exist_ok=True)
 
         _WRITE_CHUNK = 8 * 1024 * 1024  # 8 MB
