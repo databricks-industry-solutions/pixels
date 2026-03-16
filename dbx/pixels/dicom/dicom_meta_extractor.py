@@ -39,6 +39,7 @@ class DicomMetaExtractor(Transformer):
         self.useVariant = useVariant
         self.maxWorkers = maxWorkers if maxWorkers is not None else self.MAX_WORKERS
         self.remove_un_tags = remove_un_tags
+
     def check_input_type(self, schema):
         field = schema[self.inputCol]
         if field.dataType != t.StringType():
@@ -85,7 +86,9 @@ class DicomMetaExtractor(Transformer):
                 try:
                     fp, fsize = cloud_open(path, anon)
                     with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
-                        meta_js = extract_metadata(dataset, deep, remove_un_tags=self.remove_un_tags)
+                        meta_js = extract_metadata(
+                            dataset, deep, remove_un_tags=self.remove_un_tags
+                        )
                         if deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
