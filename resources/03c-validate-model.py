@@ -44,24 +44,29 @@ if ep_config_update == "IN_PROGRESS":
 
 # COMMAND ----------
 
-# DBTITLE 1,Info Ping
-import mlflow
+# DBTITLE 1,Info Ping (REST API)
+_invoke_url = f"{_host}/serving-endpoints/{serving_endpoint_name}/invocations"
+_invoke_headers = {**_headers, "Content-Type": "application/json"}
 
-client = mlflow.deployments.get_deploy_client("databricks")
-resp = client.predict(
-    endpoint=serving_endpoint_name,
-    inputs={"dataframe_records": [{"input": {"action": "info"}}]},
+_ping_resp = _requests.post(
+    _invoke_url,
+    headers=_invoke_headers,
+    json={"dataframe_records": [{"input": {"action": "info"}}]},
+    timeout=120,
 )
-print("Info ping OK")
+if _ping_resp.status_code != 200:
+    raise Exception(f"Info ping HTTP {_ping_resp.status_code}: {_ping_resp.text[:300]}")
+print(f"Info ping OK: {_ping_resp.status_code}")
 
 # COMMAND ----------
 
-# DBTITLE 1,Test Inference on Sample Lung CT
+# DBTITLE 1,Test Inference on Sample Lung CT (REST API)
 series_uid = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"
 
-resp = client.predict(
-    endpoint=serving_endpoint_name,
-    inputs={
+_infer_resp = _requests.post(
+    _invoke_url,
+    headers=_invoke_headers,
+    json={
         "dataframe_records": [
             {
                 "series_uid": series_uid,
@@ -75,7 +80,10 @@ resp = client.predict(
             }
         ]
     },
+    timeout=300,
 )
+if _infer_resp.status_code != 200:
+    raise Exception(f"Inference HTTP {_infer_resp.status_code}: {_infer_resp.text[:300]}")
 print(f"Inference OK on series {series_uid}")
 
 # COMMAND ----------
