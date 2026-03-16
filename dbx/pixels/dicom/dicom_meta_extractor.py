@@ -71,6 +71,7 @@ class DicomMetaExtractor(Transformer):
         output_col = self.outputCol
         deep = self.deep
         max_workers = self.maxWorkers
+        remove_un_tags = self.remove_un_tags
 
         # Build output schema: all existing columns + the new meta column (as StringType initially)
         out_schema = t.StructType(
@@ -82,13 +83,11 @@ class DicomMetaExtractor(Transformer):
             import simplejson as json
             from pydicom import dcmread
 
-            def _process_file(path: str, deep: bool, anon: bool) -> str:
+            def _process_file(path: str, deep: bool, anon: bool, remove_un_tags: bool) -> str:
                 try:
                     fp, fsize = cloud_open(path, anon)
                     with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
-                        meta_js = extract_metadata(
-                            dataset, deep, remove_un_tags=self.remove_un_tags
-                        )
+                        meta_js = extract_metadata(dataset, deep, remove_un_tags=remove_un_tags)
                         if deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
@@ -111,7 +110,7 @@ class DicomMetaExtractor(Transformer):
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     meta_results = list(
                         executor.map(
-                            lambda args: _process_file(args[0], deep, args[1]),
+                            lambda args: _process_file(args[0], deep, args[1], remove_un_tags),
                             zip(paths, anon_flags),
                         )
                     )
