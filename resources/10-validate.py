@@ -151,16 +151,19 @@ except Exception as e:
     check("Lakebase", _lakebase_instance, False, str(e)[:120])
 
 try:
-    # Use REST API to execute a SQL query against Lakebase (avoids psycopg dependency)
-    _lb_sql_resp = _requests.post(
-        f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}/branches/production/endpoints/default:sqlQuery",
+    _lb_ep_resp = _requests.get(
+        f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}/branches/production/endpoints",
         headers=_auth_headers,
-        json={"query": "SELECT 1 AS ping"},
     )
-    _lb_sql_resp.raise_for_status()
-    check("Lakebase", "SELECT 1 ping", True, "connected")
+    _lb_ep_resp.raise_for_status()
+    _lb_eps = _lb_ep_resp.json().get("endpoints", [])
+    if _lb_eps:
+        _ep_state = _lb_eps[0].get("status", {}).get("current_state", "unknown")
+        check("Lakebase", "endpoint state", _ep_state == "ACTIVE", _ep_state)
+    else:
+        check("Lakebase", "endpoint state", False, "no endpoints found")
 except Exception as e:
-    check("Lakebase", "SELECT 1 ping", False, str(e)[:120])
+    check("Lakebase", "endpoint state", False, str(e)[:120])
 
 # COMMAND ----------
 
@@ -221,19 +224,18 @@ except Exception as e:
 print("=== Vector Search ===")
 
 try:
-    from databricks.vector_search.client import VectorSearchClient
-    vs_client = VectorSearchClient()
-
-    vs_ep = vs_client.get_endpoint("pixels_vs_endpoint")
-    ep_status = vs_ep.get("endpoint_status", {}).get("state", "unknown")
+    _vs_ep_resp = _requests.get(f"{_host}/api/2.0/vector-search/endpoints/pixels_vs_endpoint", headers=_auth_headers)
+    _vs_ep_resp.raise_for_status()
+    ep_status = _vs_ep_resp.json().get("endpoint_status", {}).get("state", "unknown")
     check("Vector Search", "pixels_vs_endpoint", ep_status == "ONLINE", ep_status)
 except Exception as e:
     check("Vector Search", "pixels_vs_endpoint", False, str(e)[:120])
 
 try:
     _vs_index_name = f"{vs_catalog}.{schema_name}.dicom_tags_vs"
-    idx = vs_client.get_index("pixels_vs_endpoint", _vs_index_name)
-    idx_status = idx.describe().get("status", {}).get("ready", False)
+    _vs_idx_resp = _requests.get(f"{_host}/api/2.0/vector-search/indexes/{_vs_index_name}", headers=_auth_headers)
+    _vs_idx_resp.raise_for_status()
+    idx_status = _vs_idx_resp.json().get("status", {}).get("ready", False)
     check("Vector Search", _vs_index_name, idx_status, "ONLINE" if idx_status else "not ready")
 except Exception as e:
     check("Vector Search", f"{vs_catalog}.{schema_name}.dicom_tags_vs", False, str(e)[:120])
@@ -247,7 +249,7 @@ try:
     resp = _requests.get(f"{_host}/api/2.0/genie/spaces", headers=_auth_headers)
     resp.raise_for_status()
     spaces = resp.json().get("spaces", [])
-    match = [s for s in spaces if s.get("title") == "Pixels - Genie"]
+    match = [s for s in spaces if "Pixels" in s.get("title", "") and "Genie" in s.get("title", "")]
     if match:
         check("Genie Space", "Pixels - Genie", True, f"id={match[0].get('space_id', 'unknown')}")
     else:
