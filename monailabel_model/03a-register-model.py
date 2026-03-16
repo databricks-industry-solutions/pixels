@@ -191,4 +191,8 @@ with mlflow.start_run():
     )
 
 latest_model = mlflow.register_model(logged_model_info.model_uri, model_uc_name)
+
+mc = MlflowClient()
+mc.set_registered_model_tag(model_uc_name, "accelerator", "pixels")
+
 dbutils.notebook.exit(f"SUCCESS: registered version {latest_model.version}")

@@ -118,7 +118,10 @@ endpoint_config = {
             "scale_to_zero_enabled": True,
             "environment_vars": conf_vars,
         }
-    ]
+    ],
+    "tags": [
+        {"key": "accelerator", "value": "pixels"},
+    ],
 }
 
 try:
