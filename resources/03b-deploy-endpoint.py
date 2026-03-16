@@ -30,16 +30,14 @@ import mlflow
 from mlflow import MlflowClient
 
 mc = MlflowClient()
-versions = mc.search_model_versions(
-    f"name='{model_uc_name}'",
-    order_by=["version_number DESC"],
-    max_results=1,
-)
+versions = mc.search_model_versions(f"name='{model_uc_name}'")
 
 if not versions:
     dbutils.notebook.exit(f"SKIP: no model versions found for {model_uc_name}")
 
-model_version = versions[0].version
+# Get the highest version number
+latest = max(versions, key=lambda v: int(v.version))
+model_version = latest.version
 print(f"Using model {model_uc_name} version {model_version}")
 
 # COMMAND ----------

@@ -19,14 +19,11 @@ from mlflow import MlflowClient
 
 mc = MlflowClient()
 try:
-    versions = mc.search_model_versions(
-        f"name='{model_uc_name}'",
-        order_by=["version_number DESC"],
-        max_results=1,
-    )
+    versions = mc.search_model_versions(f"name='{model_uc_name}'")
     if versions:
-        print(f"Model {model_uc_name} version {versions[0].version} already exists")
-        dbutils.notebook.exit(f"SUCCESS: model already registered — version {versions[0].version}")
+        latest = max(versions, key=lambda v: int(v.version))
+        print(f"Model {model_uc_name} version {latest.version} already exists")
+        dbutils.notebook.exit(f"SUCCESS: model already registered — version {latest.version}")
 except Exception as e:
     print(f"No existing model found, proceeding with registration: {e}")
 
