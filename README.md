@@ -46,7 +46,8 @@ You'll find this example in [01-dcm-demo](https://github.com/databricks-industry
 
 ---
 ## Architecture
-![image](https://github.com/user-attachments/assets/75decf47-3a37-446a-a672-d497d155f464)
+<img width="1311" height="739" alt="image" src="https://github.com/user-attachments/assets/be8c2b13-db58-4a71-9f37-d8919db81b85" />
+
 
 The image depicts the **Pixels Reference Solution Architecture**, which outlines a data processing and analytics framework designed for healthcare or imaging applications. Here's a breakdown of its components:
 
