@@ -762,8 +762,7 @@ class LakebaseUtils:
         # avoids the json_agg / OID-114 deserialization issue where psycopg2
         # may return the json type as Python None if the JSON adapter is not
         # registered in the connection context.
-        query = sql.SQL(
-            """
+        query = sql.SQL("""
             SELECT
                 filename,
                 COUNT(*)                             AS frame_count,
@@ -793,8 +792,7 @@ class LakebaseUtils:
             GROUP BY filename
             ORDER BY priority_score DESC
             LIMIT %s
-            """
-        ).format(table=sql.Identifier(self.schema, table))
+            """).format(table=sql.Identifier(self.schema, table))
 
         rows = self.execute_and_fetch_query(query, (uc_table_name, limit))
         results = []
