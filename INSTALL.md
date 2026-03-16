@@ -6,7 +6,6 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
 
 - Databricks workspace with **Unity Catalog** enabled
 - **Serverless compute** enabled (for notebooks and SQL warehouse)
-- **GPU compute** availability (`g5.2xlarge` or equivalent for Vista3D model serving)
 - **Databricks Apps** enabled on workspace
 - **Lakebase** (Postgres) feature enabled
 - **Vector Search** enabled (for Genie space)
@@ -15,13 +14,18 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
 
 ## Compute Requirements
 
+All install tasks run on **serverless compute**. No GPU clusters are required.
+
 | Component | Compute Type | Details |
 |-----------|-------------|---------|
 | Init schema (task 00) | Serverless notebook | Creates UC objects, ~1 min |
 | Demo ingest (task 01) | Serverless notebook | DICOM catalog from S3, ~10 min |
 | Deploy apps (task 02) | Serverless notebook | Lakebase + apps via SDK, ~10 min |
-| Vista3D model (task 03) | GPU single-node cluster | DBR 16.4 LTS ML, g5.2xlarge, ~30 min |
+| Register model (task 03a) | Serverless notebook | Wraps Vista3D in MLflow, registers in UC |
+| Deploy endpoint (task 03b) | Serverless notebook | Creates GPU serving endpoint via REST API |
+| Validate model (task 03c) | Serverless notebook | Test inference, retries up to 10x |
 | Genie space (task 04) | Serverless notebook | Vector search + genie, ~5 min |
+| Validate all (task 10) | Serverless notebook | End-to-end service health checks |
 | Runtime (apps, dashboard, genie) | Serverless SQL Warehouse | Used at query time |
 | Lakebase instance | Auto-created | Min 0.5 CU / Max 2.0 CU |
 
@@ -32,7 +36,7 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
 git clone https://github.com/databricks-industry-solutions/pixels.git
 cd pixels
 
-# 2. Configure variables (optional — defaults to dmoore.pixels)
+# 2. Configure variables (override defaults as needed)
 databricks bundle validate -t dev \
   --var catalog=my_catalog \
   --var schema=my_schema
@@ -48,7 +52,7 @@ databricks bundle run pixels_install -t dev
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `catalog` | `dmoore` | Unity Catalog name |
+| `catalog` | `main` | Unity Catalog name |
 | `schema` | `pixels` | Schema name |
 | `table` | `${catalog}.${schema}.object_catalog` | Fully qualified table name |
 | `volume_name` | `pixels_volume` | Volume name for DICOM files |
@@ -60,12 +64,12 @@ databricks bundle run pixels_install -t dev
 
 ## What Gets Deployed
 
-The install job runs 5 tasks in dependency order:
+The install job runs 8 tasks in dependency order (all serverless):
 
 ```
-                                  ┌── 02_deploy_apps (serverless)
-00_init_schema ── 01_dcm_ingest ──┼── 03_vista3d_model (GPU)
-                                  └── 04_genie_space (serverless)
+                                  ┌── 02_deploy_apps ──────────────────────┐
+00_init_schema ── 01_dcm_ingest ──┼── 03a ── 03b ── 03c (model serving) ──┼── 10_validate
+                                  └── 04_genie_space ──────────────────────┘
 ```
 
 **Task 00 — Init Schema**: Creates UC catalog, schema, volume, and empty `object_catalog` table.
@@ -74,9 +78,15 @@ The install job runs 5 tasks in dependency order:
 
 **Task 02 — Deploy Apps**: Creates Lakebase instance, sets up Lakebase schema/tables, deploys `pixels-dicomweb-gateway` and `pixels-dicomweb` apps via SDK, grants UC + Lakebase permissions to app service principals.
 
-**Task 03 — Vista3D Model Serving**: Installs MONAI, wraps Vista3D in MLflow model, registers in UC, creates GPU serving endpoint `pixels-monai-uc`.
+**Task 03a — Register Model**: Wraps Vista3D in an MLflow pyfunc model and registers it in Unity Catalog.
+
+**Task 03b — Deploy Endpoint**: Creates (or updates) the GPU model serving endpoint `pixels-monai-uc` via REST API.
+
+**Task 03c — Validate Model**: Sends a test inference request to the serving endpoint. Retries up to 10 times (3-min intervals) while the endpoint scales up.
 
 **Task 04 — Genie Space**: Creates `dicom_tags` table from NDJSON, creates vector search endpoint + delta sync index, creates VS function, creates Genie space via REST API.
+
+**Task 10 — Validate**: End-to-end health checks across all deployed services (apps, model serving, Lakebase, vector search, Genie). Retries up to 12 times (3-min intervals) to allow services to stabilize.
 
 ### Resources Created
 
@@ -106,7 +116,7 @@ After the install job completes:
 ## Known Limitations
 
 - **OHIF app .wasm files** — The OHIF viewer contains `.wasm` files >10MB (154MB total) which breaks DAB's workspace filesystem sync. Apps are deployed via SDK calls inside notebook tasks rather than DAB `apps:` sections.
-- **Vista3D requires GPU** — The model serving task requires a GPU cluster (`g5.2xlarge`), not serverless-compatible.
+- **Vista3D serving endpoint** — The serving endpoint uses GPU infrastructure managed by Model Serving; no user-managed GPU cluster is required.
 - **Reverse ETL sync** — Not yet available via SDK; requires manual UI step (see above).
 
 ## Troubleshooting
@@ -114,8 +124,8 @@ After the install job completes:
 **`init_env()` fails with "table does not exist"**
 Task 00 must complete before tasks 01/03. Check that `00_init_schema` succeeded in the job run.
 
-**Vista3D task fails with quota error**
-GPU instances (`g5.2xlarge`) may need quota approval. Check your workspace's compute policies and cloud quotas.
+**Vista3D endpoint fails to become ready**
+The GPU serving endpoint may take 15–30 min to provision. Tasks 03c and 10 retry automatically. Check Model Serving UI for endpoint status and errors.
 
 **Apps fail to create**
 Ensure Databricks Apps is enabled on your workspace. Check that the `dbx.pixels` package is installed (it provides the app source code at runtime).

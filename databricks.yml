@@ -11,7 +11,7 @@ workspace:
 variables:
   catalog:
     description: "Unity Catalog name"
-    default: "dmoore"
+    default: "main"
   schema:
     description: "Schema name"
     default: "pixels"
