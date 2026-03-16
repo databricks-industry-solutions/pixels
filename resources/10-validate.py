@@ -201,13 +201,13 @@ try:
 
     if ep_state == "READY":
         try:
-            import mlflow
-            client = mlflow.deployments.get_deploy_client("databricks")
-            resp = client.predict(
-                endpoint=serving_endpoint_name,
-                inputs={"dataframe_records": [{"input": {"action": "info"}}]},
+            _ping_resp = _requests.post(
+                f"{_host}/serving-endpoints/{serving_endpoint_name}/invocations",
+                headers={**_auth_headers, "Content-Type": "application/json"},
+                json={"dataframe_records": [{"input": {"action": "info"}}]},
+                timeout=120,
             )
-            check("Model Serving", f"{serving_endpoint_name} info ping", True, "responded")
+            check("Model Serving", f"{serving_endpoint_name} info ping", _ping_resp.status_code == 200, f"HTTP {_ping_resp.status_code}")
         except Exception as e:
             check("Model Serving", f"{serving_endpoint_name} info ping", False, str(e)[:120])
     else:
