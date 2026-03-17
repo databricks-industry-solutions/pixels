@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import unzip_map_func, identify_type_udf, DEFAULT_UNZIP_WORKERS
+from dbx.pixels.utils import DEFAULT_UNZIP_WORKERS, identify_type_udf, unzip_map_func
 
 # dfZipWithIndex helper function
 
