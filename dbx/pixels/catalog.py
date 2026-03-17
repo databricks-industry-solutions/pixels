@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import create_unzip_map_func, identify_type_udf
+from dbx.pixels.utils import unzip_map_func, identify_type_udf, DEFAULT_UNZIP_WORKERS
 
 # dfZipWithIndex helper function
 
@@ -181,6 +181,7 @@ class Catalog:
         includeExistingFiles: bool = True,
         allowOverwrites: bool = False,
         maxFileAge: str = None,
+        maxUnzipWorkers: int = DEFAULT_UNZIP_WORKERS,
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -208,6 +209,7 @@ class Catalog:
           Defaults to False.
         - maxFileAge (str, optional): Maximum age of files considered for ingestion by Auto Loader (for example: "90 days").
           Defaults to None (Auto Loader default).
+        - maxUnzipWorkers (int, optional): The maximum number of workers for parallel unzip. Defaults to 16.
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -264,7 +266,7 @@ class Catalog:
 
                 unzip_stream = (
                     df.mapInPandas(
-                        create_unzip_map_func("path", extractZipBasePath),
+                        unzip_map_func("path", extractZipBasePath),
                         schema=df.schema,
                     )
                     .writeStream.format("delta")
@@ -303,7 +305,7 @@ class Catalog:
                     df = df.repartition(zipRepartition)
 
                 df.mapInPandas(
-                    create_unzip_map_func("path", extractZipBasePath),
+                    unzip_map_func("path", extractZipBasePath, max_workers=maxUnzipWorkers),
                     schema=df.schema,
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 

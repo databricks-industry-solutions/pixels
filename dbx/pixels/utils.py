@@ -126,7 +126,7 @@ def unzip(raw_path, unzipped_base_path):
     return to_return
 
 
-def create_unzip_map_func(path_col="path", volume_base_path="", max_workers=DEFAULT_UNZIP_WORKERS):
+def unzip_map_func(path_col="path", volume_base_path="", max_workers=DEFAULT_UNZIP_WORKERS):
     """Factory returning a mapInPandas-compatible iterator for parallel unzip.
 
     Uses ThreadPoolExecutor to parallelize zip download & extraction,
@@ -139,7 +139,7 @@ def create_unzip_map_func(path_col="path", volume_base_path="", max_workers=DEFA
 
     Usage:
         df.mapInPandas(
-            create_unzip_map_func("path", extractZipBasePath),
+            unzip_map_func("path", extractZipBasePath),
             schema=df.schema,
         )
     """
