@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf
+from dbx.pixels.utils import create_unzip_map_func, identify_type_udf
 
 # dfZipWithIndex helper function
 
@@ -263,8 +263,9 @@ class Catalog:
                     df = df.repartition(zipRepartition)
 
                 unzip_stream = (
-                    df.withColumn(
-                        "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                    df.mapInPandas(
+                        create_unzip_map_func("path", extractZipBasePath),
+                        schema=df.schema,
                     )
                     .writeStream.format("delta")
                     .outputMode("append")
@@ -301,8 +302,9 @@ class Catalog:
                 if zipRepartition is not None:
                     df = df.repartition(zipRepartition)
 
-                df.withColumn(
-                    "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                df.mapInPandas(
+                    create_unzip_map_func("path", extractZipBasePath),
+                    schema=df.schema,
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 
                 logger.info("Unzip process completed")
