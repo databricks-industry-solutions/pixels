@@ -14,7 +14,7 @@ from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
 
-DEFAULT_UNZIP_WORKERS = 16
+DEFAULT_UNZIP_WORKERS = 1
 
 
 def to_image(data: bytes):
