@@ -308,13 +308,19 @@ def process_batch_delta(
 # Stream launchers
 # ---------------------------------------------------------------------------
 
-def start_autoloader_stream(spark, dicom_root_dir, streaming_cfg):
-    """Start Auto Loader stream and return the query (already awaiting termination).
+def start_autoloader_stream(spark, dicom_root_dir, streaming_cfg, timeout=None):
+    """Start Auto Loader stream, wait for completion, and return the query.
 
     Args:
         spark: SparkSession
         dicom_root_dir: root directory with DICOM files
         streaming_cfg: StreamingConfig instance
+        timeout: max seconds to wait (default: None = wait until done).
+            With ``availableNow`` trigger, the stream processes all available
+            data then stops; timeout is a safety net for unexpected hangs.
+
+    Returns:
+        StreamingQuery object
     """
     results_table = streaming_cfg.results_table
     create_results_table(spark, results_table)
@@ -346,18 +352,23 @@ def start_autoloader_stream(spark, dicom_root_dir, streaming_cfg):
         .start()
     )
 
-    query.awaitTermination()
-    print(f"\n✓ Phase 1 complete. Pending series staged in {results_table}.")
+    _await_stream(query, results_table, "Phase 1", timeout)
     return query
 
 
-def start_delta_stream(spark, input_cfg, streaming_cfg):
-    """Start Delta streaming and return the query (already awaiting termination).
+def start_delta_stream(spark, input_cfg, streaming_cfg, timeout=None):
+    """Start Delta streaming, wait for completion, and return the query.
 
     Args:
         spark: SparkSession
         input_cfg: InputConfig instance
         streaming_cfg: StreamingConfig instance
+        timeout: max seconds to wait (default: None = wait until done).
+            With ``availableNow`` trigger, the stream processes all available
+            data then stops; timeout is a safety net for unexpected hangs.
+
+    Returns:
+        StreamingQuery object
     """
     results_table = streaming_cfg.results_table
     create_results_table(spark, results_table)
@@ -384,6 +395,40 @@ def start_delta_stream(spark, input_cfg, streaming_cfg):
         .start()
     )
 
-    query.awaitTermination()
-    print(f"\n✓ Phase 1 (Delta) complete. Pending series staged in {results_table}.")
+    _await_stream(query, results_table, "Phase 1 (Delta)", timeout)
     return query
+
+
+def _await_stream(query, results_table, label, timeout=None):
+    """Wait for a streaming query with progress reporting.
+
+    Polls every 30s so the notebook cell shows activity instead
+    of appearing stuck. Stops as soon as the query terminates
+    or the timeout is reached.
+    """
+    import time
+
+    poll_interval = 30  # seconds between progress prints
+    elapsed = 0.0
+    t0 = time.time()
+
+    while True:
+        # awaitTermination with a short timeout returns True if the
+        # query has terminated, False if the timeout expired
+        terminated = query.awaitTermination(timeout=poll_interval)
+        elapsed = time.time() - t0
+
+        if terminated:
+            break
+
+        # Print progress so the notebook doesn't look stuck
+        status = query.status
+        msg = status.get("message", "") if isinstance(status, dict) else str(status)
+        print(f"  [{elapsed:.0f}s] Stream still running... {msg}")
+
+        if timeout is not None and elapsed >= timeout:
+            print(f"  Timeout ({timeout}s) reached — stopping stream.")
+            query.stop()
+            break
+
+    print(f"\n✓ {label} complete ({elapsed:.0f}s). Pending series staged in {results_table}.")
