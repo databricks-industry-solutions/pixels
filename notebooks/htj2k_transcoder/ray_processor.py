@@ -26,6 +26,20 @@ from .pipeline import (
 )
 
 
+def _register_modules_for_pickle_by_value():
+    """Register htj2k_transcoder modules with cloudpickle so functions
+    are serialized by value (embedded in the pickle) rather than by
+    module reference. This is required because Ray / serverless_gpu
+    workers don't have htj2k_transcoder installed.
+    """
+    import cloudpickle
+    import htj2k_transcoder.pipeline as _pipeline_mod
+    import htj2k_transcoder.ray_processor as _ray_mod
+
+    cloudpickle.register_pickle_by_value(_pipeline_mod)
+    cloudpickle.register_pickle_by_value(_ray_mod)
+
+
 def _stage_nvimgcodec_tools(output_dir: str) -> str:
     """Stage nvimgcodec tools to a shared Volume path for Ray workers.
 
@@ -74,6 +88,10 @@ def transcode_pending_series(
         io_pool_size: threads per actor for I/O
         gpu_type: GPU type for ray_launch
     """
+    # Register modules so cloudpickle serializes functions by value
+    # (Ray / serverless_gpu workers don't have htj2k_transcoder installed)
+    _register_modules_for_pickle_by_value()
+
     # Serialize configs to dicts if needed
     _tc = transcode_cfg.to_dict() if hasattr(transcode_cfg, "to_dict") else dict(transcode_cfg)
     _mc = merge_cfg.to_dict() if hasattr(merge_cfg, "to_dict") else dict(merge_cfg)
