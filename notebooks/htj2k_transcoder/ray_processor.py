@@ -336,13 +336,14 @@ def transcode_pending_series(
         ) WHERE _rn = 1
     """)
 
+    _now = dt.now().isoformat()
     spark.sql(f"""
         MERGE INTO {results_table} AS t
         USING (
             SELECT
                 study_uid, series_uid,
                 CAST(output_path AS STRING) AS output_path,
-                '{dt.now().isoformat()}' AS processed_at,
+                '{_now}' AS processed_at,
                 status,
                 CAST(detail AS STRING) AS detail,
                 CAST(num_frames AS INT) AS num_frames,
@@ -350,15 +351,32 @@ def transcode_pending_series(
                 CAST(original_size AS BIGINT) AS original_size,
                 CAST(compressed_size AS BIGINT) AS compressed_size,
                 CAST(encode_time AS DOUBLE) AS encode_time,
-                CAST(transcoded AS BOOLEAN) AS transcoded,
-                0 AS batch_id,
-                '' AS source_paths,
-                '' AS source_meta
+                CAST(transcoded AS BOOLEAN) AS transcoded
             FROM __ray_results
         ) AS s
         ON t.study_uid = s.study_uid AND t.series_uid = s.series_uid
-        WHEN MATCHED AND t.status = 'pending' THEN UPDATE SET *
-        WHEN NOT MATCHED THEN INSERT *
+        WHEN MATCHED AND t.status = 'pending' THEN UPDATE SET
+            t.output_path    = s.output_path,
+            t.processed_at   = s.processed_at,
+            t.status         = s.status,
+            t.detail         = s.detail,
+            t.num_frames     = s.num_frames,
+            t.num_files      = s.num_files,
+            t.original_size  = s.original_size,
+            t.compressed_size = s.compressed_size,
+            t.encode_time    = s.encode_time,
+            t.transcoded     = s.transcoded
+        WHEN NOT MATCHED THEN INSERT (
+            study_uid, series_uid, output_path, processed_at,
+            status, detail, num_frames, num_files,
+            original_size, compressed_size, encode_time, transcoded,
+            batch_id, source_paths, source_meta
+        ) VALUES (
+            s.study_uid, s.series_uid, s.output_path, s.processed_at,
+            s.status, s.detail, s.num_frames, s.num_files,
+            s.original_size, s.compressed_size, s.encode_time, s.transcoded,
+            0, '', ''
+        )
     """)
 
     print(f"✓ Phase 2 complete. Results merged into {results_table}.")
