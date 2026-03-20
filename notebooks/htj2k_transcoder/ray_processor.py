@@ -135,7 +135,7 @@ def transcode_pending_series(
 
     # Set Ray env vars
     os.environ["RAY_TEMP_DIR"] = "/tmp/ray"
-    os.environ["RAY_DATA_VERBOSE_PROGRESS"] = "0"
+    #os.environ["RAY_DATA_VERBOSE_PROGRESS"] = "0"
     os.environ["RAY_DEDUP_LOGS"] = "1"
     os.environ["RAY_DEDUP_LOGS_AGG_WINDOW_S"] = "60"
 

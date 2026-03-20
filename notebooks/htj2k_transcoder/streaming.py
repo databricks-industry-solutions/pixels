@@ -336,9 +336,9 @@ def start_autoloader_stream(spark, dicom_root_dir, streaming_cfg, timeout=None):
         .option("recursiveFileLookup", "true")
     )
     if streaming_cfg.use_managed_file_events:
-        stream_reader = stream_reader.option("cloudFiles.useNotifications", "true")
+        stream_reader = stream_reader.option("cloudFiles.useManagedFileEvents", "true")
 
-    stream_df = stream_reader.load(dicom_root_dir)
+    stream_df = stream_reader.load(dicom_root_dir).drop("content")
 
     def _batch_fn(batch_df, batch_id):
         process_batch_files(batch_df, batch_id, results_table=results_table)
