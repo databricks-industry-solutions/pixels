@@ -236,8 +236,6 @@ def transcode_pending_series(
                     study = str(batch["study_uid"][i])
                     series = str(batch["series_uid"][i])
                     fp = _json.loads(batch["file_paths_json"][i])
-                    short = series[:40]
-
                     try:
                         # 1. Wait for current read (prefetched)
                         datasets, orig_sz = next_read.result()

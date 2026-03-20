@@ -132,6 +132,7 @@ def _save_and_copy_one(ds, local_dir, final_dir, filename):
 # ---------------------------------------------------------------------------
 
 def stage_and_read_series(
+    study_uid: str,
     series_uid: str,
     file_paths: list[str],
     staging_root: str = "/local_disk0/dicom_staging",
@@ -144,7 +145,7 @@ def stage_and_read_series(
     If ``pool`` is provided, uses it (io_workers ignored).
     Otherwise creates a new pool with ``io_workers`` threads.
     """
-    local_dir = os.path.join(staging_root, "input", series_uid[:40])
+    local_dir = os.path.join(staging_root, "input", study_uid, series_uid)
     os.makedirs(local_dir, exist_ok=True)
 
     datasets, original_size, errors = [], 0, 0
@@ -264,7 +265,7 @@ def save_and_upload_outputs(
     Returns (total_frames, total_size, output_path, local_dir).
     If ``pool`` is provided, uses it (io_workers ignored).
     """
-    local_dir = os.path.join(staging_root, "output", series_uid[:40])
+    local_dir = os.path.join(staging_root, "output", study_uid, series_uid)
     os.makedirs(local_dir, exist_ok=True)
     final_dir = os.path.join(output_dir, study_uid)
     _makedirs_retry(final_dir)
@@ -317,7 +318,7 @@ def process_series_on_gpu(
     """Process a single DICOM series end-to-end on a GPU worker."""
     t0 = time.time()
     hostname = socket.gethostname()
-    short = series_uid[:40]
+    short = series_uid
     result = {
         "study_uid": study_uid, "series_uid": series_uid,
         "status": "error", "detail": "", "output_path": "",
@@ -330,7 +331,7 @@ def process_series_on_gpu(
         print(f"[{hostname}] Processing {short}... ({len(file_paths)} files)")
         _ensure_nvimgcodec_tools(transcode_cfg.get("_tools_volume", ""))
 
-        datasets, orig_sz, local_input = stage_and_read_series(series_uid, file_paths)
+        datasets, orig_sz, local_input = stage_and_read_series(study_uid, series_uid, file_paths)
         t_io = time.time() - t0
         result["original_size"] = orig_sz
         print(f"  Staged+read {len(datasets)}/{len(file_paths)} in {t_io:.1f}s")
