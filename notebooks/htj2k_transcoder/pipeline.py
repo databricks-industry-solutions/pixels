@@ -213,42 +213,86 @@ def gpu_process_datasets(datasets, transcode_cfg, merge_cfg):
     """GPU processing: transcode / multiframe merge / both.
 
     Returns (output_datasets, mode_label, transcoded).
+    Captures stderr from nvimgcodec C++ layer and attaches it to
+    any exception so the real error (e.g. unsupported chroma, CUDA
+    failures) is propagated instead of the generic ValueError.
     """
+    import sys as _sys
+    import tempfile as _tmpf
+
     do_transcode = transcode_cfg.get("enabled", True)
     do_merge = merge_cfg.get("enabled", True)
     htj2k_ts = "1.2.840.10008.1.2.4.202"
 
-    if do_merge and do_transcode:
-        from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
-        out = convert_to_enhanced_dicom(
-            series_datasets=[datasets],
-            transfer_syntax_uid=htj2k_ts,
-            num_resolutions=transcode_cfg.get("num_resolutions", 6),
-            code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
-            progression_order=transcode_cfg.get("progression_order", "RPCL"),
-        )
-        return out, "multiframe+htj2k", True
-
-    elif do_merge and not do_transcode:
-        from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
-        out = convert_to_enhanced_dicom(
-            series_datasets=[datasets], transfer_syntax_uid=None,
-        )
-        return out, "multiframe", False
-
-    elif do_transcode and not do_merge:
-        from nvidia.nvimgcodec.tools.dicom.convert_htj2k import transcode_datasets_to_htj2k
-        out = transcode_datasets_to_htj2k(
-            datasets=datasets,
-            num_resolutions=transcode_cfg.get("num_resolutions", 6),
-            code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
-            progression_order=transcode_cfg.get("progression_order", "RPCL"),
-            max_batch_size=transcode_cfg.get("max_batch_size", 256),
-        )
-        return out, "htj2k", True
-
-    else:
+    if not do_transcode and not do_merge:
         return [], "skipped", False
+
+    # Capture C-level stderr (fd 2) to surface nvimgcodec C++ errors
+    stderr_fd = _sys.stderr.fileno()
+    saved_fd = os.dup(stderr_fd)
+    tmp = _tmpf.TemporaryFile(mode="w+b")
+    os.dup2(tmp.fileno(), stderr_fd)
+
+    try:
+        if do_merge and do_transcode:
+            from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
+            out = convert_to_enhanced_dicom(
+                series_datasets=[datasets],
+                transfer_syntax_uid=htj2k_ts,
+                num_resolutions=transcode_cfg.get("num_resolutions", 6),
+                code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
+                progression_order=transcode_cfg.get("progression_order", "RPCL"),
+            )
+            return out, "multiframe+htj2k", True
+
+        elif do_merge and not do_transcode:
+            from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
+            out = convert_to_enhanced_dicom(
+                series_datasets=[datasets], transfer_syntax_uid=None,
+            )
+            return out, "multiframe", False
+
+        else:  # do_transcode and not do_merge
+            from nvidia.nvimgcodec.tools.dicom.convert_htj2k import transcode_datasets_to_htj2k
+            out = transcode_datasets_to_htj2k(
+                datasets=datasets,
+                num_resolutions=transcode_cfg.get("num_resolutions", 6),
+                code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
+                progression_order=transcode_cfg.get("progression_order", "RPCL"),
+                max_batch_size=transcode_cfg.get("max_batch_size", 256),
+            )
+            return out, "htj2k", True
+
+    except Exception as e:
+        # Read captured C-level stderr
+        os.dup2(saved_fd, stderr_fd)
+        tmp.seek(0)
+        captured = tmp.read().decode("utf-8", errors="replace").strip()
+        tmp.close()
+        os.close(saved_fd)
+        if captured:
+            err_lines = []
+            for line in captured.splitlines():
+                line = line.strip()
+                if line and line not in err_lines:
+                    err_lines.append(line)
+            detail = "; ".join(err_lines[-5:])  # last 5 unique lines
+            raise type(e)(f"{e} | nvimgcodec: {detail}") from e
+        raise
+    finally:
+        # Restore stderr (no-op if already restored in except)
+        try:
+            os.dup2(saved_fd, stderr_fd)
+        except OSError:
+            pass
+        try:
+            tmp.close()
+        except Exception:
+            pass
+        try:
+            os.close(saved_fd)
+        except OSError:
+            pass
 
 
 def save_and_upload_outputs(
