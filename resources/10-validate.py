@@ -18,8 +18,8 @@ init_env()
 
 catalog_name, schema_name, table_name = table.split(".")
 
-# Vector search source tables live in 'main' to avoid Control Tower row filters
-vs_catalog = "main"
+# Vector search source tables live in the same catalog as the job parameters
+vs_catalog = catalog_name
 
 # COMMAND ----------
 
@@ -106,8 +106,39 @@ try:
 except Exception as e:
     check("Dashboard", "Pixels dashboard", False, str(e)[:120])
 
-# Run each dashboard dataset query to catch SQL errors
+# Update dashboard parameter defaults to match actual catalog/schema/table,
+# then validate each query using the current job parameters.
 if _dashboard_json:
+    _dash_id = match[0]["dashboard_id"]
+
+    # Build overrides: use actual job params instead of stale defaults baked into the JSON
+    _param_overrides = {"table": table}
+
+    # Patch serialized_dashboard so the parameter defaults reflect the current deployment
+    _updated = False
+    for ds in _dashboard_json.get("datasets", []):
+        for p in ds.get("parameters", []):
+            kw = p.get("keyword", "")
+            if kw in _param_overrides:
+                try:
+                    old_val = p["defaultSelection"]["values"]["values"][0]["value"]
+                    if old_val != _param_overrides[kw]:
+                        p["defaultSelection"]["values"]["values"][0]["value"] = _param_overrides[kw]
+                        _updated = True
+                except (KeyError, IndexError):
+                    pass
+
+    if _updated:
+        try:
+            _requests.patch(
+                f"{_host}/api/2.0/lakeview/dashboards/{_dash_id}",
+                headers={**_auth_headers, "Content-Type": "application/json"},
+                json={"serialized_dashboard": _json.dumps(_dashboard_json)},
+            ).raise_for_status()
+            check("Dashboard", "update parameter defaults", True, f"table={table}")
+        except Exception as e:
+            check("Dashboard", "update parameter defaults", False, str(e)[:150])
+
     for ds in _dashboard_json.get("datasets", []):
         ds_name = ds.get("displayName", ds.get("name", "unknown"))
         query_lines = ds.get("queryLines", [])
@@ -115,12 +146,19 @@ if _dashboard_json:
             continue
         query = "".join(query_lines)
 
-        # Substitute :param references with their default values
-        params = {p["keyword"]: p["defaultSelection"]["values"]["values"][0]["value"]
-                  for p in ds.get("parameters", [])
-                  if p.get("defaultSelection", {}).get("values", {}).get("values")}
+        # Substitute :param references — prefer job params over stale defaults
+        params = {}
+        for p in ds.get("parameters", []):
+            kw = p.get("keyword", "")
+            if kw in _param_overrides:
+                params[kw] = _param_overrides[kw]
+            else:
+                try:
+                    params[kw] = p["defaultSelection"]["values"]["values"][0]["value"]
+                except (KeyError, IndexError):
+                    pass
 
-        # Replace identifier(:param) with the default table name
+        # Replace identifier(:param) with the actual table name
         for kw, val in params.items():
             query = _re.sub(rf"identifier\(\s*:{kw}\s*\)", val, query)
             query = _re.sub(rf":{kw}(?=\b)", f"'{val}'", query)

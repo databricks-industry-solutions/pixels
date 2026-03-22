@@ -93,32 +93,39 @@ class Catalog:
         }
 
     def init_tables(self):
-        import os
-        import os.path
         from pathlib import Path
 
         import dbx.pixels
 
-        path = Path(dbx.pixels.__file__).parent
-        sql_base_path = f"{path}/resources/sql"
+        sql_base_path = Path(dbx.pixels.__file__).parent / "resources" / "sql"
 
-        files = [
-            f
-            for f in os.listdir(sql_base_path)
-            if not os.path.isdir(os.path.join(sql_base_path, f))
-        ]
-        for file_name in files:
-            file_path = os.path.join(sql_base_path, file_name)
+        # Try direct filesystem access first; fall back to the workspace API
+        # when serverless compute blocks reads of non-Python file types.
+        try:
+            sql_files = {
+                p.name: p.read_text()
+                for p in sql_base_path.iterdir()
+                if p.suffix == ".sql" and p.is_file()
+            }
+        except PermissionError:
+            ws_path = str(sql_base_path)
+            sql_files = {}
+            for obj in self.w_client.workspace.list(ws_path):
+                if obj.path and obj.path.endswith(".sql"):
+                    name = obj.path.rsplit("/", 1)[-1]
+                    with self.w_client.workspace.download(obj.path) as f:
+                        sql_files[name] = f.read().decode("utf-8")
+
+        for file_name, content in sql_files.items():
             logger.debug(f"Executing SQL file: {file_name}")
-            with open(file_path, "r") as file:
-                sql_commands = (
-                    file.read()
-                    .replace("{UC_TABLE}", self._table)
-                    .replace("{UC_SCHEMA}", self._schema)
-                )
-                for sql_command in sql_commands.split(";"):
-                    if sql_command.strip() != "":
-                        self._spark.sql(sql_command)
+            sql_commands = (
+                content
+                .replace("{UC_TABLE}", self._table)
+                .replace("{UC_SCHEMA}", self._schema)
+            )
+            for sql_command in sql_commands.split(";"):
+                if sql_command.strip() != "":
+                    self._spark.sql(sql_command)
 
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'

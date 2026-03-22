@@ -29,7 +29,7 @@ resources:
         # ── Step 0: Initialize UC schema, volume, empty table ───────
         - task_key: 00_init_schema
           notebook_task:
-            notebook_path: ../resources/00-init-schema.sql
+            notebook_path: ../00-init-schema.ipynb
             source: WORKSPACE
           max_retries: 0
           environment_key: serverless

@@ -6,7 +6,7 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
 
 - Databricks workspace with **Unity Catalog** enabled
 - **Serverless compute** enabled (for notebooks and SQL warehouse)
-- **Databricks Apps** enabled on workspace
+- **Databricks Apps** enabled on workspace, including **user token passthrough** feature flag (org-level)
 - **Lakebase** (Postgres) feature enabled
 - **Vector Search** enabled (for Genie space)
 - **Model Serving** with GPU workload types enabled
@@ -36,17 +36,31 @@ All install tasks run on **serverless compute**. No GPU clusters are required.
 git clone https://github.com/databricks-industry-solutions/pixels.git
 cd pixels
 
-# 2. Configure variables (override defaults as needed)
-databricks bundle validate -t dev \
+# 2. Authenticate to your target workspace
+databricks auth login --profile MY_WORKSPACE
+
+# 3. Validate — override catalog/schema for your workspace
+#    (the default catalog "main" may not be accessible)
+DATABRICKS_CONFIG_PROFILE=MY_WORKSPACE \
+  databricks bundle validate -t prod \
   --var catalog=my_catalog \
   --var schema=my_schema
 
-# 3. Deploy the bundle
-databricks bundle deploy -t dev
+# 4. Deploy the bundle
+DATABRICKS_CONFIG_PROFILE=MY_WORKSPACE \
+  databricks bundle deploy -t prod --auto-approve \
+  --var catalog=my_catalog \
+  --var schema=my_schema
 
-# 4. Run the install job
-databricks bundle run pixels_install -t dev
+# 5. Run the install job
+DATABRICKS_CONFIG_PROFILE=MY_WORKSPACE \
+  databricks bundle run pixels_install -t prod \
+  --var catalog=my_catalog \
+  --var schema=my_schema
 ```
+
+> **Note**: Use `-t prod` for clean resource names (no `[dev username]` prefix).
+> Use `-t dev` for iterative development and testing.
 
 ## Configuration Variables
 
@@ -127,8 +141,14 @@ Task 00 must complete before tasks 01/03. Check that `00_init_schema` succeeded 
 **Vista3D endpoint fails to become ready**
 The GPU serving endpoint may take 15–30 min to provision. Tasks 03c and 10 retry automatically. Check Model Serving UI for endpoint status and errors.
 
+**Apps fail with "user token passthrough feature is not enabled"**
+The workspace needs the Databricks Apps user token passthrough feature flag enabled at the org level. Contact your workspace admin or Databricks account team to enable this for your org ID.
+
 **Apps fail to create**
 Ensure Databricks Apps is enabled on your workspace. Check that the `dbx.pixels` package is installed (it provides the app source code at runtime).
+
+**Schema creation fails with "Catalog 'main' is not accessible"**
+The default catalog `main` may not exist or be accessible in your workspace. Override with `--var catalog=<your_catalog>` using a managed catalog visible in your workspace (`databricks catalogs list`).
 
 **Genie space creation returns 403**
 The Genie API requires workspace admin or appropriate permissions. Ensure the running user has access to create Genie spaces.
