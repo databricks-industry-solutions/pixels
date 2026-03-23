@@ -57,7 +57,7 @@ resources:
         # ── Step 3a: Register Vista3D model in UC (serverless) ────
         - task_key: 03a_register_model
           notebook_task:
-            notebook_path: ../monailabel_model/03a-register-model.py
+            notebook_path: ../resources/dabs/03a-register-model.py
             source: WORKSPACE
           depends_on:
             - task_key: 01_dcm_ingest
@@ -67,7 +67,7 @@ resources:
         # ── Step 3b: Deploy serving endpoint (serverless) ─────────
         - task_key: 03b_deploy_endpoint
           notebook_task:
-            notebook_path: ../resources/03b-deploy-endpoint.py
+            notebook_path: ../resources/dabs/03b-deploy-endpoint.py
             source: WORKSPACE
           depends_on:
             - task_key: 03a_register_model
@@ -77,7 +77,7 @@ resources:
         # ── Step 3c: Validate endpoint with test inference ────────
         - task_key: 03c_validate_model
           notebook_task:
-            notebook_path: ../resources/03c-validate-model.py
+            notebook_path: ../resources/dabs/03c-validate-model.py
             source: WORKSPACE
           depends_on:
             - task_key: 03b_deploy_endpoint
@@ -98,7 +98,7 @@ resources:
         # ── Step 10: Validate all services ─────────────────────────
         - task_key: 10_validate
           notebook_task:
-            notebook_path: ../resources/10-validate.py
+            notebook_path: ../resources/dabs/10-validate.py
             source: WORKSPACE
           depends_on:
             - task_key: 02_deploy_apps

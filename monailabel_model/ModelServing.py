@@ -16,17 +16,11 @@
 
 # COMMAND ----------
 
-# Resolve absolute WSFS paths so pip install works on both serverless and classic GPU clusters
-import subprocess, sys, os
+# MAGIC %pip install -r bundles/requirements.txt
+# MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
+# MAGIC %pip install monai==1.5.2 pytorch-ignite --no-deps
+# MAGIC %pip install databricks-sdk==0.84 --upgrade
 
-_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-_nb_dir = '/Workspace' + os.path.dirname(_nb_ctx.notebookPath().get())
-
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', f'{_nb_dir}/bundles/requirements.txt'])
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', f'{_nb_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl', '--no-deps'])
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'torch', '--index-url', 'https://download.pytorch.org/whl/cpu'])
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'monai==1.5.2', 'pytorch-ignite', '--no-deps'])
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'databricks-sdk==0.84', '--upgrade'])
 # COMMAND ----------
 
 dbutils.library.restartPython()
@@ -287,10 +281,10 @@ delete_all_sercrets = False
 
 # COMMAND ----------
 
+from dbx.pixels.m2m import DatabricksM2MAuth
 from databricks.sdk import WorkspaceClient
 
 if use_service_principal:
-    from dbx.pixels.m2m import DatabricksM2MAuth
     try:
         m2m_client = DatabricksM2MAuth(
             principal_name=sp_name,
@@ -368,32 +362,24 @@ else:
     conf_vars['CLIENT_APP_ID'] = client_app_id
     conf_vars['CLIENT_SECRET'] = client_secret
 
-endpoint_config = {
-    "served_entities": [
-        {
-            'entity_name': model_uc_name,
-            "entity_version": model_version,
-            "workload_size": "Small",
-            "workload_type": "GPU_MEDIUM",
-            "scale_to_zero_enabled": True,
-            'environment_vars': conf_vars,
-        }
-    ]
-}
+endpoint = client.create_endpoint(
+    name=serving_endpoint_name,
+    config={
+        "served_entities": [
+            {
+                'entity_name': model_uc_name,
+                "entity_version": model_version,
+                "workload_size": "Small",
+                "workload_type": "GPU_MEDIUM",
+                "scale_to_zero_enabled": True,
+                'environment_vars': conf_vars,
+            }
+        ]
+    }
+)
 
-try:
-    endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
-    print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
-except Exception as e:
-    if "already exists" in str(e).lower():
-        print(f"Endpoint {serving_endpoint_name} already exists, updating config")
-        endpoint = client.update_endpoint(endpoint=serving_endpoint_name, config=endpoint_config)
-    else:
-        raise
+print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
 
-# Core install work is complete — exit cleanly when run as a job task.
-# The test cells below are for interactive use only.
-dbutils.notebook.exit("SUCCESS: endpoint created/updated")
 
 # COMMAND ----------
 
@@ -403,8 +389,6 @@ dbutils.notebook.exit("SUCCESS: endpoint created/updated")
 # MAGIC NOTE: Serving Endpoint creation will take ~ 30 minutes to complete
 
 # COMMAND ----------
-
-# === OPTIONAL | Endpoint readiness check — skipped when run as a job task ===
 
 import time
 from mlflow.deployments import get_deploy_client
@@ -421,24 +405,17 @@ def wait_for_endpoint_ready(endpoint_name, client, timeout=2100, interval=10):
         time.sleep(interval)
     raise TimeoutError(f"Endpoint {endpoint_name} did not become ready within {timeout} seconds.")
 
-try:
-    wait_for_endpoint_ready(serving_endpoint_name, client)
-except Exception as e:
-    print(f"Endpoint readiness check skipped or failed: {e}")
+wait_for_endpoint_ready(serving_endpoint_name, client)
 
 # COMMAND ----------
 
-# === OPTIONAL | Serving endpoint inference test ===
-try:
-    from dbx.pixels.modelserving.bundles.servingendpoint import MonaiLabelBundlesTransformer
+from dbx.pixels.modelserving.bundles.servingendpoint import MonaiLabelBundlesTransformer
 
-    df = spark.table(table)
+df = spark.table(table)
 
-    df_monai = MonaiLabelBundlesTransformer(table=table, destDir=os.environ["DEST_DIR"], endpointName=serving_endpoint_name, exportMetrics=True).transform(df)
+df_monai = MonaiLabelBundlesTransformer(table=table, destDir=os.environ["DEST_DIR"], endpointName=serving_endpoint_name, exportMetrics=True).transform(df)
 
-    display(df_monai.filter('series_uid::STRING = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
-except Exception as e:
-    print(f"Serving endpoint test skipped: {e}")
+display(df_monai.filter('series_uid::STRING = "1.2.156.14702.1.1000.16.1.2020031111365289000020001"'))
 
 # Test performance using noop
 #df_monai.repartition(4).write.format("noop").mode("overwrite").save()
@@ -450,57 +427,49 @@ except Exception as e:
 
 # COMMAND ----------
 
-# === OPTIONAL | GPU inference test ===
-try:
-    import torch
-    from dbx.pixels.modelserving.bundles.gpu import MonaiLabelBundlesGPUTransformer
+import torch
+from dbx.pixels.modelserving.bundles.gpu import MonaiLabelBundlesGPUTransformer
 
-    gpuCount = int(spark.conf.get("spark.executor.resource.gpu.amount","0") or torch.cuda.device_count())
-    nWorkers = (int(spark.conf.get("spark.databricks.clusterUsageTags.clusterWorkers")) or 1)
-    tasksPerGpu = int(spark.conf.get("spark.task.resource.gpu.amount","1"))
+gpuCount = int(spark.conf.get("spark.executor.resource.gpu.amount","0") or torch.cuda.device_count())
+nWorkers = (int(spark.conf.get("spark.databricks.clusterUsageTags.clusterWorkers")) or 1)
+tasksPerGpu = int(spark.conf.get("spark.task.resource.gpu.amount","1"))
 
-    df = spark.table(table)
+df = spark.table(table)
 
-    df_monai = MonaiLabelBundlesGPUTransformer(inputCol="meta",
-                                     table=table,
-                                     destDir=os.environ["DEST_DIR"],
-                                     modelName=model_name,
-                                     sqlWarehouseId=os.environ["DATABRICKS_WAREHOUSE_ID"],
-                                     labelPrompt=None, exportMetrics=True, exportOverlays=False,
-                                     secret=os.environ["DATABRICKS_TOKEN"],
-                                     host=os.environ["DATABRICKS_HOST"],
-                                     gpuCount=gpuCount, nWorkers=nWorkers, tasksPerGpu=tasksPerGpu).transform(df)
+df_monai = MonaiLabelBundlesGPUTransformer(inputCol="meta", 
+                                 table=table, 
+                                 destDir=os.environ["DEST_DIR"], 
+                                 modelName=model_name,
+                                 sqlWarehouseId=os.environ["DATABRICKS_WAREHOUSE_ID"], 
+                                 labelPrompt=None, exportMetrics=True, exportOverlays=False, 
+                                 secret=os.environ["DATABRICKS_TOKEN"], 
+                                 host=os.environ["DATABRICKS_HOST"], 
+                                 gpuCount=gpuCount, nWorkers=nWorkers, tasksPerGpu=tasksPerGpu).transform(df)
 
-    display(df_monai)
-except Exception as e:
-    print(f"GPU inference test skipped: {e}")
+display(df_monai)
 
 # Test performance using noop
 #df_monai.write.format("noop").mode("overwrite").save()
 
 # COMMAND ----------
 
-# === OPTIONAL | SQL ai_query test ===
-try:
-    _sql = f"""
-    -- Requires Databricks Runtime 15.2 and above or Serverless
-    with ct as (
-      select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
-      from {table}
-      where meta:['00080008'] like '%AXIAL%'
-    )
-    select series_uid, parse_json(ai_query(
-      endpoint => '{serving_endpoint_name}',
-      request => named_struct(
-          'series_uid', series_uid,
-          'params', named_struct(
-                        'export_metrics', True,
-                        'export_overlays', False
-                    )
-      ),
-      returnType => 'STRING'
-    )) as result from ct
-    """
-    display(spark.sql(_sql))
-except Exception as e:
-    print(f"SQL ai_query test skipped: {e}")
+# MAGIC %sql
+# MAGIC -- Requires Databricks Runtime 15.2 and above or Serverless
+# MAGIC -- Sample query to illustrate how to use the ai_query function to query model in serving endpoint 
+# MAGIC with ct as (
+# MAGIC   select distinct(meta:['0020000E'].Value[0]::STRING) as series_uid
+# MAGIC   from ${table}
+# MAGIC   where meta:['00080008'] like '%AXIAL%'
+# MAGIC )
+# MAGIC
+# MAGIC select series_uid, parse_json(ai_query(
+# MAGIC   endpoint => '${serving_endpoint_name}',
+# MAGIC   request => named_struct(
+# MAGIC       'series_uid', series_uid,
+# MAGIC       'params', named_struct(
+# MAGIC                     'export_metrics', True,
+# MAGIC                     'export_overlays', False
+# MAGIC                 )
+# MAGIC   ),
+# MAGIC   returnType => 'STRING'
+# MAGIC )) as result from ct

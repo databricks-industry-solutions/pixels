@@ -8,7 +8,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../config/proxy_prep
+# MAGIC %run ../../config/proxy_prep
 
 # COMMAND ----------
 
