@@ -500,6 +500,21 @@ def convert_to_enhanced_dicom(
             enhanced_datasets.extend(datasets)
             continue
 
+        ## Sort frames before conversion so pixel data order matches spatial order
+        ## (highdicom preserves the input order for pixel data but builds
+        ## PerFrameFunctionalGroupsSequence with correct metadata regardless,
+        ## so unsorted input causes frame-by-frame viewers to show slices out of order)
+        if all(hasattr(ds, "ImagePositionPatient") and hasattr(ds, "ImageOrientationPatient") for ds in datasets):
+            orientation = np.array(datasets[0].ImageOrientationPatient).reshape(2, 3)
+            normal = np.cross(orientation[0], orientation[1])
+            datasets.sort(key=lambda ds: np.dot(np.array(ds.ImagePositionPatient), normal))
+            logger.info("Sorted datasets by spatial position before enhanced conversion")
+        elif all(hasattr(ds, "InstanceNumber") for ds in datasets):
+            datasets.sort(key=lambda ds: int(ds.InstanceNumber))
+            logger.info("Sorted datasets by InstanceNumber before enhanced conversion")
+        else:
+            logger.warning("Could not determine sorting order for datasets before enhanced conversion")
+
         ## Start the conversion to enhanced multiframe DICOM
 
         # Extract SeriesNumber and InstanceNumber from legacy datasets (use original if available)
