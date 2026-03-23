@@ -118,10 +118,8 @@ class Catalog:
 
         for file_name, content in sql_files.items():
             logger.debug(f"Executing SQL file: {file_name}")
-            sql_commands = (
-                content
-                .replace("{UC_TABLE}", self._table)
-                .replace("{UC_SCHEMA}", self._schema)
+            sql_commands = content.replace("{UC_TABLE}", self._table).replace(
+                "{UC_SCHEMA}", self._schema
             )
             for sql_command in sql_commands.split(";"):
                 if sql_command.strip() != "":
