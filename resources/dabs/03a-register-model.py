@@ -34,9 +34,10 @@ import subprocess, sys, os
 
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../../monailabel_model"))
 
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_nb_dir}/vista3d/requirements.txt"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_nb_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "--index-url", "https://download.pytorch.org/whl/cpu"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "monai==1.5.2", "pytorch-ignite", "--no-deps"])
 
@@ -55,7 +56,13 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 model_uc_name, serving_endpoint_name = init_model_serving_widgets()
 init_env()
 
-import os
+import os, subprocess, sys
+
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../../monailabel_model"))
+os.chdir(_model_dir)
+sys.path.insert(0, _model_dir)
 
 volume_path = volume.replace(".", "/")
 os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/vista3d/"
