@@ -86,7 +86,7 @@ The install job runs 8 tasks in dependency order (all serverless):
                                   └── 04_genie_space ──────────────────────┘
 ```
 
-**Task 00 — Init Schema**: Creates UC catalog, schema, volume, and empty `object_catalog` table.
+**Task 00 — Init Schema**: Creates UC schema, volume, empty `object_catalog` table, UDFs (`extract_tags`, `extract_tag_value`), and views (`object_catalog_unzip`, `instance_paths_vw`).
 
 **Task 01 — Demo Data Ingest**: Catalogs demo DICOM files from `s3://hls-eng-data-public/dicom/landing_zone/*.zip`, extracts metadata, saves to `object_catalog` table. Runs first so data is available for apps and genie.
 
@@ -104,8 +104,8 @@ The install job runs 8 tasks in dependency order (all serverless):
 
 ### Resources Created
 
-- **Unity Catalog**: schema, volume, `object_catalog` table, `dicom_tags` table
-- **Lakebase**: `pixels-lakebase` instance with `dicom_frames`, `instance_paths`, `endpoint_metrics` tables
+- **Unity Catalog**: schema, volume, `object_catalog` table, `dicom_tags` table, UDFs, views
+- **Lakebase**: `pixels-lakebase` instance with `dicom_frames` and `endpoint_metrics` tables (`instance_paths` created via Reverse ETL sync — see Manual Steps)
 - **Apps**: `pixels-dicomweb` (OHIF viewer), `pixels-dicomweb-gateway` (DICOMweb server)
 - **Model Serving**: `pixels-monai-uc` endpoint (Vista3D segmentation)
 - **Dashboard**: "Pixels Medical Imaging Cohorts" Lakeview dashboard
@@ -136,7 +136,7 @@ After the install job completes:
 ## Troubleshooting
 
 **`init_env()` fails with "table does not exist"**
-Task 00 must complete before tasks 01/03. Check that `00_init_schema` succeeded in the job run.
+Check that `00_init_schema` succeeded. If running notebooks interactively outside the job, ensure the table has been created first (run `00-init-schema.ipynb`).
 
 **Vista3D endpoint fails to become ready**
 The GPU serving endpoint may take 15–30 min to provision. Tasks 03c and 10 retry automatically. Check Model Serving UI for endpoint status and errors.
