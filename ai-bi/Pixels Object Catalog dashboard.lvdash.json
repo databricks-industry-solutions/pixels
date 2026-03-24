@@ -142,7 +142,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "dmoore.pixels.object_catalog"
+                  "value": "main.pixels_solacc.object_catalog"
                 }
               ]
             }
