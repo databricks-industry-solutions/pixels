@@ -22,8 +22,7 @@ try:
     versions = mc.search_model_versions(f"name='{model_uc_name}'")
     if versions:
         latest = max(versions, key=lambda v: int(v.version))
-        print(f"Model {model_uc_name} version {latest.version} already exists")
-        dbutils.notebook.exit(f"SUCCESS: model already registered — version {latest.version}")
+        print(f"Model {model_uc_name} has {len(versions)} existing version(s), latest={latest.version} — re-logging with updated deps")
 except Exception as e:
     print(f"No existing model found, proceeding with registration: {e}")
 
@@ -38,7 +37,7 @@ _model_dir = os.path.normpath(os.path.join(_nb_dir, "../../monailabel_model"))
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torch", "--index-url", "https://download.pytorch.org/whl/cpu"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.5.1", "torchvision==0.20.1", "torchaudio==2.5.1", "--index-url", "https://download.pytorch.org/whl/cpu"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "monai==1.5.2", "pytorch-ignite", "--no-deps"])
 
 # COMMAND ----------
@@ -181,6 +180,7 @@ except Exception as e:
 
 # DBTITLE 1,Log and Register Model
 import mlflow
+from mlflow import MlflowClient
 from vista3d.code.dbvista3dmodel import DBVISTA3DModel
 
 with mlflow.start_run():

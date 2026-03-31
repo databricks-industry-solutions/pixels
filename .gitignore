@@ -136,7 +136,6 @@ dmypy.json
 
 .databricks/
 !.databricks/commit_outputs
-dabs/dbdemos/databricks.yml
 
 dbx/pixels/resources/ohif/app-config-custom.js
 dbx/pixels/resources/lakehouse_app/app.yaml
