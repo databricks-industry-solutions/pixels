@@ -271,6 +271,10 @@ class LakebaseUtils:
 
         self.connection = self.get_connection()
 
+        # Grant DML privileges after the pool is ready (schema/tables must exist)
+        if app_sp_id is not None:
+            self._grant_sp_schema_access(app_sp_id)
+
     def get_or_create_db_instance(self, create_instance):
         """
         Get or create the Lakehouse environment (Project, Branch, and Endpoint).
@@ -382,6 +386,37 @@ class LakebaseUtils:
                 )
                 return next((r for r in roles), None)
             raise
+
+    def _grant_sp_schema_access(self, sp_client_id: str):
+        """Grant DML privileges on the schema to a service principal role.
+
+        Runs ``GRANT USAGE`` on the schema and ``GRANT SELECT, INSERT,
+        UPDATE, DELETE`` on all current and future tables so the app
+        service principal can read and write Lakebase tables (e.g.
+        ``endpoint_metrics``).
+        """
+        stmts = [
+            sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+            sql.SQL(
+                "GRANT SELECT, INSERT, UPDATE, DELETE " "ON ALL TABLES IN SCHEMA {} TO {}"
+            ).format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+            sql.SQL(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA {} "
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
+            ).format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+        ]
+        for stmt in stmts:
+            self.execute_query(stmt)
+        logger.info(f"Granted DML privileges on schema '{self.schema}' to role '{sp_client_id}'")
 
     def _generate_credential(self):
         """
