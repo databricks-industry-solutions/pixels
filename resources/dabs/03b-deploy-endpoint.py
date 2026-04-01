@@ -30,15 +30,19 @@ import mlflow
 from mlflow import MlflowClient
 
 mc = MlflowClient()
-versions = mc.search_model_versions(f"name='{model_uc_name}'")
 
-if not versions:
-    dbutils.notebook.exit(f"SKIP: no model versions found for {model_uc_name}")
-
-# Get the highest version number
-latest = max(versions, key=lambda v: int(v.version))
-model_version = latest.version
-print(f"Using model {model_uc_name} version {model_version}")
+try:
+    champion = mc.get_model_version_by_alias(model_uc_name, "champion")
+    model_version = champion.version
+    print(f"Using champion model {model_uc_name} version {model_version}")
+except Exception:
+    # Fallback: use latest version if no champion alias exists yet
+    versions = mc.search_model_versions(f"name='{model_uc_name}'")
+    if not versions:
+        dbutils.notebook.exit(f"SKIP: no model versions found for {model_uc_name}")
+    latest = max(versions, key=lambda v: int(v.version))
+    model_version = latest.version
+    print(f"No champion alias — falling back to latest version {model_version}")
 
 # COMMAND ----------
 

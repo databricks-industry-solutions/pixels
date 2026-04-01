@@ -133,8 +133,8 @@ def register_monai_routes(app: FastAPI):
                 content={"message": "Local files are not supported yet"},
             )
 
-        if "info" in str(url):
-            to_send = {"input": {"action": "info"}}
+        action = str(url).strip("/") or "info"
+        to_send = {"input": {"action": action}}
 
         resp = ""
         try:

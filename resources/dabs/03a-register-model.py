@@ -68,6 +68,60 @@ os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/vista3d/"
 
 # COMMAND ----------
 
+# DBTITLE 1,Model Description
+MODEL_DESCRIPTION = """\
+**VISTA3D** (Versatile Imaging SegmenTation and Annotation model) is an \
+interactive, AI-powered foundation model designed by NVIDIA and its research \
+partners to automate the segmentation and annotation of 3D Computed Tomography \
+(CT) medical images. It acts as a specialized tool for researchers and \
+clinicians to quickly create high-quality, ground-truth data for 3D human \
+anatomy, supporting 127 different organ and lesion classes.
+
+**Key Features and Capabilities**
+
+- **Unified Architecture:** Combines automatic segmentation (auto-branch) with \
+interactive refinement (interactive-branch) in one model.
+- **3D Precision:** Operates directly on 3D CT volumes (using NIfTI format) \
+rather than 2D slices, allowing it to understand the full spatial context of \
+anatomy.
+- **Interactive Refinement:** Allows users to refine automatic segmentation \
+results through point-and-click prompts (adding positive/negative points).
+- **Zero-Shot Learning:** Capable of segmenting unseen or rare anatomical \
+structures (novel classes) without specific prior training on those classes.
+- **High Performance:** Achieves state-of-the-art performance on 3D CT \
+benchmarks, often outperforming or matching specialized (non-foundation) models.
+
+**Core Workflows**
+
+1. **Segment Everything:** Automatically segments a large number of pre-defined \
+organs and structures in a full-body scan.
+2. **Segment using Class:** Focuses on specific organs or structures (e.g., \
+"liver," "tumor") via text or label prompts.
+3. **Segment Point Prompts (Interactive):** Allows users to "click" to correct \
+or identify structures, enabling "human-in-the-loop" refinement.
+
+**Technical Details and Training**
+
+- **Training Data:** Trained on a massive, diverse dataset of over 11,000 3D \
+CT scans.
+- **Model Architecture:** Utilizes a Transformer-based architecture (SegResNet \
++ Prompt Encoding).
+- **Distillation:** Uses a novel 3D supervoxel method to distill knowledge \
+from pre-trained 2D models (like Meta's SAM) to enhance its 3D capabilities.
+- **Inference Speed:** Accelerated through NVIDIA TensorRT, making it faster \
+than traditional ensemble methods like TotalSegmentator.
+
+**Clinical and Research Utility**
+
+VISTA3D is part of the NVIDIA MONAI framework for healthcare AI. It is \
+designed to significantly reduce the time needed to annotate CT scans — a \
+critical bottleneck in training new medical AI models — speeding up workflows \
+by enabling rapid, accurate annotation. Note: Current versions are for \
+research purposes, not clinical diagnosis.\
+"""
+
+# COMMAND ----------
+
 # DBTITLE 1,Build Model Signature
 from mlflow.models import infer_signature
 
@@ -201,5 +255,11 @@ latest_model = mlflow.register_model(logged_model_info.model_uri, model_uc_name)
 
 mc = MlflowClient()
 mc.set_registered_model_tag(model_uc_name, "accelerator", "pixels")
+mc.set_registered_model_alias(model_uc_name, "champion", latest_model.version)
+mc.update_model_version(
+    name=model_uc_name,
+    version=latest_model.version,
+    description=MODEL_DESCRIPTION,
+)
 
-dbutils.notebook.exit(f"SUCCESS: registered version {latest_model.version}")
+dbutils.notebook.exit(f"SUCCESS: registered version {latest_model.version} with champion alias")
