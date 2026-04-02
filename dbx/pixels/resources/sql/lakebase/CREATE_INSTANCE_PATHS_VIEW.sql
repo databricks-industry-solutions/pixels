@@ -40,5 +40,6 @@ SELECT
     IFNULL(meta:['00280008'].Value[0]::INT, 1)  AS num_frames,
     '{catalog}.{schema}.{table}'                AS uc_table_name
 FROM `{catalog}`.`{schema}`.`{table}`
-WHERE meta:['00080018'].Value[0]::STRING IS NOT NULL;
+WHERE meta:['00080018'].Value[0]::STRING IS NOT NULL
+QUALIFY ROW_NUMBER() OVER (PARTITION BY local_path ORDER BY local_path) = 1;
 
