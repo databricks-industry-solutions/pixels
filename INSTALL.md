@@ -115,7 +115,7 @@ The install job runs 8 tasks in dependency order (all serverless):
 
 After the install job completes:
 
-1. **Reverse ETL Synced Table** — Database sync with Postgres autoscaling is not yet available via the Python SDK. Create the synced table via the Databricks UI:
+1. **Reverse ETL Synced Table** — Database sync with Postgres autoscaling is not yet available via the Pipelines API. Create the synced table via the Databricks UI:
    - Navigate to **Catalog** > `{catalog}.{schema}.instance_paths_vw`
    - Click **Create** > **Synced table**
    - Destination: your Lakebase instance (`pixels-lakebase`)
@@ -131,7 +131,7 @@ After the install job completes:
 
 - **OHIF app .wasm files** — The OHIF viewer contains `.wasm` files >10MB (154MB total) which breaks DAB's workspace filesystem sync. Apps are deployed via SDK calls inside notebook tasks rather than DAB `apps:` sections.
 - **Vista3D serving endpoint** — The serving endpoint uses GPU infrastructure managed by Model Serving; no user-managed GPU cluster is required.
-- **Reverse ETL sync** — Not yet available via SDK; requires manual UI step (see above).
+- **Reverse ETL sync** — Not yet available via API; requires manual UI step (see above).
 
 ## Troubleshooting
 

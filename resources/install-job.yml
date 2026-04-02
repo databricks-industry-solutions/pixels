@@ -51,7 +51,8 @@ resources:
             source: WORKSPACE
           depends_on:
             - task_key: 01_dcm_ingest
-          max_retries: 0
+          max_retries: 1
+          min_retry_interval_millis: 30000
           environment_key: serverless
 
         # ── Step 3a: Register Vista3D model in UC (serverless) ────
