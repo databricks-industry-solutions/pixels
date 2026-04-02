@@ -105,33 +105,22 @@ The install job runs 8 tasks in dependency order (all serverless):
 ### Resources Created
 
 - **Unity Catalog**: schema, volume, `object_catalog` table, `dicom_tags` table, UDFs, views
-- **Lakebase**: `pixels-lakebase` instance with `dicom_frames` and `endpoint_metrics` tables (`instance_paths` created via Reverse ETL sync — see Manual Steps)
+- **Lakebase**: `pixels-lakebase` instance with `dicom_frames`, `endpoint_metrics`, and `instance_paths` (Reverse ETL sync) tables
 - **Apps**: `pixels-dicomweb` (OHIF viewer), `pixels-dicomweb-gateway` (DICOMweb server)
 - **Model Serving**: `pixels-monai-uc` endpoint (Vista3D segmentation)
 - **Dashboard**: "Pixels Medical Imaging Cohorts" Lakeview dashboard
 - **Genie Space**: "Pixels - Genie" with vector search over DICOM tags
 
-## Manual Steps
+## Optional Steps
 
 After the install job completes:
 
-1. **Reverse ETL Synced Table** — Database sync with Postgres autoscaling is not yet available via the Pipelines API. Create the synced table via the Databricks UI:
-   - Navigate to **Catalog** > `{catalog}.{schema}.instance_paths_vw`
-   - Click **Create** > **Synced table**
-   - Destination: your Lakebase instance (`pixels-lakebase`)
-   - Target table name: `instance_paths`
-   - Sync mode: Snapshot
-   - Primary key: `local_path`
-
-   See: [Create a synced table (UI)](https://docs.databricks.com/aws/en/oltp/projects/reverse-etl#create-a-synced-table-ui)
-
-2. **Governed Tags** (optional) — Set up Unity Catalog tags for PHI governance if needed.
+1. **Governed Tags** (optional) — Set up Unity Catalog tags for PHI governance if needed.
 
 ## Known Limitations
 
 - **OHIF app .wasm files** — The OHIF viewer contains `.wasm` files >10MB (154MB total) which breaks DAB's workspace filesystem sync. Apps are deployed via SDK calls inside notebook tasks rather than DAB `apps:` sections.
 - **Vista3D serving endpoint** — The serving endpoint uses GPU infrastructure managed by Model Serving; no user-managed GPU cluster is required.
-- **Reverse ETL sync** — Not yet available via API; requires manual UI step (see above).
 
 ## Troubleshooting
 
