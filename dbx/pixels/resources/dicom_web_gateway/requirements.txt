@@ -8,7 +8,7 @@ psycopg2-binary==2.9.11
 psutil==6.1.1
 httpx[http2]==0.28.1
 python-multipart==0.0.22
-pydicom==3.0.1
+pydicom==3.0.2
 # Direct cloud upload (Unity Catalog credential vending) — optional
 # At least one of the three is required depending on the cloud provider:
 boto3==1.38.42                  # AWS S3
