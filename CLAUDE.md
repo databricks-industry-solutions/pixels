@@ -138,11 +138,11 @@ Expected: answer "9 DICOM studies".
 # Get app URL
 databricks apps get pixels-dicomweb -p MY_WORKSPACE
 
-# Test — should return OHIF viewer HTML
-curl -s <app_url>/ | grep -o '<title>[^<]*</title>'
+# Open OHIF viewer with a test study (MONAI Label mode)
+open <app_url>/ohif/monai-label?StudyInstanceUIDs=1.2.156.14702.1.1000.16.0.20200311113603875
 ```
 
-Expected: HTTP 200, title "Pixels Solution Accelerator".
+Expected: OHIF viewer loads with the COVID lung CT study in MONAI Label mode.
 
 #### 4. Gateway App (`pixels-dicomweb-gateway`)
 
