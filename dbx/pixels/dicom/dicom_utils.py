@@ -46,19 +46,54 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
         return None
 
 
-def extract_metadata(ds: Dataset, deep: bool = True) -> dict:
+def remove_un_vr_elements(ds: Dataset) -> Dataset:
+    """
+    Recursively removes all elements with VR='UN' from a pydicom dataset.
+    """
+    # Create a list of tags to delete so we don't modify the dataset while iterating
+    tags_to_delete = []
+
+    for elem in ds:
+        if elem.VR == "UN":
+            tags_to_delete.append(elem.tag)
+        elif elem.VR == "SQ":
+            # If the element is a sequence, recursively process each dataset within it
+            for item in elem:
+                remove_un_vr_elements(item)
+
+    # Delete the identified tags from the current dataset level
+    for tag in tags_to_delete:
+        del ds[tag]
+
+    return ds
+
+
+def extract_metadata(ds: Dataset, deep: bool = True, remove_un_tags: bool = False) -> dict:
     """Extract metadata from header of dicom image file
     params:
       path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
       deep -- True if deep inspection of the Dicom header is required
+      remove_un_vr_elements -- True if UN VR elements should be removed from the dataset
     """
+    if remove_un_tags:
+        ds = remove_un_vr_elements(ds)
+
     a = None
-    js = ds.to_json_dict()
+    js = {}
+
     # remove binary images
-    if "60003000" in js:
-        del js["60003000"]
-    if "7FE00010" in js:
-        del js["7FE00010"]
+    if "60003000" in ds:
+        del ds["60003000"]
+    if "7FE00010" in ds:
+        del ds["7FE00010"]
+
+    js = ds.to_json_dict()
+
+    # Include file meta header tags (group 0002), which are stored separately
+    # from the main dataset and are otherwise missing from the JSON payload.
+    if hasattr(ds, "file_meta") and ds.file_meta is not None:
+        js.update(ds.file_meta.to_json_dict())
+
     if deep:
         a = check_pixel_data(ds)
     if deep and a is not None:

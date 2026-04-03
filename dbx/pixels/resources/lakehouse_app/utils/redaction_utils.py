@@ -13,20 +13,20 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("RedactionUtils")
 
 
-def build_insert_statement(table_name: str) -> str:
+def build_insert_statement() -> str:
     """
     Build SQL INSERT statement for redaction job.
 
-    Args:
-        table_name: Fully qualified table name (catalog.schema.table)
+    The target table is parameterized via ``IDENTIFIER(:redaction_table)``
+    to prevent SQL injection (see Databricks IDENTIFIER clause docs).
 
     Returns:
         SQL INSERT statement as string
     """
 
-    # Build INSERT statement
-    sql = f"""
-    INSERT INTO IDENTIFIER("{table_name}") (
+    # Build INSERT statement — table name supplied as :redaction_table parameter
+    sql = """
+    INSERT INTO IDENTIFIER(:redaction_table) (
         redaction_id,
         study_instance_uid,
         series_instance_uid,
@@ -86,6 +86,7 @@ async def execute_sql_statement(
         "warehouse_id": warehouse_id,
         "statement": sql_statement,
         "parameters": [
+            {"name": "redaction_table", "value": params.get("redaction_table")},
             {"name": "redaction_id", "value": params.get("redaction_id")},
             {"name": "study_instance_uid", "value": params.get("study_instance_uid")},
             {"name": "series_instance_uid", "value": params.get("series_instance_uid")},
@@ -151,6 +152,7 @@ async def insert_redaction_job(
     new_series_uid = pydicom.uid.generate_uid()
 
     params = {
+        "redaction_table": table_name,
         "redaction_id": redaction_id,
         "study_instance_uid": redaction_json.get("studyInstanceUID", ""),
         "series_instance_uid": redaction_json.get("seriesInstanceUID", ""),
@@ -166,7 +168,7 @@ async def insert_redaction_job(
     }
 
     # Build INSERT statement
-    sql_statement = build_insert_statement(table_name=table_name)
+    sql_statement = build_insert_statement()
 
     # Execute SQL statement
     result = await execute_sql_statement(

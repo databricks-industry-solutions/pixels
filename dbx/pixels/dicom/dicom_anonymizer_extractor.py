@@ -136,8 +136,7 @@ class DicomAnonymizerExtractor(Transformer):
             path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
             anon -- Set to True if accessing S3 and the bucket is public
             """
-            import json
-
+            import simplejson as json
             from pydicom import dcmread
 
             try:
@@ -181,7 +180,10 @@ class DicomAnonymizerExtractor(Transformer):
                     meta_js = extract_metadata(dataset, deep=False)
                     meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
-                    return {"meta": json.dumps(meta_js), "path": "dbfs:" + anonymized_file_path}
+                    return {
+                        "meta": json.dumps(meta_js, ignore_nan=True),
+                        "path": "dbfs:" + anonymized_file_path,
+                    }
             except Exception as err:
                 except_str = {
                     "meta": json.dumps(

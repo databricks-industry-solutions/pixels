@@ -1,5 +1,6 @@
-<div bgcolor="white">
-  <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="right">
+<div bgcolor="white" style="display: flex;">
+  <img src=https://hls-eng-data-public.s3.amazonaws.com/img/Databricks_HLS.png width="380px" align="center">
+  <img width="800" height="333" alt="Pixels Logo" src="https://github.com/user-attachments/assets/bee10938-caf3-424f-9941-a53ccf27e546" />
 </div>
 
 # `pixels` Solution Accelerator
@@ -81,6 +82,17 @@ The architecture processes data in stages:
 
 This architecture is designed to handle healthcare imaging data securely while enabling advanced analytics and AI-driven insights.
 
+## DICOMweb Apps Reference
+For the Databricks Apps architecture and operations guide (viewer app, gateway app,
+QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
+
+- [`README_DICOMWEB.md`](README_DICOMWEB.md)
+
+The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
+workspace workflows. For production DICOMweb deployments with the split
+`dicom_web` + `dicom_web_gateway` Databricks Apps architecture, use
+`README_DICOMWEB.md` as the source of truth.
+
 
 ---
 ## Getting started
@@ -89,6 +101,7 @@ This architecture is designed to handle healthcare imaging data securely while e
 
 2. Attach a notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS)
 3. Run [`config/setup.py`]($./config/setup) from the notebook. This will install the pixels package onto your workspace
+4. If you need additional libraries to decode or encode DICOM pixel data, use the pydicom guidance to pick the right optional codec package(s): [pydicom pixel data decompression guide](https://github.com/pydicom/pydicom?tab=readme-ov-file#decompressing-pixel-data).
 
 
 ## Run pipeline as a job
@@ -101,6 +114,28 @@ To enable incremental processing you need to set `streaming` and `streamCheckpoi
 ```python
 catalog_df = catalog.catalog(path, streaming=True, streamCheckpointBasePath=<checkpointPath>)
 ```
+
+### Optional: managed file events with Auto Loader
+For higher scalability, you can enable managed file events for discovery instead of directory listing.
+
+```python
+catalog_df = catalog.catalog(
+  path,
+  streaming=True,
+  streamCheckpointBasePath=<checkpointPath>,
+  useManagedFileEvents=True,
+  includeExistingFiles=True,
+  allowOverwrites=False,
+  maxFileAge="90 days"
+)
+```
+
+Best practices:
+- Use Unity Catalog Volumes or external locations governed by Unity Catalog.
+- Ensure the stream runs at least once every 7 days to keep file events warm.
+- Keep `allowOverwrites=False` unless upstream systems can overwrite files.
+- Use `maxFileAge` to bound discovery windows for large/high-churn landing zones.
+- Reuse a stable checkpoint path across runs to avoid reprocessing.
 
 ## Built-in unzip
 Automatically extracts zip files in the defined volume path.
@@ -129,6 +164,27 @@ metadata_df = DicomMetaAnonymizerExtractor(
 
 By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
 The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
+
+## Remove UN Tags
+DICOM files can contain elements with Value Representation `UN` (Unknown), which are tags that could not be resolved to a specific VR during parsing. These tags often carry unstructured or proprietary data that can bloat the extracted metadata, cause serialization issues, or introduce noise in downstream analytics.
+
+Pixels provides a built-in option to strip all `UN` VR elements from the dataset before metadata extraction. The removal is recursive, so `UN` elements nested inside sequences (`SQ`) are also cleaned up.
+
+To enable this feature, set `remove_un_tags=True` on the `DicomMetaExtractor`:
+```python
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import *
+
+catalog = Catalog(spark)
+catalog_df = catalog.catalog(<path>)
+
+meta_df = DicomMetaExtractor(
+    catalog,
+    remove_un_tags=True
+).transform(catalog_df)
+
+catalog.save(meta_df)
+```
 
 ---
 ## OHIF Viewer
@@ -234,10 +290,10 @@ DICOM file Ingestion works with Shared, Dedicated and Serverless Compute types.
 
 
 ## About `dbx.pixels`
-Relibly turn millions of image files into SQL accessible metadata, thumbnails; Enable Deep Learning, AI/BI Dashboarding, Genie Spaces.
+Reliably turn millions of image files into SQL-accessible metadata; Enable Deep Learning, AI/BI dashboarding, and Genie Spaces.
 
 - tags: 
-dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mamograms, dcm file
+dicom, dcm, pre-processing, visualization, repos, sql, python, spark, pyspark, package, image catalog, mammograms, dcm file, dicomweb
 ---
 
 ## About DICOM
@@ -260,6 +316,8 @@ DICOM® is recognized by the International Organization for Standardization as t
 |----------------------|-------------------------------------|-------------------------------|---------------------------------------------------------|
 | dbx.pixels           | Scale out image processing library  | Databricks                    | https://github.com/databricks-industry-solutions/pixels |
 | pydicom              | Python api for DICOM files          | MIT                           | https://github.com/pydicom/pydicom                      |
+| pylibjpeg            | JPEG codec framework for DICOM decoding | MIT                        | https://github.com/pydicom/pylibjpeg                    |
+| pylibjpeg-openjpeg   | OpenJPEG plugin for pylibjpeg (JPEG 2000 decode) | MIT             | https://github.com/pydicom/pylibjpeg-openjpeg           |
 | python-gdcm          | Install gdcm C++ libraries          | Apache Software License (BSD) | https://github.com/tfmoraes/python-gdcm                 |
 | gdcm                 | Parse DICOM files                   | BSD                           | https://sourceforge.net/projects/gdcm                   |
 | s3fs                 | Resolve s3:// paths                 | BSD 3-Clause                  | https://github.com/fsspec/s3fs                          |

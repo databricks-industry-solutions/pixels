@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import identify_type_udf, unzip_pandas_udf
+from dbx.pixels.utils import DEFAULT_UNZIP_WORKERS, identify_type_udf, unzip_map_func
 
 # dfZipWithIndex helper function
 
@@ -133,17 +133,33 @@ class Catalog:
         )
 
     def __streamReader(
-        self, path: str, pattern: str = "*", recurse: bool = True, maxFilesPerTrigger: int = 1000
+        self,
+        path: str,
+        pattern: str = "*",
+        recurse: bool = True,
+        maxFilesPerTrigger: int = 50000,
+        useManagedFileEvents: bool = False,
+        includeExistingFiles: bool = True,
+        allowOverwrites: bool = False,
+        maxFileAge: str = None,
     ):
-        return (
+        reader = (
             self._spark.readStream.format("cloudFiles")
             .option("cloudFiles.format", "binaryFile")
             .option("cloudFiles.maxFilesPerTrigger", maxFilesPerTrigger)
+            .option("cloudFiles.includeExistingFiles", str(includeExistingFiles).lower())
+            .option("cloudFiles.allowOverwrites", str(allowOverwrites).lower())
             .option("pathGlobFilter", pattern)
             .option("recursiveFileLookup", str(recurse).lower())
-            .load(path)
-            .drop("content")
         )
+
+        if maxFileAge is not None:
+            reader = reader.option("cloudFiles.maxFileAge", maxFileAge)
+
+        if useManagedFileEvents:
+            reader = reader.option("cloudFiles.useManagedFileEvents", "true")
+
+        return reader.load(path).drop("content")
 
     def catalog(
         self,
@@ -156,11 +172,16 @@ class Catalog:
         triggerAvailableNow: bool = None,
         extractZip: bool = False,
         extractZipBasePath: str = None,
-        maxFilesPerTrigger: int = 1000,
+        maxFilesPerTrigger: int = 50000,
         maxUnzippedRecordsPerFile: int = 102400,
         maxZipElementsPerPartition: int = 32,
         detectFileType: bool = False,
         zipRepartition: int = None,
+        useManagedFileEvents: bool = False,
+        includeExistingFiles: bool = True,
+        allowOverwrites: bool = False,
+        maxFileAge: str = None,
+        maxUnzipWorkers: int = DEFAULT_UNZIP_WORKERS,
     ) -> DataFrame:
         """
         Catalogs files and directories at the specified path, optionally extracting zip files and handling streaming data.
@@ -180,6 +201,15 @@ class Catalog:
         - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
         - detectFileType (bool, optional): Whether to detect file types. Defaults to False.
         - zipRepartition (int, optional): The number of partitions for repartitioning zip files. Defaults to None
+        - useManagedFileEvents (bool, optional): If True, uses managed file events for discovery with Auto Loader.
+          Requires DBR 14.3+ and file events on the backing external location.
+        - includeExistingFiles (bool, optional): If True, includes files that already exist on first stream run.
+          Defaults to True.
+        - allowOverwrites (bool, optional): If True, allows Auto Loader to process overwritten source files.
+          Defaults to False.
+        - maxFileAge (str, optional): Maximum age of files considered for ingestion by Auto Loader (for example: "90 days").
+          Defaults to None (Auto Loader default).
+        - maxUnzipWorkers (int, optional): The maximum number of workers for parallel unzip. Defaults to 16.
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -217,9 +247,16 @@ class Catalog:
             self._triggerAvailableNow = triggerAvailableNow
 
         if self._isStreaming:
-            df = self.__streamReader(path, pattern, recurse, maxFilesPerTrigger).withColumn(
-                "original_path", f.col("path")
-            )
+            df = self.__streamReader(
+                path,
+                pattern,
+                recurse,
+                maxFilesPerTrigger,
+                useManagedFileEvents,
+                includeExistingFiles,
+                allowOverwrites,
+                maxFileAge,
+            ).withColumn("original_path", f.col("path"))
 
             if extractZip:
                 logger.info("Started unzip process")
@@ -228,8 +265,9 @@ class Catalog:
                     df = df.repartition(zipRepartition)
 
                 unzip_stream = (
-                    df.withColumn(
-                        "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                    df.mapInPandas(
+                        unzip_map_func("path", extractZipBasePath),
+                        schema=df.schema,
                     )
                     .writeStream.format("delta")
                     .outputMode("append")
@@ -266,8 +304,9 @@ class Catalog:
                 if zipRepartition is not None:
                     df = df.repartition(zipRepartition)
 
-                df.withColumn(
-                    "path", f.explode(unzip_pandas_udf("path", f.lit(extractZipBasePath)))
+                df.mapInPandas(
+                    unzip_map_func("path", extractZipBasePath, max_workers=maxUnzipWorkers),
+                    schema=df.schema,
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 
                 logger.info("Unzip process completed")
