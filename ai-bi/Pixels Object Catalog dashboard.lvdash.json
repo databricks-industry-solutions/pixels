@@ -72,7 +72,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixels_solacc.object_catalog"
+                  "value": "main.pixels.object_catalog"
                 }
               ]
             }
@@ -142,7 +142,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "main.pixels_solacc.object_catalog"
+                  "value": "main.pixels.object_catalog"
                 }
               ]
             }

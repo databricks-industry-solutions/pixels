@@ -13,7 +13,7 @@
 
 # DBTITLE 1,Initialize
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+model_uc_name, serving_endpoint_name, scale_to_zero_enabled = init_model_serving_widgets()
 
 use_service_principal = False
 
@@ -119,7 +119,7 @@ endpoint_config = {
             "entity_version": model_version,
             "workload_size": "Small",
             "workload_type": "GPU_MEDIUM",
-            "scale_to_zero_enabled": True,
+            "scale_to_zero_enabled": scale_to_zero_enabled,
             "environment_vars": conf_vars,
         }
     ],

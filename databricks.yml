@@ -24,6 +24,10 @@ variables:
     default: "${var.catalog}.${var.schema}.${var.volume_name}"
   serving_endpoint_name:
     default: "pixels-monai-uc"
+  scale_to_zero_enabled:
+    description: "Whether the serving endpoint scales to zero when idle"
+    type: complex
+    default: true
   model_uc_name:
     default: "${var.catalog}.${var.schema}.monai_pixels_model"
   lakebase_instance_name:

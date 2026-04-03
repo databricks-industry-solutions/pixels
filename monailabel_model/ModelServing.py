@@ -32,9 +32,9 @@ dbutils.library.restartPython()
 # COMMAND ----------
 
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 
-dbutils.widgets.text("use_service_principal", "False", label="5.0 Use Service Principal")
+dbutils.widgets.text("use_service_principal", "False", label="6.0 Use Service Principal")
 use_service_principal = dbutils.widgets.get("use_service_principal").lower() == "true"
 
 volume_path = volume.replace(".","/")

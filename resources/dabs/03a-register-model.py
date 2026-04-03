@@ -12,7 +12,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Check for Existing Model
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 
 import mlflow
 from mlflow import MlflowClient
@@ -52,7 +52,7 @@ dbutils.library.restartPython()
 
 # DBTITLE 1,Re-initialize After Restart
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 init_env()
 
 import os, subprocess, sys

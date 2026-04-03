@@ -13,7 +13,7 @@
 
 # DBTITLE 1,Widget Init & Environment Setup
 sql_warehouse_id, table, volume = init_widgets(show_volume=True)
-model_uc_name, serving_endpoint_name = init_model_serving_widgets()
+model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 init_env()
 
 catalog_name, schema_name, table_name = table.split(".")
