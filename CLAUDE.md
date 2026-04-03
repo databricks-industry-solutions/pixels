@@ -93,11 +93,128 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 
 ## Testing
 
+### Unit Tests
+
 ```bash
 make test
 ```
 
 Tests live in `tests/` and run with `pytest -s --import-mode=importlib`.
+
+### Post-Install Integration Tests
+
+After the install job completes, validate all 6 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
+
+#### 1. Dashboard
+
+```bash
+# List dashboards to find the Pixels dashboard ID
+databricks api get /api/2.0/lakeview/dashboards -p MY_WORKSPACE \
+  | python3 -c "import sys,json; [print(d['dashboard_id'], d['display_name']) for d in json.load(sys.stdin).get('dashboards',[]) if 'Pixels' in d.get('display_name','')]"
+
+# Check dashboard status
+databricks api get /api/2.0/lakeview/dashboards/<dashboard_id> -p MY_WORKSPACE
+```
+
+Expected: `lifecycle_state: ACTIVE`, 3 pages, 4 datasets, warehouse assigned.
+
+#### 2. Genie Space
+
+```bash
+# Start a conversation
+databricks api post /api/2.0/genie/spaces/<space_id>/start-conversation -p MY_WORKSPACE \
+  --json '{"content": "How many DICOM studies are there?"}'
+
+# Poll for result (status: FILTERING_CONTEXT → ASKING_AI → EXECUTING_QUERY → COMPLETED)
+databricks api get /api/2.0/genie/spaces/<space_id>/conversations/<conv_id>/messages/<msg_id> \
+  -p MY_WORKSPACE
+```
+
+Expected: answer "9 DICOM studies".
+
+#### 3. Viewer App (`pixels-dicomweb`)
+
+```bash
+# Get app URL
+databricks apps get pixels-dicomweb -p MY_WORKSPACE
+
+# Test — should return OHIF viewer HTML
+curl -s <app_url>/ | grep -o '<title>[^<]*</title>'
+```
+
+Expected: HTTP 200, title "Pixels Solution Accelerator".
+
+#### 4. Gateway App (`pixels-dicomweb-gateway`)
+
+```bash
+# Get app URL
+databricks apps get pixels-dicomweb-gateway -p MY_WORKSPACE
+
+# Health check
+curl -s <app_url>/health
+
+# DICOMweb QIDO-RS (correct prefix is /api/dicomweb/, NOT /dicomweb/)
+curl -s <app_url>/api/dicomweb/studies?limit=2
+```
+
+Expected: `/health` returns OK, `/api/dicomweb/studies` returns study JSON with UIDs.
+
+#### 5. Model Serving — Info
+
+```bash
+# Get auth token
+TOKEN=$(databricks auth token -p MY_WORKSPACE | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+HOST=$(databricks auth env -p MY_WORKSPACE | python3 -c "import sys,json; print(json.load(sys.stdin)['env']['DATABRICKS_HOST'])")
+
+# Info request
+curl -s "$HOST/serving-endpoints/pixels-monai-uc/invocations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"dataframe_records": [{"input": {"action": "info"}}]}'
+```
+
+Expected: MONAI Label v0.8.5, Vista3D model, 132 anatomical segments, <1s response.
+
+#### 6. Model Serving — Inference
+
+```bash
+curl -s "$HOST/serving-endpoints/pixels-monai-uc/invocations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataframe_records": [{
+      "series_uid": "1.2.156.14702.1.1000.16.1.2020031111365289000020001",
+      "params": {
+        "label_prompt": [20, 23, 28, 29, 30, 31, 32, 132],
+        "export_metrics": false,
+        "export_overlays": false,
+        "dest_dir": "/Volumes/<catalog>/<schema>/pixels_volume/monai_serving/vista3d",
+        "pixels_table": "<catalog>.<schema>.object_catalog",
+        "torch_device": 0
+      }
+    }]
+  }'
+```
+
+Labels: lung(20), lung_tumor(23), left_upper(28), left_lower(29), right_upper(30), right_middle(31), right_lower(32), airway(132). Expected: ~48–60s, returns `file_path` and `metrics`.
+
+#### 7. Log Checks
+
+```bash
+# Query history (GET only — do NOT use POST)
+curl -s "$HOST/api/2.0/sql/history/queries?max_results=50" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Model serving logs (get entity name from endpoint config)
+curl -s "$HOST/api/2.0/serving-endpoints/pixels-monai-uc/served-models/<entity_name>/logs" \
+  -H "Authorization: Bearer $TOKEN"
+
+# App logs
+databricks apps logs pixels-dicomweb-gateway -p MY_WORKSPACE
+databricks apps logs pixels-dicomweb -p MY_WORKSPACE
+```
+
+Known benign warnings in serving logs: CloudPickle version mismatch, missing HF_TOKEN, PyTorch affine dim mismatch.
 
 ## Git Workflow
 
