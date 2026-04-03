@@ -5,7 +5,7 @@
       {
         "id": "01f0bfd16d951e5783146dae38ab1d59",
         "question": [
-          "For the MG modality, are there any patients over 50?"
+          "For the Mammogram modality, are there any patients over 50?"
         ]
       },
       {
@@ -175,13 +175,18 @@
       {
         "id": "01f0bfd093591564bb60c1f0e102916f",
         "content": [
-          "Use the function {UC_SCHEMA}.retrieve_dicom_tag to retrieve a DICOM TAG from a DICOM TAG DESCRIPTION if you don't know the tag. After retrieving that value you can query the object_catalog table with the **{UC_SCHEMA}.extract_tag_value** to extract the right DICOM TAG VALUE from the META column.\n",
+          "Do NOT use the {UC_SCHEMA}.extract_tag_value function.\n",
+          "Instead, retrieve the tag dynamically using {UC_SCHEMA}.retrieve_dicom_tag('<description>').TAG and extract the value from the meta column using the variant_get function.\n",
+          "Standard Syntax: variant_get(meta, \"$.\" || {UC_SCHEMA}.retrieve_dicom_tag('<description>').TAG || '.Value[0]', 'STRING')\n",
           "\n",
-          "Always add the meta:[\"hash] to the select statement as identifier of single file.\n",
-          "To identify a single patient, use the following script in the select statement: <p>distinct(**{UC_SCHEMA}.extract_tag_value**(struct(\"00100020\",\"PatientID\",\"1\"), meta )) as PATIENT_ID\n",
+          "Single File Identifier: Always add meta:[\"hash\"] to the select statement as the unique identifier of a single file.\n",
           "\n",
-          "The modificationTime is the time of the file creation and not always related to the scan date.\n",
-          "To identify the scan date, use the 'AcquisitionDate' tag, if the value is null then use modificationTime column."
+          "Single Patient Identifier: To identify a single patient, use DISTINCT combined with the standard syntax in the select statement: DISTINCT variant_get(meta, \"$.\" || {UC_SCHEMA}.retrieve_dicom_tag('patient id').TAG || '.Value[0]', 'STRING') as PATIENT_ID\n",
+          "\n",
+          "Scan Dates: The modificationTime is the time of the file creation and not always related to the scan date.\n",
+          "To identify the scan date, extract the 'AcquisitionDate' tag. Wrap this in a COALESCE function to fall back to modificationTime if the Acquisition Date is null: COALESCE(variant_get(meta, \"$.\" || {UC_SCHEMA}.retrieve_dicom_tag('acquisition date').TAG || '.Value[0]', 'STRING'), CAST(modificationTime AS STRING)) AS scan_date\n",
+          "\n",
+          "Patient Age Handling: DICOM ages often contain letters (like 'Y'). You must replace the 'Y' and cast it to an integer: TRY_CAST(REPLACE(variant_get(meta, \"$.\" || {UC_SCHEMA}.retrieve_dicom_tag('patient age').TAG || '.Value[0]', 'STRING'), 'Y', '') AS INTEGER) AS patient_age\n"
         ]
       }
     ],
@@ -227,7 +232,7 @@
       {
         "id": "01f0bfd0eeb412ed8d6f52ecd2994c44",
         "question": [
-          "For the MG modality, are there any patients over 50?"
+          "For the Mammogram modality, are there any patients over 50?"
         ],
         "sql": [
           "SELECT DISTINCT\n",
