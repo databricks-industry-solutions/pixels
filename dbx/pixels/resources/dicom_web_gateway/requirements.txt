@@ -1,17 +1,31 @@
 fastapi==0.115.12
 uvicorn==0.34.3
 databricks-sdk==0.88.0
-databricks-pixels @ git+https://github.com/databricks-industry-solutions/pixels
 databricks-sql-connector==4.0.0
 requests==2.32.3
 psycopg2-binary==2.9.11
 psutil==6.1.1
 httpx[http2]==0.28.1
 python-multipart==0.0.22
-pydicom==3.0.2
 # Direct cloud upload (Unity Catalog credential vending) — optional
 # At least one of the three is required depending on the cloud provider:
 boto3==1.38.42                  # AWS S3
 azure-storage-blob==12.24.1    # Azure ADLS Gen2
 google-cloud-storage==2.19.0   # GCP GCS
 hypercorn[h2]==0.17.3
+# --- from root requirements.txt ---
+pandas==2.2.3
+numpy==1.26.4
+pydicom==3.0.2
+pylibjpeg==2.1.0
+pylibjpeg-openjpeg==2.3.0
+s3fs==2025.9.0
+Pillow==12.1.1
+matplotlib>=3.8.4
+pyarrow==21.0.0
+python-magic==0.4.27
+dicognito==0.17.0
+ff3==1.0.2
+typing_extensions>=4.12.2
+psycopg[binary,pool]==3.2.6
+simplejson==3.20.2

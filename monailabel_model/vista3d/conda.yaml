@@ -1,14 +1,15 @@
 channels:
 - conda-forge
 dependencies:
-- python=3.12.3
+- python=3.12.13
 - pip<=24.2
+- cuda-toolkit=12.9
 - pip:
-  - --extra-index-url https://download.pytorch.org/whl/cu124
+  - --extra-index-url https://download.pytorch.org/whl/cu128
   - mlflow==3.9.0
-  - torch==2.5.1+cu124
-  - torchvision==0.20.1+cu124
-  - torchaudio==2.5.1+cu124
+  - torch==2.8.0+cu128
+  - torchvision==0.23.0+cu128
+  - torchaudio==2.8.0+cu128
   - numpy>=1.24.4
   - ./artifacts/monailabel-0.8.5-py3-none-any.whl
   - pydantic>=2.7.0

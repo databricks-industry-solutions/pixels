@@ -41,5 +41,4 @@ sync:
     - .
   exclude:
     - images/*.gif
-    - monailabel_model/vista3d/code/vista3d_bundle/assets/**/*
     - dbx/pixels/resources/ohif/**/*
