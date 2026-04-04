@@ -23,6 +23,7 @@ test:
 
 style:
 	pre-commit run --all-files
+	echo "All ok"
 
 check: style test
 

@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: autoflake
         name: autoflake
-        entry: autoflake -i -r
+        entry: .venv/bin/autoflake -i -r
         language: system
         types: [ python ]
         require_serial: true
@@ -11,14 +11,14 @@ repos:
       - id: isort
         args: [--combine-as]
         name: isort
-        entry: isort
+        entry: .venv/bin/isort
         language: system
         types: [ python ]
         files: ^(dbx/|tests/|setup.py)
         require_serial: true
       - id: black
         name: black
-        entry: black --line-length 100
+        entry: .venv/bin/black --line-length 100
         language: system
         types: [ python ]
         require_serial: true
