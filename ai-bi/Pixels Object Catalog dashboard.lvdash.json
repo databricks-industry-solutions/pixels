@@ -72,7 +72,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "${var.table}"
+                  "value": "main.pixels.object_catalog"
                 }
               ]
             }
@@ -142,7 +142,7 @@
               "dataType": "STRING",
               "values": [
                 {
-                  "value": "${var.table}"
+                  "value": "main.pixels.object_catalog"
                 }
               ]
             }
