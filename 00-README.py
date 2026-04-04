@@ -23,7 +23,6 @@
 # MAGIC Navigate:
 # MAGIC - For more information see the project [README.md](https://raw.github.com/databricks-industry-solutions/pixels/main/README.md)
 # MAGIC - <a href="$./01-dcm-demo">DICOM Ingest and Analytics demo</a>
-# MAGIC - <a href="$./02-dcm-browser">DICOM Image Browser</a>
 
 # COMMAND ----------
 
