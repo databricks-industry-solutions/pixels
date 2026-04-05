@@ -11,20 +11,42 @@
 
 # COMMAND ----------
 
-# DBTITLE 1,Check for Existing Model
+# DBTITLE 1,Check for Existing Model (skip if unchanged)
 model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 
-import mlflow
+import subprocess, mlflow
 from mlflow import MlflowClient
 
 mc = MlflowClient()
+
+# Compute a fingerprint of the monailabel_model/ directory using git tree hash.
+# If git is unavailable (non-git workspace), fall back to always registering.
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_repo_root = os.path.normpath(os.path.join(_nb_dir, "../.."))
+
+tree_hash = None
 try:
-    versions = mc.search_model_versions(f"name='{model_uc_name}'")
-    if versions:
-        latest = max(versions, key=lambda v: int(v.version))
-        print(f"Model {model_uc_name} has {len(versions)} existing version(s), latest={latest.version} — re-logging with updated deps")
+    tree_hash = subprocess.check_output(
+        ["git", "rev-parse", "HEAD:monailabel_model"],
+        cwd=_repo_root, text=True
+    ).strip()
+    print(f"Model tree hash: {tree_hash}")
 except Exception as e:
-    print(f"No existing model found, proceeding with registration: {e}")
+    print(f"git tree hash unavailable ({e}), will register unconditionally")
+
+# Check if the champion alias already has this tree hash — skip if unchanged
+if tree_hash:
+    try:
+        champion = mc.get_model_version_by_alias(model_uc_name, "champion")
+        stored_hash = champion.tags.get("model_tree_hash", "")
+        if stored_hash == tree_hash:
+            print(f"Model {model_uc_name} champion v{champion.version} already matches tree hash — skipping registration")
+            dbutils.notebook.exit(f"SKIP: model unchanged (champion v{champion.version}, hash={tree_hash[:12]})")
+        else:
+            print(f"Tree hash changed ({stored_hash[:12]}→{tree_hash[:12]}), registering new version")
+    except Exception as e:
+        print(f"No champion alias found, proceeding with registration: {e}")
 
 # COMMAND ----------
 
@@ -65,6 +87,17 @@ sys.path.insert(0, _model_dir)
 
 volume_path = volume.replace(".", "/")
 os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/vista3d/"
+
+# Recompute tree hash (lost after restartPython)
+_repo_root = os.path.normpath(os.path.join(_nb_dir, "../.."))
+tree_hash = None
+try:
+    tree_hash = subprocess.check_output(
+        ["git", "rev-parse", "HEAD:monailabel_model"],
+        cwd=_repo_root, text=True
+    ).strip()
+except Exception:
+    pass
 
 # COMMAND ----------
 
@@ -262,4 +295,8 @@ mc.update_model_version(
     description=MODEL_DESCRIPTION,
 )
 
-dbutils.notebook.exit(f"SUCCESS: registered version {latest_model.version} with champion alias")
+# Store the tree hash so future runs can skip registration when unchanged
+if tree_hash:
+    mc.set_model_version_tag(model_uc_name, latest_model.version, "model_tree_hash", tree_hash)
+
+dbutils.notebook.exit(f"SUCCESS: registered version {latest_model.version} with champion alias (hash={tree_hash[:12] if tree_hash else 'n/a'})")

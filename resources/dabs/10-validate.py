@@ -268,28 +268,6 @@ except Exception as e:
 
 # COMMAND ----------
 
-# DBTITLE 1,Tag UC Assets
-print("=== Tagging UC Assets ===")
-
-_tag_targets = [
-    f"ALTER SCHEMA {catalog_name}.{schema_name} SET TAGS ('accelerator' = 'pixels')",
-    f"ALTER TABLE {catalog_name}.{schema_name}.object_catalog SET TAGS ('accelerator' = 'pixels')",
-    f"ALTER TABLE {catalog_name}.{schema_name}.object_catalog_unzip SET TAGS ('accelerator' = 'pixels')",
-    f"ALTER TABLE {catalog_name}.{schema_name}.object_catalog_autoseg_result SET TAGS ('accelerator' = 'pixels')",
-    f"ALTER TABLE {catalog_name}.{schema_name}.object_catalog_redaction SET TAGS ('accelerator' = 'pixels')",
-    f"ALTER TABLE {catalog_name}.{schema_name}.stow_operations SET TAGS ('accelerator' = 'pixels')",
-]
-
-for stmt in _tag_targets:
-    try:
-        spark.sql(stmt)
-        _target = stmt.split("SET TAGS")[0].strip()
-        print(f"  Tagged: {_target}")
-    except Exception as e:
-        print(f"  Skip: {str(e)[:80]}")
-
-# COMMAND ----------
-
 # DBTITLE 1,Summary
 print("\n" + "=" * 70)
 print("PIXELS INSTALL VALIDATION SUMMARY")
