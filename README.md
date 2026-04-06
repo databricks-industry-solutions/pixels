@@ -186,6 +186,28 @@ meta_df = DicomMetaExtractor(
 catalog.save(meta_df)
 ```
 
+## Permissive Mode
+When processing DICOM files at scale, some files may produce metadata JSON that cannot be parsed by Spark's `parse_json()` function — for example, tags with very long `InlineBinary` values. By default, this causes the stream or batch to fail with a `MALFORMED_RECORD_IN_PARSING` error.
+
+Setting `permissive=True` switches to `try_parse_json()`, which returns `NULL` instead of failing. A `_corrupt_record` column is added containing the raw JSON string for any rows that failed to parse, so you can inspect and triage them.
+
+```python
+from dbx.pixels import Catalog
+from dbx.pixels.dicom import *
+
+catalog = Catalog(spark)
+catalog_df = catalog.catalog(<path>, streaming=True)
+
+meta_df = DicomMetaExtractor(
+    catalog,
+    permissive=True
+).transform(catalog_df)
+
+catalog.save(meta_df)
+```
+
+The `permissive` parameter is also available on `DicomAnonymizerExtractor`.
+
 ---
 ## OHIF Viewer
 Inside `dbx.pixels` resources folder, a pre-built version of [OHIF Viewer](https://github.com/OHIF/Viewers) with Databricks and [Unity Catalog Volumes](https://docs.databricks.com/en/sql/language-manual/sql-ref-volumes.html) extension is provided. 
