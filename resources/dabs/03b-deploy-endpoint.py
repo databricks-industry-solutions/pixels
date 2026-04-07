@@ -161,4 +161,40 @@ except Exception as e:
     else:
         raise
 
+# Wait for the endpoint config update to complete so 03c doesn't have to
+# retry while the container is still building (GPU builds take 20-30 min).
+import time as _time
+
+_max_wait = 2400  # 40 min
+_poll_interval = 30
+_elapsed = 0
+
+while _elapsed < _max_wait:
+    _ep_resp = _requests.get(
+        f"{_host}/api/2.0/serving-endpoints/{serving_endpoint_name}",
+        headers={"Authorization": f"Bearer {_token}"},
+    )
+    if _ep_resp.status_code != 200:
+        print(f"Warning: endpoint check returned {_ep_resp.status_code}, retrying...")
+        _time.sleep(_poll_interval)
+        _elapsed += _poll_interval
+        continue
+
+    _ep_state = _ep_resp.json().get("state", {})
+    _ready = _ep_state.get("ready")
+    _config_update = _ep_state.get("config_update")
+
+    if _ready == "READY" and _config_update == "NOT_UPDATING":
+        print(f"Endpoint {serving_endpoint_name} is ready (waited {_elapsed}s)")
+        break
+
+    _pending = _ep_resp.json().get("pending_config", {}).get("served_entities", [])
+    _deploy_msg = _pending[0].get("state", {}).get("deployment_state_message", "") if _pending else ""
+    print(f"Waiting for endpoint... ready={_ready}, config_update={_config_update}, msg={_deploy_msg} ({_elapsed}s)")
+
+    _time.sleep(_poll_interval)
+    _elapsed += _poll_interval
+else:
+    print(f"Warning: endpoint did not become ready within {_max_wait}s — proceeding anyway")
+
 dbutils.notebook.exit("SUCCESS: endpoint created/updated")

@@ -70,7 +70,7 @@ setup(
     setup_requires=["setuptools_scm"],
     install_requires=required,
     include_package_data=True,
-    package_data={"databricks": ["pixels/resources/*"]},
+    package_data={"dbx": ["pixels/resources/**/*"]},
     extras_require={
         "dev": [
             "databricks-connect==16.1.0",

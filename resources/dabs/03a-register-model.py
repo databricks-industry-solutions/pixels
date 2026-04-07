@@ -35,18 +35,22 @@ try:
 except Exception as e:
     print(f"git tree hash unavailable ({e}), will register unconditionally")
 
-# Check if the champion alias already has this tree hash — skip if unchanged
-if tree_hash:
-    try:
-        champion = mc.get_model_version_by_alias(model_uc_name, "champion")
-        stored_hash = champion.tags.get("model_tree_hash", "")
-        if stored_hash == tree_hash:
-            print(f"Model {model_uc_name} champion v{champion.version} already matches tree hash — skipping registration")
-            dbutils.notebook.exit(f"SKIP: model unchanged (champion v{champion.version}, hash={tree_hash[:12]})")
-        else:
-            print(f"Tree hash changed ({stored_hash[:12]}→{tree_hash[:12]}), registering new version")
-    except Exception as e:
-        print(f"No champion alias found, proceeding with registration: {e}")
+# Check if the champion alias already exists — skip if unchanged
+try:
+    champion = mc.get_model_version_by_alias(model_uc_name, "champion")
+    stored_hash = champion.tags.get("model_tree_hash", "")
+    if tree_hash and stored_hash == tree_hash:
+        print(f"Model {model_uc_name} champion v{champion.version} already matches tree hash — skipping registration")
+        dbutils.notebook.exit(f"SKIP: model unchanged (champion v{champion.version}, hash={tree_hash[:12]})")
+    elif not tree_hash:
+        # No git available (DAB workspace sync) — champion exists, skip re-registration
+        # to avoid triggering a lengthy container rebuild on the serving endpoint.
+        print(f"Model {model_uc_name} champion v{champion.version} exists (git unavailable, skipping)")
+        dbutils.notebook.exit(f"SKIP: champion v{champion.version} exists (no git to compare)")
+    else:
+        print(f"Tree hash changed ({stored_hash[:12]}→{tree_hash[:12]}), registering new version")
+except Exception as e:
+    print(f"No champion alias found, proceeding with registration: {e}")
 
 # COMMAND ----------
 
