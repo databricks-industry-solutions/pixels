@@ -86,8 +86,8 @@ _logo_path = os.path.join(_repo_root, "images", "Pixels Logo.png")
 with open(_logo_path, "rb") as f:
     _encoded_thumbnail = base64.b64encode(f.read()).decode("utf-8")
 
-w.api_client.do("POST", f"/api/2.0/apps/{app_name}/thumbnail", body={
-    "name": app_name,
-    "encoded_thumbnail": _encoded_thumbnail,
+# PATCH /api/2.0/apps/{name}/thumbnail  (body: app_thumbnail.thumbnail = base64 bytes)
+w.api_client.do("PATCH", f"/api/2.0/apps/{app_name}/thumbnail", body={
+    "app_thumbnail": {"thumbnail": _encoded_thumbnail},
 })
 print(f"✓ Thumbnail set for '{app_name}'")

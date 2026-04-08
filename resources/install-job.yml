@@ -105,7 +105,7 @@ resources:
             notebook_path: ../07b-STOW-Processor-Job.ipynb
             source: WORKSPACE
           depends_on:
-            - task_key: 01_dcm_ingest
+            - task_key: 02_deploy_apps
           max_retries: 0
           environment_key: serverless
 

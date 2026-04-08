@@ -103,7 +103,7 @@ Tests live in `tests/` and run with `pytest -s --import-mode=importlib`.
 
 ### Post-Install Integration Tests
 
-After the install job completes, validate all 6 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
+After the install job completes, validate all 7 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
 
 #### 1. Dashboard
 
@@ -143,6 +143,15 @@ open <app_url>/ohif/monai-label?StudyInstanceUIDs=1.2.156.14702.1.1000.16.0.2020
 ```
 
 Expected: OHIF viewer loads with the COVID lung CT study in MONAI Label mode.
+
+#### 3b. Viewer App — MONAI Proxy (`/api/monai/`)
+
+```bash
+# MONAI info via the viewer app's reverse proxy (proxies to the model serving endpoint)
+curl -s <app_url>/api/monai/
+```
+
+Expected: JSON with MONAI Label info — `name`, `version`, `labels`, `models`. Same data as test 5 but validates the viewer-to-serving proxy is working end-to-end.
 
 #### 4. Gateway App (`pixels-dicomweb-gateway`)
 
