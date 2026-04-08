@@ -1,4 +1,4 @@
-mlflow==3.9.0
+mlflow==3.11.0rc1
 pydantic>=2.7.0
 numba==0.59
 dicomweb-client[gcp]>=0.59.1
