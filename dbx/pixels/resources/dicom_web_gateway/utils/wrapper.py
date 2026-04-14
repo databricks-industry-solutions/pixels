@@ -48,6 +48,7 @@ from .queries import (
     build_series_instance_paths_query,
     build_series_metadata_query,
     build_series_query,
+    build_study_metadata_query,
     build_study_query,
 )
 from .sql_client import DatabricksSQLClient, validate_table_name
@@ -548,6 +549,41 @@ class DICOMwebDatabricksWrapper:
                     count += 1
             yield "\n]"
             logger.info(f"WADO-RS: streamed {count} metadata records")
+
+        return _json_chunks()
+
+    @timing_decorator
+    def retrieve_study_metadata(
+        self, study_instance_uid: str
+    ) -> Iterator[str]:
+        """
+        WADO-RS: stream DICOM metadata for every instance in a study.
+
+        Same streaming approach as ``retrieve_series_metadata`` but scoped
+        to the entire study rather than a single series.
+        """
+        logger.debug(f"WADO-RS: metadata for study {study_instance_uid}")
+        query, params = build_study_metadata_query(
+            self._table,
+            study_instance_uid,
+        )
+        row_stream = self._query_stream(query, params)
+
+        first_row = next(row_stream, None)
+        if first_row is None or not first_row[0]:
+            raise HTTPException(status_code=404, detail="Study not found or no instances")
+
+        def _json_chunks() -> Iterator[str]:
+            count = 1
+            yield "[\n"
+            yield first_row[0]
+            for row in row_stream:
+                if row and row[0]:
+                    yield ",\n"
+                    yield row[0]
+                    count += 1
+            yield "\n]"
+            logger.info(f"WADO-RS: streamed {count} study metadata records")
 
         return _json_chunks()
 

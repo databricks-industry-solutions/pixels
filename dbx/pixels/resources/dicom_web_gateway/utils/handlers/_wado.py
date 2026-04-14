@@ -49,6 +49,21 @@ def dicomweb_wado_series_metadata(
     return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom+json")
 
 
+@timing_decorator
+def dicomweb_wado_study_metadata(
+    request: Request, study_instance_uid: str
+) -> StreamingResponse:
+    """GET /api/dicomweb/studies/{study}/metadata
+
+    Streams the JSON array of DICOM metadata for every instance in a
+    study.  Same approach as the series-level variant but scoped to the
+    entire study.
+    """
+    wrapper = get_dicomweb_wrapper(request)
+    stream = wrapper.retrieve_study_metadata(study_instance_uid)
+    return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom+json")
+
+
 def dicomweb_wado_instance(
     request: Request,
     study_instance_uid: str,

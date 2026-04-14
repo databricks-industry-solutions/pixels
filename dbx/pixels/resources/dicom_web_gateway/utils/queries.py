@@ -284,6 +284,30 @@ def build_series_metadata_query(
     return query, sql_params
 
 
+def build_study_metadata_query(
+    pixels_table: str,
+    study_instance_uid: str,
+) -> tuple[str, dict[str, Any]]:
+    """
+    Build a WADO-RS query to retrieve raw DICOM JSON metadata for every
+    instance in a study.
+
+    Returns only the ``meta`` VARIANT column — the caller streams it
+    directly as JSON without deserialization.
+    """
+    validate_table_name(pixels_table)
+    query = """
+    SELECT meta
+    FROM IDENTIFIER(%(pixels_table)s)
+    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+    """
+    sql_params: dict[str, Any] = {
+        "pixels_table": pixels_table,
+        "study_uid": study_instance_uid,
+    }
+    return query, sql_params
+
+
 def build_instance_path_query(
     pixels_table: str,
     study_instance_uid: str,

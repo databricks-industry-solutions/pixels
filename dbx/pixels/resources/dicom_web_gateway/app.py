@@ -93,6 +93,7 @@ from utils.handlers import (
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
     dicomweb_wado_series_metadata,
+    dicomweb_wado_study_metadata,
     dicomweb_wado_uri,
 )
 
@@ -494,6 +495,14 @@ def search_instances(
 
 
 @app.get(
+    "/api/dicomweb/studies/{study_uid}/metadata",
+    tags=["WADO-RS"],
+)
+def retrieve_study_metadata(request: Request, study_uid: str):
+    return dicomweb_wado_study_metadata(request, study_uid)
+
+
+@app.get(
     "/api/dicomweb/studies/{study_uid}/series/{series_uid}/metadata",
     tags=["WADO-RS"],
 )
@@ -603,6 +612,7 @@ def dicomweb_root():
                 "GET /api/dicomweb/studies/{study}/series/{series}/instances",
             ],
             "WADO-RS": [
+                "GET /api/dicomweb/studies/{study}/metadata",
                 "GET /api/dicomweb/studies/{study}/series/{series}/metadata",
                 "GET .../instances/{instance}",
                 "GET .../instances/{instance}/frames/{frameList}",
