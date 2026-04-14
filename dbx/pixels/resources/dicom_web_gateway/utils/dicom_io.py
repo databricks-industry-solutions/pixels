@@ -50,6 +50,10 @@ _RAM_BUDGET_RATIO = float(os.environ.get("PIXELS_PREFETCH_RAM_RATIO", "0.50"))
 _DISK_TOTAL_BYTES = 100 * 1024**3  # 100 GB assumed disk
 _DISK_BUDGET_BYTES = int(_DISK_TOTAL_BYTES * 0.80)  # keep 20 % headroom
 
+# Stream chunk size (bytes) for file delivery and buffered reads.
+# 1 MiB balances throughput and memory; override via env var for tuning.
+_STREAM_CHUNK_SIZE = int(os.environ.get("PIXELS_STREAM_CHUNK_SIZE", str(1024 * 1024)))
+
 
 # ---------------------------------------------------------------------------
 # Persistent HTTP session (connection pool — reused across all requests)
@@ -209,7 +213,7 @@ class BufferedStreamReader:
     def __init__(
         self,
         response: requests.Response,
-        chunk_size: int = 256 * 1024,
+        chunk_size: int = _STREAM_CHUNK_SIZE,
         start_position: int = 0,
         tee_file=None,
     ):
@@ -361,7 +365,7 @@ def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
 def stream_file(
     token: str,
     db_file: DatabricksFile,
-    chunk_size: int = 256 * 1024,
+    chunk_size: int = _STREAM_CHUNK_SIZE,
 ) -> tuple[Iterator[bytes], str | None]:
     """
     Stream an entire file from Databricks Volumes **without buffering**.
@@ -377,7 +381,7 @@ def stream_file(
     Args:
         token: Databricks bearer token.
         db_file: Target file descriptor.
-        chunk_size: Bytes per yield (default 256 KiB).
+        chunk_size: Bytes per yield (default ``PIXELS_STREAM_CHUNK_SIZE``, 1 MiB).
 
     Returns:
         ``(chunk_generator, content_length_str | None)``
@@ -1131,7 +1135,7 @@ class ProgressiveFileStreamer:
             tee_fh = open(state.local_path, "wb")
             reader = BufferedStreamReader(
                 response,
-                chunk_size=256 * 1024,
+                chunk_size=_STREAM_CHUNK_SIZE,
                 start_position=data_start,
                 tee_file=tee_fh,
             )
@@ -1550,7 +1554,7 @@ def _compute_bot_via_stream(
             f"Streaming BOT: HTTP {response.status_code} for {db_file.file_path}: {body}"
         )
 
-    reader = BufferedStreamReader(response, chunk_size=256 * 1024, start_position=bot_item_pos)
+    reader = BufferedStreamReader(response, chunk_size=_STREAM_CHUNK_SIZE, start_position=bot_item_pos)
     fragments = []
 
     try:
