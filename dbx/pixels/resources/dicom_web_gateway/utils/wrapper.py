@@ -40,7 +40,7 @@ from .dicom_io import (
     progressive_streamer,
     stream_file,
 )
-from .dicom_tags import format_dicomweb_response
+from .dicom_tags import filter_dicom_json, format_dicomweb_response
 from .queries import (
     build_all_series_query,
     build_instance_path_query,
@@ -519,10 +519,10 @@ class DICOMwebDatabricksWrapper:
         WADO-RS: stream DICOM metadata for every instance in a series.
 
         Returns an iterator of string chunks forming a JSON array.  Each
-        instance's ``meta`` column is emitted as-is (already valid JSON),
-        avoiding the ``json.loads`` / ``json.dumps`` round-trip and keeping
-        memory usage proportional to one Arrow batch rather than the full
-        result set.
+        instance's ``meta`` column is filtered to keep only standard DICOM
+        tag keys (8-hex-character IDs), stripping non-DICOM fields
+        injected by the ingestion pipeline (``file_size``, ``hash``, etc.)
+        that would break strict DICOMweb parsers.
         """
         logger.debug(f"WADO-RS: metadata for series {series_instance_uid}")
         query, params = build_series_metadata_query(
@@ -541,11 +541,11 @@ class DICOMwebDatabricksWrapper:
         def _json_chunks() -> Iterator[str]:
             count = 1
             yield "[\n"
-            yield first_row[0]
+            yield filter_dicom_json(first_row[0])
             for row in row_stream:
                 if row and row[0]:
                     yield ",\n"
-                    yield row[0]
+                    yield filter_dicom_json(row[0])
                     count += 1
             yield "\n]"
             logger.info(f"WADO-RS: streamed {count} metadata records")
@@ -576,11 +576,11 @@ class DICOMwebDatabricksWrapper:
         def _json_chunks() -> Iterator[str]:
             count = 1
             yield "[\n"
-            yield first_row[0]
+            yield filter_dicom_json(first_row[0])
             for row in row_stream:
                 if row and row[0]:
                     yield ",\n"
-                    yield row[0]
+                    yield filter_dicom_json(row[0])
                     count += 1
             yield "\n]"
             logger.info(f"WADO-RS: streamed {count} study metadata records")
