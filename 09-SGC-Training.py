@@ -57,7 +57,50 @@ MONAI_APP_LOCAL_PATH = "/tmp/monai_apps/radiology"
 
 # OHIF Viewer
 OHIF_PORT = 8001
+MONAI_PORT = 8000  # MONAILabel server default port
 DICOMWEB_GATEWAY_BASE = "https://pixels-dicomweb-gateway-7474654130285494.aws.databricksapps.com"
+
+# ---------------------------------------------------------------------------
+# Training Configuration Defaults
+# ---------------------------------------------------------------------------
+# These defaults are injected into every training request sent to MONAILabel.
+# They map 1:1 to MONAILabel BasicTrainTask._config keys.
+# The OHIF UI only exposes a subset; this is where you set the rest.
+# Any value here can be overridden by the request body from the UI.
+# ---------------------------------------------------------------------------
+MONAI_TRAIN_DEFAULTS = {
+    # ── Run identity ──────────────────────────────────────────────────
+    "name": "train_01",
+
+    # ── Model / weights ───────────────────────────────────────────────
+    "pretrained": True,
+
+    # ── Hardware ──────────────────────────────────────────────────────
+    "device": "cuda",
+    "multi_gpu": True,
+    "gpus": "all",
+
+    # ── Training hyper-parameters ─────────────────────────────────────
+    "max_epochs": 50,
+    "early_stop_patience": -1,        # -1 = disabled
+    "val_split": 0.2,
+    "train_batch_size": 1,
+    "val_batch_size": 1,
+
+    # ── Data pipeline ─────────────────────────────────────────────────
+    "dataset": "SmartCacheDataset",   # SmartCacheDataset | CacheDataset | PersistentDataset | Dataset
+    "dataloader": "ThreadDataLoader", # ThreadDataLoader | DataLoader
+
+    # ── MLflow tracking (Databricks) ──────────────────────────────────
+    "tracking": "mlflow",
+    "tracking_uri": "databricks",     # "databricks" uses the workspace's managed MLflow
+    "tracking_experiment_name": "",    # empty = auto-generated from model name
+}
+
+# The MLflow experiment name can be customised per-model at runtime.
+# When left empty, MONAILabel defaults to the model name.
+# To pin it, set e.g.:
+#   MONAI_TRAIN_DEFAULTS["tracking_experiment_name"] = "/Users/you@databricks.com/monai_training"
 
 # COMMAND ----------
 
@@ -260,10 +303,96 @@ class DBStaticFiles(StaticFiles):
             response.set_cookie(key="pixels_table", value=MONAI_TABLE, path="/")
         return response
 
-# Register routes
+# ---------------------------------------------------------------------------
+# MONAILabel training proxy — intercepts training requests from the OHIF UI,
+# injects the full config (MONAI_TRAIN_DEFAULTS) including MLflow/Databricks
+# tracking, and forwards to the MONAILabel server on localhost.
+#
+# Supports:
+#   POST /train/{model}        — train a specific model
+#   GET  /train/               — poll training status
+#   DELETE /train/             — stop a running training
+# ---------------------------------------------------------------------------
+async def _reverse_proxy_monai_train(request: Request):
+    """Proxy GET/DELETE /train/ → MONAILabel for status and stop."""
+    client = httpx.AsyncClient(
+        base_url=f"http://127.0.0.1:{MONAI_PORT}", timeout=httpx.Timeout(30)
+    )
+    target_url = request.url.path  # already starts with /train/
+    rp_req = client.build_request(request.method, target_url)
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=dict(rp_resp.headers),
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+async def _reverse_proxy_monai_train_post(request: Request):
+    """Intercept POST /train/{model}, inject training config, forward to MONAILabel."""
+    import copy
+
+    model = request.path_params.get("path", "")
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass  # empty body is fine — we have defaults
+
+    # Start from our full defaults, then overlay anything the UI sent.
+    # This ensures every BasicTrainTask._config key is explicitly set.
+    train_params = copy.deepcopy(MONAI_TRAIN_DEFAULTS)
+    if isinstance(body, dict):
+        # The UI may send {model_name: {params}} or flat {params}
+        ui_params = body.get(model, body) if model in body else body
+        train_params.update(ui_params)
+
+    # Always inject the pixels table so MONAILabel can find study data
+    train_params["pixels_table"] = MONAI_TABLE
+
+    # If the user left tracking_experiment_name empty, generate one from
+    # the pixels table name so experiments are easy to find in the workspace.
+    if not train_params.get("tracking_experiment_name"):
+        safe_table = MONAI_TABLE.replace(".", "_") if MONAI_TABLE else "monai"
+        train_params["tracking_experiment_name"] = f"monai_training_{safe_table}"
+
+    # Ensure MLflow can authenticate to Databricks when running inside the
+    # MONAILabel subprocess.  These env vars are already set by proxy_prep /
+    # init_env(), but we surface them explicitly for clarity.
+    for env_key in ("DATABRICKS_HOST", "DATABRICKS_TOKEN", "MLFLOW_TRACKING_URI"):
+        if env_key not in os.environ and env_key == "MLFLOW_TRACKING_URI":
+            os.environ["MLFLOW_TRACKING_URI"] = "databricks"
+
+    # Build the payload that MONAILabel POST /train/{model} expects.
+    # params dict is keyed by model name.
+    payload = {model: train_params} if model else train_params
+
+    print(f"[TrainProxy] Forwarding training request for model='{model}'")
+    print(f"[TrainProxy] Config: {json.dumps(train_params, indent=2, default=str)}")
+
+    client = httpx.AsyncClient(
+        base_url=f"http://127.0.0.1:{MONAI_PORT}", timeout=httpx.Timeout(600)
+    )
+    target_url = f"/train/{model}" if model else "/train/"
+    rp_req = client.build_request(
+        "POST", target_url,
+        content=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    rp_resp = await client.send(rp_req, stream=True)
+    return StreamingResponse(
+        rp_resp.aiter_raw(),
+        status_code=rp_resp.status_code,
+        headers=dict(rp_resp.headers),
+        background=BackgroundTask(rp_resp.aclose),
+    )
+
+# Register routes (order matters — static mount must be last)
 ohif_app.add_route("/dicomweb/{path:path}", _reverse_proxy_dicomweb, ["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 ohif_app.add_route("/sqlwarehouse/api/2.0/sql/statements/{path:path}", _reverse_proxy_statements, ["POST", "GET"])
 ohif_app.add_route("/sqlwarehouse/api/2.0/fs/files/{path:path}", _reverse_proxy_files, ["GET", "PUT"])
+ohif_app.add_route("/train/{path:path}", _reverse_proxy_monai_train_post, ["POST"])
+ohif_app.add_route("/train/{path:path}", _reverse_proxy_monai_train, ["GET", "DELETE"])
 ohif_app.mount("/", DBStaticFiles(directory=ohif_path, html=True), name="ohif")
 
 # ---------------------------------------------------------------------------
@@ -406,10 +535,20 @@ def _prepare_local_app():
 # ---------------------------------------------------------------------------
 def start_monailabel_server(app_path, studies_url, table, models="segmentation", labels=None, use_pretrained=True):
     """Start MONAILabel server as a subprocess.
-    
+
     Passes --log_config to override MONAILabel's default init_log_config()
     which uses RotatingFileHandler (fails on FUSE with 'Illegal seek').
+
+    Sets MLFLOW_TRACKING_URI=databricks in the subprocess environment so
+    that MONAILabel's MLFlowHandler logs metrics/artifacts to the
+    Databricks-managed MLflow workspace (requires DATABRICKS_HOST and
+    DATABRICKS_TOKEN already in the environment).
     """
+    # Build environment for the subprocess: inherit everything, ensure
+    # MLflow can talk to Databricks.
+    env = os.environ.copy()
+    env.setdefault("MLFLOW_TRACKING_URI", "databricks")
+
     cmd = [
         "monailabel", "start_server",
         "--app", app_path,
@@ -424,7 +563,8 @@ def start_monailabel_server(app_path, studies_url, table, models="segmentation",
         cmd.extend(["--conf", "use_pretrained_model", "false"])
 
     print(f"[MONAILabel] Starting with command: {' '.join(cmd)}")
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print(f"[MONAILabel] MLFLOW_TRACKING_URI={env.get('MLFLOW_TRACKING_URI')}")
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
     _server_state["monai_process"] = process
     for line in iter(process.stdout.readline, b""):
         print(f"[MONAILabel] {line.decode().strip()}")
