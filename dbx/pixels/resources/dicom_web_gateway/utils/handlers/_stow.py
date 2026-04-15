@@ -1154,11 +1154,11 @@ async def _handle_legacy_spark(
     """
     file_id = uuid.uuid4().hex
     current_date = datetime.now(timezone.utc).strftime("%Y/%m/%d")
-    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
-    dest_path = f"{table_scoped_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     req_pixels_table = _resolve_pixels_table(request)
     req_stow_table = _derive_stow_table(req_pixels_table)
+    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
+    dest_path = f"{table_scoped_base}/{current_date}/{file_id}.mpr"
 
     logger.info(
         f"STOW-RS [legacy]: streaming request to {dest_path}, "
