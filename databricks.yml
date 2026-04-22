@@ -1,5 +1,6 @@
 bundle:
   name: pixels-install
+  engine: direct
 
 include:
   - targets.yml
