@@ -36,12 +36,32 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
     <html>
         <head>
             <title>Pixels Solution Accelerator</title>
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/vendor-jquery.5c80d7f6.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/70577.563792a4.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/59976.a356be26.chunk.css" crossorigin="anonymous">
-            <link rel="stylesheet" type="text/css" href="https://ui-assets.cloud.databricks.com/login/62569.22f26a3b.chunk.css" crossorigin="anonymous">
             <script>document.cookie = "MONAILABEL_SERVER_URL="+window.location.origin+"/api/monai/; Path=/ohif; Expires=Session;"</script>
             <style>
+                /* ── reset ── */
+                *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f5f5f5; color: #1b1f24; }}
+                /* ── page layout ── */
+                #login-page {{ display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 24px; }}
+                #login-container {{ background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.1); max-width: 640px; width: 100%; padding: 48px 40px 32px; text-align: center; }}
+                .login-logo {{ display: block; margin: 0 auto 28px; }}
+                .login-form {{ text-align: left; }}
+                .sub-header {{ font-size: 20px; font-weight: 600; margin-bottom: 16px; text-align: center; }}
+                .tab-child {{ margin-top: 8px; }}
+                .instructions {{ font-size: 14px; color: #444; margin: 12px 0 6px; }}
+                /* ── form inputs ── */
+                input[type="text"] {{ width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-bottom: 4px; }}
+                input[type="text"]:focus {{ outline: none; border-color: #e03e2d; box-shadow: 0 0 0 2px rgba(224,62,45,.2); }}
+                /* ── buttons ── */
+                .btn {{ display: inline-block; padding: 10px 24px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid transparent; margin: 16px 8px 8px 0; text-decoration: none; }}
+                .btn-primary {{ background: #e03e2d; color: #fff; border-color: #e03e2d; }}
+                .btn-primary:hover {{ background: #c43425; }}
+                .btn-secondary {{ background: #fff; color: #e03e2d; border-color: #e03e2d; }}
+                .btn-secondary:hover {{ background: #fef2f1; }}
+                /* ── footer ── */
+                .terms-of-service-footer {{ font-size: 12px; color: #888; margin-top: 24px; text-align: center; }}
+                .terms-of-service-footer a {{ color: #888; text-decoration: underline; }}
+                /* ── version badge ── */
                 .version-badge {{
                     display: block;
                     font-size: 12px;
@@ -76,13 +96,12 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
                 }}
             </style>
         </head>
-        <body class="light-mode dark-mode-supported">
-        <uses-legacy-bootstrap>
+        <body>
             <div id="login-page">
                 <div>
                     <div id="login-container" class="container">
                     <img src="https://{host}/login/logo_2020/databricks.svg" class="login-logo" style="width: 200px;">
-                        <div class="login-form" style="min-width:600px">
+                        <div class="login-form">
                             <h3 class="sub-header">Pixels Solution Accelerator</h3>
 
                             <div id="update-banner" class="update-banner">
@@ -112,7 +131,6 @@ def config_page(pixels_table: str, seg_dest_dir: str) -> str:
                     </div>
                 </div>
             </div>
-        </uses-legacy-bootstrap>
 
         <script>
         (function() {{

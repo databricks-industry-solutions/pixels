@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 *.whl
+!monailabel_model/artifacts/*.whl
 MANIFEST
 
 # PyInstaller
@@ -135,7 +136,6 @@ dmypy.json
 
 .databricks/
 !.databricks/commit_outputs
-databricks.yml
 
 dbx/pixels/resources/ohif/app-config-custom.js
 dbx/pixels/resources/lakehouse_app/app.yaml

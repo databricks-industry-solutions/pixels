@@ -271,6 +271,10 @@ class LakebaseUtils:
 
         self.connection = self.get_connection()
 
+        # Grant DML privileges after the pool is ready (schema/tables must exist)
+        if app_sp_id is not None:
+            self._grant_sp_schema_access(app_sp_id)
+
     def get_or_create_db_instance(self, create_instance):
         """
         Get or create the Lakehouse environment (Project, Branch, and Endpoint).
@@ -343,18 +347,27 @@ class LakebaseUtils:
 
     def get_or_create_sp_role(self, sp_client_id):
         roles = list(self.workspace_client.postgres.list_roles(self.branch_resource_name) or [])
-        existing_role = next((r for r in roles if sp_client_id in r.name), None)
+        existing_role = next(
+            (
+                r
+                for r in roles
+                if sp_client_id in r.name
+                or (hasattr(r, "spec") and r.spec and r.spec.postgres_role == sp_client_id)
+            ),
+            None,
+        )
 
         if existing_role:
             logger.info(
                 f"Role for service principal {sp_client_id} already exists in branch {self.branch_name}"
             )
             return existing_role
-        else:
-            # Create the database instance role for the service principal
-            logger.info(
-                f"Creating role for service principal {sp_client_id} in branch {self.branch_name}"
-            )
+
+        # Create the database instance role for the service principal
+        logger.info(
+            f"Creating role for service principal {sp_client_id} in branch {self.branch_name}"
+        )
+        try:
             db_role = self.workspace_client.postgres.create_role(
                 parent=self.branch_resource_name,
                 role=Role(
@@ -365,6 +378,45 @@ class LakebaseUtils:
                 ),
             )
             return db_role
+        except Exception as e:
+            if "already exists" in str(e):
+                logger.info(f"Role for {sp_client_id} already exists, fetching it")
+                roles = list(
+                    self.workspace_client.postgres.list_roles(self.branch_resource_name) or []
+                )
+                return next((r for r in roles), None)
+            raise
+
+    def _grant_sp_schema_access(self, sp_client_id: str):
+        """Grant DML privileges on the schema to a service principal role.
+
+        Runs ``GRANT USAGE`` on the schema and ``GRANT SELECT, INSERT,
+        UPDATE, DELETE`` on all current and future tables so the app
+        service principal can read and write Lakebase tables (e.g.
+        ``endpoint_metrics``).
+        """
+        stmts = [
+            sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+            sql.SQL(
+                "GRANT SELECT, INSERT, UPDATE, DELETE " "ON ALL TABLES IN SCHEMA {} TO {}"
+            ).format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+            sql.SQL(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA {} "
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
+            ).format(
+                sql.Identifier(self.schema),
+                sql.Identifier(sp_client_id),
+            ),
+        ]
+        for stmt in stmts:
+            self.execute_query(stmt)
+        logger.info(f"Granted DML privileges on schema '{self.schema}' to role '{sp_client_id}'")
 
     def _generate_credential(self):
         """

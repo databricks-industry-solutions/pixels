@@ -36,8 +36,10 @@ def init_model_serving_widgets():
   model_uc_name = dbutils.widgets.get("model_uc_name")
   dbutils.widgets.text("serving_endpoint_name", "pixels-monai-uc", label="4.0 Serving Endpoint name")
   serving_endpoint_name = dbutils.widgets.get("serving_endpoint_name")
+  dbutils.widgets.dropdown("scale_to_zero_enabled", defaultValue="true", choices=["true", "false"], label="5.0 Scale serving endpoint to zero when idle")
+  scale_to_zero_enabled = dbutils.widgets.get("scale_to_zero_enabled").lower() == "true"
 
-  return model_uc_name, serving_endpoint_name
+  return model_uc_name, serving_endpoint_name, scale_to_zero_enabled
 
 # COMMAND ----------
 

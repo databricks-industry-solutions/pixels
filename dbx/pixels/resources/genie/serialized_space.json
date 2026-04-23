@@ -59,43 +59,6 @@
         ]
       },
       {
-        "identifier": "{UC_SCHEMA}.dicom_tags_vs",
-        "column_configs": [
-          {
-            "column_name": "Keyword",
-            "enable_format_assistance": true,
-            "enable_entity_matching": true
-          },
-          {
-            "column_name": "Name",
-            "enable_format_assistance": true,
-            "enable_entity_matching": true
-          },
-          {
-            "column_name": "Retired",
-            "enable_format_assistance": true
-          },
-          {
-            "column_name": "Tag",
-            "enable_format_assistance": true,
-            "enable_entity_matching": true
-          },
-          {
-            "column_name": "VM",
-            "enable_format_assistance": true,
-            "enable_entity_matching": true
-          },
-          {
-            "column_name": "VR",
-            "enable_format_assistance": true,
-            "enable_entity_matching": true
-          },
-          {
-            "column_name": "__db_Name_vector"
-          }
-        ]
-      },
-      {
         "identifier": "{UC_SCHEMA}.object_catalog",
         "column_configs": [
           {
