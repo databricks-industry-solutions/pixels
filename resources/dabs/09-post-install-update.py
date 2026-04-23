@@ -55,6 +55,7 @@ _viewer_host = _viewer_app.url
 _param_overrides = {"table": table, "viewer_host": _viewer_host}
 _updated = False
 
+# Patch dataset parameter defaults
 for ds in _dashboard_json.get("datasets", []):
     for p in ds.get("parameters", []):
         kw = p.get("keyword", "")
@@ -66,6 +67,26 @@ for ds in _dashboard_json.get("datasets", []):
                     _updated = True
             except (KeyError, IndexError):
                 pass
+
+# Patch Global Filters widget selection defaults so the UI pre-selects the correct values
+_filter_param_map = {"table": "table", "viewer_host": "viewer_host"}
+for page in _dashboard_json.get("pages", []):
+    if page.get("pageType") != "PAGE_TYPE_GLOBAL_FILTERS":
+        continue
+    for layout in page.get("layout", []):
+        spec = layout.get("widget", {}).get("spec", {})
+        for field in spec.get("encodings", {}).get("fields", []):
+            param_name = field.get("parameterName", "")
+            if param_name in _param_overrides:
+                _new_sel = {
+                    "values": {
+                        "dataType": "STRING",
+                        "values": [{"value": _param_overrides[param_name]}],
+                    }
+                }
+                if spec.get("selection", {}).get("defaultSelection") != _new_sel:
+                    spec.setdefault("selection", {})["defaultSelection"] = _new_sel
+                    _updated = True
 
 if _updated:
     _requests.patch(
