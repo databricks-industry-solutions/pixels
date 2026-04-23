@@ -47,8 +47,12 @@ _full_resp.raise_for_status()
 _ser = _full_resp.json().get("serialized_dashboard", "")
 _dashboard_json = _json.loads(_ser) if _ser else {}
 
-# Override :table parameter defaults to match the job's table variable
-_param_overrides = {"table": table}
+# Get the deployed viewer app URL for the viewer_host parameter
+_viewer_app = w.apps.get("pixels-dicomweb")
+_viewer_host = _viewer_app.url
+
+# Override parameter defaults to match the deployed environment
+_param_overrides = {"table": table, "viewer_host": _viewer_host}
 _updated = False
 
 for ds in _dashboard_json.get("datasets", []):
@@ -69,9 +73,9 @@ if _updated:
         headers={**_auth_headers, "Content-Type": "application/json"},
         json={"serialized_dashboard": _json.dumps(_dashboard_json)},
     ).raise_for_status()
-    print(f"✓ Dashboard parameter defaults updated: table={table}")
+    print(f"✓ Dashboard parameter defaults updated: table={table}, viewer_host={_viewer_host}")
 else:
-    print(f"✓ Dashboard parameter defaults already correct: table={table}")
+    print(f"✓ Dashboard parameter defaults already correct: table={table}, viewer_host={_viewer_host}")
 
 # COMMAND ----------
 

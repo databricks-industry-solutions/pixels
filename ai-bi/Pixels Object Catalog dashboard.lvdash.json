@@ -607,86 +607,6 @@
         },
         {
           "widget": {
-            "name": "a4259bfe",
-            "queries": [
-              {
-                "name": "dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c7db397b680c381ad94_table",
-                "query": {
-                  "datasetName": "9651ec0b",
-                  "fields": [
-                    {
-                      "name": "table",
-                      "expression": "`table`"
-                    },
-                    {
-                      "name": "table_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c69b02a2bbadd60e31d_table",
-                "query": {
-                  "datasetName": "ca4b24b9",
-                  "parameters": [
-                    {
-                      "name": "table",
-                      "keyword": "table"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c85abd69a9d4e7c7d13_table",
-                "query": {
-                  "datasetName": "b589b5b1",
-                  "parameters": [
-                    {
-                      "name": "table",
-                      "keyword": "table"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "title": "Object Catalog",
-                "showTitle": true
-              },
-              "widgetType": "filter-single-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "table",
-                    "queryName": "dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c7db397b680c381ad94_table"
-                  },
-                  {
-                    "parameterName": "table",
-                    "queryName": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c69b02a2bbadd60e31d_table"
-                  },
-                  {
-                    "parameterName": "table",
-                    "queryName": "parameter_dashboards/01f120c84c9d1b10b0e208161f10c367/datasets/01f120c84c9d1c85abd69a9d4e7c7d13_table"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 0,
-            "width": 3,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
             "name": "137b7050",
             "queries": [
               {
@@ -842,48 +762,6 @@
             "y": 14,
             "width": 3,
             "height": 4
-          }
-        },
-        {
-          "widget": {
-            "name": "c3c7c172",
-            "queries": [
-              {
-                "name": "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_viewer_host",
-                "query": {
-                  "datasetName": "ca4b24b9",
-                  "parameters": [
-                    {
-                      "name": "viewer_host",
-                      "keyword": "viewer_host"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "filter-single-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "parameterName": "viewer_host",
-                    "queryName": "parameter_dashboards/01f0414940ac1d4aaceb802d7a1e0378/datasets/01f0414940ad13dea8e9e52129d9f580_viewer_host"
-                  }
-                ]
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "OHIF viewer host"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 1,
-            "width": 3,
-            "height": 1
           }
         },
         {
@@ -1971,6 +1849,111 @@
         }
       ],
       "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "6a74fc9c",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "object-catalog",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "parameters": [
+                    {
+                      "name": "table",
+                      "keyword": "table"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Object Catalog"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "table",
+                    "queryName": "main_query"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ohif-viewer",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "parameters": [
+                    {
+                      "name": "viewer_host",
+                      "keyword": "viewer_host"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "OHIF viewer",
+                "showDescription": false
+              },
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "https://pixels-dicomweb-<workspaceid>.aws.databricksapps.com"
+                      }
+                    ]
+                  }
+                }
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "viewer_host",
+                    "queryName": "main_query"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
     }
   ],
   "uiSettings": {
