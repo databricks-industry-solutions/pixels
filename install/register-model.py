@@ -19,21 +19,24 @@ from mlflow import MlflowClient
 
 mc = MlflowClient()
 
-# Compute a fingerprint of the models/vista3d/ directory using git tree hash.
-# If git is unavailable (non-git workspace), fall back to always registering.
-_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
+# Compute a fingerprint of the vista3d tarball on the UC Volume.
+# If the tarball is missing, fall back to always registering.
+_volume = dbutils.widgets.get("volume")
+_vol_parts = _volume.split(".")
+_volume_base = f"/Volumes/{_vol_parts[0]}/{_vol_parts[1]}/{_vol_parts[2]}"
+_vista3d_tar = os.path.join(_volume_base, "dist", "vista3d.tar.gz")
 
 tree_hash = None
 try:
-    tree_hash = subprocess.check_output(
-        ["git", "rev-parse", "HEAD:models/vista3d"],
-        cwd=_repo_root, text=True
-    ).strip()
-    print(f"Model tree hash: {tree_hash}")
+    import hashlib
+    _h = hashlib.md5()
+    with open(_vista3d_tar, "rb") as _f:
+        for _chunk in iter(lambda: _f.read(1 << 20), b""):
+            _h.update(_chunk)
+    tree_hash = _h.hexdigest()
+    print(f"Model tarball hash: {tree_hash}")
 except Exception as e:
-    print(f"git tree hash unavailable ({e}), will register unconditionally")
+    print(f"Tarball hash unavailable ({e}), will register unconditionally")
 
 # Check if the champion alias already exists — skip if unchanged
 try:
@@ -54,12 +57,21 @@ except Exception as e:
 
 # COMMAND ----------
 
-# DBTITLE 1,Install Dependencies
-import subprocess, sys, os
+# DBTITLE 1,Extract Model Artifacts from Volume and Install Dependencies
+import subprocess, sys, os, tarfile, shutil
 
-_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../models/vista3d"))
+# Extract vista3d.tar.gz from the UC Volume (uploaded by init-schema)
+_volume = dbutils.widgets.get("volume")
+_vol_parts = _volume.split(".")
+_volume_base = f"/Volumes/{_vol_parts[0]}/{_vol_parts[1]}/{_vol_parts[2]}"
+_vista3d_tar = os.path.join(_volume_base, "dist", "vista3d.tar.gz")
+
+_model_dir = "/tmp/vista3d"
+if os.path.isdir(_model_dir):
+    shutil.rmtree(_model_dir)
+with tarfile.open(_vista3d_tar, "r:gz") as tar:
+    tar.extractall("/tmp")
+print(f"Extracted vista3d model artifacts to {_model_dir}")
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
@@ -81,25 +93,31 @@ sql_warehouse_id, table, volume = init_widgets(show_volume=True)
 model_uc_name, serving_endpoint_name, _ = init_model_serving_widgets()
 init_env()
 
-import os, subprocess, sys
+import os, subprocess, sys, tarfile, shutil
 
-_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../models/vista3d"))
+_vol_parts = volume.split(".")
+_volume_base = f"/Volumes/{_vol_parts[0]}/{_vol_parts[1]}/{_vol_parts[2]}"
+os.environ["DEST_DIR"] = f"{_volume_base}/monai_serving/vista3d/"
+
+# Re-extract model artifacts from Volume (state lost after restartPython)
+_model_dir = "/tmp/vista3d"
+if not os.path.isdir(_model_dir):
+    _vista3d_tar = os.path.join(_volume_base, "dist", "vista3d.tar.gz")
+    with tarfile.open(_vista3d_tar, "r:gz") as tar:
+        tar.extractall("/tmp")
+
 os.chdir(_model_dir)
 sys.path.insert(0, _model_dir)
 
-volume_path = volume.replace(".", "/")
-os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/vista3d/"
-
-# Recompute tree hash (lost after restartPython)
-_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
+# Recompute tarball hash (lost after restartPython)
 tree_hash = None
 try:
-    tree_hash = subprocess.check_output(
-        ["git", "rev-parse", "HEAD:models/vista3d"],
-        cwd=_repo_root, text=True
-    ).strip()
+    import hashlib
+    _h = hashlib.md5()
+    with open(os.path.join(_volume_base, "dist", "vista3d.tar.gz"), "rb") as _f:
+        for _chunk in iter(lambda: _f.read(1 << 20), b""):
+            _h.update(_chunk)
+    tree_hash = _h.hexdigest()
 except Exception:
     pass
 

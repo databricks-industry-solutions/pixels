@@ -182,10 +182,10 @@ pixels/
 │   ├── dbx/                      # keep
 │   └── perfs/
 │
+└── images/			  # Need to keep images at top level. Links outside of github rely on this location.
 └── docs/                         # Consolidate documentation
     ├── INSTALL.md
     ├── DICOMWEB.md
-    └── images/
 ```
 
 ## Design Decisions
