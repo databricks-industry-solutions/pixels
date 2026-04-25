@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../../config/proxy_prep
+# MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
 
@@ -23,7 +23,7 @@ mc = MlflowClient()
 # If git is unavailable (non-git workspace), fall back to always registering.
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_repo_root = os.path.normpath(os.path.join(_nb_dir, "../.."))
+_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
 
 tree_hash = None
 try:
@@ -59,7 +59,7 @@ import subprocess, sys, os
 
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../../monailabel_model"))
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../monailabel_model"))
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
@@ -72,7 +72,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-# MAGIC %run ../../config/proxy_prep
+# MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
 
@@ -85,7 +85,7 @@ import os, subprocess, sys
 
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../../monailabel_model"))
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../monailabel_model"))
 os.chdir(_model_dir)
 sys.path.insert(0, _model_dir)
 
@@ -93,7 +93,7 @@ volume_path = volume.replace(".", "/")
 os.environ["DEST_DIR"] = f"/Volumes/{volume_path}/monai_serving/vista3d/"
 
 # Recompute tree hash (lost after restartPython)
-_repo_root = os.path.normpath(os.path.join(_nb_dir, "../.."))
+_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
 tree_hash = None
 try:
     tree_hash = subprocess.check_output(

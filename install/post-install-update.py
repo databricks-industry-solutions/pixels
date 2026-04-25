@@ -8,7 +8,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../../config/proxy_prep
+# MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
 
@@ -105,8 +105,8 @@ import base64
 
 app_name = "pixels-dicomweb"
 
-# Notebook CWD is resources/dabs/ — go up two levels to repo root
-_repo_root = os.path.dirname(os.path.dirname(os.getcwd()))
+# Notebook CWD is install/ — go up one level to repo root
+_repo_root = os.path.dirname(os.getcwd())
 _logo_path = os.path.join(_repo_root, "images", "Pixels Logo.png")
 with open(_logo_path, "rb") as f:
     _encoded_thumbnail = base64.b64encode(f.read()).decode("utf-8")
