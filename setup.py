@@ -33,7 +33,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
 
 try:
-    exec(open("dbx/pixels/version.py").read())
+    exec(open("src/dbx/pixels/version.py").read())
 except IOError:
     print(
         "Failed to load pixels version file for packaging. You must be in pixels root dir.",
@@ -59,32 +59,46 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     version=VERSION,
-    packages=find_packages(),
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     platforms=["any"],
     python_requires=">=3.10",
     use_scm_version={
-        "write_to": "dbx/pixels/version.py",
+        "write_to": "src/dbx/pixels/version.py",
         "fallback_version": "0.0.0",
         "local_scheme": "no-local-version",
     },
     setup_requires=["setuptools_scm"],
     install_requires=required,
     include_package_data=True,
-    package_data={"databricks": ["pixels/resources/*"]},
+    package_data={
+        "dbx.pixels": [
+            "resources/**/*.sql",
+            "resources/**/*.txt",
+            "resources/**/*.json",
+            "resources/**/*.ndjson",
+            "resources/**/*.css",
+            "resources/**/*.html",
+            "resources/**/*.js",
+            "resources/**/*.svg",
+            "resources/**/*.jp2",
+            "resources/**/UI_VERSION",
+        ]
+    },
     extras_require={
         "dev": [
-            "databricks-connect>=16.1.0",
+            "databricks-connect==16.1.0",
             "databricks-sdk==0.88.0",
-            "autoflake",
-            "black",
-            "isort",
-            "mypy>=0.990",
-            "pdoc",
-            "pre-commit",
-            "coverage[toml]>=6.5",
-            "pytest",
-            "pytest-cov>=4.0.0,<5.0.0",
-            "pytest-mock>=3.0.0,<4.0.0",
+            "autoflake==2.3.1",
+            "black==24.10.0",
+            "isort==6.0.1",
+            "mypy==1.14.1",
+            "pdoc==15.0.1",
+            "pre-commit==4.1.0",
+            "coverage[toml]==7.6.10",
+            "pytest==8.3.4",
+            "pytest-cov==4.1.0",
+            "pytest-mock==3.14.0",
         ],
     },
 )

@@ -19,7 +19,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Initialize the environment
-# MAGIC %run ./config/setup
+# MAGIC %run ../../install/config/setup
 
 # COMMAND ----------
 
@@ -142,4 +142,4 @@ catalog.save(thumbnail_df, mode=write_mode)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Next: <a href="$./02-dcm-browser">DICOM Image Browser</a>
+# MAGIC Next: Use the OHIF viewer to browse DICOM images.

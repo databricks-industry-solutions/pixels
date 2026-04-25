@@ -46,7 +46,8 @@ You'll find this example in [01-dcm-demo](https://github.com/databricks-industry
 
 ---
 ## Architecture
-![image](https://github.com/user-attachments/assets/75decf47-3a37-446a-a672-d497d155f464)
+<img width="1311" height="739" alt="image" src="https://github.com/user-attachments/assets/be8c2b13-db58-4a71-9f37-d8919db81b85" />
+
 
 The image depicts the **Pixels Reference Solution Architecture**, which outlines a data processing and analytics framework designed for healthcare or imaging applications. Here's a breakdown of its components:
 
@@ -86,27 +87,23 @@ This architecture is designed to handle healthcare imaging data securely while e
 For the Databricks Apps architecture and operations guide (viewer app, gateway app,
 QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
-- [`README_DICOMWEB.md`](README_DICOMWEB.md)
+- [`docs/DICOMWEB.md`](docs/DICOMWEB.md)
 
 The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
 workspace workflows. For production DICOMweb deployments with the split
 `dicom_web` + `dicom_web_gateway` Databricks Apps architecture, use
-`README_DICOMWEB.md` as the source of truth.
+`docs/DICOMWEB.md` as the source of truth.
 
 
 ---
 ## Getting started
 
-1. To run this accelerator, [clone](https://docs.databricks.com/aws/en/repos/git-operations-with-repos) this repo into a Databricks workspace. 
+See **[docs/INSTALL.md](docs/INSTALL.md)** for complete installation instructions using Databricks Asset Bundles.
 
-2. Attach a notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS)
-3. Run [`config/setup.py`]($./config/setup) from the notebook. This will install the pixels package onto your workspace
-4. If you need additional libraries to decode or encode DICOM pixel data, use the pydicom guidance to pick the right optional codec package(s): [pydicom pixel data decompression guide](https://github.com/pydicom/pydicom?tab=readme-ov-file#decompressing-pixel-data).
-
-
-## Run pipeline as a job
-1. Attach the [`RUNME`]($./RUNME) notebook to Serverless Compute or a cluster (>=DBR 14.3 LTS). 2. Execute the notebook via Run-All. You can configure the notebook tasks run by the job in `job_json`
-A multi-step-job describing the accelerator pipeline will be created, and the link will be provided. The cost associated with running the accelerator is the user's responsibility.
+```bash
+databricks bundle deploy -t dev
+databricks bundle run pixels_install -t dev
+```
 
 ## Incremental processing
 Pixels allows you to ingest DICOM files in a streaming fashion using [autoloader](https://docs.databricks.com/en/ingestion/auto-loader/unity-catalog.html) capability.
@@ -250,7 +247,7 @@ This setup enhances your medical image analysis workflow by combining Databricks
 
 ### Model Serving Instructions
 
-To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](https://github.com/databricks-industry-solutions/pixels/blob/main/monailabel_model/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
+To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](https://github.com/databricks-industry-solutions/pixels/blob/main/models/vista3d/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
 
 #### Key Features
 

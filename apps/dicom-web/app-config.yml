@@ -1,0 +1,30 @@
+env:
+  # ── Required ────────────────────────────────────────────────────────────────
+  - name: "DICOMWEB_GATEWAY_URL"
+    value: "{DICOMWEB_GATEWAY_URL}"
+  - name: "DATABRICKS_WAREHOUSE_ID"
+    valueFrom: "sql_warehouse"
+  - name: "DATABRICKS_PIXELS_TABLE"
+    value: "{PIXELS_TABLE}"
+
+  # ── MONAI serving ───────────────────────────────────────────────────────────
+  - name: "MONAI_SERVING_ENDPOINT"
+    valueFrom: "serving_endpoint"
+
+  # ── OHIF static viewer assets ────────────────────────────────────────────────
+  - name: "OHIF_STATIC_DIR"
+    value: "{OHIF_VOLUME_PATH}"
+
+  # ── Authentication ──────────────────────────────────────────────────────────
+  - name: "DICOMWEB_USE_USER_AUTH"
+    value: "false"
+
+  # ── HTTP client tuning ──────────────────────────────────────────────────────
+  - name: "DICOMWEB_MAX_CONNECTIONS"
+    value: "200"
+  - name: "DICOMWEB_MAX_KEEPALIVE"
+    value: "100"
+
+  # ── Logging ─────────────────────────────────────────────────────────────────
+  - name: "DB_PIXELS_LOG_LEVEL"
+    value: "INFO"

@@ -12,15 +12,21 @@ Tests cover:
 
 import os
 import struct
+import sys
 import tempfile
 import threading
 import time
 from io import BytesIO
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
+# Add dicom-web-gateway app to path for utils imports
+_GATEWAY_APP = str(Path(__file__).resolve().parents[2] / "apps" / "dicom-web-gateway")
+if _GATEWAY_APP not in sys.path:
+    sys.path.insert(0, _GATEWAY_APP)
 
-from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
+import pytest
+from utils.dicom_io import (
     _ITEM_TAG,
     _SEQ_DELIM_TAG,
     BufferedStreamReader,

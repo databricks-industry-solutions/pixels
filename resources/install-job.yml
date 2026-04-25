@@ -1,0 +1,146 @@
+resources:
+  jobs:
+    pixels_install:
+      name: "Pixels Install"
+      description: "Full Pixels stack installation: ingest, apps, model, dashboard, genie"
+      timeout_seconds: 10800
+      max_concurrent_runs: 1
+      tags:
+        accelerator: pixels
+        group: HLS
+
+      parameters:
+        - name: path
+          default: "s3://hls-eng-data-public/dicom/landing_zone/*.zip"
+        - name: table
+          default: ${var.table}
+        - name: volume
+          default: ${var.volume}
+        - name: sqlWarehouseID
+          default: ${var.sql_warehouse}
+        - name: mode
+          default: "append"
+        - name: serving_endpoint_name
+          default: ${var.serving_endpoint_name}
+        - name: model_uc_name
+          default: ${var.model_uc_name}
+        - name: scale_to_zero_enabled
+          default: ${var.scale_to_zero_enabled}
+        - name: vlm_image_analysis
+          default: ${var.vlm_image_analysis}
+        - name: metadata_redaction
+          default: ${var.metadata_redaction}
+        - name: image_redaction
+          default: ${var.image_redaction}
+        - name: vector_search_embedding
+          default: ${var.vector_search_embedding}
+
+      tasks:
+        # ── Step 0: Initialize UC schema, volume, empty table ───────
+        - task_key: 00_init_schema
+          notebook_task:
+            notebook_path: ../install/init-schema.ipynb
+            source: WORKSPACE
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 1: Demo Data Ingest (serverless) ───────────────────
+        - task_key: 01_dcm_ingest
+          notebook_task:
+            notebook_path: ../install/dcm-demo.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 00_init_schema
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 2: Deploy Apps + Lakebase (serverless) ─────────────
+        - task_key: 02_deploy_apps
+          notebook_task:
+            notebook_path: ../install/deploy-apps.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 03c_validate_model
+            - task_key: 01_dcm_ingest
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
+        # ── Step 3a: Register Vista3D model in UC (serverless) ────
+        - task_key: 03a_register_model
+          notebook_task:
+            notebook_path: ../install/register-model.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 00_init_schema
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 3b: Deploy serving endpoint (serverless) ─────────
+        - task_key: 03b_deploy_endpoint
+          notebook_task:
+            notebook_path: ../install/deploy-endpoint.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 03a_register_model
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 3c: Validate endpoint with test inference ────────
+        - task_key: 03c_validate_model
+          notebook_task:
+            notebook_path: ../install/validate-model.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 03b_deploy_endpoint
+          max_retries: 10
+          min_retry_interval_millis: 180000
+          environment_key: serverless
+
+        # ── Step 4: Genie Space (serverless) ────────────────────────
+        - task_key: 04_genie_space
+          notebook_task:
+            notebook_path: ../install/genie-space.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 01_dcm_ingest
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 7b: Create STOW-RS processor job + permissions ───
+        - task_key: 07b_stow_processor
+          notebook_task:
+            notebook_path: ../install/stow-processor.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: 02_deploy_apps
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 9: Post-install updates (dashboard params, thumbnails) ─
+        - task_key: 09_post_install_update
+          notebook_task:
+            notebook_path: ../install/post-install-update.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 02_deploy_apps
+            - task_key: 04_genie_space
+            - task_key: 07b_stow_processor
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Step 10: Validate all services ─────────────────────────
+        - task_key: 10_validate
+          notebook_task:
+            notebook_path: ../install/validate-install.py
+            source: WORKSPACE
+          depends_on:
+            - task_key: 09_post_install_update
+          max_retries: 12
+          min_retry_interval_millis: 180000
+          environment_key: serverless
+
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "4"
