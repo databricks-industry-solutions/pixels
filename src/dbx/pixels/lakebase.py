@@ -377,6 +377,8 @@ class LakebaseUtils:
                     )
                 ),
             )
+            logger.info("Waiting for role to propagate to Postgres...")
+            time.sleep(10)
             return db_role
         except Exception as e:
             if "already exists" in str(e):
