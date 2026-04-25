@@ -301,6 +301,11 @@ The **deployment** notebook (`monailabel_model/ModelServing.py`) — which handl
 ### Phase 7: Fix nits
 1. Fix RUNME.py notebook, update links.
 2. Fix README.md links
+3. Update CLAUDE.md with accurate post-reorg project structure
+
+### Phase 8: Pre-commit path fix
+1. Update `.pre-commit-config.yaml` file patterns from `^(dbx/|tests/|setup.py)` to `^(src/dbx/|tests/|setup.py)` — hooks currently skip all library code under `src/`
+2. Run `make style` to verify hooks match the new paths
 
 ### Run Validation again
 1. Go

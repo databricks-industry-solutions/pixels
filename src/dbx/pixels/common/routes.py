@@ -25,7 +25,6 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from dbx.pixels.prompt import get_prompt
 from dbx.pixels.common.config import (
     MONAI_DATALOADERS,
     MONAI_DATASETS,
@@ -42,6 +41,7 @@ from dbx.pixels.common.config import (
 from dbx.pixels.common.middleware import DBStaticFiles
 from dbx.pixels.common.pages import config_page
 from dbx.pixels.common.redaction_utils import insert_redaction_job
+from dbx.pixels.prompt import get_prompt
 from dbx.pixels.utils import call_llm_serving_endpoint
 
 # ---------------------------------------------------------------------------

@@ -7,28 +7,99 @@ Pixels is a Databricks Industry Solutions accelerator for medical imaging (DICOM
 ## Repository Structure
 
 ```
-databricks.yml          # Bundle config — variables, sync rules
-targets.yml             # dev (default) and prod targets
-resources/
-  install-job.yml       # Install job: 8-task DAG
-  dashboard.yml         # Lakeview dashboard resource
-  unity-catalog.yml     # UC schema, volume, table, UDFs, views
-install/                # All install job task notebooks
-  config/               # Shared widget init (proxy_prep.py, setup.py)
-src/dbx/pixels/         # Python package — core library (catalog, dicomweb apps)
-apps/                   # Deployable Databricks Apps (dicom-web, dicom-web-gateway, view-app)
-models/vista3d/         # Vista3D model: conda envs, MLflow wrapper, bundle assets
-ai-bi/                  # Lakeview dashboard JSON, Genie space config
-workflow/               # Operational workflow notebooks (STOW, extract_meta, etc.)
-notebooks/              # Demo/tutorial notebooks
-docs/                   # INSTALL.md, DICOMWEB.md
-tests/                  # pytest test suite
+pixels/
+├── databricks.yml                  # Bundle config — variables, sync rules
+├── targets.yml                     # dev (default) and prod targets
+├── Makefile                        # dev, build, test, style, check, clean
+├── setup.py                        # Package build config (src layout)
+├── requirements.txt                # Runtime deps (== pins, >= for runtime-provided)
+├── requirements-ai.txt             # AI/ML deps (VLM, redaction)
+│
+├── resources/                      # DAB resource definitions
+│   ├── install-job.yml             # Install job: 10-task DAG
+│   ├── dashboard.yml               # Lakeview dashboard resource
+│   └── unity-catalog.yml           # UC schema, volume, table, UDFs, views
+│
+├── install/                        # All install job task notebooks
+│   ├── init-schema.ipynb           # 00: UC schema, volume, table DDL
+│   ├── dcm-demo.ipynb              # 01: Demo data ingest from S3
+│   ├── register-model.py           # 03a: Register Vista3D in UC
+│   ├── deploy-endpoint.py          # 03b: Create/update serving endpoint
+│   ├── validate-model.py           # 03c: Test inference on endpoint
+│   ├── deploy-apps.ipynb           # 02: Build wheel, deploy apps + Lakebase
+│   ├── genie-space.ipynb           # 04: Create Genie space
+│   ├── stow-processor.ipynb        # 07b: STOW-RS processor job + perms
+│   ├── post-install-update.py      # 09: Dashboard params, app thumbnails
+│   ├── validate-install.py         # 10: Validate all 7 surfaces
+│   └── config/                     # Shared widget init helpers
+│       ├── proxy_prep.py           # Widget creation, sys.path setup
+│       ├── setup.py                # Pip install helper
+│       └── setup_ai.ipynb          # AI deps installer
+│
+├── src/                            # Python library package (src layout)
+│   └── dbx/
+│       └── pixels/
+│           ├── __init__.py
+│           ├── catalog.py          # Catalog operations, ingest, unzip
+│           ├── version.py          # Package version
+│           ├── lakebase.py         # Lakebase Postgres setup
+│           ├── dicom/              # DICOM parsing, metadata extraction
+│           ├── czi/                # CZI format support
+│           ├── modelserving/       # Client-side inference (Spark Transformers, API clients)
+│           ├── prompt/             # VLM/redaction prompt management
+│           ├── common/             # Shared app code (config, middleware, routes)
+│           └── resources/          # Non-app assets (logos, SQL, plot files, prompts)
+│
+├── apps/                           # Deployable Databricks Apps
+│   ├── dicom-web/                  # OHIF viewer + MONAI proxy
+│   ├── dicom-web-gateway/          # DICOMweb QIDO/WADO/STOW gateway
+│   └── view-app/                   # Deprecated viewer (kept for reference)
+│
+├── models/vista3d/                 # Vista3D model registration + serving
+│   ├── ModelServing.py             # Endpoint creation notebook
+│   ├── VISTA3D.ipynb               # Model wrapper + MLflow registration
+│   ├── conda_envs/                 # Conda environment specs
+│   └── vista3d/                    # Vista3D model artifacts
+│
+├── ai-bi/                          # Dashboard + Genie assets
+│   ├── Pixels Object Catalog dashboard.lvdash.json
+│   └── genie/                      # Genie SQL + serialized space config
+│
+├── workflow/                       # Operational workflow notebooks
+│   ├── build_bot_cache.ipynb       # Bot cache builder
+│   ├── extract_meta.ipynb          # Metadata extraction
+│   ├── monailabel_autoseg.ipynb    # Auto-segmentation pipeline
+│   ├── redactor_task.ipynb         # De-identification workflow
+│   └── stow_*.ipynb                # STOW processing notebooks
+│
+├── notebooks/                      # Demo/tutorial notebooks
+│   ├── 00-README.py                # Getting started guide
+│   ├── 03-Metadata-DeIdentification.py
+│   ├── 05-MONAILabel.py
+│   ├── 06-OHIF-Viewer.py
+│   ├── data-downloaders/           # TCIA dataset downloaders
+│   ├── DE-ID/                      # De-identification experiments
+│   └── lakebase/                   # Row-level security demo
+│
+├── docs/                           # Documentation
+│   ├── INSTALL.md                  # Installation guide
+│   └── DICOMWEB.md                 # DICOMweb API reference
+│
+├── tests/                          # pytest test suite
+│   ├── db_runner.py
+│   ├── dbx/                        # Unit tests
+│   └── perfs/                      # Performance tests
+│
+└── dist/                           # Build output (git-ignored, DAB sync-included)
+    ├── databricks_pixels-*.whl     # Library wheel
+    └── ohif.tar.gz                 # OHIF static assets archive
 ```
 
 ## Build & Development
 
 ```bash
 make dev      # Create .venv, install requirements + editable dev install
+make build    # Build wheel (dist/*.whl) + OHIF tarball (dist/ohif.tar.gz)
 make test     # Build wheel, run pytest
 make style    # Run pre-commit (autoflake, isort, black)
 make check    # style + test
@@ -37,7 +108,7 @@ make clean    # Remove build artifacts and caches
 
 ## Code Style
 
-Pre-commit hooks enforce formatting on `dbx/`, `tests/`, and `setup.py`:
+Pre-commit hooks enforce formatting on `src/dbx/`, `tests/`, and `setup.py`:
 
 - **black** — line length 100
 - **isort** — profile=black, combine-as
@@ -73,23 +144,31 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` |
 | `lakebase_instance_name` | `pixels-lakebase` |
 
-## Install Job Task DAG
+## Install Job Task DAG (10 tasks)
 
 ```
 00_init_schema
-    ├── 01_dcm_ingest ────────────────────┐
-    │       └── 04_genie_space ───────────┐│
-    └── 03a → 03b → 03c ─────────────────┤│
-                                          │└── 02_deploy_apps ──┐
-                                          └────────────────────┴── 10_validate
+    ├── 01_dcm_ingest ──────────────────────┐
+    │       └── 04_genie_space ─────────┐   │
+    └── 03a → 03b → 03c ───────────────┤   │
+                                        └───┴── 02_deploy_apps
+                                        │               └── 07b_stow_processor
+                                        │                        │
+                                        └───────────────── 09_post_install_update
+                                                                 └── 10_validate
 ```
+
+09_post_install_update depends on: 02_deploy_apps, 04_genie_space, 07b_stow_processor.
 
 ## Key Conventions
 
 - **Serverless compute**: All install tasks run serverless. Packages pinned in `requirements.txt` with `>=` for runtime-provided packages (pandas, numpy, typing_extensions) and `==` for everything else.
 - **Widget init**: `install/config/proxy_prep.py` centralizes widget creation and adds `src/` to `sys.path`. `init_env()` returns `(catalog, schema, table, volume)`. `init_model_serving_widgets()` returns `(model_uc_name, serving_endpoint_name, scale_to_zero_enabled)`.
-- **Apps deployed via SDK**: OHIF `.wasm` files exceed DAB sync limits, so apps are deployed programmatically in notebook task 02 rather than via DAB `apps:` sections.
+- **Apps deployed via SDK**: Apps are deployed programmatically in notebook task 02 (not via DAB `apps:` sections) because OHIF `.wasm` files exceed DAB sync limits.
+- **Wheel on UC Volume**: Task 02 builds the wheel via `make build`, uploads it to the UC Volume, and each app installs it via `pip install` from the Volume path. This avoids bundling the library inside each app directory.
+- **OHIF served from Volume**: The OHIF static build (`ohif.tar.gz`) is uploaded to the UC Volume at deploy time and extracted into the app container at startup, keeping it out of the wheel and DAB sync.
 - **Model registration**: Vista3D is wrapped as an MLflow pyfunc and registered in Unity Catalog with a `champion` alias.
+- **DAB sync rules**: `dist/*.whl` is explicitly included. Large directories excluded from sync: `apps/dicom-web/ohif/`, `models/vista3d/`, `notebooks/`.
 
 ## Testing
 
