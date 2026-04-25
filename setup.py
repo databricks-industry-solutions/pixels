@@ -33,7 +33,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
 
 try:
-    exec(open("dbx/pixels/version.py").read())
+    exec(open("src/dbx/pixels/version.py").read())
 except IOError:
     print(
         "Failed to load pixels version file for packaging. You must be in pixels root dir.",
@@ -59,18 +59,19 @@ setup(
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     version=VERSION,
-    packages=find_packages(),
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     platforms=["any"],
     python_requires=">=3.10",
     use_scm_version={
-        "write_to": "dbx/pixels/version.py",
+        "write_to": "src/dbx/pixels/version.py",
         "fallback_version": "0.0.0",
         "local_scheme": "no-local-version",
     },
     setup_requires=["setuptools_scm"],
     install_requires=required,
     include_package_data=True,
-    package_data={"dbx": ["pixels/resources/**/*"]},
+    package_data={"dbx.pixels": ["resources/**/*"]},
     extras_require={
         "dev": [
             "databricks-connect==16.1.0",

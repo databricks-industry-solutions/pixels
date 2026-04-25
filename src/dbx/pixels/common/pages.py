@@ -10,11 +10,11 @@ is available on the main branch.
 import os
 from pathlib import Path
 
-_UI_VERSION_FILE = Path(__file__).resolve().parent.parent / "UI_VERSION"
+_UI_VERSION_FILE = Path(__file__).resolve().parent.parent / "resources" / "UI_VERSION"
 _GITHUB_RAW_URL = (
     "https://raw.githubusercontent.com/"
     "databricks-industry-solutions/pixels/main/"
-    "dbx/pixels/resources/UI_VERSION"
+    "src/dbx/pixels/resources/UI_VERSION"
 )
 
 

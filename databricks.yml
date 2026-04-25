@@ -52,6 +52,8 @@ variables:
 sync:
   paths:
     - .
+  include:
+    - dist/*.whl
   exclude:
     - images/*.gif
     - apps/dicom-web/ohif/**/*

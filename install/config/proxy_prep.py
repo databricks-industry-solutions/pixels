@@ -1,7 +1,15 @@
 # Databricks notebook source
-import os
+import sys, os
 from dbruntime.databricks_repl_context import get_context
 from databricks.sdk import WorkspaceClient
+
+# Add src/ to path so dbx.pixels is importable from install/ notebooks
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
+_src_path = os.path.join(_repo_root, "src")
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
 
 ctx = get_context()
 w = WorkspaceClient()

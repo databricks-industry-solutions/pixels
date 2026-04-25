@@ -6,16 +6,27 @@
 
 # COMMAND ----------
 
-import os
-import dbx
+import sys, os
 
-repo_main_folder = os.path.abspath(os.path.join(os.path.dirname(dbx.__file__), os.pardir))
+# Compute repo root from notebook path (works with src/ layout)
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+repo_main_folder = os.path.normpath(os.path.join(_nb_dir, ".."))
 print("Installing Pixels Solution Accelerator dependencies from ", repo_main_folder)
 
 %pip install --quiet -r {repo_main_folder}/requirements.txt
 %pip install --quiet --upgrade databricks-sdk==0.60.0
 
 dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# Re-add src/ to path after restartPython() so dbx.pixels is importable
+import sys, os
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
+sys.path.insert(0, os.path.join(_repo_root, "src"))
 
 # COMMAND ----------
 

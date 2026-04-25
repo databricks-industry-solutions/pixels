@@ -16,6 +16,9 @@ dev:
 	.venv/bin/pip install -r requirements.txt
 	.venv/bin/pip install -e '.[dev]'
 
+build:
+	python3 -m build -w -o dist
+
 test:
 	.venv/bin/pip wheel . -w wheels
 	mv ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
