@@ -1,4 +1,4 @@
-./databricks_pixels-3.0.0-py3-none-any.whl
+./databricks_pixels-3.1.0-py3-none-any.whl
 requests-toolbelt==1.0.0
 zstd==1.5.7.3
 psycopg2-binary==2.9.11

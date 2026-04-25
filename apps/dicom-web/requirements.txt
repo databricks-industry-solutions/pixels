@@ -1,4 +1,4 @@
-./databricks_pixels-3.0.0-py3-none-any.whl
+./databricks_pixels-3.1.0-py3-none-any.whl
 databricks-sql-connector==4.0.0
 databricks-sdk==0.88.0
 requests-toolbelt==1.0.0
