@@ -145,3 +145,5 @@ itkimage2segimage
 test_dbconnect.py
 
 monailabel_model/model/
+
+.claude/

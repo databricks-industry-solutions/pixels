@@ -26,6 +26,14 @@ resources:
           default: ${var.model_uc_name}
         - name: scale_to_zero_enabled
           default: ${var.scale_to_zero_enabled}
+        - name: vlm_image_analysis
+          default: ${var.vlm_image_analysis}
+        - name: metadata_redaction
+          default: ${var.metadata_redaction}
+        - name: image_redaction
+          default: ${var.image_redaction}
+        - name: vector_search_embedding
+          default: ${var.vector_search_embedding}
 
       tasks:
         # ── Step 0: Initialize UC schema, volume, empty table ───────

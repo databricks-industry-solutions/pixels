@@ -33,6 +33,18 @@ variables:
     default: "${var.catalog}.${var.schema}.monai_pixels_model"
   lakebase_instance_name:
     default: "pixels-lakebase"
+  vlm_image_analysis:
+    description: "Foundation model for VLM image analysis"
+    default: "databricks-claude-sonnet-4"
+  metadata_redaction:
+    description: "Foundation model for DICOM metadata redaction"
+    default: "databricks-llama-4-maverick"
+  image_redaction:
+    description: "Foundation model for DICOM image PHI redaction"
+    default: "databricks-claude-3-7-sonnet"
+  vector_search_embedding:
+    description: "Embedding model for Genie vector search"
+    default: "databricks-bge-large-en"
   sql_warehouse:
     lookup:
       warehouse: "Serverless Starter Warehouse"
