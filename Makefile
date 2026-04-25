@@ -18,6 +18,10 @@ dev:
 
 build:
 	python3 -m build -w -o dist
+	@if [ -d apps/dicom-web/ohif ] && [ "$$(ls apps/dicom-web/ohif/ | wc -l)" -gt 5 ]; then \
+		tar czf dist/ohif.tar.gz -C apps/dicom-web ohif; \
+		echo "Created dist/ohif.tar.gz ($$(du -sh dist/ohif.tar.gz | cut -f1))"; \
+	fi
 
 test:
 	.venv/bin/pip wheel . -w wheels
