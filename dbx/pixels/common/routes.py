@@ -26,7 +26,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from dbx.pixels.prompt import get_prompt
-from dbx.pixels.resources.common.config import (
+from dbx.pixels.common.config import (
     MONAI_DATALOADERS,
     MONAI_DATASETS,
     MONAI_TRACKING,
@@ -39,9 +39,9 @@ from dbx.pixels.resources.common.config import (
     ohif_path,
     pixels_pkg_path,
 )
-from dbx.pixels.resources.common.middleware import DBStaticFiles
-from dbx.pixels.resources.common.pages import config_page
-from dbx.pixels.resources.common.redaction_utils import insert_redaction_job
+from dbx.pixels.common.middleware import DBStaticFiles
+from dbx.pixels.common.pages import config_page
+from dbx.pixels.common.redaction_utils import insert_redaction_job
 from dbx.pixels.utils import call_llm_serving_endpoint
 
 # ---------------------------------------------------------------------------

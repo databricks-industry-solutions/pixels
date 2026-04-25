@@ -96,7 +96,7 @@ from utils.handlers import (
     dicomweb_wado_uri,
 )
 
-from dbx.pixels.resources.common.middleware import LoggingMiddleware
+from dbx.pixels.common.middleware import LoggingMiddleware
 
 try:
     from utils.handlers import dicomweb_resolve_frame_ranges

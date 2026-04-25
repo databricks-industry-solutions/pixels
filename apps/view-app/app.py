@@ -26,15 +26,15 @@ from utils.partial_frames import (
 
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
-from dbx.pixels.resources.common.config import (
+from dbx.pixels.common.config import (
     cfg,
     get_pixels_table,
     get_seg_dest_dir,
     log,
     logger,
 )
-from dbx.pixels.resources.common.middleware import LoggingMiddleware, TokenMiddleware
-from dbx.pixels.resources.common.routes import register_all_common_routes
+from dbx.pixels.common.middleware import LoggingMiddleware, TokenMiddleware
+from dbx.pixels.common.routes import register_all_common_routes
 
 # ---------------------------------------------------------------------------
 # Lakebase (tier-2 frame cache) — optional

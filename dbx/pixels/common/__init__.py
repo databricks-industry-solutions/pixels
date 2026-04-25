@@ -16,7 +16,7 @@ legacy OHIF data flow.
 
 Usage::
 
-    from dbx.pixels.resources.common.routes import register_all_common_routes
+    from dbx.pixels.common.routes import register_all_common_routes
 
     app = FastAPI(...)
     register_all_common_routes(app)

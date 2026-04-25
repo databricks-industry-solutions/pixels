@@ -20,8 +20,8 @@ from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 import dbx.pixels.version as dbx_pixels_version
-from dbx.pixels.resources.common.middleware import LoggingMiddleware, TokenMiddleware
-from dbx.pixels.resources.common.routes import register_all_common_routes
+from dbx.pixels.common.middleware import LoggingMiddleware, TokenMiddleware
+from dbx.pixels.common.routes import register_all_common_routes
 
 logger = logging.getLogger("DICOMweb.Viewer")
 

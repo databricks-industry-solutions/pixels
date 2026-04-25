@@ -54,4 +54,4 @@ sync:
     - .
   exclude:
     - images/*.gif
-    - dbx/pixels/resources/ohif/**/*
+    - apps/dicom-web/ohif/**/*

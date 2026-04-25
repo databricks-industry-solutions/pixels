@@ -25,7 +25,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from dbx.pixels.resources.common.config import (
+from dbx.pixels.common.config import (
     get_pixels_table,
     logger,
     ohif_config_file,
