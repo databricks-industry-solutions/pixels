@@ -19,7 +19,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Initialize the environment
-# MAGIC %run ./config/setup
+# MAGIC %run ../../install/config/setup
 
 # COMMAND ----------
 

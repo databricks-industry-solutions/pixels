@@ -27,7 +27,7 @@ dbutils.library.restartPython()
 
 # COMMAND ----------
 
-# MAGIC %run ../config/proxy_prep
+# MAGIC %run ../../install/config/proxy_prep
 
 # COMMAND ----------
 

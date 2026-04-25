@@ -19,7 +19,7 @@ from mlflow import MlflowClient
 
 mc = MlflowClient()
 
-# Compute a fingerprint of the monailabel_model/ directory using git tree hash.
+# Compute a fingerprint of the models/vista3d/ directory using git tree hash.
 # If git is unavailable (non-git workspace), fall back to always registering.
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
@@ -28,7 +28,7 @@ _repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
 tree_hash = None
 try:
     tree_hash = subprocess.check_output(
-        ["git", "rev-parse", "HEAD:monailabel_model"],
+        ["git", "rev-parse", "HEAD:models/vista3d"],
         cwd=_repo_root, text=True
     ).strip()
     print(f"Model tree hash: {tree_hash}")
@@ -59,7 +59,7 @@ import subprocess, sys, os
 
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../monailabel_model"))
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../models/vista3d"))
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
@@ -85,7 +85,7 @@ import os, subprocess, sys
 
 _nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
 _nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
-_model_dir = os.path.normpath(os.path.join(_nb_dir, "../monailabel_model"))
+_model_dir = os.path.normpath(os.path.join(_nb_dir, "../models/vista3d"))
 os.chdir(_model_dir)
 sys.path.insert(0, _model_dir)
 
@@ -97,7 +97,7 @@ _repo_root = os.path.normpath(os.path.join(_nb_dir, ".."))
 tree_hash = None
 try:
     tree_hash = subprocess.check_output(
-        ["git", "rev-parse", "HEAD:monailabel_model"],
+        ["git", "rev-parse", "HEAD:models/vista3d"],
         cwd=_repo_root, text=True
     ).strip()
 except Exception:

@@ -10,7 +10,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ./config/setup
+# MAGIC %run ../install/config/setup
 
 # COMMAND ----------
 

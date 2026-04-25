@@ -57,3 +57,5 @@ sync:
   exclude:
     - images/*.gif
     - apps/dicom-web/ohif/**/*
+    - models/vista3d/**/*
+    - notebooks/**/*

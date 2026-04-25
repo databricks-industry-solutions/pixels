@@ -91,7 +91,7 @@ class Vista3DGPUTransformer(Transformer):
                 "export_overlays": self.exportOverlays,
             }
 
-            from monailabel_model.vista3d.code.dbvista3dmodel import DBVISTA3DModel
+            from models.vista3d.vista3d.code.dbvista3dmodel import DBVISTA3DModel
 
             model = DBVISTA3DModel(volumes_compatible=True)
             model.load_context()

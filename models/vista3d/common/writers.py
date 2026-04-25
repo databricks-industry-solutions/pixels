@@ -26,7 +26,7 @@ class HighDicomSegWriter(ImageWriter):
 
     Usage::
 
-        from monailabel_model.common.writers import HighDicomSegWriter
+        from models.vista3d.common.writers import HighDicomSegWriter
 
         writer = HighDicomSegWriter()
         writer.set_data_array(seg_array, channel_dim=0)

@@ -26,7 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 *.whl
-!monailabel_model/artifacts/*.whl
+!models/vista3d/artifacts/*.whl
 MANIFEST
 
 # PyInstaller
@@ -144,6 +144,6 @@ itkimage2segimage
 .idea/
 test_dbconnect.py
 
-monailabel_model/model/
+models/vista3d/model/
 
 .claude/
