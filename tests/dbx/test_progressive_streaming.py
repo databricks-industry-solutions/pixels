@@ -26,7 +26,6 @@ if _GATEWAY_APP not in sys.path:
     sys.path.insert(0, _GATEWAY_APP)
 
 import pytest
-
 from utils.dicom_io import (
     _ITEM_TAG,
     _SEQ_DELIM_TAG,

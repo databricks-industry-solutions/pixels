@@ -13,17 +13,17 @@ resources/
   install-job.yml       # Install job: 8-task DAG
   dashboard.yml         # Lakeview dashboard resource
   unity-catalog.yml     # UC schema, volume, table, UDFs, views
-  dabs/                 # Notebook tasks for model + validation (03a, 03b, 03c, 10)
-config/
-  proxy_prep.py         # Shared widget init (init_env, init_model_serving_widgets)
-dbx/pixels/             # Python package — core library (catalog, dicomweb apps)
-monailabel_model/       # Vista3D model: conda envs, MLflow wrapper, bundle assets
-ai-bi/                  # Lakeview dashboard JSON
+install/                # All install job task notebooks
+  config/               # Shared widget init (proxy_prep.py, setup.py)
+src/dbx/pixels/         # Python package — core library (catalog, dicomweb apps)
+apps/                   # Deployable Databricks Apps (dicom-web, dicom-web-gateway, view-app)
+models/vista3d/         # Vista3D model: conda envs, MLflow wrapper, bundle assets
+ai-bi/                  # Lakeview dashboard JSON, Genie space config
+workflow/               # Operational workflow notebooks (STOW, extract_meta, etc.)
+notebooks/              # Demo/tutorial notebooks
+docs/                   # INSTALL.md, DICOMWEB.md
 tests/                  # pytest test suite
-notebooks/              # Supplementary notebooks
 ```
-
-Root-level `.ipynb` / `.py` files (00–08, RUNME) are the install job task notebooks.
 
 ## Build & Development
 
@@ -87,7 +87,7 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 ## Key Conventions
 
 - **Serverless compute**: All install tasks run serverless. Packages pinned in `requirements.txt` with `>=` for runtime-provided packages (pandas, numpy, typing_extensions) and `==` for everything else.
-- **Widget init**: `config/proxy_prep.py` centralizes widget creation. `init_env()` returns `(catalog, schema, table, volume)`. `init_model_serving_widgets()` returns `(model_uc_name, serving_endpoint_name, scale_to_zero_enabled)`.
+- **Widget init**: `install/config/proxy_prep.py` centralizes widget creation and adds `src/` to `sys.path`. `init_env()` returns `(catalog, schema, table, volume)`. `init_model_serving_widgets()` returns `(model_uc_name, serving_endpoint_name, scale_to_zero_enabled)`.
 - **Apps deployed via SDK**: OHIF `.wasm` files exceed DAB sync limits, so apps are deployed programmatically in notebook task 02 rather than via DAB `apps:` sections.
 - **Model registration**: Vista3D is wrapped as an MLflow pyfunc and registered in Unity Catalog with a `champion` alias.
 

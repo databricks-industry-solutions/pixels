@@ -87,18 +87,18 @@ This architecture is designed to handle healthcare imaging data securely while e
 For the Databricks Apps architecture and operations guide (viewer app, gateway app,
 QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
-- [`README_DICOMWEB.md`](README_DICOMWEB.md)
+- [`docs/DICOMWEB.md`](docs/DICOMWEB.md)
 
 The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
 workspace workflows. For production DICOMweb deployments with the split
 `dicom_web` + `dicom_web_gateway` Databricks Apps architecture, use
-`README_DICOMWEB.md` as the source of truth.
+`docs/DICOMWEB.md` as the source of truth.
 
 
 ---
 ## Getting started
 
-See **[INSTALL.md](INSTALL.md)** for complete installation instructions using Databricks Asset Bundles.
+See **[docs/INSTALL.md](docs/INSTALL.md)** for complete installation instructions using Databricks Asset Bundles.
 
 ```bash
 databricks bundle deploy -t dev
@@ -247,7 +247,7 @@ This setup enhances your medical image analysis workflow by combining Databricks
 
 ### Model Serving Instructions
 
-To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](https://github.com/databricks-industry-solutions/pixels/blob/main/monailabel_model/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
+To deploy the MONAILabel server in a Model Serving endpoint we prepared [ModelServing](https://github.com/databricks-industry-solutions/pixels/blob/main/models/vista3d/ModelServing.py), a Databricks notebook designed to initialize the Databricks customized version of the **MONAILabel server** that wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**.
 
 #### Key Features
 

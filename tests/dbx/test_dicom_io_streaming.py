@@ -31,7 +31,6 @@ from unittest.mock import MagicMock, patch
 
 import pydicom
 import pytest
-
 from utils.dicom_io import (
     _ITEM_TAG,
     _PIXEL_DATA_MARKER,
