@@ -19,11 +19,33 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+logger = logging.getLogger("DICOMweb.Viewer")
+
+# ---------------------------------------------------------------------------
+# OHIF bootstrap — download static viewer assets from UC Volume on first start
+# ---------------------------------------------------------------------------
+_OHIF_DIR = os.environ.get("OHIF_STATIC_DIR", "")
+if _OHIF_DIR.startswith("/Volumes/"):
+    import tarfile
+
+    _local_ohif = "/tmp/ohif"
+    if not os.path.isdir(_local_ohif):
+        from databricks.sdk import WorkspaceClient
+
+        _archive_path = _OHIF_DIR.rstrip("/") + ".tar.gz"
+        logger.info("Downloading OHIF from %s ...", _archive_path)
+        _resp = WorkspaceClient().files.download(_archive_path)
+        with open("/tmp/ohif.tar.gz", "wb") as _f:
+            _f.write(_resp.contents.read())
+        with tarfile.open("/tmp/ohif.tar.gz", "r:gz") as _tar:
+            _tar.extractall("/tmp")
+        os.remove("/tmp/ohif.tar.gz")
+        logger.info("OHIF extracted to %s (%d entries)", _local_ohif, len(os.listdir(_local_ohif)))
+    os.environ["OHIF_STATIC_DIR"] = _local_ohif
+
 import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.common.middleware import LoggingMiddleware, TokenMiddleware
 from dbx.pixels.common.routes import register_all_common_routes
-
-logger = logging.getLogger("DICOMweb.Viewer")
 
 GATEWAY_URL = os.getenv("DICOMWEB_GATEWAY_URL", "").rstrip("/")
 

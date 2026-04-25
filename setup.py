@@ -71,7 +71,20 @@ setup(
     setup_requires=["setuptools_scm"],
     install_requires=required,
     include_package_data=True,
-    package_data={"dbx.pixels": ["resources/**/*"]},
+    package_data={
+        "dbx.pixels": [
+            "resources/**/*.sql",
+            "resources/**/*.txt",
+            "resources/**/*.json",
+            "resources/**/*.ndjson",
+            "resources/**/*.css",
+            "resources/**/*.html",
+            "resources/**/*.js",
+            "resources/**/*.svg",
+            "resources/**/*.jp2",
+            "resources/**/UI_VERSION",
+        ]
+    },
     extras_require={
         "dev": [
             "databricks-connect==16.1.0",

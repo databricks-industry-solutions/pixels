@@ -28,7 +28,7 @@ cfg = Config()
 # Path constants
 # ---------------------------------------------------------------------------
 pixels_pkg_path: Path = Path(dbx.pixels.__file__).parent
-ohif_path: str = str(pixels_pkg_path / "resources" / "ohif")
+ohif_path: str = os.environ.get("OHIF_STATIC_DIR", str(pixels_pkg_path / "resources" / "ohif"))
 ohif_config_file: str = "app-config"  # name of the JS config template (without .js)
 
 # ---------------------------------------------------------------------------

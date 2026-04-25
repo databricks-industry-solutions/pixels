@@ -11,6 +11,10 @@ env:
   - name: "MONAI_SERVING_ENDPOINT"
     valueFrom: "serving_endpoint"
 
+  # ── OHIF static viewer assets ────────────────────────────────────────────────
+  - name: "OHIF_STATIC_DIR"
+    value: "{OHIF_VOLUME_PATH}"
+
   # ── Authentication ──────────────────────────────────────────────────────────
   - name: "DICOMWEB_USE_USER_AUTH"
     value: "false"

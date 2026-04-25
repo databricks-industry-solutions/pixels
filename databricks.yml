@@ -56,6 +56,6 @@ sync:
     - dist/*.whl
   exclude:
     - images/*.gif
-    - src/dbx/pixels/resources/ohif/**/*
+    - apps/dicom-web/ohif/**/*
     - models/vista3d/**/*
     - notebooks/**/*
