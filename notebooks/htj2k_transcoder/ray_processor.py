@@ -19,7 +19,6 @@ import shutil
 from datetime import datetime as dt
 
 from .pipeline import (
-    _ensure_nvimgcodec_tools,
     gpu_process_datasets,
     read_series_direct,
     save_and_upload_outputs,
@@ -38,26 +37,6 @@ def _register_modules_for_pickle_by_value():
 
     cloudpickle.register_pickle_by_value(_pipeline_mod)
     cloudpickle.register_pickle_by_value(_ray_mod)
-
-
-def _stage_nvimgcodec_tools(output_dir: str) -> str:
-    """Stage nvimgcodec tools to a shared Volume path for Ray workers.
-
-    Returns the tools_volume path.
-    """
-    import nvidia.nvimgcodec
-
-    tools_volume = os.path.join(output_dir, "_nvimgcodec_tools")
-    pkg_tools = os.path.join(os.path.dirname(nvidia.nvimgcodec.__file__), "tools")
-
-    if os.path.isdir(pkg_tools):
-        os.makedirs(tools_volume, exist_ok=True)
-        shutil.copytree(pkg_tools, tools_volume, dirs_exist_ok=True)
-        print(f"✓ Staged nvimgcodec tools to {tools_volume}")
-    else:
-        raise FileNotFoundError(f"Tools not found at {pkg_tools}")
-
-    return tools_volume
 
 
 def transcode_pending_series(
@@ -95,10 +74,6 @@ def transcode_pending_series(
     # Serialize configs to dicts if needed
     _tc = transcode_cfg.to_dict() if hasattr(transcode_cfg, "to_dict") else dict(transcode_cfg)
     _mc = merge_cfg.to_dict() if hasattr(merge_cfg, "to_dict") else dict(merge_cfg)
-
-    # Stage tools
-    tools_volume = _stage_nvimgcodec_tools(output_dir)
-    _tc["_tools_volume"] = tools_volume
 
     # Read pending rows
     pending_rows = (
@@ -189,7 +164,6 @@ def transcode_pending_series(
         class DicomSeriesProcessor:
             def __init__(self):
                 self._host = _socket.gethostname()
-                _ensure_nvimgcodec_tools(_tc["_tools_volume"])
                 import pydicom  # noqa: warm up
 
                 self._read_pool = ThreadPoolExecutor(max_workers=_pool_size)

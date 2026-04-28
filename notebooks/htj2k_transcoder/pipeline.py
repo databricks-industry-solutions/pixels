@@ -1,7 +1,6 @@
 """Core pipeline functions: I/O helpers, GPU processing, and series orchestration.
 
 These functions run on Ray workers (GPU actors) or the driver. They handle:
-- Worker-side lazy installation of nvimgcodec tools
 - FUSE-safe file copy with retries
 - Parallel stage-and-read / direct-read of DICOM series
 - GPU transcode + multi-frame merge
@@ -13,57 +12,12 @@ import hashlib
 import logging
 import os
 import shutil
-import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 logger = logging.getLogger("dicom_pipeline")
 logger.setLevel(logging.INFO)
-
-# ---------------------------------------------------------------------------
-# Worker-side lazy installation of nvimgcodec tools
-# ---------------------------------------------------------------------------
-_tools_installed = False
-
-
-def _ensure_nvimgcodec_tools(tools_volume: str):
-    """Lazily install nvidia.nvimgcodec.tools on this Ray worker.
-
-    Thread-safe: uses a file lock so multiple actors sharing a
-    node (e.g. fractional GPU with ACTORS_PER_GPU > 1) don't
-    race on shutil.copytree and corrupt the install.
-    """
-    global _tools_installed
-    if _tools_installed:
-        return
-
-    import nvidia.nvimgcodec
-    import filelock
-    import importlib
-
-    pkg_dir = os.path.dirname(nvidia.nvimgcodec.__file__)
-    tools_dst = os.path.join(pkg_dir, "tools")
-    lock_path = "/tmp/nvimgcodec_tools_install.lock"
-
-    with filelock.FileLock(lock_path):
-        try:
-            from nvidia.nvimgcodec.tools.dicom import convert_htj2k  # noqa: F401
-            _tools_installed = True
-            return
-        except (ImportError, ModuleNotFoundError):
-            pass
-
-        if tools_volume and os.path.isdir(tools_volume):
-            os.makedirs(tools_dst, exist_ok=True)
-            shutil.copytree(tools_volume, tools_dst, dirs_exist_ok=True)
-            importlib.invalidate_caches()
-            _tools_installed = True
-        else:
-            raise ImportError(
-                f"nvidia.nvimgcodec.tools not found and "
-                f"tools_volume '{tools_volume}' not accessible. Stage tools first."
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +327,6 @@ def process_series_on_gpu(
     local_input = local_output = None
     try:
         print(f"[{hostname}] Processing {short}... ({len(file_paths)} files)")
-        _ensure_nvimgcodec_tools(transcode_cfg.get("_tools_volume", ""))
 
         datasets, orig_sz, local_input = stage_and_read_series(study_uid, series_uid, file_paths)
         t_io = time.time() - t0

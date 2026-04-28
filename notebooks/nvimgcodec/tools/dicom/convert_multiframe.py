@@ -164,74 +164,6 @@ def _suppress_highdicom_warnings():
             highdicom_sop_logger.setLevel(original_sop_level)
 
 
-def _load_dicom_series(input_source: Union[str, Path, List[Union[str, Path]]]) -> List[pydicom.Dataset]:
-    """
-    Load DICOM files from a directory or list of file paths and sort them by spatial position.
-
-    Args:
-        input_source: Either:
-            - Directory path containing DICOM files
-            - List of DICOM file paths
-
-    Returns:
-        List of sorted pydicom.Dataset objects
-
-    Raises:
-        ValueError: If no DICOM files found or files have inconsistent metadata
-    """
-    # Handle different input types
-    if isinstance(input_source, (list, tuple)):
-        # List of file paths provided
-        file_paths = [Path(f) for f in input_source]
-        source_desc = f"{len(file_paths)} provided files"
-    else:
-        # Directory path provided
-        input_dir = Path(input_source)
-        if not input_dir.is_dir():
-            raise ValueError(f"Input path is not a directory: {input_dir}")
-
-        # Find all DICOM files in directory
-        file_paths = [f for f in input_dir.iterdir() if f.is_file() and not f.name.startswith(".")]
-        source_desc = f"directory {input_dir}"
-
-    # Load DICOM files
-    dicom_files = []
-    for filepath in file_paths:
-        try:
-            ds = pydicom.dcmread(filepath)
-            dicom_files.append(ds)
-        except Exception as e:
-            logger.debug(f"Skipping non-DICOM file {filepath.name}: {e}")
-            continue
-
-    if not dicom_files:
-        raise ValueError(f"No DICOM files found in {source_desc}")
-
-    logger.info(f"Loaded {len(dicom_files)} DICOM files from {source_desc}")
-
-    # Sort by ImagePositionPatient if available
-    if all(hasattr(ds, "ImagePositionPatient") and hasattr(ds, "ImageOrientationPatient") for ds in dicom_files):
-        # Calculate distance along normal vector for each slice
-        first_ds = dicom_files[0]
-        orientation = np.array(first_ds.ImageOrientationPatient).reshape(2, 3)
-        normal = np.cross(orientation[0], orientation[1])
-
-        def get_position_along_normal(ds):
-            position = np.array(ds.ImagePositionPatient)
-            return np.dot(position, normal)
-
-        dicom_files.sort(key=get_position_along_normal)
-        logger.info("Sorted files by spatial position")
-    elif all(hasattr(ds, "InstanceNumber") for ds in dicom_files):
-        # Fall back to InstanceNumber
-        dicom_files.sort(key=lambda ds: ds.InstanceNumber)
-        logger.info("Sorted files by InstanceNumber")
-    else:
-        logger.warning("Could not determine optimal sorting order, using file order")
-
-    return dicom_files
-
-
 def _validate_series_consistency(datasets: List[pydicom.Dataset]) -> dict:
     """
     Validate that all datasets in a series are consistent.
@@ -488,6 +420,35 @@ def convert_to_enhanced_dicom(
 
         # All datasets are single-frame - proceed with normal conversion
         logger.info(f"Converting {len(datasets)} single-frame datasets to enhanced multi-frame DICOM")
+
+        # Sort frames before conversion so pixel data order matches spatial order.
+        # highdicom preserves input order for pixel data but builds
+        # PerFrameFunctionalGroupsSequence with correct metadata regardless,
+        # so unsorted input causes frame-by-frame viewers to show slices out of order.
+        # Only sort when all frames share the same orientation — mixed-orientation series
+        # (e.g. localizers with axial/coronal/sagittal slices) have no single meaningful
+        # spatial order, so we preserve input order for those.
+        if all(hasattr(ds, "ImagePositionPatient") and hasattr(ds, "ImageOrientationPatient") for ds in datasets):
+            first_orientation = list(datasets[0].ImageOrientationPatient)
+            orientations_consistent = all(
+                list(ds.ImageOrientationPatient) == first_orientation for ds in datasets
+            )
+            if orientations_consistent:
+                orientation = np.array(first_orientation).reshape(2, 3)
+                normal = np.cross(orientation[0], orientation[1])
+                datasets = sorted(datasets, key=lambda ds: np.dot(np.array(ds.ImagePositionPatient), normal))
+                logger.info("Sorted datasets by spatial position before enhanced conversion")
+            else:
+                # TODO: consider replacing exact equality with an angular tolerance check
+                # (e.g. arccos(|dot(n0, ni)|) < threshold) to be robust to tiny floating-point
+                # variations and to detect non-parallel slices within an otherwise consistent series.
+                logger.warning("Inconsistent ImageOrientationPatient across series — skipping spatial sort, preserving input order")
+        elif all(hasattr(ds, "InstanceNumber") for ds in datasets):
+            datasets = sorted(datasets, key=lambda ds: int(ds.InstanceNumber))
+            logger.info("Sorted datasets by InstanceNumber before enhanced conversion")
+        else:
+            logger.warning("Could not determine sorting order for datasets before enhanced conversion")
+
         metadata = _validate_series_consistency(datasets)
         if not metadata["is_consistent"]:
             logger.warning(f"Series has inconsistent dimensions - returning single-frame datasets")
