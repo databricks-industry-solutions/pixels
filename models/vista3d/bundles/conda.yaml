@@ -3,7 +3,6 @@ channels:
 dependencies:
 - python=3.12.13
 - pip<=24.2
-- cuda-toolkit=12.9
 - pip:
   - mlflow==3.9.0
   - torch>=2.8.0
@@ -18,7 +17,7 @@ dependencies:
   - numpymaxflow>=0.0.7
   - passlib>=1.7.4
   - pydantic-settings>=2.2.1
-  - pydicom==3.0.1
+  - pydicom==3.0.2
   - highdicom==0.26.1
   - pynetdicom>=2.0.2
   - pynrrd>=1.0.0
@@ -38,5 +37,5 @@ dependencies:
   - huggingface_hub
   - simpleitk
   - databricks-sdk==0.84
-  - pylibjpeg-openjpeg
+  - pylibjpeg-openjpeg==2.3.0
 name: mlflow-env
