@@ -7,7 +7,9 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
 ### Local Tools
 
 - **Git** — to clone the repository
-- **Python 3.10+** — required by the Databricks CLI
+- **Python 3.10+** — required by the Databricks CLI and `make build`
+- **GNU make** — drives the local build (`make build`, `make clean`, `make dev`, `make style`, `make test`)
+- **Python `build` package** — `pip install build` (used by `make build` to produce the wheel)
 - **Databricks CLI** >= v0.230 — install via:
   ```bash
   # macOS / Linux
@@ -19,6 +21,17 @@ Deploy the complete Pixels Medical Imaging stack using Databricks Asset Bundles 
   # Or direct binary download
   # See https://docs.databricks.com/en/dev-tools/cli/install.html
   ```
+
+### Local Build Targets
+
+| Target | Purpose |
+|--------|---------|
+| `make dev` | Create `.venv`, install runtime + editable dev deps |
+| `make build` | Build `dist/databricks_pixels-*.whl`, `dist/ohif.tar.gz`, `dist/vista3d.tar.gz` (required before `databricks bundle deploy`) |
+| `make style` | Run pre-commit (autoflake, isort, black) — run before pushing |
+| `make test` | Build wheel and run pytest |
+| `make check` | `style` + `test` |
+| `make clean` | Remove `dist/`, `build/`, `htmlcov/`, caches |
 
 ### Workspace Requirements
 
@@ -46,16 +59,12 @@ All install tasks run on **serverless compute**. No GPU clusters are required �
 
 | Component | Compute Type | Details |
 |-----------|-------------|---------|
-| Init schema (task 00) | Serverless notebook | Creates UC objects, ~1 min |
-| Demo ingest (task 01) | Serverless notebook | DICOM catalog from S3, ~4 min |
-| Deploy apps (task 02) | Serverless notebook | Lakebase + apps via SDK, ~10 min |
-| Register model (task 03a) | Serverless notebook | Wraps Vista3D in MLflow, registers in UC |
-| Deploy endpoint (task 03b) | Serverless notebook | Creates GPU serving endpoint via REST API |
-| Validate model (task 03c) | Serverless notebook | Test inference, retries up to 10x (3-min intervals) |
-| Genie space (task 04) | Serverless notebook | Vector search + Genie, ~5 min |
-| Validate all (task 10) | Serverless notebook | End-to-end service health checks, retries up to 12x |
-| Runtime (apps, dashboard, Genie) | Serverless SQL Warehouse | Used at query time |
+| Install job (14 tasks) | Serverless notebook | End-to-end wall time ~30–45 min on a fresh workspace |
+| Model serving endpoint | Databricks-managed GPU | GPU_MEDIUM, scale-to-zero, ~15–30 min initial provisioning |
 | Lakebase instance | Auto-created | Min 0.5 CU / Max 2.0 CU, autoscaling |
+| Runtime (apps, dashboard, Genie) | Serverless SQL Warehouse | Used at query time |
+
+`validate_model` retries up to 10× (3-min intervals) while the GPU endpoint provisions; `validate_install` retries up to 12× (3-min intervals) to allow services to stabilize.
 
 ## Quick Start
 
@@ -64,21 +73,28 @@ All install tasks run on **serverless compute**. No GPU clusters are required �
 git clone https://github.com/databricks-industry-solutions/pixels.git
 cd pixels
 
-# 2. Authenticate to your target workspace
+# 2. Build the bundle artifacts (wheel + OHIF tarball + vista3d tarball)
+#    DAB sync includes dist/*.whl, dist/ohif.tar.gz, dist/vista3d.tar.gz —
+#    they MUST exist before `bundle deploy` or apps and Vista3D will fail.
+make build
+
+# 3. Authenticate to your target workspace
 databricks auth login --profile MY_WORKSPACE
 
-# 3. Validate — override catalog if "main" is not accessible in your workspace
+# 4. Validate — override catalog if "main" is not accessible in your workspace
 databricks bundle validate -t prod -p MY_WORKSPACE \
   --var catalog=my_catalog
 
-# 4. Deploy the bundle
+# 5. Deploy the bundle
 databricks bundle deploy -t prod -p MY_WORKSPACE --auto-approve \
   --var catalog=my_catalog
 
-# 5. Run the install job
+# 6. Run the install job
 databricks bundle run pixels_install -t prod -p MY_WORKSPACE \
   --var catalog=my_catalog
 ```
+
+> **Re-deploys**: run `make clean && make build` to rebuild artifacts after editing `src/dbx/pixels/`, the OHIF tree, or the Vista3D model.
 
 > **Note**: Use `-t prod` for clean resource names (no `[dev username]` prefix).
 > Use `-t dev` for iterative development and testing.
@@ -107,32 +123,54 @@ All variables have sensible defaults. Override with `--var key=value` on the CLI
 
 ## What Gets Deployed
 
-The install job runs 8 tasks. Tasks `01_dcm_ingest` and `03a_register_model` run in parallel after `00_init_schema`:
+The install job runs 14 tasks. The deploy-apps work is split into 5 tasks (`deploy_prep`, `deploy_lakebase`, `deploy_gateway`, `deploy_viewer`, `deploy_grants`) so packaging, infra, and per-app deploys can fan out and retry independently.
 
 ```
-00_init_schema
-    ├── 01_dcm_ingest ────────────────────┐
-    │       └── 04_genie_space ───────────┐│
-    └── 03a → 03b → 03c ─────────────────┤│
-                                          │└── 02_deploy_apps ──┐
-                                          └────────────────────┴── 10_validate
+init_schema
+├── dcm_ingest
+│   ├── genie_space ─────────────────────────────────────────────┐
+│   └── deploy_lakebase ─────────────────────────────────┐       │
+├── deploy_prep                                          │       │
+│   └── deploy_gateway ──────────────────────────┐       │       │
+├── register_model → deploy_endpoint             │       │       │
+│                └── validate_model              │       │       │
+│                    └── deploy_viewer ───────────┤       │       │
+│                                         deploy_grants          │
+│                                            ├── stow_processor ─┤
+│                                            └──────────────┴────┴── post_install_update
+│                                                                        └── validate_install
 ```
 
-**Task 00 — Init Schema**: Creates UC schema, volume, empty `object_catalog` table, UDFs (`extract_tags`, `extract_tag_value`), and views (`object_catalog_unzip`, `instance_paths_vw`).
+Per-task runtimes below are typical wall times on a fresh workspace. Critical-path total: ~30–45 min, dominated by `validate_model` waiting on the Vista3D GPU endpoint.
 
-**Task 01 — Demo Data Ingest**: Catalogs demo DICOM files from `s3://hls-eng-data-public/dicom/landing_zone/*.zip`, extracts metadata, saves to `object_catalog` table.
+### Foundation
 
-**Task 03a — Register Model** (parallel with 01): Wraps Vista3D in an MLflow pyfunc model and registers it in Unity Catalog with a `champion` alias. Only needs the schema/volume from task 00.
+- **`init_schema`** (~1 min) — UC schema, volume, empty `object_catalog` table, UDFs (`extract_tags`, `extract_tag_value`), views (`object_catalog_unzip`, `instance_paths_vw`).
+- **`dcm_ingest`** (~3–5 min) — catalogs demo DICOM files from `s3://hls-eng-data-public/dicom/landing_zone/*.zip` and writes metadata to `object_catalog`.
 
-**Task 03b — Deploy Endpoint**: Creates (or updates) the GPU model serving endpoint `pixels-monai-uc`. Reads `scale_to_zero_enabled` from the bundle variable.
+### Model serving (parallel branch)
 
-**Task 03c — Validate Model**: Sends a test inference request to the serving endpoint. Retries up to 10 times (3-min intervals) while the GPU endpoint provisions (~15–30 min).
+- **`register_model`** (~3–5 min) — wraps Vista3D in an MLflow pyfunc and registers it in UC with a `champion` alias.
+- **`deploy_endpoint`** (~1 min, plus 15–30 min async provisioning) — creates/updates GPU serving endpoint `pixels-monai-uc` (reads `scale_to_zero_enabled`).
+- **`validate_model`** (up to 30 min) — polls and inferences against the endpoint; retries up to 10× at 3-min intervals while the GPU endpoint warms.
 
-**Task 02 — Deploy Apps** (after 03c + 01): Creates Lakebase instance, sets up Lakebase schema/tables, creates Reverse ETL synced table, deploys `pixels-dicomweb-gateway` and `pixels-dicomweb` apps via SDK, grants UC + Lakebase permissions. Runs after model serving is ready so the serving endpoint can be wired as an app resource.
+### Apps (parallel branch)
 
-**Task 04 — Genie Space** (after 01): Creates `dicom_tags` table from NDJSON, creates vector search endpoint + delta sync index using `databricks-bge-large-en` embeddings, creates VS function, creates Genie space via REST API.
+- **`deploy_prep`** (~1–2 min) — uploads wheel + OHIF tarball to the UC Volume so apps can install them at startup. (OHIF `.wasm` files exceed DAB sync limits, so apps are deployed via SDK rather than DAB `apps:` sections.)
+- **`deploy_lakebase`** (~5–10 min) — provisions the `pixels-lakebase` Postgres instance, creates schema/tables, and configures the Reverse ETL synced table.
+- **`deploy_gateway`** (~1–2 min) — deploys `pixels-dicomweb-gateway` (DICOMweb QIDO/WADO/STOW server).
+- **`deploy_viewer`** (~1–2 min) — deploys `pixels-dicomweb` (OHIF viewer + MONAI proxy). Depends on `validate_model` so the serving endpoint can be wired as an app resource.
+- **`deploy_grants`** (<1 min) — grants UC + Lakebase permissions to apps and the running user.
 
-**Task 10 — Validate** (after 02 + 04): End-to-end health checks across all deployed services. Retries up to 12 times (3-min intervals) to allow services to stabilize.
+### Genie + STOW
+
+- **`genie_space`** (~5 min) — creates `dicom_tags` table, vector search endpoint + delta sync index (`databricks-bge-large-en`), VS function, and the Genie space via REST API.
+- **`stow_processor`** (<1 min) — creates the STOW-RS processor job and grants permissions.
+
+### Finalize
+
+- **`post_install_update`** (<1 min) — applies dashboard parameter defaults and app thumbnails. Joins all three branches.
+- **`validate_install`** (1 min on success, up to 36 min on cold start) — end-to-end health checks across all surfaces; retries up to 12× at 3-min intervals.
 
 ### Resources Created
 
@@ -140,9 +178,121 @@ The install job runs 8 tasks. Tasks `01_dcm_ingest` and `03a_register_model` run
 - **Lakebase**: `pixels-lakebase` instance with `dicom_frames`, `endpoint_metrics`, and `instance_paths` (Reverse ETL sync) tables
 - **Apps**: `pixels-dicomweb` (OHIF viewer), `pixels-dicomweb-gateway` (DICOMweb server)
 - **Model Serving**: `pixels-monai-uc` endpoint (Vista3D segmentation, GPU_MEDIUM)
+- **Jobs**: STOW-RS processor job (created by `stow_processor`)
 - **Dashboard**: "Pixels Medical Imaging Cohorts" Lakeview dashboard
 - **Genie Space**: "Pixels - Genie" with vector search over DICOM tags
 - **Vector Search**: `pixels_vs_endpoint` endpoint + `dicom_tags_vs` delta sync index
+
+## Testing & Validation
+
+The install job's final task `validate_install` runs end-to-end health checks across every deployed surface. For manual verification, run these checks against the deployed workspace.
+
+### Pre-flight
+
+```bash
+# Profile + host shortcuts used in subsequent calls
+TOKEN=$(databricks auth token -p MY_WORKSPACE | jq -r .access_token)
+HOST=$(databricks auth env -p MY_WORKSPACE | jq -r .env.DATABRICKS_HOST)
+```
+
+### 1. Dashboard
+
+```bash
+# Find the Pixels dashboard
+databricks api get /api/2.0/lakeview/dashboards -p MY_WORKSPACE \
+  | jq '.dashboards[] | select(.display_name | contains("Pixels")) | {dashboard_id, display_name, lifecycle_state}'
+```
+
+Expected: `lifecycle_state: ACTIVE`, 3 pages, 4 datasets.
+
+### 2. Genie Space
+
+```bash
+databricks api post /api/2.0/genie/spaces/<space_id>/start-conversation -p MY_WORKSPACE \
+  --json '{"content": "How many DICOM studies are there?"}'
+# Then poll the returned message_id until status: COMPLETED
+```
+
+Expected answer: **9 DICOM studies**.
+
+### 3. Viewer App (`pixels-dicomweb`)
+
+```bash
+APP_URL=$(databricks apps get pixels-dicomweb -p MY_WORKSPACE --output json | jq -r .url)
+open "$APP_URL/ohif/monai-label?StudyInstanceUIDs=1.2.156.14702.1.1000.16.0.20200311113603875"
+```
+
+Expected: OHIF viewer loads the COVID lung CT in MONAI Label mode.
+
+### 3b. Viewer App — MONAI Proxy
+
+```bash
+curl -s "$APP_URL/api/monai/"
+```
+
+Expected: JSON with `name`, `version`, `labels`, `models` from MONAI Label v0.8.5 (Vista3D, 132 segments). Validates the viewer-to-serving proxy end-to-end.
+
+### 4. Gateway App (`pixels-dicomweb-gateway`)
+
+```bash
+GW_URL=$(databricks apps get pixels-dicomweb-gateway -p MY_WORKSPACE --output json | jq -r .url)
+curl -s "$GW_URL/health"
+curl -s "$GW_URL/api/dicomweb/studies?limit=2"
+```
+
+Expected: `/health` OK, `/api/dicomweb/studies` returns JSON with study UIDs. Note the path prefix is `/api/dicomweb/`, **not** `/dicomweb/`.
+
+### 5. Model Serving — Info
+
+```bash
+curl -s "$HOST/serving-endpoints/pixels-monai-uc/invocations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"dataframe_records": [{"input": {"action": "info"}}]}'
+```
+
+Expected: MONAI Label v0.8.5, Vista3D, 132 anatomical segments, <1s response when warm.
+
+### 6. Model Serving — Inference
+
+```bash
+curl -s "$HOST/serving-endpoints/pixels-monai-uc/invocations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataframe_records": [{
+      "series_uid": "1.2.156.14702.1.1000.16.1.2020031111365289000020001",
+      "params": {
+        "label_prompt": [20, 23, 28, 29, 30, 31, 32, 132],
+        "export_metrics": false,
+        "export_overlays": false,
+        "dest_dir": "/Volumes/<catalog>/<schema>/pixels_volume/monai_serving/vista3d",
+        "pixels_table": "<catalog>.<schema>.object_catalog",
+        "torch_device": 0
+      }
+    }]
+  }'
+```
+
+Labels: lung(20), lung_tumor(23), left_upper(28), left_lower(29), right_upper(30), right_middle(31), right_lower(32), airway(132). Expected: ~30–60s, returns `file_path` and `metrics`.
+
+### 7. Log Checks
+
+```bash
+# Query history (GET only — do NOT POST)
+curl -s "$HOST/api/2.0/sql/history/queries?max_results=50" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Model serving build/runtime logs (entity name from endpoint config)
+curl -s "$HOST/api/2.0/serving-endpoints/pixels-monai-uc/served-models/<entity_name>/logs" \
+  -H "Authorization: Bearer $TOKEN"
+
+# App logs
+databricks apps logs pixels-dicomweb-gateway -p MY_WORKSPACE
+databricks apps logs pixels-dicomweb -p MY_WORKSPACE
+```
+
+Known benign warnings in serving logs: CloudPickle version mismatch, missing `HF_TOKEN`, PyTorch affine dim mismatch.
 
 ## Optional Steps
 
@@ -189,6 +339,22 @@ databricks bundle validate -t prod -p MY_WORKSPACE \
 
 **`pip install` fails on serverless with immutable package constraints**
 Some packages (pandas, numpy, pyarrow) are provided by the serverless runtime and cannot be overridden. The `requirements.txt` uses `>=` for runtime-provided packages to avoid conflicts.
+
+**Bundle deploy uploads a stale wheel or skips OHIF/Vista3D**
+DAB sync includes `dist/*.whl`, `dist/ohif.tar.gz`, and `dist/vista3d.tar.gz`. If these are missing or stale, run `make clean && make build` before re-deploying.
+
+### Genie returns wrong answers or unhelpful SQL
+
+Open the Genie space and run the slash command **`/diagnose`** in the chat panel. It returns the parsed intent, the SQL Genie generated, the warehouse it ran against, and the raw error (if any). Copy that output when filing a bug — it tells you whether the issue is in the data, the SQL, or the Genie context.
+
+### Filing a bug
+
+If you hit something not covered above, open an issue at **[github.com/databricks-industry-solutions/pixels/issues](https://github.com/databricks-industry-solutions/pixels/issues)**. Use the **Bug** template and include:
+
+- Workspace target, profile, target (`-t dev` / `-t prod`), and the `--var` overrides you used
+- Failing task name (e.g., `deploy_lakebase`) and the run URL from `databricks bundle run`
+- Relevant log excerpts: task driver logs, app logs (`databricks apps logs <app_name>`), serving build logs, or `/diagnose` output for Genie issues
+- `databricks --version` and CLI profile host
 
 ## Teardown
 
