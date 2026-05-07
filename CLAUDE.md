@@ -23,14 +23,18 @@ pixels/
 ├── install/                        # All install job task notebooks
 │   ├── init-schema.ipynb           # 00: UC schema, volume, table DDL
 │   ├── dcm-demo.ipynb              # 01: Demo data ingest from S3
-│   ├── register-model.py           # 03a: Register Vista3D in UC
-│   ├── deploy-endpoint.py          # 03b: Create/update serving endpoint
-│   ├── validate-model.py           # 03c: Test inference on endpoint
-│   ├── deploy-apps.ipynb           # 02: Build wheel, deploy apps + Lakebase
-│   ├── genie-space.ipynb           # 04: Create Genie space
-│   ├── stow-processor.ipynb        # 07b: STOW-RS processor job + perms
-│   ├── post-install-update.py      # 09: Dashboard params, app thumbnails
-│   ├── validate-install.py         # 10: Validate all 7 surfaces
+│   ├── register-model.py           # Register Vista3D in UC
+│   ├── deploy-endpoint.py          # Create/update serving endpoint
+│   ├── validate-model.py           # Test inference on endpoint
+│   ├── deploy-prep.ipynb           # Upload wheel + OHIF archive to Volume
+│   ├── deploy-lakebase.ipynb       # Lakebase instance + reverse ETL sync
+│   ├── deploy-gateway.ipynb        # DICOMweb gateway app
+│   ├── deploy-viewer.ipynb         # OHIF viewer app
+│   ├── deploy-grants.ipynb         # Lakebase + UC grants
+│   ├── genie-space.ipynb           # Create Genie space
+│   ├── stow-processor.ipynb        # STOW-RS processor job + perms
+│   ├── post-install-update.py      # Dashboard params, app thumbnails
+│   ├── validate-install.py         # Validate all 7 surfaces
 │   └── config/                     # Shared widget init helpers
 │       ├── proxy_prep.py           # Widget creation, sys.path setup
 │       ├── setup.py                # Pip install helper
@@ -144,29 +148,33 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` |
 | `lakebase_instance_name` | `pixels-lakebase` |
 
-## Install Job Task DAG (10 tasks)
+## Install Job Task DAG (14 tasks)
 
 ```
-00_init_schema
-    ├── 01_dcm_ingest ──────────────────────┐
-    │       └── 04_genie_space ─────────┐   │
-    └── 03a → 03b → 03c ───────────────┤   │
-                                        └───┴── 02_deploy_apps
-                                        │               └── 07b_stow_processor
-                                        │                        │
-                                        └───────────────── 09_post_install_update
-                                                                 └── 10_validate
+init_schema
+├── dcm_ingest
+│   ├── genie_space ─────────────────────────────────────────────┐
+│   └── deploy_lakebase ─────────────────────────────────┐       │
+├── deploy_prep                                          │       │
+│   └── deploy_gateway ──────────────────────────┐       │       │
+├── register_model → deploy_endpoint             │       │       │
+│                └── validate_model              │       │       │
+│                    └── deploy_viewer ───────────┤       │       │
+│                                         deploy_grants          │
+│                                            ├── stow_processor ─┤
+│                                            └──────────────┴────┴── post_install_update
+│                                                                        └── validate_install
 ```
 
-09_post_install_update depends on: 02_deploy_apps, 04_genie_space, 07b_stow_processor.
+post_install_update depends on: deploy_grants, genie_space, stow_processor.
 
 ## Key Conventions
 
 - **Serverless compute**: All install tasks run serverless. Packages pinned in `requirements.txt` with `>=` for runtime-provided packages (pandas, numpy, typing_extensions) and `==` for everything else.
 - **Widget init**: `install/config/proxy_prep.py` centralizes widget creation and adds `src/` to `sys.path`. `init_env()` returns `(catalog, schema, table, volume)`. `init_model_serving_widgets()` returns `(model_uc_name, serving_endpoint_name, scale_to_zero_enabled)`.
-- **Apps deployed via SDK**: Apps are deployed programmatically in notebook task 02 (not via DAB `apps:` sections) because OHIF `.wasm` files exceed DAB sync limits.
-- **Wheel on UC Volume**: Task 02 builds the wheel via `make build`, uploads it to the UC Volume, and each app installs it via `pip install` from the Volume path. This avoids bundling the library inside each app directory.
-- **OHIF served from Volume**: The OHIF static build (`ohif.tar.gz`) is uploaded to the UC Volume at deploy time and extracted into the app container at startup, keeping it out of the wheel and DAB sync.
+- **Apps deployed via SDK**: Apps are deployed programmatically (not via DAB `apps:` sections) because OHIF `.wasm` files exceed DAB sync limits. The deploy pipeline is split into 5 tasks: `deploy_prep` (packaging), `deploy_lakebase`, `deploy_gateway`, `deploy_viewer`, `deploy_grants`.
+- **Wheel on UC Volume**: `deploy_prep` uploads the wheel to the UC Volume, and each app installs it via `pip install` from the Volume path. This avoids bundling the library inside each app directory.
+- **OHIF served from Volume**: The OHIF static build (`ohif.tar.gz`) is uploaded to the UC Volume by `deploy_prep` and extracted into the app container at startup, keeping it out of the wheel and DAB sync.
 - **Model registration**: Vista3D is wrapped as an MLflow pyfunc and registered in Unity Catalog with a `champion` alias.
 - **DAB sync rules**: `dist/*.whl` is explicitly included. Large directories excluded from sync: `apps/dicom-web/ohif/`, `models/vista3d/`, `notebooks/`.
 

@@ -36,106 +36,149 @@ resources:
           default: ${var.vector_search_embedding}
 
       tasks:
-        # ── Step 0: Initialize UC schema, volume, empty table ───────
-        - task_key: 00_init_schema
+        # ── Initialize UC schema, volume, empty table ──────────────
+        - task_key: init_schema
           notebook_task:
             notebook_path: ../install/init-schema.ipynb
             source: WORKSPACE
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 1: Demo Data Ingest (serverless) ───────────────────
-        - task_key: 01_dcm_ingest
+        # ── Demo Data Ingest ───────────────────────────────────────
+        - task_key: dcm_ingest
           notebook_task:
             notebook_path: ../install/dcm-demo.ipynb
             source: WORKSPACE
           depends_on:
-            - task_key: 00_init_schema
+            - task_key: init_schema
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 2: Deploy Apps + Lakebase (serverless) ─────────────
-        - task_key: 02_deploy_apps
-          notebook_task:
-            notebook_path: ../install/deploy-apps.ipynb
-            source: WORKSPACE
-          depends_on:
-            - task_key: 03c_validate_model
-            - task_key: 01_dcm_ingest
-          max_retries: 1
-          min_retry_interval_millis: 30000
-          environment_key: serverless
-
-        # ── Step 3a: Register Vista3D model in UC (serverless) ────
-        - task_key: 03a_register_model
+        # ── Register Vista3D model in UC ───────────────────────────
+        - task_key: register_model
           notebook_task:
             notebook_path: ../install/register-model.py
             source: WORKSPACE
           depends_on:
-            - task_key: 00_init_schema
+            - task_key: init_schema
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 3b: Deploy serving endpoint (serverless) ─────────
-        - task_key: 03b_deploy_endpoint
+        # ── Deploy serving endpoint ────────────────────────────────
+        - task_key: deploy_endpoint
           notebook_task:
             notebook_path: ../install/deploy-endpoint.py
             source: WORKSPACE
           depends_on:
-            - task_key: 03a_register_model
+            - task_key: register_model
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 3c: Validate endpoint with test inference ────────
-        - task_key: 03c_validate_model
+        # ── Validate endpoint with test inference ──────────────────
+        - task_key: validate_model
           notebook_task:
             notebook_path: ../install/validate-model.py
             source: WORKSPACE
           depends_on:
-            - task_key: 03b_deploy_endpoint
-          max_retries: 10
-          min_retry_interval_millis: 180000
+            - task_key: deploy_endpoint
+          max_retries: 0
           environment_key: serverless
 
-        # ── Step 4: Genie Space (serverless) ────────────────────────
-        - task_key: 04_genie_space
+        # ── Deploy Lakebase instance + reverse ETL sync ────────────
+        - task_key: deploy_lakebase
+          notebook_task:
+            notebook_path: ../install/deploy-lakebase.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: dcm_ingest
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
+        # ── Package wheel + OHIF archive to Volume ─────────────────
+        - task_key: deploy_prep
+          notebook_task:
+            notebook_path: ../install/deploy-prep.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: init_schema
+          max_retries: 0
+          environment_key: serverless
+
+        # ── Deploy DICOMweb gateway app ────────────────────────────
+        - task_key: deploy_gateway
+          notebook_task:
+            notebook_path: ../install/deploy-gateway.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: deploy_prep
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
+        # ── Deploy OHIF viewer app ─────────────────────────────────
+        - task_key: deploy_viewer
+          notebook_task:
+            notebook_path: ../install/deploy-viewer.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: deploy_gateway
+            - task_key: validate_model
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
+        # ── Grant Lakebase + UC permissions ────────────────────────
+        - task_key: deploy_grants
+          notebook_task:
+            notebook_path: ../install/deploy-grants.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: deploy_lakebase
+            - task_key: deploy_viewer
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
+        # ── Genie Space ────────────────────────────────────────────
+        - task_key: genie_space
           notebook_task:
             notebook_path: ../install/genie-space.ipynb
             source: WORKSPACE
           depends_on:
-            - task_key: 01_dcm_ingest
+            - task_key: dcm_ingest
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 7b: Create STOW-RS processor job + permissions ───
-        - task_key: 07b_stow_processor
+        # ── Create STOW-RS processor job + permissions ─────────────
+        - task_key: stow_processor
           notebook_task:
             notebook_path: ../install/stow-processor.ipynb
             source: WORKSPACE
           depends_on:
-            - task_key: 02_deploy_apps
+            - task_key: deploy_grants
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 9: Post-install updates (dashboard params, thumbnails) ─
-        - task_key: 09_post_install_update
+        # ── Post-install updates (dashboard params, thumbnails) ────
+        - task_key: post_install_update
           notebook_task:
             notebook_path: ../install/post-install-update.py
             source: WORKSPACE
           depends_on:
-            - task_key: 02_deploy_apps
-            - task_key: 04_genie_space
-            - task_key: 07b_stow_processor
+            - task_key: deploy_grants
+            - task_key: genie_space
+            - task_key: stow_processor
           max_retries: 0
           environment_key: serverless
 
-        # ── Step 10: Validate all services ─────────────────────────
-        - task_key: 10_validate
+        # ── Validate all services ──────────────────────────────────
+        - task_key: validate_install
           notebook_task:
             notebook_path: ../install/validate-install.py
             source: WORKSPACE
           depends_on:
-            - task_key: 09_post_install_update
+            - task_key: post_install_update
           max_retries: 12
           min_retry_interval_millis: 180000
           environment_key: serverless

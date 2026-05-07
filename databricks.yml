@@ -55,6 +55,7 @@ sync:
   include:
     - dist/*.whl
     - dist/vista3d.tar.gz
+    - dist/ohif.tar.gz
   exclude:
     - images/*.gif
     - apps/dicom-web/ohif/**/*

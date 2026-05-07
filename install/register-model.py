@@ -68,7 +68,8 @@ _vista3d_tar = os.path.join(_volume_base, "dist", "vista3d.tar.gz")
 
 _model_dir = "/tmp/vista3d"
 if os.path.isdir(_model_dir):
-    shutil.rmtree(_model_dir)
+    subprocess.run(["chmod", "-R", "u+w", _model_dir], check=False)
+    shutil.rmtree(_model_dir, ignore_errors=True)
 with tarfile.open(_vista3d_tar, "r:gz") as tar:
     tar.extractall("/tmp")
 print(f"Extracted vista3d model artifacts to {_model_dir}")
