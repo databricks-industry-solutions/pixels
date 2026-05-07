@@ -28,24 +28,36 @@ _host = os.environ["DATABRICKS_HOST"]
 _token = os.environ["DATABRICKS_TOKEN"]
 _auth_headers = {"Authorization": f"Bearer {_token}"}
 
-# Find the Pixels dashboard
+# Find the Pixels dashboard. The list endpoint reports lifecycle_state=ACTIVE even for
+# trashed dashboards, so we must GET each candidate and skip ones that are TRASHED.
 _dash_resp = _requests.get(f"{_host}/api/2.0/lakeview/dashboards", headers=_auth_headers, params={"page_size": 100})
 _dash_resp.raise_for_status()
 _all_dashboards = _dash_resp.json().get("dashboards", [])
-_match = [d for d in _all_dashboards if "Pixels" in d.get("display_name", "")]
+_candidates = [d for d in _all_dashboards if "Pixels" in d.get("display_name", "")]
 
-if not _match:
-    print("⚠ No dashboard with 'Pixels' in name — skipping parameter patch")
-    dbutils.notebook.exit("SKIP: no Pixels dashboard found")
+_dash_id = None
+_dashboard_json = {}
+_display_name = None
+for _c in _candidates:
+    _cid = _c["dashboard_id"]
+    _full_resp = _requests.get(f"{_host}/api/2.0/lakeview/dashboards/{_cid}", headers=_auth_headers)
+    if _full_resp.status_code == 404:
+        continue
+    _full_resp.raise_for_status()
+    _full = _full_resp.json()
+    if _full.get("lifecycle_state") != "ACTIVE":
+        continue
+    _dash_id = _cid
+    _display_name = _full.get("display_name")
+    _ser = _full.get("serialized_dashboard", "")
+    _dashboard_json = _json.loads(_ser) if _ser else {}
+    break
 
-_dash_id = _match[0]["dashboard_id"]
-print(f"Found dashboard: {_match[0]['display_name']} (id={_dash_id})")
+if _dash_id is None:
+    print("⚠ No active Pixels dashboard found — skipping parameter patch")
+    dbutils.notebook.exit("SKIP: no active Pixels dashboard found")
 
-# Fetch full dashboard JSON
-_full_resp = _requests.get(f"{_host}/api/2.0/lakeview/dashboards/{_dash_id}", headers=_auth_headers)
-_full_resp.raise_for_status()
-_ser = _full_resp.json().get("serialized_dashboard", "")
-_dashboard_json = _json.loads(_ser) if _ser else {}
+print(f"Found dashboard: {_display_name} (id={_dash_id})")
 
 # Get the deployed viewer app URL for the viewer_host parameter
 _viewer_app = w.apps.get("pixels-dicomweb")
