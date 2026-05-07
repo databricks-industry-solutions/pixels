@@ -140,9 +140,13 @@ _ep_check = _requests.get(
 if _ep_check.status_code == 200:
     _ep_data = _ep_check.json()
     _current_entities = _ep_data.get("config", {}).get("served_entities", [])
-    if _current_entities and str(_current_entities[0].get("entity_version")) == str(model_version):
-        print(f"Endpoint {serving_endpoint_name} already serving model version {model_version} — no update needed")
-        dbutils.notebook.exit(f"SUCCESS: endpoint already configured with version {model_version}")
+    _current_entity = _current_entities[0] if _current_entities else {}
+    if (
+        str(_current_entity.get("entity_version")) == str(model_version)
+        and _current_entity.get("entity_name") == model_uc_name
+    ):
+        print(f"Endpoint {serving_endpoint_name} already serving {model_uc_name} v{model_version} — no update needed")
+        dbutils.notebook.exit(f"SUCCESS: endpoint already configured with {model_uc_name} v{model_version}")
 
 try:
     endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
@@ -169,6 +173,9 @@ _max_wait = 2400  # 40 min
 _poll_interval = 30
 _elapsed = 0
 
+_FAILED_CONFIG_STATES = {"UPDATE_FAILED", "UPDATE_CANCELED"}
+_FAILED_DEPLOY_STATES = {"DEPLOYMENT_FAILED", "DEPLOYMENT_ABORTED"}
+
 while _elapsed < _max_wait:
     _ep_resp = _requests.get(
         f"{_host}/api/2.0/serving-endpoints/{serving_endpoint_name}",
@@ -180,7 +187,8 @@ while _elapsed < _max_wait:
         _elapsed += _poll_interval
         continue
 
-    _ep_state = _ep_resp.json().get("state", {})
+    _ep_json = _ep_resp.json()
+    _ep_state = _ep_json.get("state", {})
     _ready = _ep_state.get("ready")
     _config_update = _ep_state.get("config_update")
 
@@ -188,8 +196,17 @@ while _elapsed < _max_wait:
         print(f"Endpoint {serving_endpoint_name} is ready (waited {_elapsed}s)")
         break
 
-    _pending = _ep_resp.json().get("pending_config", {}).get("served_entities", [])
-    _deploy_msg = _pending[0].get("state", {}).get("deployment_state_message", "") if _pending else ""
+    _pending = _ep_json.get("pending_config", {}).get("served_entities", [])
+    _pending_state = _pending[0].get("state", {}) if _pending else {}
+    _deploy = _pending_state.get("deployment")
+    _deploy_msg = _pending_state.get("deployment_state_message", "")
+
+    if _config_update in _FAILED_CONFIG_STATES or _deploy in _FAILED_DEPLOY_STATES:
+        raise RuntimeError(
+            f"Endpoint {serving_endpoint_name} deployment failed: "
+            f"config_update={_config_update}, deployment={_deploy}, msg={_deploy_msg}"
+        )
+
     print(f"Waiting for endpoint... ready={_ready}, config_update={_config_update}, msg={_deploy_msg} ({_elapsed}s)")
 
     _time.sleep(_poll_interval)

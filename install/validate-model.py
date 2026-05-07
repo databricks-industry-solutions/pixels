@@ -47,6 +47,16 @@ try:
     if ep_config_update == "IN_PROGRESS":
         raise Exception(f"Endpoint {serving_endpoint_name} has config update in progress — waiting")
 
+    # Assert the active served entity points at the model we expect — guards against
+    # endpoint serving a stale entity from a prior install with a different schema.
+    _active_entities = _ep_data.get("config", {}).get("served_entities", [])
+    _active_entity_name = _active_entities[0].get("entity_name") if _active_entities else None
+    if _active_entity_name != model_uc_name:
+        raise Exception(
+            f"Endpoint {serving_endpoint_name} active entity is '{_active_entity_name}', "
+            f"expected '{model_uc_name}' — endpoint config did not update to the new model"
+        )
+
     # Step 2: Info ping
     _step = "info_ping"
     _invoke_url = f"{_host}/serving-endpoints/{serving_endpoint_name}/invocations"
