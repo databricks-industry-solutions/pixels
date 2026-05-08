@@ -333,13 +333,20 @@ async def _broadcast_metrics(data: dict):
 
 async def _metrics_reporter():
     """Flush gateway stats to Lakebase and push to WebSocket clients."""
-    store = get_store()
-    if store is None:
-        logger.warning("MetricsStore unavailable — Lakebase persistence disabled")
     logger.info("Gateway metrics reporter started (interval=%.1fs)", _METRICS_INTERVAL)
+    last_store_state: bool | None = None
     while True:
         await asyncio.sleep(_METRICS_INTERVAL)
         gw_snapshot = _snapshot_and_reset()
+
+        store = get_store()
+        store_available = store is not None
+        if store_available != last_store_state:
+            if store_available:
+                logger.info("MetricsStore available — Lakebase persistence enabled")
+            else:
+                logger.warning("MetricsStore unavailable — Lakebase persistence disabled")
+            last_store_state = store_available
 
         if store:
             try:

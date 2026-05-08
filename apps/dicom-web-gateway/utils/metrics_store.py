@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import threading
+import time
 from datetime import datetime, timedelta
 
 import psycopg2
@@ -206,20 +207,29 @@ class MetricsStore:
 
 _store: MetricsStore | None = None
 _store_init_lock = threading.Lock()
-_store_init_attempted = False
+_store_last_attempt = 0.0
+_STORE_INIT_RETRY_INTERVAL = 60.0
 
 
 def get_store() -> MetricsStore | None:
-    """Return the module-level MetricsStore singleton (or None if unavailable)."""
-    global _store, _store_init_attempted
+    """Return the module-level MetricsStore singleton (or None if unavailable).
+
+    On init failure, retry no more than once per ``_STORE_INIT_RETRY_INTERVAL``
+    seconds so a transient startup race (e.g. SP Postgres role not yet
+    propagated) self-heals without permanently disabling Lakebase persistence.
+    """
+    global _store, _store_last_attempt
     if _store is not None:
         return _store
-    if _store_init_attempted:
+    now = time.monotonic()
+    if now - _store_last_attempt < _STORE_INIT_RETRY_INTERVAL:
         return None
     with _store_init_lock:
         if _store is not None:
             return _store
-        _store_init_attempted = True
+        if time.monotonic() - _store_last_attempt < _STORE_INIT_RETRY_INTERVAL:
+            return None
+        _store_last_attempt = time.monotonic()
         try:
             _store = MetricsStore()
             logger.info("MetricsStore singleton created")
