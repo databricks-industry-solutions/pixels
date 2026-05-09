@@ -177,7 +177,7 @@ Registered via `register_all_common_routes()` from `dbx.pixels.resources.common.
 | `DATABRICKS_WAREHOUSE_ID`  | —       | SQL Warehouse for MONAI / redaction queries             |
 | `DATABRICKS_PIXELS_TABLE`  | —       | Fully-qualified UC table (`catalog.schema.table`)       |
 | `MONAI_SERVING_ENDPOINT`   | —       | MONAI Label model serving endpoint name                 |
-| `DICOMWEB_USE_USER_AUTH`   | `false` | Use user OBO auth instead of app service-principal auth |
+| `DICOMWEB_USE_USER_AUTH`   | `true`  | Use user OBO auth instead of app service-principal auth |
 | `DICOMWEB_MAX_CONNECTIONS` | `200`   | Max outbound HTTP connections to gateway                |
 | `DICOMWEB_MAX_KEEPALIVE`   | `100`   | Max keepalive connections in the pool                   |
 | `DB_PIXELS_LOG_LEVEL`      | `INFO`  | Python log level                                        |
@@ -748,7 +748,7 @@ vending (`s3://`, `abfss://`, `gs://`).
 
 ### Auth Modes
 
-#### App Auth (default, `DICOMWEB_USE_USER_AUTH=false`)
+#### App Auth (`DICOMWEB_USE_USER_AUTH=false`)
 
 - A single `DICOMwebDatabricksWrapper` is created at module load time and
 reused for all requests.
@@ -758,7 +758,7 @@ token. The `app_token_provider()` function checks the JWT `exp` claim with a
 - All SQL queries, Volumes reads, and Lakebase calls use the app's
 service-principal identity.
 
-#### User OBO Auth (`DICOMWEB_USE_USER_AUTH=true`)
+#### User OBO Auth (default, `DICOMWEB_USE_USER_AUTH=true`)
 
 - A new `DICOMwebDatabricksWrapper` is created for **every request** because
 the token, group memberships, and `pixels_table` (from cookie) can differ
@@ -855,7 +855,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `DATABRICKS_WAREHOUSE_ID`  | Yes      | —       | SQL Warehouse ID          |
 | `DATABRICKS_PIXELS_TABLE`  | Yes      | —       | `catalog.schema.table`    |
 | `MONAI_SERVING_ENDPOINT`   | No       | —       | MONAI Label endpoint name |
-| `DICOMWEB_USE_USER_AUTH`   | No       | `false` | OBO user auth             |
+| `DICOMWEB_USE_USER_AUTH`   | No       | `true`  | OBO user auth             |
 | `DICOMWEB_MAX_CONNECTIONS` | No       | `200`   | Proxy connection pool     |
 | `DICOMWEB_MAX_KEEPALIVE`   | No       | `100`   | Proxy keepalive pool      |
 | `DB_PIXELS_LOG_LEVEL`      | No       | `INFO`  | Log level                 |
@@ -896,7 +896,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `PIXELS_FILES_POOL_MAXSIZE`           | No             | `200`                     | Requests adapter max connections per pool                     |
 | `PIXELS_PREFETCH_POOL_CONNECTIONS`    | No             | `20`                      | Prefetch session pooled host entries                          |
 | `PIXELS_PREFETCH_POOL_MAXSIZE`        | No             | `50`                      | Prefetch session max connections per pool                     |
-| `DICOMWEB_USE_USER_AUTH`              | No             | `false`                   | OBO user auth                                                 |
+| `DICOMWEB_USE_USER_AUTH`              | No             | `true`                    | OBO user auth                                                 |
 
 
 ### BOT Cache Memory Sizing Guide

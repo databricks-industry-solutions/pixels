@@ -17,7 +17,7 @@ env:
 
   # ── Authentication ──────────────────────────────────────────────────────────
   - name: "DICOMWEB_USE_USER_AUTH"
-    value: "false"
+    value: "true"
 
   # ── HTTP client tuning ──────────────────────────────────────────────────────
   - name: "DICOMWEB_MAX_CONNECTIONS"

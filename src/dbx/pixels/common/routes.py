@@ -345,7 +345,7 @@ def register_redaction_routes(app: FastAPI):
     """Redaction job insertion, metadata shortcuts, AI redaction."""
 
     warehouse_id = get_warehouse_id()
-    use_user_auth: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "false").lower() == "true"
+    use_user_auth: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "true").lower() == "true"
 
     @app.post("/api/redaction/insert", response_class=JSONResponse, tags=["Redaction"])
     async def create_redaction_job(request: Request):

@@ -38,7 +38,7 @@ logger = LoggerProvider("DICOMweb.SQL")
 # ---------------------------------------------------------------------------
 # Feature flag: set DICOMWEB_USE_USER_AUTH=true to enable On-Behalf-Of-User
 # ---------------------------------------------------------------------------
-USE_USER_AUTH: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "false").lower() == "true"
+USE_USER_AUTH: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "true").lower() == "true"
 
 
 # ---------------------------------------------------------------------------

@@ -9,6 +9,10 @@ env:
   - name: "DATABRICKS_PIXELS_TABLE"
     value: "{PIXELS_TABLE}"
 
+  # ── Authentication ──────────────────────────────────────────────────────────
+  - name: "DICOMWEB_USE_USER_AUTH"
+    value: "true"
+
   # ── Lakebase (tier-2 persistent cache) ──────────────────────────────────────
   - name: "LAKEBASE_INSTANCE_NAME"
     value: "pixels-lakebase"
