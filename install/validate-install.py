@@ -7,6 +7,14 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install --quiet databricks-sdk==0.88.0 psycopg2-binary
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
 # MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
@@ -148,7 +156,11 @@ if _dashboard_json:
 # DBTITLE 1,Lakebase
 print("=== Lakebase ===")
 
+import psycopg2  # noqa: E402
+
 _lakebase_instance = "pixels-lakebase"
+_lb_branch = "production"
+_lb_endpoint_rn = f"projects/{_lakebase_instance}/branches/{_lb_branch}/endpoints/primary"
 
 try:
     _lb_resp = _requests.get(f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}", headers=_auth_headers)
@@ -161,7 +173,7 @@ except Exception as e:
 
 try:
     _lb_ep_resp = _requests.get(
-        f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}/branches/production/endpoints",
+        f"{_host}/api/2.0/postgres/projects/{_lakebase_instance}/branches/{_lb_branch}/endpoints",
         headers=_auth_headers,
     )
     _lb_ep_resp.raise_for_status()
@@ -173,6 +185,107 @@ try:
         check("Lakebase", "endpoint state", False, "no endpoints found")
 except Exception as e:
     check("Lakebase", "endpoint state", False, str(e)[:120])
+
+
+def _lb_open_connection():
+    """Open a Postgres connection to Lakebase as the install user."""
+    _ep = w.postgres.get_endpoint(_lb_endpoint_rn)
+    _cred = w.postgres.generate_database_credential(endpoint=_lb_endpoint_rn)
+    return psycopg2.connect(
+        database=catalog_name,
+        user=w.current_user.me().user_name,
+        host=_ep.status.hosts.host,
+        password=_cred.token,
+        sslmode="require",
+        connect_timeout=30,
+    )
+
+
+def _lb_synced_table_state(conn):
+    """Return (pipeline_state, row_count) for the instance_paths synced table."""
+    _resp = _requests.get(
+        f"{_host}/api/2.0/database/synced_tables/{catalog_name}.{schema_name}.instance_paths",
+        headers=_auth_headers,
+    )
+    _resp.raise_for_status()
+    _body = _resp.json()
+    _state = (
+        _body.get("data_synchronization_status", {}).get("detailed_state")
+        or _body.get("status", {}).get("detailed_state")
+        or "UNKNOWN"
+    )
+    with conn.cursor() as cur:
+        cur.execute(f'SELECT COUNT(*) FROM "{schema_name}".instance_paths')
+        cnt = cur.fetchone()[0]
+    conn.commit()
+    return _state, cnt
+
+
+def _lb_gateway_sp_grants(conn):
+    """Return (sp_uuid, em_insert, ip_select) — privilege checks for the gateway SP."""
+    _app = w.apps.get("pixels-dicomweb-gateway")
+    _sp = _app.service_principal_client_id
+    if not _sp:
+        return None, False, False
+    em = f'"{schema_name}".endpoint_metrics'
+    ip = f'"{schema_name}".instance_paths'
+    with conn.cursor() as cur:
+        cur.execute("SELECT has_table_privilege(%s, %s, 'INSERT')", (_sp, em))
+        em_ok = cur.fetchone()[0]
+        cur.execute("SELECT has_table_privilege(%s, %s, 'SELECT')", (_sp, ip))
+        ip_ok = cur.fetchone()[0]
+    conn.commit()
+    return _sp, em_ok, ip_ok
+
+
+def _lb_metrics_writes(conn):
+    """Return (count, max_recorded_at) for endpoint_metrics."""
+    with conn.cursor() as cur:
+        cur.execute(f'SELECT COUNT(*), MAX(recorded_at) FROM "{schema_name}".endpoint_metrics')
+        cnt, last = cur.fetchone()
+    conn.commit()
+    return cnt, last
+
+
+_lb_conn = None
+try:
+    _lb_conn = _lb_open_connection()
+    with _lb_conn.cursor() as _cur:
+        _cur.execute("SELECT 1")
+        _ok = _cur.fetchone()[0] == 1
+    _lb_conn.commit()
+    check("Lakebase", "Postgres connectivity", _ok, f"db={catalog_name} as install user")
+except Exception as e:
+    check("Lakebase", "Postgres connectivity", False, str(e)[:150])
+
+if _lb_conn is not None:
+    try:
+        _state, _cnt = _lb_synced_table_state(_lb_conn)
+        check("Lakebase", "instance_paths pipeline", _state not in ("FAILED", "UNKNOWN"), _state)
+        check("Lakebase", "instance_paths rows", _cnt > 0, f"{_cnt} rows")
+    except Exception as e:
+        check("Lakebase", "instance_paths sync", False, str(e)[:150])
+
+    try:
+        _sp, _em_ok, _ip_ok = _lb_gateway_sp_grants(_lb_conn)
+        if _sp is None:
+            check("Lakebase", "gateway SP grants", False, "no SP client_id on app")
+        else:
+            check("Lakebase", "gateway SP INSERT endpoint_metrics", _em_ok, f"sp={_sp[:8]}…")
+            check("Lakebase", "gateway SP SELECT instance_paths", _ip_ok, f"sp={_sp[:8]}…")
+    except Exception as e:
+        check("Lakebase", "gateway SP grants", False, str(e)[:150])
+
+    try:
+        _cnt, _last = _lb_metrics_writes(_lb_conn)
+        check("Lakebase", "endpoint_metrics writes", _cnt > 0, f"{_cnt} rows, last={_last}")
+    except Exception as e:
+        check("Lakebase", "endpoint_metrics writes", False, str(e)[:150])
+
+    try:
+        _lb_conn.close()
+    except Exception:
+        pass
 
 # COMMAND ----------
 
@@ -292,5 +405,8 @@ if passed == total:
     dbutils.notebook.exit(f"PASS: {passed}/{total}")
 else:
     failed = [r for r in results if r["status"] == "FAIL"]
-    fail_names = ", ".join(f"{r['service']}/{r['check']}" for r in failed[:5])
-    raise Exception(f"FAIL: {passed}/{total} — {fail_names}")
+    fail_lines = [
+        f"{r['service']}/{r['check']}: {r['detail']}" if r.get("detail") else f"{r['service']}/{r['check']}"
+        for r in failed[:5]
+    ]
+    raise Exception(f"FAIL: {passed}/{total} — " + " | ".join(fail_lines))
