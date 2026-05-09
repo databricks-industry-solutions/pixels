@@ -15,7 +15,7 @@ repo_main_folder = os.path.normpath(os.path.join(_nb_dir, ".."))
 print("Installing Pixels Solution Accelerator dependencies from ", repo_main_folder)
 
 %pip install --quiet -r {repo_main_folder}/requirements.txt
-%pip install --quiet --upgrade databricks-sdk==0.60.0
+%pip install --quiet --upgrade databricks-sdk==0.88.0
 
 dbutils.library.restartPython()
 
