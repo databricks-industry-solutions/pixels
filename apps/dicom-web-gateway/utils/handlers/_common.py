@@ -130,16 +130,54 @@ def resolve_user_token(request: Request) -> str:
     """
     Extract the user's forwarded access token (OBO mode only).
 
+    Order of resolution:
+      1. ``X-Forwarded-Access-Token`` — injected by the Databricks Apps proxy
+         on direct user→app calls.
+      2. ``Authorization: Bearer <token>`` — used for app→app calls where the
+         caller (e.g. the viewer) forwards the user's OAuth token to this app
+         and the proxy does not auto-inject ``X-Forwarded-Access-Token``.
+
     Raises:
-        HTTPException 401: if the header is missing.
+        HTTPException 401: if neither header carries a usable token.
     """
     token = request.headers.get("X-Forwarded-Access-Token")
+    src = "x-forwarded-access-token"
     if not token:
+        # Cross-app OBO: the viewer tunnels the user's token here because the
+        # Databricks Apps proxy strips Authorization on app-to-app calls and
+        # only injects X-Forwarded-Access-Token for direct user→app sessions.
+        token = request.headers.get("X-Pixels-User-Token")
+        if token:
+            src = "x-pixels-user-token"
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1].strip() or None
+            src = "authorization-bearer"
+    if not token:
+        # Diagnostic dump of inbound headers (with sensitive values redacted)
+        def _redact(name: str, value: str) -> str:
+            n = name.lower()
+            if n == "authorization":
+                scheme, _, tok = value.partition(" ")
+                return f"{scheme} <REDACTED len={len(tok)}>"
+            if "token" in n or "secret" in n or "key" in n or n == "cookie":
+                return f"<REDACTED len={len(value)}>"
+            return value
+
+        redacted = {k: _redact(k, v) for k, v in request.headers.items()}
+        logger.error(
+            "RESOLVE_USER_TOKEN_FAIL — no token found. inbound_headers=%s",
+            redacted,
+        )
         raise HTTPException(
             status_code=401,
             detail="User authorization (OBO) is enabled but no "
             "X-Forwarded-Access-Token header was found",
         )
+    logger.debug(
+        "RESOLVE_USER_TOKEN_OK source=%s token_len=%d", src, len(token)
+    )
     return token
 
 

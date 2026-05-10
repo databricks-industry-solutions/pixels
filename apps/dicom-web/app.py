@@ -7,9 +7,9 @@ reverse-proxied to a dedicated DICOMweb Gateway application specified
 by the ``DICOMWEB_GATEWAY_URL`` environment variable.
 """
 
-import logging
 import os
 import time
+import uuid
 from contextlib import asynccontextmanager
 
 import httpx
@@ -19,7 +19,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-logger = logging.getLogger("DICOMweb.Viewer")
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider("DICOMweb.Viewer")
 
 # ---------------------------------------------------------------------------
 # OHIF bootstrap — download static viewer assets from UC Volume on first start
@@ -67,8 +69,31 @@ _SKIP_PROXY_HEADERS = frozenset(
         "host",
         "content-length",
         "transfer-encoding",
+        "cookie",
+        "x-forwarded-access-token",
+        "x-forwarded-user",
+        "x-forwarded-email",
+        "x-forwarded-preferred-username",
+        "x-forwarded-host",
+        "x-forwarded-for",
+        "x-forwarded-proto",
+        "x-real-ip",
+        "traceparent",
+        "tracestate",
     }
 )
+
+# Prefixes whose headers must NEVER be replayed app-to-app. These are set by
+# the receiving app's Databricks Apps proxy on its own ingress hop; replaying
+# them causes the gateway proxy to reject with "Unsupported request" (400).
+_SKIP_PROXY_HEADER_PREFIXES = ("x-databricks-", "x-envoy-")
+
+
+def _is_skipped_header(name: str) -> bool:
+    n = name.lower()
+    if n in _SKIP_PROXY_HEADERS:
+        return True
+    return any(n.startswith(p) for p in _SKIP_PROXY_HEADER_PREFIXES)
 
 
 # ---------------------------------------------------------------------------
@@ -81,6 +106,11 @@ async def _proxy_to_gateway(request: Request) -> Response:
     response back to the client without buffering it in memory."""
     global _proxy_in_flight
     if not GATEWAY_URL:
+        logger.error(
+            "VIEWER_PROXY_CONFIG_ERROR method=%s path=%s — DICOMWEB_GATEWAY_URL not configured",
+            request.method,
+            request.url.path,
+        )
         return JSONResponse(
             status_code=503,
             content={"error": "DICOMWEB_GATEWAY_URL not configured"},
@@ -91,26 +121,71 @@ async def _proxy_to_gateway(request: Request) -> Response:
         target_url += f"?{request.query_params}"
 
     forward_headers = {
-        k: v for k, v in request.headers.items() if k.lower() not in _SKIP_PROXY_HEADERS
+        k: v for k, v in request.headers.items() if not _is_skipped_header(k)
     }
 
-    if request.headers.get("x-forwarded-access-token"):
-        user_token = request.headers.get("x-forwarded-access-token")
-    else:
-        user_token = request.headers.get("access-token")
+    user_token = request.headers.get("x-forwarded-access-token") or request.headers.get(
+        "access-token"
+    )
     if user_token:
         forward_headers["authorization"] = f"Bearer {user_token}"
-        forward_headers["x-forwarded-access-token"] = user_token
-        forward_headers["X-Forwarded-Email"] = request.headers.get("X-Forwarded-Email", "unknown")
+        # Custom header — the gateway's Databricks Apps proxy strips
+        # ``Authorization`` and does not inject ``X-Forwarded-Access-Token`` on
+        # cross-app calls. We tunnel the user's token in a non-standard header
+        # the proxy passes through unchanged, and the gateway's
+        # ``resolve_user_token`` falls back to it for OBO downstream calls.
+        forward_headers["x-pixels-user-token"] = user_token
     forward_headers["user-agent"] = (
         f"DatabricksPixels/{dbx_pixels_version.__version__}/dicomweb_client"
     )
 
+    # Propagate (or mint) X-Request-ID so a single trace id threads
+    # viewer logs → gateway logs → SQL/Volumes logs.
+    req_id = request.headers.get("x-request-id") or f"rq-{uuid.uuid4().hex[:12]}"
+    forward_headers["x-request-id"] = req_id
+
     body = await request.body() if request.method in ("POST", "PUT", "PATCH") else None
-    req_id = f"vp-{time.time_ns():x}"
     t0 = time.perf_counter()
     _proxy_in_flight += 1
     inflight_start = _proxy_in_flight
+
+    # ---- Detailed DEBUG dump of outgoing request to gateway ----
+    def _redact(name: str, value: str) -> str:
+        n = name.lower()
+        if n == "authorization":
+            scheme, _, tok = value.partition(" ")
+            return f"{scheme} <REDACTED len={len(tok)} prefix={tok[:6]}…>"
+        if "token" in n or "secret" in n or "key" in n or n == "cookie":
+            return f"<REDACTED len={len(value)}>"
+        return value
+
+    _redacted_inbound = {k: _redact(k, v) for k, v in request.headers.items()}
+    _redacted_forward = {k: _redact(k, v) for k, v in forward_headers.items()}
+    _body_preview = ""
+    if body is not None:
+        try:
+            _body_preview = body[:512].decode("utf-8", errors="replace")
+        except Exception:
+            _body_preview = f"<{len(body)} bytes binary>"
+
+    logger.debug(
+        "VIEWER_PROXY_ENTER req_id=%s method=%s path=%s qs=%s "
+        "has_user_token=%s inflight_start=%d target=%s\n"
+        "  inbound_headers=%s\n"
+        "  forward_headers=%s\n"
+        "  body_len=%d body_preview=%r",
+        req_id,
+        request.method,
+        request.url.path,
+        str(request.query_params),
+        bool(user_token),
+        inflight_start,
+        target_url,
+        _redacted_inbound,
+        _redacted_forward,
+        len(body) if body else 0,
+        _body_preview,
+    )
 
     try:
         req = _http_client.build_request(
@@ -124,6 +199,38 @@ async def _proxy_to_gateway(request: Request) -> Response:
 
         skip = {"transfer-encoding", "connection"}
         resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in skip}
+
+        # ---- On non-2xx, buffer body and log everything for diagnosis ----
+        if resp.status_code >= 400:
+            err_body = await resp.aread()
+            await resp.aclose()
+            _proxy_in_flight = max(0, _proxy_in_flight - 1)
+            try:
+                err_preview = err_body[:2048].decode("utf-8", errors="replace")
+            except Exception:
+                err_preview = f"<{len(err_body)} bytes binary>"
+            logger.error(
+                "VIEWER_PROXY_UPSTREAM_ERROR req_id=%s method=%s path=%s target=%s "
+                "status=%s upstream_ttfb_ms=%.1f\n"
+                "  resp_headers=%s\n"
+                "  resp_body_len=%d resp_body_preview=%r",
+                req_id,
+                request.method,
+                request.url.path,
+                target_url,
+                resp.status_code,
+                upstream_ttfb_ms,
+                dict(resp.headers),
+                len(err_body),
+                err_preview,
+            )
+            return Response(
+                content=err_body,
+                status_code=resp.status_code,
+                headers=resp_headers,
+                media_type=resp.headers.get("content-type"),
+            )
+
         if _PROXY_DIAG_HEADERS:
             resp_headers["x-vp-request-id"] = req_id
             resp_headers["x-vp-upstream-ttfb-ms"] = f"{upstream_ttfb_ms:.1f}"
@@ -165,7 +272,15 @@ async def _proxy_to_gateway(request: Request) -> Response:
         )
     except Exception as exc:
         _proxy_in_flight = max(0, _proxy_in_flight - 1)
-        logger.error("Gateway proxy error: %s", exc, exc_info=True)
+        logger.error(
+            "VIEWER_PROXY_ERROR req_id=%s method=%s path=%s target=%s: %s",
+            req_id,
+            request.method,
+            request.url.path,
+            target_url,
+            exc,
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=502,
             content={"error": "Gateway proxy error", "detail": str(exc)},

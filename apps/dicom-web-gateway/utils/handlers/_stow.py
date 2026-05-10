@@ -47,6 +47,7 @@ from ..queries import (
     build_stow_insert_query,
     build_stow_poll_query,
 )
+from ..request_ctx import current_request_id
 from ..sql_client import USE_USER_AUTH, DatabricksSQLClient, validate_table_name
 from ._common import (
     app_token_provider,
@@ -916,6 +917,13 @@ async def dicomweb_stow_studies(
       triggers the Spark split+metadata job in the background.
     """
     content_type = request.headers.get("content-type", "")
+    logger.debug(
+        "STOW_STUDIES req_id=%s study=%s content_type=%s content_length=%s",
+        current_request_id(),
+        study_instance_uid or "",
+        content_type,
+        request.headers.get("content-length", ""),
+    )
 
     # ── Validate Content-Type ──────────────────────────────────────────
     if "multipart/related" not in content_type.lower():
@@ -1026,7 +1034,12 @@ async def _handle_streaming(
         )
     except Exception as exc:
         logger.error(
-            f"STOW-RS [streaming]: split failed for {file_id}: " f"{type(exc).__name__}: {exc!r}"
+            "STOW_STREAMING_SPLIT_FAIL req_id=%s file_id=%s: %s: %r",
+            current_request_id(),
+            file_id,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
         )
         raise HTTPException(
             status_code=500,
@@ -1177,8 +1190,12 @@ async def _handle_legacy_spark(
         )
     except Exception as exc:
         logger.error(
-            f"STOW-RS [legacy]: streaming upload failed for {file_id}: "
-            f"{type(exc).__name__}: {exc!r}"
+            "STOW_LEGACY_UPLOAD_FAIL req_id=%s file_id=%s: %s: %r",
+            current_request_id(),
+            file_id,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
         )
         raise HTTPException(
             status_code=500,
@@ -1228,7 +1245,13 @@ async def _handle_legacy_spark(
             raise_on_error=True,
         )
     except Exception as exc:
-        logger.error(f"STOW-RS [legacy]: tracking INSERT failed for {file_id}: {exc}")
+        logger.error(
+            "STOW_LEGACY_TRACKING_INSERT_FAIL req_id=%s file_id=%s: %s",
+            current_request_id(),
+            file_id,
+            exc,
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
             detail="Failed to write STOW tracking record; verify table permissions",

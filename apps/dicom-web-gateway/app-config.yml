@@ -65,4 +65,4 @@ env:
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"
-    value: "INFO"
+    value: "DEBUG"

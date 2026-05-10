@@ -40,6 +40,8 @@ import dbx.pixels.version as dbx_pixels_version
 from dbx.pixels.databricks_file import DatabricksFile
 from dbx.pixels.logging import LoggerProvider
 
+from .request_ctx import current_request_id
+
 logger = LoggerProvider("DICOMweb.IO")
 
 # ---------------------------------------------------------------------------
@@ -312,9 +314,47 @@ def _fetch_bytes_range(
     headers = _auth_headers(token)
     if end is not None:
         headers["Range"] = f"bytes={start}-{end - 1}"
-    resp = _session.get(db_file.to_api_url(), headers=headers)
+    req_id = current_request_id()
+    range_str = f"{start}-{end - 1}" if end is not None else "full"
+    t0 = time.perf_counter()
+    logger.debug(
+        "VOL_GET_ENTER req_id=%s path=%s range=%s",
+        req_id,
+        db_file.file_path,
+        range_str,
+    )
+    try:
+        resp = _session.get(db_file.to_api_url(), headers=headers)
+    except Exception as exc:
+        logger.error(
+            "VOL_GET_FAIL req_id=%s path=%s range=%s elapsed_ms=%.1f: %s",
+            req_id,
+            db_file.file_path,
+            range_str,
+            (time.perf_counter() - t0) * 1000.0,
+            exc,
+            exc_info=True,
+        )
+        raise
     if resp.status_code not in (200, 206):
+        logger.error(
+            "VOL_GET_HTTP req_id=%s path=%s range=%s status=%d elapsed_ms=%.1f",
+            req_id,
+            db_file.file_path,
+            range_str,
+            resp.status_code,
+            (time.perf_counter() - t0) * 1000.0,
+        )
         raise RuntimeError(f"HTTP {resp.status_code} fetching {db_file.file_path}")
+    logger.debug(
+        "VOL_GET_EXIT req_id=%s path=%s range=%s status=%d bytes=%d elapsed_ms=%.1f",
+        req_id,
+        db_file.file_path,
+        range_str,
+        resp.status_code,
+        len(resp.content),
+        (time.perf_counter() - t0) * 1000.0,
+    )
     return resp.content
 
 
@@ -383,28 +423,78 @@ def stream_file(
         ``(chunk_generator, content_length_str | None)``
     """
     headers = _auth_headers(token)
-    response = _session.get(db_file.to_api_url(), headers=headers, stream=True)
+    req_id = current_request_id()
+    t0 = time.perf_counter()
+    logger.debug(
+        "VOL_STREAM_ENTER req_id=%s path=%s chunk=%d",
+        req_id,
+        db_file.file_path,
+        chunk_size,
+    )
+    try:
+        response = _session.get(db_file.to_api_url(), headers=headers, stream=True)
+    except Exception as exc:
+        logger.error(
+            "VOL_STREAM_FAIL req_id=%s path=%s elapsed_ms=%.1f: %s",
+            req_id,
+            db_file.file_path,
+            (time.perf_counter() - t0) * 1000.0,
+            exc,
+            exc_info=True,
+        )
+        raise
 
     if response.status_code != 200:
         body = response.text
         response.close()
+        logger.error(
+            "VOL_STREAM_HTTP req_id=%s path=%s status=%d elapsed_ms=%.1f",
+            req_id,
+            db_file.file_path,
+            response.status_code,
+            (time.perf_counter() - t0) * 1000.0,
+        )
         raise RuntimeError(
             f"Failed to stream {db_file.file_path} " f"(HTTP {response.status_code}): {body}"
         )
 
     content_length = response.headers.get("Content-Length")
     logger.debug(
-        f"Streaming {db_file.file_path} "
-        f"(Content-Length: {content_length or 'unknown'}, chunk={chunk_size})"
+        "VOL_STREAM_OPEN req_id=%s path=%s content_length=%s chunk=%d ttfb_ms=%.1f",
+        req_id,
+        db_file.file_path,
+        content_length or "unknown",
+        chunk_size,
+        (time.perf_counter() - t0) * 1000.0,
     )
 
     def generate() -> Iterator[bytes]:
+        bytes_streamed = 0
         try:
             for chunk in response.iter_content(chunk_size=chunk_size):
                 if chunk:
+                    bytes_streamed += len(chunk)
                     yield chunk
+        except Exception as exc:
+            logger.error(
+                "VOL_STREAM_ROW_FAIL req_id=%s path=%s bytes=%d elapsed_ms=%.1f: %s",
+                req_id,
+                db_file.file_path,
+                bytes_streamed,
+                (time.perf_counter() - t0) * 1000.0,
+                exc,
+                exc_info=True,
+            )
+            raise
         finally:
             response.close()
+            logger.debug(
+                "VOL_STREAM_EXIT req_id=%s path=%s bytes=%d elapsed_ms=%.1f",
+                req_id,
+                db_file.file_path,
+                bytes_streamed,
+                (time.perf_counter() - t0) * 1000.0,
+            )
 
     return generate(), content_length
 
@@ -481,16 +571,28 @@ async def async_stream_to_volumes(
                 content_length,
             )
         except Exception as exc:
-            logger.warning(
-                "Direct cloud upload failed (%s) — falling back to Files API: %s",
+            logger.error(
+                "VOL_DIRECT_UPLOAD_FAIL req_id=%s path=%s — falling back to Files API: %s: %s",
+                current_request_id(),
+                volume_path,
                 type(exc).__name__,
                 exc,
+                exc_info=True,
             )
             # body_stream may be partially consumed; the Files API fallback
             # below will receive whatever remains (or raise its own error).
 
     api_path = volume_path.lstrip("/")
     url = f"https://{host}/api/2.0/fs/files/{api_path}"
+
+    req_id = current_request_id()
+    t_put = time.perf_counter()
+    logger.debug(
+        "VOL_PUT_ENTER req_id=%s path=%s content_length=%s",
+        req_id,
+        volume_path,
+        content_length if content_length is not None else "unknown",
+    )
 
     total_size = 0
 
@@ -562,11 +664,28 @@ async def async_stream_to_volumes(
             pass
 
     if response.status_code not in (200, 204):
+        logger.error(
+            "VOL_PUT_HTTP req_id=%s path=%s status=%d bytes=%d elapsed_ms=%.1f body=%s",
+            req_id,
+            volume_path,
+            response.status_code,
+            total_size,
+            (time.perf_counter() - t_put) * 1000.0,
+            response.text[:500],
+        )
         raise RuntimeError(
             f"Volume streaming upload failed (HTTP {response.status_code}): "
             f"{response.text[:500]}"
         )
 
+    logger.debug(
+        "VOL_PUT_EXIT req_id=%s path=%s status=%d bytes=%d elapsed_ms=%.1f",
+        req_id,
+        volume_path,
+        response.status_code,
+        total_size,
+        (time.perf_counter() - t_put) * 1000.0,
+    )
     return total_size
 
 

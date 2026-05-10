@@ -25,6 +25,7 @@ from .. import timing_decorator
 from ..cache import bot_cache
 from ..dicom_io import compute_full_bot, file_prefetcher
 from ..dicom_tags import TRANSFER_SYNTAX_TO_MIME
+from ..request_ctx import current_request_id
 from ._common import get_dicomweb_wrapper, lb_utils
 
 logger = LoggerProvider("DICOMweb.WADO")
@@ -44,8 +45,24 @@ def dicomweb_wado_series_metadata(
     Streams the JSON array directly from Arrow batches — the ``meta``
     column is already valid JSON so no parse/serialize round-trip is needed.
     """
-    wrapper = get_dicomweb_wrapper(request)
-    stream = wrapper.retrieve_series_metadata(study_instance_uid, series_instance_uid)
+    logger.debug(
+        "WADO_METADATA req_id=%s study=%s series=%s",
+        current_request_id(),
+        study_instance_uid,
+        series_instance_uid,
+    )
+    try:
+        wrapper = get_dicomweb_wrapper(request)
+        stream = wrapper.retrieve_series_metadata(study_instance_uid, series_instance_uid)
+    except Exception:
+        logger.error(
+            "WADO_METADATA_FAIL req_id=%s study=%s series=%s",
+            current_request_id(),
+            study_instance_uid,
+            series_instance_uid,
+            exc_info=True,
+        )
+        raise
     return StreamingResponse(iterate_in_threadpool(stream), media_type="application/dicom+json")
 
 
@@ -60,12 +77,30 @@ def dicomweb_wado_instance(
     Streams the full DICOM file directly from Databricks Volumes → client
     without buffering the entire file in server memory.
     """
-    wrapper = get_dicomweb_wrapper(request)
-    stream, content_length = wrapper.retrieve_instance(
+    logger.debug(
+        "WADO_INSTANCE req_id=%s study=%s series=%s instance=%s",
+        current_request_id(),
         study_instance_uid,
         series_instance_uid,
         sop_instance_uid,
     )
+    try:
+        wrapper = get_dicomweb_wrapper(request)
+        stream, content_length = wrapper.retrieve_instance(
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
+        )
+    except Exception:
+        logger.error(
+            "WADO_INSTANCE_FAIL req_id=%s study=%s series=%s instance=%s",
+            current_request_id(),
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
+            exc_info=True,
+        )
+        raise
     headers: dict[str, str] = {"Cache-Control": "private, max-age=3600"}
     if content_length:
         headers["Content-Length"] = content_length
@@ -96,8 +131,12 @@ def dicomweb_wado_instance_frames(
         raise HTTPException(status_code=400, detail="Invalid frame list format")
 
     logger.debug(
-        f"Frame request: study={study_instance_uid}, series={series_instance_uid}, "
-        f"instance={sop_instance_uid}, frames={frame_numbers}"
+        "WADO_FRAMES req_id=%s study=%s series=%s instance=%s frames=%s",
+        current_request_id(),
+        study_instance_uid,
+        series_instance_uid,
+        sop_instance_uid,
+        frame_numbers,
     )
 
     try:
@@ -132,7 +171,15 @@ def dicomweb_wado_instance_frames(
             headers={"Cache-Control": "private, max-age=3600"},
         )
     except Exception:
-        logger.error("Error retrieving frames", exc_info=True)
+        logger.error(
+            "WADO_FRAMES_FAIL req_id=%s study=%s series=%s instance=%s frames=%s",
+            current_request_id(),
+            study_instance_uid,
+            series_instance_uid,
+            sop_instance_uid,
+            frame_numbers,
+            exc_info=True,
+        )
         raise
 
 
@@ -181,6 +228,12 @@ def dicomweb_wado_uri(request: Request) -> StreamingResponse | Response:
         multipart response when ``frameNumber`` is specified.
     """
     params = dict(request.query_params)
+
+    logger.debug(
+        "WADO_URI req_id=%s qs=%s",
+        current_request_id(),
+        str(request.query_params),
+    )
 
     # ── Validate requestType ────────────────────────────────────────
     request_type = params.get("requestType", "")
@@ -327,14 +380,33 @@ async def dicomweb_resolve_frame_ranges(request: Request) -> Response:
     series_uid = body.get("seriesInstanceUID")
     sop_uid = body.get("sopInstanceUID")
 
+    logger.debug(
+        "WADO_RESOLVE_FRAME_RANGES req_id=%s study=%s series=%s instance=%s",
+        current_request_id(),
+        study_uid,
+        series_uid,
+        sop_uid,
+    )
+
     if not study_uid or not series_uid or not sop_uid:
         raise HTTPException(
             status_code=400,
             detail="studyInstanceUID, seriesInstanceUID, and sopInstanceUID are all required",
         )
 
-    wrapper = get_dicomweb_wrapper(request)
-    result = wrapper.resolve_frame_ranges(study_uid, series_uid, sop_uid)
+    try:
+        wrapper = get_dicomweb_wrapper(request)
+        result = wrapper.resolve_frame_ranges(study_uid, series_uid, sop_uid)
+    except Exception:
+        logger.error(
+            "WADO_RESOLVE_FRAME_RANGES_FAIL req_id=%s study=%s series=%s instance=%s",
+            current_request_id(),
+            study_uid,
+            series_uid,
+            sop_uid,
+            exc_info=True,
+        )
+        raise
 
     return Response(
         content=json.dumps(result),
@@ -372,14 +444,31 @@ async def dicomweb_resolve_paths(request: Request) -> Response:
     study_uid = body.get("studyInstanceUID")
     series_uid = body.get("seriesInstanceUID")
 
+    logger.debug(
+        "WADO_RESOLVE_PATHS req_id=%s study=%s series=%s",
+        current_request_id(),
+        study_uid,
+        series_uid,
+    )
+
     if not study_uid or not series_uid:
         raise HTTPException(
             status_code=400,
             detail="Both 'studyInstanceUID' and 'seriesInstanceUID' are required",
         )
 
-    wrapper = get_dicomweb_wrapper(request)
-    paths = wrapper.resolve_instance_paths(study_uid, series_uid)
+    try:
+        wrapper = get_dicomweb_wrapper(request)
+        paths = wrapper.resolve_instance_paths(study_uid, series_uid)
+    except Exception:
+        logger.error(
+            "WADO_RESOLVE_PATHS_FAIL req_id=%s study=%s series=%s",
+            current_request_id(),
+            study_uid,
+            series_uid,
+            exc_info=True,
+        )
+        raise
 
     return Response(
         content=json.dumps({"paths": paths}, indent=2),
@@ -497,6 +586,13 @@ async def dicomweb_prime_series(request: Request) -> Response:
 
     study_uid = body.get("studyInstanceUID")
     series_uid = body.get("seriesInstanceUID")
+
+    logger.debug(
+        "WADO_PRIME req_id=%s study=%s series=%s",
+        current_request_id(),
+        study_uid,
+        series_uid,
+    )
 
     if not study_uid or not series_uid:
         raise HTTPException(

@@ -82,6 +82,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from utils.cache import bot_cache, instance_path_cache
 from utils.dicom_io import file_prefetcher
+from utils.request_ctx import new_request_id, request_id_var
 from utils.handlers import (
     dicomweb_prime_series,
     dicomweb_qido_all_series,
@@ -780,14 +781,36 @@ class _InstrumentMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # ── Request-id propagation ───────────────────────────────────────
+        # Use the inbound X-Request-ID if the viewer (or any caller) set
+        # one; otherwise mint a new id so downstream logs can correlate.
+        inbound_req_id = ""
+        for name, value in scope.get("headers", ()):
+            if name == b"x-request-id":
+                inbound_req_id = value.decode("latin1").strip()
+                break
+        req_id = inbound_req_id or new_request_id()
+        token = request_id_var.set(req_id)
+
         _record_request_start()
         inflight_at_start = max(_gw_req_in_flight, 0)
         t0 = time.perf_counter()
         status_code = 200
         ttfb_ms: float | None = None
         is_wado = _is_wado_request(scope)
+        is_dicomweb = path.startswith("/api/dicomweb")
         req_method = scope.get("method", "GET")
-        req_id = f"gw-{time.time_ns():x}"
+        query = scope.get("query_string", b"").decode("latin1")
+
+        if is_dicomweb:
+            logger.debug(
+                "GW_ENTER req_id=%s method=%s path=%s qs=%s inflight_start=%d",
+                req_id,
+                req_method,
+                path,
+                query,
+                inflight_at_start,
+            )
 
         async def _send_wrapper(message):
             nonlocal status_code, ttfb_ms
@@ -808,13 +831,32 @@ class _InstrumentMiddleware:
             await self.app(scope, receive, _send_wrapper)
         except Exception:
             status_code = 500
+            logger.error(
+                "GW_UNHANDLED req_id=%s method=%s path=%s",
+                req_id,
+                req_method,
+                path,
+                exc_info=True,
+            )
             raise
         finally:
             elapsed = time.perf_counter() - t0
             _record_request(elapsed, status_code >= 400)
+            if is_dicomweb:
+                logger.debug(
+                    "GW_EXIT req_id=%s method=%s path=%s status=%s "
+                    "ttfb_ms=%.1f total_ms=%.1f inflight_end=%d",
+                    req_id,
+                    req_method,
+                    path,
+                    status_code,
+                    ttfb_ms if ttfb_ms is not None else 0.0,
+                    elapsed * 1000.0,
+                    max(_gw_req_in_flight, 0),
+                )
             if is_wado:
                 logger.debug(
-                    "WADO_DIAG id=%s method=%s path=%s status=%s "
+                    "WADO_DIAG req_id=%s method=%s path=%s status=%s "
                     "ttfb_ms=%.1f total_ms=%.1f inflight_start=%d inflight_end=%d",
                     req_id,
                     req_method,
@@ -825,6 +867,7 @@ class _InstrumentMiddleware:
                     inflight_at_start,
                     max(_gw_req_in_flight, 0),
                 )
+            request_id_var.reset(token)
 
 
 app.add_middleware(_InstrumentMiddleware)

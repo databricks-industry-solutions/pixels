@@ -24,6 +24,7 @@ import os
 import queue
 import re
 import threading
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -32,6 +33,8 @@ from databricks.sdk.core import Config
 from fastapi import HTTPException
 
 from dbx.pixels.logging import LoggerProvider
+
+from .request_ctx import current_request_id
 
 logger = LoggerProvider("DICOMweb.SQL")
 
@@ -198,20 +201,24 @@ class DatabricksSQLClient:
             HTTPException: On SQL execution failure.
         """
         param_keys = [str(k) for k in parameters.keys()] if parameters else []
+        req_id = current_request_id()
+        is_obo = USE_USER_AUTH and user_token is not None
+        auth_mode = "OBO" if is_obo else "APP"
         logger.debug(
-            "SQL: %s  param_keys=%s param_count=%d",
-            query,
+            "SQL_ENTER req_id=%s auth=%s param_keys=%s param_count=%d query=%s",
+            req_id,
+            auth_mode,
             param_keys,
             len(param_keys),
+            query,
         )
 
-        is_obo = USE_USER_AUTH and user_token is not None
         max_attempts = 1 if is_obo else 2
-        last_exc: Exception | None = None
 
         for attempt in range(max_attempts):
             conn = None
             failed = False
+            t0 = time.perf_counter()
 
             try:
                 if is_obo:
@@ -227,21 +234,44 @@ class DatabricksSQLClient:
                         if batch.num_rows == 0:
                             break
                         results.extend(list(row.values()) for row in batch.to_pylist())
+                    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                    logger.debug(
+                        "SQL_EXIT req_id=%s auth=%s rows=%d elapsed_ms=%.1f",
+                        req_id,
+                        auth_mode,
+                        len(results),
+                        elapsed_ms,
+                    )
                     return results
 
             except Exception as exc:
                 failed = True
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 if attempt + 1 < max_attempts:
-                    logger.warning(
-                        "SQL execution failed (attempt %d/%d), "
-                        "resetting credentials and retrying: %s",
+                    logger.error(
+                        "SQL_RETRY req_id=%s auth=%s attempt=%d/%d "
+                        "elapsed_ms=%.1f — resetting credentials: %s",
+                        req_id,
+                        auth_mode,
                         attempt + 1,
                         max_attempts,
+                        elapsed_ms,
                         exc,
+                        exc_info=True,
                     )
                     self.reset_credentials()
                 else:
-                    logger.error(f"SQL execution failed: {exc}")
+                    logger.error(
+                        "SQL_FAIL req_id=%s auth=%s attempt=%d/%d "
+                        "elapsed_ms=%.1f: %s",
+                        req_id,
+                        auth_mode,
+                        attempt + 1,
+                        max_attempts,
+                        elapsed_ms,
+                        exc,
+                        exc_info=True,
+                    )
 
             finally:
                 if conn is not None:
@@ -287,14 +317,19 @@ class DatabricksSQLClient:
             HTTPException: On SQL execution failure.
         """
         param_keys = [str(k) for k in parameters.keys()] if parameters else []
+        req_id = current_request_id()
+        is_obo = USE_USER_AUTH and user_token is not None
+        auth_mode = "OBO" if is_obo else "APP"
         logger.debug(
-            "SQL (stream): %s  param_keys=%s param_count=%d",
-            query,
+            "SQL_STREAM_ENTER req_id=%s auth=%s param_keys=%s param_count=%d query=%s",
+            req_id,
+            auth_mode,
             param_keys,
             len(param_keys),
+            query,
         )
+        t_open = time.perf_counter()
 
-        is_obo = USE_USER_AUTH and user_token is not None
         max_attempts = 1 if is_obo else 2
         conn = None
         cursor = None
@@ -308,6 +343,13 @@ class DatabricksSQLClient:
 
                 cursor = conn.cursor()
                 cursor.execute(query, parameters=parameters)
+                logger.debug(
+                    "SQL_STREAM_OPEN req_id=%s auth=%s attempt=%d elapsed_ms=%.1f",
+                    req_id,
+                    auth_mode,
+                    attempt + 1,
+                    (time.perf_counter() - t_open) * 1000.0,
+                )
                 break
             except Exception as exc:
                 if conn is not None:
@@ -321,17 +363,28 @@ class DatabricksSQLClient:
                     conn = None
 
                 if attempt + 1 < max_attempts:
-                    logger.warning(
-                        "SQL stream execution failed (attempt %d/%d), "
-                        "resetting credentials and retrying: %s",
+                    logger.error(
+                        "SQL_STREAM_RETRY req_id=%s auth=%s attempt=%d/%d "
+                        "— resetting credentials: %s",
+                        req_id,
+                        auth_mode,
                         attempt + 1,
                         max_attempts,
                         exc,
+                        exc_info=True,
                     )
                     self.reset_credentials()
                     continue
 
-                logger.error(f"SQL execution failed: {exc}")
+                logger.error(
+                    "SQL_STREAM_FAIL req_id=%s auth=%s attempt=%d/%d: %s",
+                    req_id,
+                    auth_mode,
+                    attempt + 1,
+                    max_attempts,
+                    exc,
+                    exc_info=True,
+                )
                 raise HTTPException(
                     status_code=500,
                     detail="Internal server error -- check gateway logs for details",
@@ -339,15 +392,28 @@ class DatabricksSQLClient:
 
         def _rows() -> Iterator[list[Any]]:
             row_failed = False
+            row_count = 0
+            t_stream = time.perf_counter()
             try:
                 while True:
                     batch = cursor.fetchmany_arrow(10_000)
                     if batch.num_rows == 0:
                         break
                     for row in batch.to_pylist():
+                        row_count += 1
                         yield list(row.values())
-            except Exception:
+            except Exception as exc:
                 row_failed = True
+                logger.error(
+                    "SQL_STREAM_ROW_FAIL req_id=%s auth=%s rows_emitted=%d "
+                    "elapsed_ms=%.1f: %s",
+                    req_id,
+                    auth_mode,
+                    row_count,
+                    (time.perf_counter() - t_stream) * 1000.0,
+                    exc,
+                    exc_info=True,
+                )
                 raise
             finally:
                 cursor.close()
@@ -358,6 +424,14 @@ class DatabricksSQLClient:
                         pass
                 else:
                     self._release_app_connection(conn, failed=row_failed)
+                if not row_failed:
+                    logger.debug(
+                        "SQL_STREAM_EXIT req_id=%s auth=%s rows=%d elapsed_ms=%.1f",
+                        req_id,
+                        auth_mode,
+                        row_count,
+                        (time.perf_counter() - t_stream) * 1000.0,
+                    )
 
         return _rows()
 
