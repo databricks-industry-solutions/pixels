@@ -158,7 +158,7 @@ print("=== Lakebase ===")
 
 import psycopg2  # noqa: E402
 
-_lakebase_instance = "pixels-lakebase"
+_lakebase_instance = dbutils.widgets.get("lakebase_instance_name")
 _lb_branch = "production"
 _lb_endpoint_rn = f"projects/{_lakebase_instance}/branches/{_lb_branch}/endpoints/primary"
 

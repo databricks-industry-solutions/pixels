@@ -190,7 +190,9 @@ Tests live in `tests/` and run with `pytest -s --import-mode=importlib`.
 
 ### Post-Install Integration Tests
 
-After the install job completes, validate all 7 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
+**MANDATORY before every commit** that touches install scripts, app code, or auth/identity paths: run the full integration suite below — not just `validate_install`. `validate_install` confirms resources exist and respond, but does **not** exercise the viewer→gateway OBO chain, the viewer→MONAI proxy, OHIF rendering in a real browser, model inference, or Genie. A green `validate_install` is necessary but not sufficient. Report pass/fail per surface in the commit summary.
+
+After the install job completes, validate all 8 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
 
 #### 1. Dashboard
 
@@ -230,6 +232,16 @@ open <app_url>/ohif/monai-label?StudyInstanceUIDs=1.2.156.14702.1.1000.16.0.2020
 ```
 
 Expected: OHIF viewer loads with the COVID lung CT study in MONAI Label mode.
+
+A successful OHIF render (verified via chrome-devtools MCP on 2026-05-10 against `pixels-dicomweb-7474646313791816.aws.databricksapps.com`) shows:
+
+- **Header**: "Open Health Imaging Foundation" branding, tool palette (Window Level, Pan, Zoom, 3D Rotate, Capture, Layout, Crosshairs, Reset, Undo/Redo), Patient menu, Settings
+- **Studies panel (left)**: `LUNG / CT 427` study with multiple series thumbnails — Dose Info (S:10001), Scout/Topogram (S:1), **Mediastinum (S:2, 44 slices)** selected as active, Lung (S:3, 35 slices), and additional series below
+- **Main viewport (3-up MPR layout)**: axial slice 23/44, sagittal slice 257/512, coronal slice 257/512 — all three showing recognisable thoracic anatomy (heart, lungs, spine, airways, vasculature)
+- **Segmentation Tools panel (right)**: Labelmap Assist, Brush, Eraser, Threshold, Marker Guided, One Click Segment, Shapes, plus "Add Segmentation" button
+- **Network**: DevTools network panel shows successful `GET /api/dicomweb/studies?...` (200), `/api/dicomweb/studies/{uid}/series` (200), and streaming frame fetches (200) — proves OHIF SPA → viewer reverse proxy → gateway OBO → SQL/Lakebase → UC Volume frame retrieval is end-to-end functional
+
+If only the SPA shell loads without frames rendering, the OBO chain or DICOMweb backend is broken — investigate before declaring the surface healthy.
 
 #### 3b. Viewer App — MONAI Proxy (`/api/monai/`)
 
@@ -316,4 +328,5 @@ Known benign warnings in serving logs: CloudPickle version mismatch, missing HF_
 
 - Branch from `main`, PR back to `main`
 - Run `make style` before pushing — pre-commit hooks will catch formatting issues
+- **Run the full Post-Install Integration Test suite above before every commit** that touches install scripts, app code, or auth/identity paths. `validate_install` alone is not sufficient — it does not exercise OBO chains, OHIF rendering, model inference, or Genie.
 - The repo uses Databricks pre-commit git hooks for secret scanning

@@ -23,6 +23,7 @@ def init_widgets(show_volume=False):
   table = dbutils.widgets.get("table")
   dbutils.widgets.text("sqlWarehouseID", "", label="2.0 SQL Warehouse")
   sql_warehouse_id = dbutils.widgets.get("sqlWarehouseID")
+  dbutils.widgets.text("lakebase_instance_name", "pixels-lakebase", label="6.0 Lakebase project name")
 
   if sql_warehouse_id == "":
     sql_warehouse = next(w.warehouses.list())
