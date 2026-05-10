@@ -190,7 +190,7 @@ Tests live in `tests/` and run with `pytest -s --import-mode=importlib`.
 
 ### Post-Install Integration Tests
 
-**MANDATORY before every commit** that touches install scripts, app code, or auth/identity paths: run the full integration suite below — not just `validate_install`. `validate_install` confirms resources exist and respond, but does **not** exercise the viewer→gateway OBO chain, the viewer→MONAI proxy, OHIF rendering in a real browser, model inference, or Genie. A green `validate_install` is necessary but not sufficient. Report pass/fail per surface in the commit summary.
+**MANDATORY before every commit**: run the full integration suite below — not just `validate_install`. `validate_install` confirms resources exist and respond, but does **not** exercise the viewer→gateway OBO chain, the viewer→MONAI proxy, OHIF rendering in a real browser, model inference, or Genie. A green `validate_install` is necessary but not sufficient. Report pass/fail per surface in the commit summary.
 
 After the install job completes, validate all 8 user surfaces. Replace `MY_WORKSPACE` with your CLI profile and adjust catalog/schema to match your `--var` overrides.
 
@@ -328,5 +328,5 @@ Known benign warnings in serving logs: CloudPickle version mismatch, missing HF_
 
 - Branch from `main`, PR back to `main`
 - Run `make style` before pushing — pre-commit hooks will catch formatting issues
-- **Run the full Post-Install Integration Test suite above before every commit** that touches install scripts, app code, or auth/identity paths. `validate_install` alone is not sufficient — it does not exercise OBO chains, OHIF rendering, model inference, or Genie.
+- **Run the full Post-Install Integration Test suite above before every commit.** `validate_install` alone is not sufficient — it does not exercise OBO chains, OHIF rendering, model inference, or Genie.
 - The repo uses Databricks pre-commit git hooks for secret scanning
