@@ -56,6 +56,17 @@ resources:
           max_retries: 0
           environment_key: serverless
 
+        # ── Mint app shells (creates SPs; no code deploy) ──────────
+        - task_key: create_apps
+          notebook_task:
+            notebook_path: ../install/create-apps.ipynb
+            source: WORKSPACE
+          depends_on:
+            - task_key: init_schema
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          environment_key: serverless
+
         # ── Register Vista3D model in UC ───────────────────────────
         - task_key: register_model
           notebook_task:
@@ -114,6 +125,7 @@ resources:
             source: WORKSPACE
           depends_on:
             - task_key: deploy_prep
+            - task_key: deploy_grants
           max_retries: 1
           min_retry_interval_millis: 30000
           environment_key: serverless
@@ -136,8 +148,8 @@ resources:
             notebook_path: ../install/deploy-grants.ipynb
             source: WORKSPACE
           depends_on:
+            - task_key: create_apps
             - task_key: deploy_lakebase
-            - task_key: deploy_viewer
           max_retries: 1
           min_retry_interval_millis: 30000
           environment_key: serverless
@@ -168,7 +180,7 @@ resources:
             notebook_path: ../install/post-install-update.py
             source: WORKSPACE
           depends_on:
-            - task_key: deploy_grants
+            - task_key: deploy_viewer
             - task_key: genie_space
             - task_key: stow_processor
           max_retries: 0
