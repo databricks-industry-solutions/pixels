@@ -1,6 +1,11 @@
-.PHONY: dev test unit style check test-cov
+.PHONY: all clean dev build test unit style check test-cov render-dashboard deploy
 
-all:	clean dev check 
+CATALOG ?= main
+SCHEMA  ?= pixels
+PROFILE ?= DEFAULT
+TARGET  ?= prod
+
+all:	clean dev check
 
 clean:
 	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
@@ -39,3 +44,13 @@ check: style test
 
 test-cov:
 	test-cov-report && open htmlcov/index.html
+
+render-dashboard:
+	.venv/bin/python scripts/render_dashboard.py \
+		--profile $(PROFILE) --catalog $(CATALOG) --schema $(SCHEMA) \
+		--src "ai-bi/Pixels Object Catalog dashboard.lvdash.json.tmpl" \
+		--out "dist/Pixels Object Catalog dashboard.lvdash.json"
+
+deploy: build render-dashboard
+	databricks bundle deploy -t $(TARGET) -p $(PROFILE) --auto-approve \
+		--var catalog=$(CATALOG) --var schema=$(SCHEMA)

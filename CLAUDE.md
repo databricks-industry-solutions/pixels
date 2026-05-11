@@ -102,12 +102,14 @@ pixels/
 ## Build & Development
 
 ```bash
-make dev      # Create .venv, install requirements + editable dev install
-make build    # Build wheel (dist/*.whl) + OHIF tarball (dist/ohif.tar.gz)
-make test     # Build wheel, run pytest
-make style    # Run pre-commit (autoflake, isort, black)
-make check    # style + test
-make clean    # Remove build artifacts and caches
+make dev               # Create .venv, install requirements + editable dev install
+make build             # Build wheel (dist/*.whl) + OHIF tarball (dist/ohif.tar.gz)
+make render-dashboard  # Render dist/Pixels…lvdash.json from the .tmpl source
+make deploy            # build + render-dashboard + databricks bundle deploy
+make test              # Build wheel, run pytest
+make style             # Run pre-commit (autoflake, isort, black)
+make check             # style + test
+make clean             # Remove build artifacts and caches
 ```
 
 ## Code Style
@@ -128,9 +130,14 @@ databricks auth login --profile MY_WORKSPACE
 
 # Validate, deploy, run
 databricks bundle validate -t prod -p MY_WORKSPACE --var catalog=my_catalog
-databricks bundle deploy -t prod -p MY_WORKSPACE --auto-approve --var catalog=my_catalog
+make deploy CATALOG=my_catalog SCHEMA=my_schema PROFILE=MY_WORKSPACE TARGET=prod
 databricks bundle run pixels_install -t prod -p MY_WORKSPACE --var catalog=my_catalog
 ```
+
+`make deploy` renders the dashboard template (`ai-bi/…lvdash.json.tmpl`) into
+`dist/` with the correct catalog/schema/viewer_host **before** calling
+`databricks bundle deploy`. Running `databricks bundle deploy` directly (without
+`make deploy`) will fail because the rendered file under `dist/` won't exist.
 
 Use `-t dev` for development (resource names get `[dev username]` prefix).
 
