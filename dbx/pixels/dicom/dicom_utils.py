@@ -80,7 +80,10 @@ def extract_metadata(ds: Dataset, deep: bool = True, remove_un_tags: bool = Fals
 
     a = None
     js = {}
-
+    
+    # remove contours
+    if "30060039" in ds:
+        del ds["30060039"]
     # remove binary images
     if "60003000" in ds:
         del ds["60003000"]
