@@ -131,7 +131,7 @@ class MonaiLabelBundlesGPUTransformer(Transformer):
                 yield pd.DataFrame({"result": results, "error": errors})
 
         return (
-            df.selectExpr(f"{self.inputCol}:['0020000E'].Value[0] as series_uid")
+            df.selectExpr(f"{self.inputCol}:['0020000E'].Value[0]::STRING as series_uid")
             .filter("contains(meta:['00080008'], 'AXIAL')")
             .distinct()
             .repartition(self.parallelization)

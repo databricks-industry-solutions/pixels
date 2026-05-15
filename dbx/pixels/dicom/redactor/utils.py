@@ -65,16 +65,24 @@ def redact_frame(frame: npt.NDArray, redaction: dict) -> npt.NDArray:
 
     Returns:
         NumPy array: The frame with the redacted region filled with black (0)
-
-    Raises:
-        ImportError: If cv2 (opencv-python) is not installed
     """
-    import cv2
-
     x_min, y_min = redaction["imagePixelCoordinates"]["topLeft"]
     x_max, y_max = redaction["imagePixelCoordinates"]["bottomRight"]
+    x_min, y_min, x_max, y_max = map(int, (x_min, y_min, x_max, y_max))
 
-    cv2.rectangle(frame, (int(x_min), int(y_min)), (int(x_max), int(y_max)), 0, -1)
+    # Normalize and clip coordinates to frame bounds.
+    if x_min > x_max:
+        x_min, x_max = x_max, x_min
+    if y_min > y_max:
+        y_min, y_max = y_max, y_min
+
+    height, width = frame.shape[:2]
+    x_min = max(0, min(x_min, width))
+    x_max = max(0, min(x_max, width))
+    y_min = max(0, min(y_min, height))
+    y_max = max(0, min(y_max, height))
+
+    frame[y_min:y_max, x_min:x_max] = 0
     return frame
 
 

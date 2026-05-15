@@ -55,7 +55,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
             self.bin_path = os.path.join(self.module_path, "../artifacts/itkimage2segimage")
 
         from common.dblabelapp import DBMONAILabelApp
-     
+        import common.writers
+
         self.conf = {
             "models": "segmentation",
             "preload": "false",
@@ -165,14 +166,13 @@ class DBModel(mlflow.pyfunc.PythonModel):
         pass
     
     @mlflow.trace(span_type=SpanType.TOOL)
-    def to_dicom_seg(self, dicom_path, nifti_seg_path, image_info, dest_dir):
+    def to_dicom_seg(self, dicom_path, nifti_seg_path, series_description):
         """
         Converts a NIfTI segmentation file to a DICOM SEG file and uploads it to the destination.
         Args:
             dicom_path (str): The path to the DICOM file.
             nifti_seg_path (str): The path to the NIfTI segmentation file.
-            image_info (dict): The image information dictionary.
-            dest_dir (str): The destination directory for the DICOM SEG file.
+            series_description (str): The description of the series.
         Returns:
             str: The path to the DICOM SEG file.
         """
@@ -189,18 +189,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
             }
 
         self.logger.warning(f"Starting conversion on image: {nifti_seg_path}")
-        dicom_seg_file = nifti_to_dicom_seg(self.bin_path, dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=image_info['SeriesDescription'])
+        dicom_seg_file = nifti_to_dicom_seg(self.bin_path, dicom_path, nifti_seg_path, model_labels, use_itk=True, series_description=series_description)
         self.logger.warning(f"Conversion completed on image: {nifti_seg_path}, temp file path: {dicom_seg_file}")
-
-        dicom_seg_path = os.path.join(dest_dir, image_info['StudyInstanceUID'], image_info['SeriesInstanceUID']+".dcm")
-        self.logger.warning(f"Destination file path: {dicom_seg_path}")
         
-        self.upload_file(dicom_seg_file, dicom_seg_path)
-
-        print(f"++++ DICOM File: {dicom_path}")
-        print(f"++++ DICOM SEG File: {dicom_seg_path}")
-        
-        return dicom_seg_path
+        return dicom_seg_file
     
     def handle_labels(self, input):
         """
@@ -313,8 +305,8 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 elif "infer" in model_input['input'][0]:
                     label_prompt, points, point_labels, datastore = self.handle_labels(model_input["input"][0]['infer'])
                             
-                    dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
-                    to_return = {"file": nifti_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
+                    series_dir, out_seg_path = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
+                    to_return = {"file": out_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
                 else:
                     to_return = self.handle_input(model_input['input'][0])
@@ -324,20 +316,23 @@ class DBModel(mlflow.pyfunc.PythonModel):
                     input_params = model_input["params"][0]
                 else:
                     input_params = {}
+
+                series_uid = model_input["series_uid"][0]
                 
                 label_prompt, points, point_labels, datastore = self.handle_labels(input_params)
                 dest_dir, export_overlays, export_metrics, torch_device = self.handle_params(input_params)
 
-                dicom_path, nifti_path, nifti_seg_path, image_info = self.model_infer(datastore, model_input["series_uid"][0], label_prompt, points, point_labels, torch_device=torch_device, file_ext=".nii")
+                series_dir, out_seg_path = self.model_infer(datastore, series_uid, label_prompt, points, point_labels, torch_device=torch_device, file_ext=".dcm")
+                final_path = dest_dir + "/segmentations/" + series_uid + ".dcm"
                 
-                dicom_seg_path = self.to_dicom_seg(dicom_path, nifti_seg_path, image_info, dest_dir)
+                self.upload_file(out_seg_path, final_path)
 
                 if export_overlays or export_metrics:
-                    metrics = calculate_volumes_and_overlays(nifti_path, nifti_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/"+image_info['StudyInstanceUID'] + "/" + image_info['SeriesInstanceUID'] + "/", export_overlays=export_overlays, export_metrics=export_metrics)
+                    metrics = calculate_volumes_and_overlays(series_dir, out_seg_path, self.label_dict, output_dir=dest_dir+"/overlays/" + series_uid+ "/", export_overlays=export_overlays, export_metrics=export_metrics)
                 else:
                     metrics = None
 
-                to_return =  {"file_path": dicom_seg_path, "metrics": metrics}
+                to_return =  {"file_path": final_path, "metrics": metrics}
 
                 span.set_outputs(to_return)
             

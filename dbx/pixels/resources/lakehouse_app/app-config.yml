@@ -7,5 +7,3 @@ env:
     value: "{PIXELS_TABLE}"
   - name: "LAKEBASE_INSTANCE_NAME"
     value: "{LAKEBASE_INSTANCE_NAME}"
-  - name: "LAKEBASE_DICOM_FRAMES_TABLE"
-    value: "dicom_frames"

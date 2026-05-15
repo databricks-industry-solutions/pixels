@@ -2,7 +2,6 @@ pandas
 numpy==1.26.4
 pydicom==3.0.1
 pylibjpeg
-pylibjpeg-libjpeg
 pylibjpeg-openjpeg
 s3fs==2025.9.0
 Pillow
@@ -13,4 +12,5 @@ dicognito==0.17.0
 ff3==1.0.2
 typing_extensions>=4.7.1
 psycopg[binary,pool]
-databricks-sdk==0.60.0
+databricks-sdk==0.88.0
+simplejson

@@ -611,3 +611,34 @@ class TestEndToEndRedaction:
         # Image dimensions should be unchanged
         assert result.Rows == original_rows
         assert result.Columns == original_cols
+
+    def test_redact_frame_on_real_ct_file_changes_only_box(self, sample_ct_path, sample_ct_dataset):
+        """Test pixel-level frame redaction on a real CT DICOM file."""
+        from dbx.pixels.dicom.redactor.utils import get_frame, redact_frame
+
+        original_frame = get_frame(sample_ct_path, sample_ct_dataset, 0)
+        redacted_frame = original_frame.copy()
+        rows, cols = redacted_frame.shape[:2]
+
+        x_min = max(0, cols // 4)
+        y_min = max(0, rows // 4)
+        x_max = min(cols, x_min + max(1, cols // 8))
+        y_max = min(rows, y_min + max(1, rows // 8))
+
+        redaction = {
+            "imagePixelCoordinates": {"topLeft": [x_min, y_min], "bottomRight": [x_max, y_max]}
+        }
+
+        result = redact_frame(redacted_frame, redaction)
+
+        # Region must be blacked out.
+        assert np.all(result[y_min:y_max, x_min:x_max] == 0)
+
+        # Pixels outside the box must remain unchanged.
+        outside_mask = np.ones(result.shape[:2], dtype=bool)
+        outside_mask[y_min:y_max, x_min:x_max] = False
+        if result.ndim == 2:
+            assert np.array_equal(result[outside_mask], original_frame[outside_mask])
+        else:
+            expanded_mask = np.broadcast_to(outside_mask[..., None], result.shape)
+            assert np.array_equal(result[expanded_mask], original_frame[expanded_mask])

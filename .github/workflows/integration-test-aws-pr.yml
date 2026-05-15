@@ -12,7 +12,7 @@ jobs:
       - name: Run a databricks notebook
         uses: databricks/run-notebook@v0
         with:
-          local-notebook-path: 01-dcm-demo.py
+          local-notebook-path: 01-dcm-demo.ipynb
           git-commit: ${{ github.event.pull_request.head.sha }}
           databricks-host: https://e2-demo-west.cloud.databricks.com
           databricks-token: ${{ secrets.DEPLOYMENT_TARGET_TOKEN_AWS }}
@@ -22,7 +22,7 @@ jobs:
                 "min_workers": 1,
                 "max_workers": 1
               },
-              "spark_version": "16.4.x-scala2.13",
+              "spark_version": "17.3.x-scala2.13",
               "node_type_id": "i3.xlarge",
               "aws_attributes": {
                 "zone_id": "auto",

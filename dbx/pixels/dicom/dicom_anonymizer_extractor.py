@@ -4,7 +4,7 @@ import re
 
 import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
-from pyspark.sql.functions import col, lit, replace, udf
+from pyspark.sql.functions import col, expr, lit, replace, udf
 
 from dbx.pixels.dicom.dicom_utils import (
     anonymize_metadata,
@@ -63,11 +63,14 @@ class DicomAnonymizerExtractor(Transformer):
         keep_tags: tuple = ("StudyDate", "StudyTime", "SeriesDate"),
         anonymization_base_path: str = None,
         save_anonymized_dicom: bool = True,
+        useVariant=True,
+        permissive=False,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.basePath = basePath
         self.catalog = catalog
+        self.permissive = permissive
 
         self.anonym_mode = anonym_mode
         self.fp_key = fp_key
@@ -93,6 +96,7 @@ class DicomAnonymizerExtractor(Transformer):
             self.anonymization_base_path = catalog._anonymization_base_path
 
         self.save_anonymized_dicom = save_anonymized_dicom
+        self.useVariant = useVariant
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -134,8 +138,7 @@ class DicomAnonymizerExtractor(Transformer):
             path -- local path like /dbfs/mnt/... or s3://<bucket>/path/to/object.dcm
             anon -- Set to True if accessing S3 and the bucket is public
             """
-            import json
-
+            import simplejson as json
             from pydicom import dcmread
 
             try:
@@ -179,21 +182,26 @@ class DicomAnonymizerExtractor(Transformer):
                     meta_js = extract_metadata(dataset, deep=False)
                     meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                     meta_js["file_size"] = fsize
-                    return {"meta": json.dumps(meta_js), "path": "dbfs:" + anonymized_file_path}
+                    return {
+                        "meta": json.dumps(meta_js, ignore_nan=True),
+                        "path": "dbfs:" + anonymized_file_path,
+                    }
             except Exception as err:
                 except_str = {
-                    "meta": {
-                        "udf": "dicom_meta_anonym_udf",
-                        "error": str(err),
-                        "args": str(err.args),
-                        "path": path,
-                    },
-                    "path": "dbfs:" + path,
+                    "meta": json.dumps(
+                        {
+                            "udf": "dicom_meta_anonym_udf",
+                            "error": str(err),
+                            "args": str(err.args),
+                            "path": str(path),
+                        }
+                    ),
+                    "path": "dbfs:" + str(path),
                 }
                 return except_str
 
         self.check_input_type(df.schema)
-        return (
+        df = (
             df.withColumn("is_anon", lit(self.catalog.is_anon()))
             .withColumn("anonym_res", dicom_meta_anonym_udf(col(self.inputCol), col("is_anon")))
             .withColumn("path", col("anonym_res.path"))
@@ -204,3 +212,17 @@ class DicomAnonymizerExtractor(Transformer):
             .withColumn("meta", col("anonym_res.meta"))
             .drop("anonym_res")
         )
+
+        if self.useVariant:
+            if self.permissive:
+                df = df.withColumn(
+                    "_corrupt_record",
+                    expr(
+                        "CASE WHEN try_parse_json(meta) IS NULL THEN meta ELSE NULL END"
+                    ),
+                )
+                df = df.withColumn("meta", expr("try_parse_json(meta)"))
+            else:
+                df = df.withColumn("meta", expr("parse_json(meta)"))
+
+        return df

@@ -7,8 +7,10 @@ CREATE or replace FUNCTION {UC_SCHEMA}.extract_tags(dicom_tags ARRAY<STRUCT<TAG 
 
     def extract_tags(dicom_tag, meta):
       result = {}
-
-      meta_json = json.loads(meta)
+      try:
+        meta_json = json.loads(meta)
+      except:
+        return {}
       dicom_tag_json = {"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}
       
       key = dicom_tag_json["TAG"]
@@ -32,7 +34,10 @@ CREATE or replace FUNCTION {UC_SCHEMA}.extract_tag_value(dicom_tag STRUCT<TAG ST
   AS $$
     import json
 
-    meta_json = json.loads(meta)
+    try:
+      meta_json = json.loads(meta)
+    except:
+      return None
     dicom_tag_json = {"TAG": dicom_tag[0], "keyword": dicom_tag[1], "VM": dicom_tag[2]}
       
     key = dicom_tag_json["TAG"]
