@@ -64,11 +64,13 @@ class DicomAnonymizerExtractor(Transformer):
         anonymization_base_path: str = None,
         save_anonymized_dicom: bool = True,
         useVariant=True,
+        permissive=False,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
         self.basePath = basePath
         self.catalog = catalog
+        self.permissive = permissive
 
         self.anonym_mode = anonym_mode
         self.fp_key = fp_key
@@ -212,6 +214,15 @@ class DicomAnonymizerExtractor(Transformer):
         )
 
         if self.useVariant:
-            df = df.withColumn("meta", expr("parse_json(meta)"))
+            if self.permissive:
+                df = df.withColumn(
+                    "_corrupt_record",
+                    expr(
+                        "CASE WHEN try_parse_json(meta) IS NULL THEN meta ELSE NULL END"
+                    ),
+                )
+                df = df.withColumn("meta", expr("try_parse_json(meta)"))
+            else:
+                df = df.withColumn("meta", expr("parse_json(meta)"))
 
         return df

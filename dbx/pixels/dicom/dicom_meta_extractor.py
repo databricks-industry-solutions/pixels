@@ -30,6 +30,7 @@ class DicomMetaExtractor(Transformer):
         useVariant=True,
         maxWorkers=None,
         remove_un_tags=False,
+        permissive=False,
     ):
         self.inputCol = inputCol
         self.outputCol = outputCol
@@ -39,6 +40,7 @@ class DicomMetaExtractor(Transformer):
         self.useVariant = useVariant
         self.maxWorkers = maxWorkers if maxWorkers is not None else self.MAX_WORKERS
         self.remove_un_tags = remove_un_tags
+        self.permissive = permissive
 
     def check_input_type(self, schema):
         field = schema[self.inputCol]
@@ -121,5 +123,14 @@ class DicomMetaExtractor(Transformer):
         df = df.mapInPandas(_extract_meta, schema=out_schema)
 
         if self.useVariant:
-            df = df.withColumn(self.outputCol, expr(f"parse_json({self.outputCol})"))
+            if self.permissive:
+                df = df.withColumn(
+                    "_corrupt_record",
+                    expr(
+                        f"CASE WHEN try_parse_json({self.outputCol}) IS NULL THEN {self.outputCol} ELSE NULL END"
+                    ),
+                )
+                df = df.withColumn(self.outputCol, expr(f"try_parse_json({self.outputCol})"))
+            else:
+                df = df.withColumn(self.outputCol, expr(f"parse_json({self.outputCol})"))
         return df
