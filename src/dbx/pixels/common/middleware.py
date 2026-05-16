@@ -55,6 +55,21 @@ async def _read_static_file_async(path: str) -> bytes:
     return await anyio.to_thread.run_sync(_read_static_file, path)
 
 
+_MONAI_COOKIE_BOOTSTRAP = (
+    b"(function(){"
+    b"var n='MONAILABEL_SERVER_URL';"
+    b"var m=document.cookie.match(new RegExp('(?:^|;\\\\s*)'+n+'=([^;]+)'));"
+    b"if(!m||decodeURIComponent(m[1]).indexOf('http://')===0){"
+    b"['/','/ohif','/ohif/'].forEach(function(p){"
+    b"document.cookie=n+'=;path='+p+';max-age=0';"
+    b"});"
+    b"document.cookie=n+'='+encodeURIComponent("
+    b"window.location.origin+'/api/monai/')+';path=/;samesite=Lax';"
+    b"}"
+    b"})();\n"
+)
+
+
 class TokenMiddleware:
     """Inject runtime config into OHIF JavaScript on the fly.
 
@@ -106,7 +121,15 @@ class TokenMiddleware:
                 .replace(b"{DEFAULT_DATA_SOURCE}", self.default_data_source.encode())
                 .replace(b"{DICOMWEB_ROOT}", self.dicomweb_root.encode())
             )
-            await Response(content=new_body, media_type="text/javascript")(scope, receive, send)
+            # OHIF's MONAI Label extension defaults to http://<host>:8000/ which the
+            # browser blocks as Mixed Content on the HTTPS Databricks Apps origin.
+            # Prepend a JS IIFE that pins the cookie to the same-origin HTTPS proxy
+            # at /api/monai/ if missing or insecure, and clears stale duplicates at
+            # other paths (e.g. /ohif) left over from the OHIF Settings UI.
+            new_body = _MONAI_COOKIE_BOOTSTRAP + new_body
+            await Response(content=new_body, media_type="text/javascript")(
+                scope, receive, send
+            )
             return
 
         if path.endswith("local"):
