@@ -59,7 +59,7 @@ pixels/
 │   ├── dicom-web-gateway/          # DICOMweb QIDO/WADO/STOW gateway
 │   └── view-app/                   # Deprecated viewer (kept for reference)
 │
-├── models/vista3d/                 # Vista3D model registration + serving
+├── models/monai/                   # MONAI Label server + Vista3D bundle (registration + serving)
 │   ├── ModelServing.py             # Endpoint creation notebook
 │   ├── VISTA3D.ipynb               # Model wrapper + MLflow registration
 │   ├── conda_envs/                 # Conda environment specs
@@ -183,7 +183,7 @@ post_install_update depends on: deploy_grants, genie_space, stow_processor.
 - **Wheel on UC Volume**: `deploy_prep` uploads the wheel to the UC Volume, and each app installs it via `pip install` from the Volume path. This avoids bundling the library inside each app directory.
 - **OHIF served from Volume**: The OHIF static build (`ohif.tar.gz`) is uploaded to the UC Volume by `deploy_prep` and extracted into the app container at startup, keeping it out of the wheel and DAB sync.
 - **Model registration**: Vista3D is wrapped as an MLflow pyfunc and registered in Unity Catalog with a `champion` alias.
-- **DAB sync rules**: `dist/*.whl` is explicitly included. Large directories excluded from sync: `apps/dicom-web/ohif/`, `models/vista3d/`, `notebooks/`.
+- **DAB sync rules**: `dist/*.whl` is explicitly included. Large directories excluded from sync: `apps/dicom-web/ohif/`, `models/monai/`, `notebooks/`.
 
 ## Testing
 

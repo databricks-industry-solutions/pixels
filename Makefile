@@ -27,8 +27,9 @@ build:
 		tar czf dist/ohif.tar.gz -C apps/dicom-web ohif; \
 		echo "Created dist/ohif.tar.gz ($$(du -sh dist/ohif.tar.gz | cut -f1))"; \
 	fi
-	@if [ -d models/vista3d ]; then \
-		tar czf dist/vista3d.tar.gz --exclude='model' --exclude='assets' -C models vista3d; \
+	@if [ -d models/monai ]; then \
+		tar czf dist/vista3d.tar.gz --exclude='model' --exclude='assets' \
+			-s ',^monai/,vista3d/,' -s ',^monai$$,vista3d,' -C models monai; \
 		echo "Created dist/vista3d.tar.gz ($$(du -sh dist/vista3d.tar.gz | cut -f1))"; \
 	fi
 
