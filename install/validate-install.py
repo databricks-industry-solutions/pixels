@@ -7,9 +7,14 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install --quiet databricks-sdk==0.88.0 psycopg2-binary
+import os
 
-# COMMAND ----------
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_repo_root = os.path.normpath(
+    os.path.join("/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get()), "..")
+)
+
+%pip install --quiet -r {_repo_root}/requirements.txt
 
 dbutils.library.restartPython()
 
