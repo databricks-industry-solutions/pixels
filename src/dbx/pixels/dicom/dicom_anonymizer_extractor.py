@@ -217,9 +217,7 @@ class DicomAnonymizerExtractor(Transformer):
             if self.permissive:
                 df = df.withColumn(
                     "_corrupt_record",
-                    expr(
-                        "CASE WHEN try_parse_json(meta) IS NULL THEN meta ELSE NULL END"
-                    ),
+                    expr("CASE WHEN try_parse_json(meta) IS NULL THEN meta ELSE NULL END"),
                 )
                 df = df.withColumn("meta", expr("try_parse_json(meta)"))
             else:

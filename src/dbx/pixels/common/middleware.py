@@ -127,9 +127,7 @@ class TokenMiddleware:
             # at /api/monai/ if missing or insecure, and clears stale duplicates at
             # other paths (e.g. /ohif) left over from the OHIF Settings UI.
             new_body = _MONAI_COOKIE_BOOTSTRAP + new_body
-            await Response(content=new_body, media_type="text/javascript")(
-                scope, receive, send
-            )
+            await Response(content=new_body, media_type="text/javascript")(scope, receive, send)
             return
 
         if path.endswith("local"):
