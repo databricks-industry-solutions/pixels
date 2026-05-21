@@ -98,7 +98,7 @@ class MonaiLabelBundlesGPUTransformer(Transformer):
                 "export_overlays": self.exportOverlays,
             }
 
-            from models.vista3d.bundles.code.bundlesmodel import DBBundlesModel
+            from models.monai.bundles.code.bundlesmodel import DBBundlesModel
 
             model = DBBundlesModel(volumes_compatible=True)
             model.load_context()

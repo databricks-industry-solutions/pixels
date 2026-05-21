@@ -7,19 +7,6 @@
 
 # COMMAND ----------
 
-import os
-
-_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-_repo_root = os.path.normpath(
-    os.path.join("/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get()), "..")
-)
-
-%pip install --quiet -r {_repo_root}/requirements.txt
-
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
 # MAGIC %run ./config/proxy_prep
 
 # COMMAND ----------
