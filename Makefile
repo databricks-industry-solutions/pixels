@@ -1,6 +1,11 @@
-.PHONY: dev test unit style check test-cov
+.PHONY: all clean dev build test unit style check test-cov render-dashboard deploy
 
-all:	clean dev check 
+CATALOG ?= main
+SCHEMA  ?= pixels
+PROFILE ?= DEFAULT
+TARGET  ?= prod
+
+all:	clean dev check
 
 clean:
 	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
@@ -16,6 +21,18 @@ dev:
 	.venv/bin/pip install -r requirements.txt
 	.venv/bin/pip install -e '.[dev]'
 
+build:
+	python3 -m build -w -o dist
+	@if [ -d apps/dicom-web/ohif ] && [ "$$(ls apps/dicom-web/ohif/ | wc -l)" -gt 5 ]; then \
+		tar czf dist/ohif.tar.gz -C apps/dicom-web ohif; \
+		echo "Created dist/ohif.tar.gz ($$(du -sh dist/ohif.tar.gz | cut -f1))"; \
+	fi
+	@if [ -d models/monai ]; then \
+		tar czf dist/vista3d.tar.gz --exclude='model' --exclude='assets' \
+			-s ',^monai/,vista3d/,' -s ',^monai$$,vista3d,' -C models monai; \
+		echo "Created dist/vista3d.tar.gz ($$(du -sh dist/vista3d.tar.gz | cut -f1))"; \
+	fi
+
 test:
 	.venv/bin/pip wheel . -w wheels
 	mv ./wheels/databricks_pixels*.whl ./wheels/databricks_pixels.zip
@@ -28,3 +45,13 @@ check: style test
 
 test-cov:
 	test-cov-report && open htmlcov/index.html
+
+render-dashboard:
+	.venv/bin/python scripts/render_dashboard.py \
+		--profile $(PROFILE) --catalog $(CATALOG) --schema $(SCHEMA) \
+		--src "ai-bi/Pixels Object Catalog dashboard.lvdash.json.tmpl" \
+		--out "dist/Pixels Object Catalog dashboard.lvdash.json"
+
+deploy: build render-dashboard
+	databricks bundle deploy -t $(TARGET) -p $(PROFILE) --auto-approve \
+		--var catalog=$(CATALOG) --var schema=$(SCHEMA)
