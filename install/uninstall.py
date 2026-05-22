@@ -26,7 +26,7 @@ APPS = ["pixels-dicomweb", "pixels-dicomweb-gateway"]
 SERVING_ENDPOINT = "pixels-monai-uc"
 LAKEBASE_INSTANCE = "pixels-lakebase"
 INSTALL_JOB_NAME = "pixels_install"
-STOW_JOB_NAME = "pixels-dicomweb_stow_processor"
+STOW_JOB_NAME = "pixels-dicomweb-gateway_stow_processor"
 MODEL_NAME = "monai_pixels_model"
 SYNCED_TABLE_NAME = "instance_paths"  # catalog.schema.instance_paths
 

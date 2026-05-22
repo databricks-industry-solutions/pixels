@@ -176,7 +176,7 @@ def _resolve_stow_targets(request: Request | None) -> tuple[str | None, str | No
     2. Fall back to ``DATABRICKS_PIXELS_TABLE``.
     """
     cookie_pixels_table = request.cookies.get("pixels_table", "").strip() if request else ""
-    candidate_catalog_table = cookie_pixels_table or (_default_stow_catalog_table or "")
+    candidate_catalog_table = cookie_pixels_table or (_stow_catalog_table or "")
     if not candidate_catalog_table:
         return None, None
 
@@ -184,20 +184,20 @@ def _resolve_stow_targets(request: Request | None) -> tuple[str | None, str | No
         validate_table_name(candidate_catalog_table)
     except ValueError:
         # Invalid per-request override: gracefully use the default table.
-        if cookie_pixels_table and _default_stow_catalog_table:
+        if cookie_pixels_table and _stow_catalog_table:
             logger.warning(
                 "STOW-RS: invalid pixels_table cookie '%s' — falling back to DATABRICKS_PIXELS_TABLE",
                 cookie_pixels_table,
             )
             try:
-                validate_table_name(_default_stow_catalog_table)
+                validate_table_name(_stow_catalog_table)
             except ValueError:
                 logger.warning(
                     "STOW-RS: default DATABRICKS_PIXELS_TABLE is invalid ('%s')",
-                    _default_stow_catalog_table,
+                    _stow_catalog_table,
                 )
                 return None, None
-            candidate_catalog_table = _default_stow_catalog_table
+            candidate_catalog_table = _stow_catalog_table
         else:
             logger.warning(
                 "STOW-RS: invalid DATABRICKS_PIXELS_TABLE value ('%s')",
@@ -1012,19 +1012,17 @@ async def _handle_streaming(
     """
     file_id = uuid.uuid4().hex
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    req_pixels_table = _resolve_pixels_table(request)
-    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [streaming]: file_id={file_id}, "
-        f"pixels_table={req_pixels_table}, "
+        f"pixels_table={catalog_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
     # ── Stream-and-split to Volumes ────────────────────────────────────
     # Scope the landing zone by table name so different pixels_table
     # cookies land in separate directory trees.
-    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
+    table_scoped_base = f"{stow_base}/{catalog_table}" if catalog_table else stow_base
     try:
         part_results = await async_stream_split_to_volumes(
             token,
@@ -1081,13 +1079,13 @@ async def _handle_streaming(
     # the asyncio event loop and freeze every other in-flight upload.
     sql_client = get_sql_client()
     await asyncio.to_thread(
-        _write_stow_records_completed, sql_client, token, [record], stow_table=req_stow_table
+        _write_stow_records_completed, sql_client, token, [record], stow_table=stow_table
     )
 
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
+        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -1097,7 +1095,7 @@ async def _handle_streaming(
     # which is a synchronous Lakebase (PostgreSQL) write.
     cached_entries: list[dict] = []
     if succeeded and token:
-        uc_table = req_pixels_table or ""
+        uc_table = catalog_table or ""
         user_groups = resolve_user_groups(request) if USE_USER_AUTH else None
         cached_entries = await asyncio.to_thread(
             _cache_streaming_results,
@@ -1165,17 +1163,16 @@ async def _handle_legacy_spark(
     Legacy path for large uploads: stream the entire multipart body to a
     single ``.mpr`` file on Volumes, then trigger a Spark job to split it.
     """
+
     file_id = uuid.uuid4().hex
     current_date = datetime.now(timezone.utc).strftime("%Y/%m/%d")
-    table_scoped_base = f"{stow_base}/{req_pixels_table}" if req_pixels_table else stow_base
+    table_scoped_base = f"{stow_base}/{catalog_table}" if catalog_table else stow_base
     dest_path = f"{table_scoped_base}/{current_date}/{file_id}.mpr"
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    req_pixels_table = _resolve_pixels_table(request)
-    req_stow_table = _derive_stow_table(req_pixels_table)
 
     logger.info(
         f"STOW-RS [legacy]: streaming request to {dest_path}, "
-        f"pixels_table={req_pixels_table}, "
+        f"pixels_table={catalog_table}, "
         f"study_constraint={study_instance_uid or 'none'}"
     )
 
@@ -1221,7 +1218,7 @@ async def _handle_legacy_spark(
         "client_ip": client_ip,
         "user_email": user_email,
         "user_agent": user_agent,
-        "stow_table": req_stow_table,
+        "stow_table": stow_table,
     }
 
     _t_sql = _time.perf_counter()
@@ -1263,7 +1260,7 @@ async def _handle_legacy_spark(
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(_fire_stow_job, token, pixels_table=req_pixels_table)
+        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
