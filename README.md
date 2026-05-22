@@ -101,8 +101,9 @@ workspace workflows. For production DICOMweb deployments with the split
 See **[docs/INSTALL.md](docs/INSTALL.md)** for complete installation instructions using Databricks Asset Bundles.
 
 ```bash
-databricks bundle deploy -t dev
-databricks bundle run pixels_install -t dev
+make dev
+make deploy SCHEMA=<SCHEMA> CATALOG=<CATALOG> TARGET=<dev/prod> PROFILE=<PROFILE>
+databricks bundle run pixels_install -t <dev/prod>
 ```
 
 ## Incremental processing

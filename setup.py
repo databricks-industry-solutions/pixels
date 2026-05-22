@@ -99,6 +99,7 @@ setup(
             "pytest==8.3.4",
             "pytest-cov==4.1.0",
             "pytest-mock==3.14.0",
+            "build==1.5.0",
         ],
     },
 )

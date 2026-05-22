@@ -16,13 +16,16 @@ clean:
 	rm -rf */*/*/__pycache__
 	rm -rf spark_warehouse
 
+PYTHON ?= $(shell command -v python3.12 2>/dev/null || command -v python3.11 2>/dev/null || command -v python3.10 2>/dev/null || echo python3)
+
 dev:
-	python3 -m venv .venv  
+	$(PYTHON) -m venv .venv
+	.venv/bin/pip install --upgrade pip
 	.venv/bin/pip install -r requirements.txt
 	.venv/bin/pip install -e '.[dev]'
 
 build:
-	python3 -m build -w -o dist
+	.venv/bin/python -m build -w -o dist
 	@if [ -d apps/dicom-web/ohif ] && [ "$$(ls apps/dicom-web/ohif/ | wc -l)" -gt 5 ]; then \
 		tar czf dist/ohif.tar.gz -C apps/dicom-web ohif; \
 		echo "Created dist/ohif.tar.gz ($$(du -sh dist/ohif.tar.gz | cut -f1))"; \
