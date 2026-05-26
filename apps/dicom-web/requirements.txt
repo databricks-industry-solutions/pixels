@@ -1,0 +1,8 @@
+databricks-pixels
+databricks-sql-connector==4.0.0
+databricks-sdk==0.88.0
+requests-toolbelt==1.0.0
+httpx[http2]==0.28.1
+psycopg2-binary==2.9.11
+python-multipart==0.0.22
+hypercorn[h2]==0.17.3

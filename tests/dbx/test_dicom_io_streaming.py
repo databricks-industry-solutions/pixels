@@ -19,6 +19,10 @@ from pathlib import Path
 _PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
+# Add dicom-web-gateway app to path for utils imports
+_GATEWAY_APP = str(Path(__file__).resolve().parents[2] / "apps" / "dicom-web-gateway")
+if _GATEWAY_APP not in sys.path:
+    sys.path.insert(0, _GATEWAY_APP)
 # --------------------------------------------------------------------------
 
 import struct
@@ -27,8 +31,7 @@ from unittest.mock import MagicMock, patch
 
 import pydicom
 import pytest
-
-from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
+from utils.dicom_io import (
     _ITEM_TAG,
     _PIXEL_DATA_MARKER,
     _SEQ_DELIM_TAG,
@@ -293,7 +296,7 @@ class TestComputeBotViaStream:
 
     def test_basic_streaming_scan(self):
         """Verify the streaming scanner correctly identifies frame positions."""
-        from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
+        from utils.dicom_io import (
             _compute_bot_via_stream,
         )
 
@@ -342,7 +345,7 @@ class TestComputeBotViaStream:
 
     def test_streaming_scan_with_capture(self):
         """Verify inline frame capture during streaming scan."""
-        from dbx.pixels.resources.dicom_web_gateway.utils.dicom_io import (
+        from utils.dicom_io import (
             _compute_bot_via_stream,
         )
 

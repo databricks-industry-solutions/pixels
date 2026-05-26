@@ -1,0 +1,1974 @@
+{
+  "datasets": [
+    {
+      "displayName": "cohort-builder",
+      "name": "ca4b24b9",
+      "parameters": [
+        {
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "__CATALOG__.__SCHEMA__.object_catalog"
+                }
+              ]
+            }
+          },
+          "displayName": "table",
+          "keyword": "table"
+        },
+        {
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "__VIEWER_HOST__"
+                }
+              ]
+            }
+          },
+          "displayName": "viewer_host",
+          "keyword": "viewer_host"
+        }
+      ],
+      "queryLines": [
+        "-- cohort builder for Pixels Dashboard\n",
+        "-- variant friendly\n",
+        "with base (\n",
+        "  SELECT\n",
+        "    meta:[ '0020000D' ] . Value [ 0 ]::STRING StudyInstanceUID,\n",
+        "    meta:[ '00081030' ] . Value [ 0 ]::STRING StudyDescription,\n",
+        "    meta:[ '0020000E' ] . Value [ 0 ]::STRING SeriesInstanceUID,\n",
+        "    meta:[ '0008103E' ] . Value [ 0 ]::STRING SeriesDescription,\n",
+        "    meta:[ '00200010' ] . Value [ 0 ]::STRING StudyID,\n",
+        "    --  meta:['00200011'].Value[0]::STRING SeriesNumber,\n",
+        "    --  meta:['00200013'].Value[0]::STRING InstanceNumber,\n",
+        "    meta:[ '00100010' ] . Value [ 0 ] . Alphabetic::STRING as PatientName,\n",
+        "    meta:[ '00100020' ] . Value [ 0 ]::STRING as PatientID,\n",
+        "    try_cast(\n",
+        "      try_to_timestamp(meta:[ '00100030' ] . Value [ 0 ]::STRING, \"yyyyMMdd\") as Date\n",
+        "    ) as PatientBirthDate,\n",
+        "    try_cast(left(meta:[ '00101010' ] . Value [ 0 ], 3)::STRING as int) as PatientAge,\n",
+        "    meta:[ '00100040' ] . Value [ 0 ]::STRING PatientSex,\n",
+        "    try_cast(\n",
+        "      try_to_timestamp(meta:[ '00080020' ] . Value [ 0 ]::STRING, \"yyyyMMdd\") as Date\n",
+        "    ) as StudyDate,\n",
+        "    meta:[ '00080050' ] . Value [ 0 ]::STRING AccessionNumber,\n",
+        "    meta:[ '00080060' ] . Value [ 0 ]::STRING Modality,\n",
+        "    meta:[ '00080008' ] . Value [ 0 ]::STRING ImageType,\n",
+        "    meta:[ '00180015' ] . Value [ 0 ]::STRING BodyPartExamined,\n",
+        "    meta:[ '00181030' ] . Value [ 0 ]::STRING ProtocolName,\n",
+        "    meta:[ '00080070' ] . Value [ 0 ]::STRING Manufacturer,\n",
+        "    meta:[ '00080080' ] . Value [ 0 ]::STRING InstitutionName,\n",
+        "    meta:[ '00080081' ] . Value [ 0 ]::STRING InstitutionAddress,\n",
+        "    meta:[ '0018700A' ] . Value [ 0 ]::STRING DetectorManufacturerName,\n",
+        "    meta:[ '0018700B' ] . Value [ 0 ]::STRING DetectorManufacturersModelName,\n",
+        "    meta:[ '00189024' ] . Value [ 0 ]::STRING MRTransmitCoilManufacturerName,\n",
+        "    meta:[ '00189025' ] . Value [ 0 ]::STRING ReceiveCoilManufacturerName,\n",
+        "    meta:[ '00120063' ] . Value [ 0 ]::STRING DeidentificationMethod,\n",
+        "    meta:[ '0008001C' ] . Value [ 0 ]::STRING SyntheticData,\n",
+        "    meta:[ '00120064' ] . Value [ 0 ]::STRING CodingSchemeVersion,\n",
+        "    meta:[ '00282110' ] . Value [ 0 ]::STRING LossyImageCompression,\n",
+        "    meta:[ '00131010' ] . Value [ 0 ]::STRING Creator\n",
+        "  FROM\n",
+        "    identifier(:table)\n",
+        "  where meta:[ '0020000D' ] . Value [ 0 ]::STRING is not null\n",
+        "  GROUP BY\n",
+        "    ALL\n",
+        "  ORDER BY\n",
+        "    StudyInstanceUID\n",
+        ")\n",
+        "SELECT\n",
+        "  concat(\n",
+        "    '<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"',\n",
+        "    :viewer_host,\n",
+        "    '/ohif/viewer?StudyInstanceUIDs=',\n",
+        "    StudyInstanceUID,\n",
+        "    '\">view</a>'\n",
+        "  ) as url,\n",
+        "  *\n",
+        "FROM\n",
+        "  base"
+      ]
+    },
+    {
+      "displayName": "object_catalogs",
+      "name": "9651ec0b",
+      "queryLines": [
+        "-- object catalogs\n",
+        "select concat(table_catalog, '.', table_schema, '.', table_name) as table\n",
+        "from system.information_schema.tables where table_name = 'object_catalog'"
+      ]
+    },
+    {
+      "displayName": "pixels-models",
+      "name": "c2b374ba",
+      "queryLines": [
+        "-- Pixel Models\n",
+        "SELECT entity_name, served_entity_name, max(entity_version) entity_version, custom_model_config.*, max(change_time) change_time\n",
+        "FROM system.serving.served_entities \n",
+        "where entity_name like '%pixels%'\n",
+        "and endpoint_delete_time is null\n",
+        "GROUP BY ALL\n",
+        "order by change_time desc"
+      ]
+    },
+    {
+      "displayName": "object_catalog",
+      "name": "b589b5b1",
+      "parameters": [
+        {
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "__CATALOG__.__SCHEMA__.object_catalog"
+                }
+              ]
+            }
+          },
+          "displayName": "table",
+          "keyword": "table"
+        }
+      ],
+      "queryLines": [
+        "-- files analysis\n",
+        "SELECT\n",
+        "  meta:[ '0020000D' ] . Value [ 0 ] StudyInstanceUID,\n",
+        "  meta:[ '0020000E' ] . Value [ 0 ] SeriesInstanceUID,\n",
+        "  meta:[ '00200011' ] . Value [ 0 ] SeriesNumber,\n",
+        "  meta:[ '00200013' ] . Value [ 0 ] InstanceNumber,\n",
+        "  meta:[ '00080018' ] . Value [ 0 ] SOPInstanceUID,\n",
+        "  *\n",
+        "FROM\n",
+        "  identifier(:table)"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "displayName": "Main",
+      "layout": [
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 2
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Pixels Medical Imaging summary dashboard\n",
+                "\n",
+                "Based on DICOM files that have been acquired, unzipped, ingested and parsed using the Pixels Solution Accelerator\n",
+                "- Select the Object Catalog table of your choosing\n",
+                "- Select your OHIF viewer app hostname\n",
+                "- Use barcharts and histograms to narrow selection of SeriesInstanceUIDs\n",
+                "- Use **view** link on bottom table to view SeriesInstances"
+              ]
+            },
+            "name": "temp_text_box_name"
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 3,
+            "y": 10
+          },
+          "widget": {
+            "name": "c538671a",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`Modality`",
+                      "name": "Modality"
+                    },
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Modality",
+                  "fieldName": "Modality",
+                  "scale": {
+                    "sort": {
+                      "by": "natural-order"
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Modality"
+              },
+              "version": 3,
+              "widgetType": "histogram"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 6
+          },
+          "widget": {
+            "name": "4e812c6b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`PatientAge`",
+                      "name": "PatientAge"
+                    },
+                    {
+                      "expression": "BIN_FLOOR(`PatientAge`, 5)",
+                      "name": "bin(PatientAge, binWidth=5)"
+                    },
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "color": {
+                  "displayName": "PatientAge",
+                  "fieldName": "PatientAge",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "x": {
+                  "displayName": "PatientAge",
+                  "fieldName": "bin(PatientAge, binWidth=5)",
+                  "scale": {
+                    "sort": {
+                      "by": "natural-order"
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "PatientAge distribution"
+              },
+              "version": 3,
+              "widgetType": "histogram"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 10
+          },
+          "widget": {
+            "name": "ef5e964d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`PatientSex`",
+                      "name": "PatientSex"
+                    },
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "PatientSex",
+                  "fieldName": "PatientSex",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Sex"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 3,
+            "y": 6
+          },
+          "widget": {
+            "name": "740a0bd5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`BodyPartExamined`",
+                      "name": "BodyPartExamined"
+                    },
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "BodyPartExamined",
+                  "fieldName": "BodyPartExamined",
+                  "scale": {
+                    "sort": {
+                      "by": "y-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Body Part Examined"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 5,
+            "y": 0
+          },
+          "widget": {
+            "name": "66b4a203",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `PatientID`)",
+                      "name": "countdistinct(PatientID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Count of Unique PatientID",
+                  "fieldName": "countdistinct(PatientID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Patients"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 3,
+            "y": 0
+          },
+          "widget": {
+            "name": "7ff54fbe",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `StudyInstanceUID`)",
+                      "name": "countdistinct(StudyInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Count of Unique StudyInstanceUID",
+                  "fieldName": "countdistinct(StudyInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Studies"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 3,
+            "y": 2
+          },
+          "widget": {
+            "name": "d0f8e93a",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`Creator`",
+                      "name": "Creator"
+                    },
+                    {
+                      "expression": "COUNT(`*`)",
+                      "name": "count(*)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Creator",
+                  "fieldName": "Creator",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Records",
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Creator"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 8,
+            "width": 3,
+            "x": 3,
+            "y": 14
+          },
+          "widget": {
+            "name": "b188bf2b",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    },
+                    {
+                      "expression": "`Manufacturer`",
+                      "name": "Manufacturer"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "displayName": "Manufacturer",
+                  "fieldName": "Manufacturer",
+                  "scale": {
+                    "sort": {
+                      "by": "x-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Manufacturer"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 18
+          },
+          "widget": {
+            "name": "137b7050",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    },
+                    {
+                      "expression": "`InstitutionName`",
+                      "name": "InstitutionName"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`InstitutionName` IS NOT NULL"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "displayName": "InstitutionName",
+                  "fieldName": "InstitutionName",
+                  "scale": {
+                    "sort": {
+                      "by": "x-reversed"
+                    },
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Institution"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 4,
+            "y": 0
+          },
+          "widget": {
+            "name": "5747a96a",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Series"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 14
+          },
+          "widget": {
+            "name": "839d15d2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`ImageType`",
+                      "name": "ImageType"
+                    },
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "displayName": "ImageType",
+                  "fieldName": "ImageType",
+                  "scale": {
+                    "sort": {
+                      "by": "natural-order"
+                    },
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Unique SeriesInstanceUID",
+                  "fieldName": "countdistinct(SeriesInstanceUID)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Image Type"
+              },
+              "version": 3,
+              "widgetType": "histogram"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 9,
+            "width": 6,
+            "x": 0,
+            "y": 22
+          },
+          "widget": {
+            "name": "7cde79db",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`url`",
+                      "name": "url"
+                    },
+                    {
+                      "expression": "`StudyInstanceUID`",
+                      "name": "StudyInstanceUID"
+                    },
+                    {
+                      "expression": "`StudyDescription`",
+                      "name": "StudyDescription"
+                    },
+                    {
+                      "expression": "`SeriesInstanceUID`",
+                      "name": "SeriesInstanceUID"
+                    },
+                    {
+                      "expression": "`SeriesDescription`",
+                      "name": "SeriesDescription"
+                    },
+                    {
+                      "expression": "`StudyID`",
+                      "name": "StudyID"
+                    },
+                    {
+                      "expression": "`PatientName`",
+                      "name": "PatientName"
+                    },
+                    {
+                      "expression": "`PatientID`",
+                      "name": "PatientID"
+                    },
+                    {
+                      "expression": "`PatientBirthDate`",
+                      "name": "PatientBirthDate"
+                    },
+                    {
+                      "expression": "`PatientAge`",
+                      "name": "PatientAge"
+                    },
+                    {
+                      "expression": "`PatientSex`",
+                      "name": "PatientSex"
+                    },
+                    {
+                      "expression": "`StudyDate`",
+                      "name": "StudyDate"
+                    },
+                    {
+                      "expression": "`AccessionNumber`",
+                      "name": "AccessionNumber"
+                    },
+                    {
+                      "expression": "`Modality`",
+                      "name": "Modality"
+                    },
+                    {
+                      "expression": "`ImageType`",
+                      "name": "ImageType"
+                    },
+                    {
+                      "expression": "`BodyPartExamined`",
+                      "name": "BodyPartExamined"
+                    },
+                    {
+                      "expression": "`ProtocolName`",
+                      "name": "ProtocolName"
+                    },
+                    {
+                      "expression": "`Manufacturer`",
+                      "name": "Manufacturer"
+                    },
+                    {
+                      "expression": "`InstitutionName`",
+                      "name": "InstitutionName"
+                    },
+                    {
+                      "expression": "`InstitutionAddress`",
+                      "name": "InstitutionAddress"
+                    },
+                    {
+                      "expression": "`DetectorManufacturerName`",
+                      "name": "DetectorManufacturerName"
+                    },
+                    {
+                      "expression": "`DetectorManufacturersModelName`",
+                      "name": "DetectorManufacturersModelName"
+                    },
+                    {
+                      "expression": "`MRTransmitCoilManufacturerName`",
+                      "name": "MRTransmitCoilManufacturerName"
+                    },
+                    {
+                      "expression": "`ReceiveCoilManufacturerName`",
+                      "name": "ReceiveCoilManufacturerName"
+                    },
+                    {
+                      "expression": "`DeidentificationMethod`",
+                      "name": "DeidentificationMethod"
+                    },
+                    {
+                      "expression": "`SyntheticData`",
+                      "name": "SyntheticData"
+                    },
+                    {
+                      "expression": "`CodingSchemeVersion`",
+                      "name": "CodingSchemeVersion"
+                    },
+                    {
+                      "expression": "`LossyImageCompression`",
+                      "name": "LossyImageCompression"
+                    },
+                    {
+                      "expression": "`Creator`",
+                      "name": "Creator"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "displayRowNumbers": false,
+              "encodings": {
+                "columns": [
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "columnWidth": 75,
+                    "fieldName": "url",
+                    "style": {
+                      "highlightLinks": false,
+                      "type": "html"
+                    },
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "StudyInstanceUID",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "StudyDescription",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "SeriesInstanceUID",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "SeriesDescription",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "StudyID",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "PatientName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "PatientID",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "contentAlignment": "right",
+                    "fieldName": "PatientBirthDate",
+                    "format": {
+                      "format": "DD/MM/YYYY HH:mm:ss.SSS",
+                      "type": "moment.js"
+                    },
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "PatientAge",
+                    "format": {
+                      "format": "0",
+                      "type": "numeral.js"
+                    },
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "PatientSex",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "contentAlignment": "right",
+                    "fieldName": "StudyDate",
+                    "format": {
+                      "format": "DD/MM/YYYY HH:mm:ss.SSS",
+                      "type": "moment.js"
+                    },
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "AccessionNumber",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "Modality",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "ImageType",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "BodyPartExamined",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "ProtocolName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "Manufacturer",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "InstitutionName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "InstitutionAddress",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "DetectorManufacturerName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "DetectorManufacturersModelName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "MRTransmitCoilManufacturerName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "ReceiveCoilManufacturerName",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "DeidentificationMethod",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "SyntheticData",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "CodingSchemeVersion",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "LossyImageCompression",
+                    "useForSearch": false
+                  },
+                  {
+                    "actions": {
+                      "hover": {
+                        "tooltipTemplate": "{{ @ }}",
+                        "type": "tooltip"
+                      }
+                    },
+                    "fieldName": "Creator",
+                    "useForSearch": false
+                  }
+                ]
+              },
+              "rowsPerPage": 25,
+              "version": 2,
+              "widgetType": "table"
+            }
+          }
+        }
+      ],
+      "name": "temp_page_name",
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "displayName": "Files",
+      "layout": [
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 0,
+            "y": 4
+          },
+          "widget": {
+            "name": "8c9490c4",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "BIN_FLOOR(`length`, 5000000)",
+                      "name": "bin(length, binWidth=5000000)"
+                    },
+                    {
+                      "expression": "SUM(`length`)",
+                      "name": "sum(length)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "fieldName": "bin(length, binWidth=5000000)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(length)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "File size (bytes)"
+              },
+              "version": 3,
+              "widgetType": "histogram"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 6,
+            "width": 3,
+            "x": 3,
+            "y": 4
+          },
+          "widget": {
+            "name": "aa822c87",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "DATE_TRUNC(\"WEEK\", `modificationTime`)",
+                      "name": "weekly(modificationTime)"
+                    },
+                    {
+                      "expression": "COUNT(`*`)",
+                      "name": "count(*)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "x": {
+                  "fieldName": "weekly(modificationTime)",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "displayName": "Count of Records",
+                  "fieldName": "count(*)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Modification Time"
+              },
+              "version": 3,
+              "widgetType": "bar"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 4,
+            "width": 3,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "multilineTextboxSpec": {
+              "lines": [
+                "# File Metadata Info\n",
+                "Data associated with the file rather than the contents of the header"
+              ]
+            },
+            "name": "f6f4367a"
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 3,
+            "y": 2
+          },
+          "widget": {
+            "name": "8a1b58e5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `path`)",
+                      "name": "countdistinct(path)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(path)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Distinct Files"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 5,
+            "y": 2
+          },
+          "widget": {
+            "name": "0ed6e95e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "MAX(`length`)",
+                      "name": "max(length)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "max(length)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "max Length (bytes)"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 3,
+            "y": 0
+          },
+          "widget": {
+            "name": "944b8a79",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `SOPInstanceUID`)",
+                      "name": "countdistinct(SOPInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(SOPInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# SOPInstances"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 4,
+            "y": 0
+          },
+          "widget": {
+            "name": "d3225b86",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `StudyInstanceUID`)",
+                      "name": "countdistinct(StudyInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(StudyInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Studies"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 5,
+            "y": 0
+          },
+          "widget": {
+            "name": "aa56e3e3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `SeriesInstanceUID`)",
+                      "name": "countdistinct(SeriesInstanceUID)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(SeriesInstanceUID)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Series"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 4,
+            "y": 2
+          },
+          "widget": {
+            "name": "18e24606",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b589b5b1",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "COUNT(DISTINCT `original_path`)",
+                      "name": "countdistinct(original_path)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(original_path)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# Original Files (zips)"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        }
+      ],
+      "name": "08b30e71",
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "displayName": "Models",
+      "layout": [
+        {
+          "position": {
+            "height": 5,
+            "width": 6,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "name": "617b1961",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "c2b374ba",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`entity_name`",
+                      "name": "entity_name"
+                    },
+                    {
+                      "expression": "`served_entity_name`",
+                      "name": "served_entity_name"
+                    },
+                    {
+                      "expression": "`entity_version`",
+                      "name": "entity_version"
+                    },
+                    {
+                      "expression": "`min_concurrency`",
+                      "name": "min_concurrency"
+                    },
+                    {
+                      "expression": "`max_concurrency`",
+                      "name": "max_concurrency"
+                    },
+                    {
+                      "expression": "`compute_type`",
+                      "name": "compute_type"
+                    },
+                    {
+                      "expression": "`change_time`",
+                      "name": "change_time"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "allowHTMLByDefault": false,
+              "condensed": true,
+              "encodings": {
+                "columns": [
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "string",
+                    "displayName": "entity_name",
+                    "fieldName": "entity_name",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100000,
+                    "preserveWhitespace": false,
+                    "title": "entity_name",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "string",
+                    "displayName": "served_entity_name",
+                    "fieldName": "served_entity_name",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100001,
+                    "preserveWhitespace": false,
+                    "title": "served_entity_name",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "string",
+                    "displayName": "entity_version",
+                    "fieldName": "entity_version",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100002,
+                    "preserveWhitespace": false,
+                    "title": "entity_version",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "number",
+                    "displayName": "min_concurrency",
+                    "fieldName": "min_concurrency",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0",
+                    "order": 100003,
+                    "preserveWhitespace": false,
+                    "title": "min_concurrency",
+                    "type": "integer",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "number",
+                    "displayName": "max_concurrency",
+                    "fieldName": "max_concurrency",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "0",
+                    "order": 100004,
+                    "preserveWhitespace": false,
+                    "title": "max_concurrency",
+                    "type": "integer",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "string",
+                    "displayName": "compute_type",
+                    "fieldName": "compute_type",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100005,
+                    "preserveWhitespace": false,
+                    "title": "compute_type",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "dateTimeFormat": "YYYY-MM-DD HH:mm:ss.SSS",
+                    "displayAs": "datetime",
+                    "displayName": "change_time",
+                    "fieldName": "change_time",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100006,
+                    "preserveWhitespace": false,
+                    "title": "change_time",
+                    "type": "datetime",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  }
+                ]
+              },
+              "invisibleColumns": [],
+              "itemsPerPage": 25,
+              "paginationSize": "default",
+              "version": 1,
+              "widgetType": "table",
+              "withRowNumber": false
+            }
+          }
+        }
+      ],
+      "name": "d1a6a1c7",
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "name": "object-catalog",
+            "queries": [
+              {
+                "name": "dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1b14a776c027eba39bde_table",
+                "query": {
+                  "datasetName": "9651ec0b",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`table`",
+                      "name": "table"
+                    },
+                    {
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)",
+                      "name": "table_associativity"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1adbad2dd6755c4d69af_table",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "parameters": [
+                    {
+                      "keyword": "table",
+                      "name": "table"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "table",
+                    "queryName": "parameter_dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1adbad2dd6755c4d69af_table"
+                  },
+                  {
+                    "fieldName": "table",
+                    "queryName": "dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1b14a776c027eba39bde_table"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Object Catalog"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 2,
+            "width": 1,
+            "x": 0,
+            "y": 2
+          },
+          "widget": {
+            "name": "ohif-viewer",
+            "queries": [
+              {
+                "name": "parameter_dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1adbad2dd6755c4d69af_viewer_host",
+                "query": {
+                  "datasetName": "ca4b24b9",
+                  "disaggregated": false,
+                  "parameters": [
+                    {
+                      "keyword": "viewer_host",
+                      "name": "viewer_host"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "viewer_host",
+                    "queryName": "parameter_dashboards/01f13ebb434a11dabee0e82e96c78eff/datasets/01f13ebc59ef1adbad2dd6755c4d69af_viewer_host"
+                  }
+                ]
+              },
+              "frame": {
+                "showDescription": false,
+                "showTitle": true,
+                "title": "OHIF viewer"
+              },
+              "version": 2,
+              "widgetType": "filter-single-select"
+            }
+          }
+        }
+      ],
+      "layoutVersion": "GRID_V1",
+      "name": "6a74fc9c",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS"
+    }
+  ],
+  "uiSettings": {
+    "applyModeEnabled": false,
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}
