@@ -155,13 +155,14 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` |
 | `lakebase_instance_name` | `pixels-lakebase` |
 
-## Install Job Task DAG (14 tasks)
+## Install Job Task DAG (15 tasks)
 
 ```
 init_schema
 ├── dcm_ingest
 │   ├── genie_space ─────────────────────────────────────────────┐
 │   └── deploy_lakebase ─────────────────────────────────┐       │
+├── create_apps ─────────────────────────────────────────┤       │
 ├── deploy_prep                                          │       │
 │   └── deploy_gateway ──────────────────────────┐       │       │
 ├── register_model → deploy_endpoint             │       │       │
