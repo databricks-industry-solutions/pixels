@@ -4,7 +4,7 @@ dependencies:
 - python=3.12.13
 - pip<=24.2
 - pip:
-  - mlflow==3.9.0
+  - mlflow==3.11.1
   - torch>=2.8.0
   - numpy>=1.24.4
   - ./artifacts/monailabel-0.8.5-py3-none-any.whl

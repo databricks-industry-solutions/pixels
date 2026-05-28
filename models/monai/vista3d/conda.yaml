@@ -5,7 +5,7 @@ dependencies:
 - pip<=24.2
 - pip:
   - --extra-index-url https://download.pytorch.org/whl/cu128
-  - mlflow==3.9.0
+  - mlflow==3.11.1
   - torch==2.8.0+cu128
   - torchvision==0.23.0+cu128
   - torchaudio==2.8.0+cu128
