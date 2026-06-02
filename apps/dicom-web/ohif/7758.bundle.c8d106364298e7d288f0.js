@@ -1,8 +1,8 @@
 "use strict";
 (globalThis["webpackChunk"] = globalThis["webpackChunk"] || []).push([[7758],{
 
-/***/ 65745:
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+/***/ 65745
+(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
@@ -62,6 +62,6 @@ class ICRPolySeg {
 }
 
 
-/***/ })
+/***/ }
 
 }]);
