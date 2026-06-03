@@ -69,7 +69,7 @@ _SKIP_PROXY_HEADERS = frozenset(
         "host",
         "content-length",
         "transfer-encoding",
-        "cookie",
+        #"cookie",
         "x-forwarded-access-token",
         "x-forwarded-user",
         "x-forwarded-email",
