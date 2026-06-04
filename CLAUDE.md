@@ -4,6 +4,14 @@
 
 Pixels is a Databricks Industry Solutions accelerator for medical imaging (DICOM). It deploys a complete stack via Databricks Asset Bundles (DAB): Unity Catalog tables, Lakebase (Postgres), DICOMweb apps, Vista3D model serving, Lakeview dashboard, vector search, and AI/BI Genie.
 
+The viewer also ships an optional **NIfTI segmentation overlay** feature: the
+gateway exposes read-only `GET /api/dicomweb/nifti/{related,fetch}` routes
+backed by a Delta table (`nifti_segmentations`) plus `.nii.gz` files on a UC
+Volume, and the OHIF SPA renders them as labelmaps via the
+`@ohif/extension-nifti-segmentation` extension. The feature is gated by the
+`NIFTI_SEGMENTATION_TABLE` env var (driven by the `nifti_segmentation_table`
+bundle variable). See [`docs/NIFTI_OVERLAY.md`](docs/NIFTI_OVERLAY.md).
+
 ## Repository Structure
 
 ```
@@ -53,10 +61,14 @@ pixels/
 │           ├── prompt/             # VLM/redaction prompt management
 │           ├── common/             # Shared app code (config, middleware, routes)
 │           └── resources/          # Non-app assets (logos, SQL, plot files, prompts)
+│               └── sql/CREATE_NIFTI_SEGMENTATIONS.sql  # NIfTI overlay Delta DDL
 │
 ├── apps/                           # Deployable Databricks Apps
 │   ├── dicom-web/                  # OHIF viewer + MONAI proxy
-│   ├── dicom-web-gateway/          # DICOMweb QIDO/WADO/STOW gateway
+│   │   └── ohif/app-config.js      # Includes `niftiOverlay` block (overlay panel config)
+│   ├── dicom-web-gateway/          # DICOMweb QIDO/WADO/STOW + NIfTI overlay gateway
+│   │   ├── utils/queries_nifti.py  # Parameterized SQL builders for /nifti routes
+│   │   └── utils/handlers/_nifti.py # NIfTI overlay handlers (related, fetch)
 │   └── view-app/                   # Deprecated viewer (kept for reference)
 │
 ├── models/monai/                   # MONAI Label server + Vista3D bundle (registration + serving)
@@ -87,7 +99,8 @@ pixels/
 │
 ├── docs/                           # Documentation
 │   ├── INSTALL.md                  # Installation guide
-│   └── DICOMWEB.md                 # DICOMweb API reference
+│   ├── DICOMWEB.md                 # DICOMweb API reference (QIDO/WADO/STOW)
+│   └── NIFTI_OVERLAY.md            # NIfTI segmentation overlay architecture
 │
 ├── tests/                          # pytest test suite
 │   ├── db_runner.py
@@ -154,6 +167,7 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 | `scale_to_zero_enabled` | `true` |
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` |
 | `lakebase_instance_name` | `pixels-lakebase` |
+| `nifti_segmentation_table` | `""` (empty disables `/api/dicomweb/nifti/*` routes) |
 
 ## Install Job Task DAG (15 tasks)
 
@@ -274,6 +288,29 @@ curl -s <app_url>/api/dicomweb/studies?limit=2
 ```
 
 Expected: `/health` returns OK, `/api/dicomweb/studies` returns study JSON with UIDs.
+
+#### 4b. Gateway App — NIfTI Overlay routes (optional)
+
+Only relevant when `nifti_segmentation_table` was set at deploy time. Skip this
+test when the bundle variable is empty (the routes will return 404 by design).
+
+```bash
+# Both routes require auth even in app-auth mode; supply a Bearer token.
+TOKEN=$(databricks auth token -p MY_WORKSPACE | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# /related — list overlays for a (study, series). Empty array is a valid response.
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "<gateway_app_url>/api/dicomweb/nifti/related?study=<STUDY>&series=<SERIES>"
+
+# /fetch — stream the .nii.gz bytes for one overlay (id from /related)
+curl -s -o /tmp/overlay.nii.gz -D - -H "Authorization: Bearer $TOKEN" \
+  "<gateway_app_url>/api/dicomweb/nifti/fetch?study=<STUDY>&series=<SERIES>&id=<ID>" \
+  | head -20
+```
+
+Expected when the feature is enabled and the table has rows for the series: `/related` returns a JSON array (no `path` column), `/fetch` returns `Content-Type: application/octet-stream`, an `ETag: "<sha256>"`, and a valid gzipped NIfTI file.
+
+When the feature is disabled (table not configured) both routes return `404 NIfTI overlay routes are disabled (NIFTI_SEGMENTATION_TABLE is not configured on this gateway)` — this is the correct behaviour, **not** a regression.
 
 #### 5. Model Serving — Info
 
