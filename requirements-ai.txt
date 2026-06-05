@@ -1,4 +1,4 @@
-mlflow>=2.19.0
+mlflow-skinny==3.11.1
 numpy>=1.26.4
 easyocr==1.7.2
 openai==1.108.1

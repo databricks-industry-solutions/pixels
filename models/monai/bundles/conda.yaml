@@ -4,7 +4,7 @@ dependencies:
 - python=3.12.13
 - pip<=24.2
 - pip:
-  - mlflow==3.9.0
+  - mlflow==3.11.1
   - torch>=2.8.0
   - numpy>=1.24.4
   - ./artifacts/monailabel-0.8.5-py3-none-any.whl
@@ -22,7 +22,7 @@ dependencies:
   - pynetdicom>=2.0.2
   - pynrrd>=1.0.0
   - python-dotenv>=1.0.1
-  - python-multipart>=0.0.9
+  - python-multipart==0.0.27
   - requests-toolbelt>=1.0.0
   - schedule>=1.2.1
   - shapely>=2.0.4
