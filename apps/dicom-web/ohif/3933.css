@@ -232,14 +232,61 @@ limitations under the License.
   width: 99%;
   font-size: smaller;
 }
+.tab-content .optionsTable {
+  color: #fff;
+}
 .optionsTable th {
   border: 1px solid #070303;
   text-align: left;
   background-color: #789;
 }
+.tab-content .optionsTable th {
+  border: 1px solid #44626f;
+  background-color: #16202b;
+  color: #fff;
+  padding: 2px 4px;
+}
 .optionsTable td {
   border: 1px solid #070202;
   text-align: left;
+}
+.tab-content .optionsTable td {
+  border: 1px solid #44626f;
+  color: #fff;
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+.alProgress {
+  width: 100%;
+  background-color: #2c3e50;
+  border: 1px solid #44626f;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 16px;
+}
+.alProgressFill {
+  height: 100%;
+  min-width: 2.5em;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  -webkit-transition: width 0.35s ease;
+  transition: width 0.35s ease;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+}
+.alProgressFill--annotated {
+  background-color: #2196f3;
+}
+.alProgressFill--training {
+  background-color: #ff9800;
+  color: #1a1a1a;
+}
+.alProgressFill--accuracy {
+  background-color: #4caf50;
 }
 .optionsInput {
   width: 100%;
@@ -350,16 +397,31 @@ limitations under the License.
   width: 100%;
   font-size: smaller;
   background-color: azure;
-  color: black;
+  color: #000;
 }
 .nextSampleForm .optionsTable th {
   border: 1px solid #ddd;
   text-align: left;
   background-color: #789;
+  color: #fff;
+  padding: 4px 6px;
 }
 .nextSampleForm .optionsTable td {
   border: 1px solid #ddd;
   text-align: left;
+  color: #000;
+  background-color: azure;
+  padding: 4px 6px;
+  vertical-align: middle;
+  word-break: break-all;
+}
+.nextSampleForm .optionsTable td a,
+.nextSampleForm .optionsTable td a:visited {
+  color: #0b5fbf;
+  text-decoration: underline;
+}
+.nextSampleForm .optionsTable td a:hover {
+  color: #073c7d;
 }
 
 /*
@@ -439,11 +501,17 @@ limitations under the License.
 
 .optionsForm {
   background-color: white;
+  color: #000;
 }
 .optionsSection {
   background-color: lightyellow;
   width: 100%;
   border-collapse: collapse;
+}
+.optionsSection td {
+  color: #000;
+  padding: 4px 6px;
+  vertical-align: middle;
 }
 .optionsSection .selectBox {
   background-color: white;
@@ -454,8 +522,9 @@ limitations under the License.
   height: fit-content;
 }
 .optionsConfig {
-  width: 800px;
-  height: 300px;
+  width: 100%;
+  max-height: 320px;
+  min-height: 120px;
   overflow: auto;
 }
 .optionsConfigTable {
@@ -464,24 +533,66 @@ limitations under the License.
   border-collapse: collapse;
   width: 100%;
   font-size: smaller;
+  color: #000;
 }
 .optionsConfigTable th {
   border: 1px solid #070303;
   text-align: left;
   background-color: #789;
+  color: #fff;
+  padding: 4px 6px;
 }
 .optionsConfigTable td {
-  border: 1px solid #070202;
+  border: 1px solid #cfd8dc;
   text-align: left;
-}
-.optionsInput {
-  width: 100%;
   color: #000;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+.optionsConfigTable td input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  vertical-align: middle;
+  accent-color: #2196f3;
+}
+.optionsInput,
+.optionsConfigTable .optionsInput {
+  width: 100%;
+  color: #000 !important;
+  background-color: #fff !important;
+  background-image: none !important;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: smaller;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  line-height: 1.2;
+}
+.optionsInput:focus,
+.optionsConfigTable .optionsInput:focus {
+  outline: none;
+  border-color: #2196f3;
+  -webkit-box-shadow: 0 0 0 1px #2196f3;
+          box-shadow: 0 0 0 1px #2196f3;
+}
+select.optionsInput,
+.optionsConfigTable select.optionsInput {
+  -moz-appearance: auto;
+       appearance: auto;
+  -webkit-appearance: auto;
 }
 .selectBox {
   width: 100%;
   color: #000;
+  background-color: #fff;
   font-size: smaller;
-  height: 18px;
+  height: 22px;
+  border: 1px solid #c0c0c0;
+  border-radius: 3px;
+  padding: 0 6px;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
 }
 

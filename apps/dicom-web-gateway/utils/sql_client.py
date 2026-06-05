@@ -48,7 +48,7 @@ USE_USER_AUTH: bool = os.getenv("DICOMWEB_USE_USER_AUTH", "true").lower() == "tr
 # Table-name validation (identifiers can't be parameterized)
 # ---------------------------------------------------------------------------
 
-_TABLE_NAME_RE = re.compile(r"^[\w\-]+\.[\w\-]+\.[\w\-]+$")
+_TABLE_NAME_RE = re.compile(r"^[\w\-\`]+\.[\w\-\`]+\.[\w\-\`]+$")
 
 
 def validate_table_name(name: str) -> str:
