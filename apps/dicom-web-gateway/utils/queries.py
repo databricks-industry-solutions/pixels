@@ -13,9 +13,24 @@ https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-names-identifier-
 See: https://docs.databricks.com/aws/en/dev-tools/python-sql-connector
 """
 
+import os
 from typing import Any, Dict
 
 from .sql_client import validate_table_name
+
+# ---------------------------------------------------------------------------
+# QIDO-RS pagination guardrail
+# ---------------------------------------------------------------------------
+# Hard cap on the number of rows a single QIDO-RS study search may return.
+# Applied to BOTH the explicit ``?limit=`` value AND to the implicit default
+# when ``?limit`` is omitted — otherwise a caller could simply drop the
+# parameter to bypass the cap and force a multi-million-row aggregation on
+# the shared SQL warehouse.  Override via ``PIXELS_QIDO_MAX_LIMIT``.
+try:
+    _QIDO_MAX_LIMIT = max(1, int(os.getenv("PIXELS_QIDO_MAX_LIMIT", "1000")))
+except (TypeError, ValueError):
+    _QIDO_MAX_LIMIT = 1000
+
 
 # ---------------------------------------------------------------------------
 # Public query builders — each returns (query_str, params_dict)
@@ -103,13 +118,26 @@ def build_study_query(pixels_table: str, params: Dict[str, Any]) -> tuple[str, d
             filters.append("meta:['00080020'].Value[0]::String = %(study_date)s")
             sql_params["study_date"] = sd
 
-    # Pagination (integers — validated, not parameterized)
-    limit_clause = ""
-    if "limit" in params:
-        limit_clause = f"LIMIT {int(params['limit'])}"
+    # Pagination — integer-only (validated, not parameterized).  Both
+    # values are clamped: LIMIT to [0, _QIDO_MAX_LIMIT] to bound the
+    # result-set size even when ?limit is omitted or oversized, and
+    # OFFSET to [0, +inf) because Databricks SQL rejects negative
+    # offsets with a syntax error (which would surface as HTTP 500).
+    # Non-integer values fall back to the default cap rather than
+    # raising, matching the lenient behaviour of the date/UID filters.
+    try:
+        raw_limit = int(params.get("limit", _QIDO_MAX_LIMIT))
+    except (TypeError, ValueError):
+        raw_limit = _QIDO_MAX_LIMIT
+    limit_clause = f"LIMIT {max(0, min(raw_limit, _QIDO_MAX_LIMIT))}"
+
     offset_clause = ""
     if "offset" in params:
-        offset_clause = f"OFFSET {int(params['offset'])}"
+        try:
+            raw_offset = int(params["offset"])
+        except (TypeError, ValueError):
+            raw_offset = 0
+        offset_clause = f"OFFSET {max(0, raw_offset)}"
 
     where = " AND ".join(filters)
 
