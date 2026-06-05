@@ -15,7 +15,6 @@ import threading
 import time
 from typing import Any
 
-import mlflow
 from mlflow import MlflowClient
 
 __all__ = ["MonaiTrainer", "log_model_weights"]
@@ -24,6 +23,7 @@ __all__ = ["MonaiTrainer", "log_model_weights"]
 # ---------------------------------------------------------------------------
 # Standalone helper -- usable without a trainer instance
 # ---------------------------------------------------------------------------
+
 
 def log_model_weights(
     experiment_name: str,
@@ -39,7 +39,11 @@ def log_model_weights(
     For repeated calls prefer :meth:`MonaiTrainer.log_model_weights`.
     """
     weights_path = weights_path or os.path.join(
-        app_dir, "model", model, train_name, "checkpoint_final.pt",
+        app_dir,
+        "model",
+        model,
+        train_name,
+        "checkpoint_final.pt",
     )
     client = MlflowClient()
     if run_id is None:
@@ -131,7 +135,11 @@ class MonaiTrainer:
         experiment_name = experiment_name or self.experiment_name
         train_name = train_name or self.train_configs.get("name", "train_01")
         weights_path = weights_path or os.path.join(
-            self.app_dir, "model", model, train_name, "checkpoint_final.pt",
+            self.app_dir,
+            "model",
+            model,
+            train_name,
+            "checkpoint_final.pt",
         )
         if run_id is None:
             run_id = _latest_run_id(self.mlflow_client, experiment_name)
@@ -199,9 +207,7 @@ class MonaiTrainer:
                 if exp:
                     runs = self.mlflow_client.search_runs(
                         experiment_ids=[exp.experiment_id],
-                        filter_string=(
-                            f"status = 'RUNNING' AND start_time >= {start_ms}"
-                        ),
+                        filter_string=(f"status = 'RUNNING' AND start_time >= {start_ms}"),
                         order_by=["start_time DESC"],
                         max_results=1,
                     )
@@ -212,10 +218,7 @@ class MonaiTrainer:
 
             rid = monitor_state["run_id"]
             if not rid:
-                print(
-                    "[train] WARNING: could not discover training run "
-                    "for system metrics"
-                )
+                print("[train] WARNING: could not discover training run " "for system metrics")
                 return
 
             monitor = SystemMetricsMonitor(run_id=rid, sampling_interval=5)
@@ -266,11 +269,16 @@ class MonaiTrainer:
 
         print(f"[train] Loading app from {self.app_dir} ...")
         return app_instance(
-            app_dir=self.app_dir, studies=self.studies_url, conf=conf,
+            app_dir=self.app_dir,
+            studies=self.studies_url,
+            conf=conf,
         )
 
     def _build_request(
-        self, model: str, labels: str | None, overrides: dict,
+        self,
+        model: str,
+        labels: str | None,
+        overrides: dict,
     ) -> dict:
         """Assemble the training request dict."""
         request = copy.deepcopy(self.train_configs)
@@ -281,9 +289,7 @@ class MonaiTrainer:
             request["tracking_experiment_name"] = self.experiment_name
         elif not request["tracking_experiment_name"].startswith("/"):
             pfx = f"/Users/{self.user_email}/" if self.user_email else "/"
-            request["tracking_experiment_name"] = (
-                pfx + request["tracking_experiment_name"]
-            )
+            request["tracking_experiment_name"] = pfx + request["tracking_experiment_name"]
 
         request.update(overrides)
         return request
@@ -292,6 +298,7 @@ class MonaiTrainer:
 # ---------------------------------------------------------------------------
 # module-private helpers
 # ---------------------------------------------------------------------------
+
 
 def _latest_run_id(client: MlflowClient, experiment_name: str) -> str | None:
     """Return the run_id of the most recent run in *experiment_name*."""
