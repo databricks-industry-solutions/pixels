@@ -321,6 +321,8 @@ See §7 for the detailed dual-path design.
 | `STOW_THREAD_POOL_SIZE`         | `64`                                                  | Default executor pool (blocking SQL + Lakebase calls)                              |
 | `STOW_SQL_BATCH_SIZE`           | `100`                                                 | Max STOW audit records per SQL batch INSERT                                        |
 | `STOW_SQL_FLUSH_INTERVAL_S`     | `2.0`                                                 | Max seconds between STOW audit record flushes                                      |
+| `STOW_MANAGER_GROUPS`           | —                                                     | Comma-separated list of groups or user emails granted `CAN_MANAGE` on the STOW job |
+| `STOW_RUN_POLL_INTERVAL_S`      | `120`                                                 | Seconds between background checks of STOW job run status                           |
 | `STOW_VOLUMES_CONCURRENCY`      | `8`                                                   | Semaphore limit for concurrent Volumes PUT requests                                |
 | `PIXELS_BOT_CACHE_MAX_ENTRIES`  | `1000000`                                             | In-memory BOT cache capacity                                                       |
 | `PIXELS_PATH_CACHE_MAX_ENTRIES` | `1000000`                                             | In-memory instance-path cache capacity                                             |
@@ -697,6 +699,30 @@ X-Forwarded-Email header (Databricks Apps proxy)  ← fast path
 Authorization: Bearer <token> → GET /api/2.0/preview/scim/v2/Me  ← SCIM fallback
          (result cached by first 16 chars of token)
 ```
+
+### Job Management
+
+The STOW processor Spark job (`{APP_NAME}_stow_processor`) is created or
+updated at gateway startup via `_resolve_stow_job_id`. Key behaviors:
+
+1. **Create-or-update**: if a job with the expected name already exists, its
+   configuration is updated in place (task dependencies, compute settings).
+   Otherwise a new job is created.
+
+2. **Permission management**: when `STOW_MANAGER_GROUPS` is set (comma-separated
+   list of group names or user emails), the gateway grants `CAN_MANAGE` on the
+   job to each listed principal. Emails (detected by `@`) use the `user_name`
+   field in the Permissions API; plain names use `group_name`. Existing
+   permissions are read first to avoid redundant PATCH calls.
+
+3. **Volume parameter**: the STOW job receives the target volume as
+   `catalog.schema.volume` (UC three-level name) via `job_parameters`. The
+   value is derived from the per-request cookie `seg_dest_dir` path or the
+   `DATABRICKS_STOW_VOLUME_PATH` env var.
+
+4. **Run monitoring**: a background task polls the latest run status every
+   `STOW_RUN_POLL_INTERVAL_S` seconds (default 120) and logs completion or
+   failure.
 
 ---
 
