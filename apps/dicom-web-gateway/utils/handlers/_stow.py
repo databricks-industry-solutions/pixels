@@ -434,6 +434,9 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
                 "environment_key": "default",
                 "spec": {
                     "client": "4",
+                    "dependencies": [
+                        "git+https://github.com/databricks-industry-solutions/pixels.git"
+                    ],
                 },
             }
         ],
@@ -467,6 +470,83 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
         logger.warning(f"STOW-RS: job creation failed: {exc}")
 
     return None
+
+
+def _update_stow_job(host: str, headers: dict, job_id: int, job_name: str) -> None:
+    """
+    Update an existing STOW processor job to ensure its configuration
+    (environments, tasks, parameters) matches the current expected state.
+
+    Uses the Jobs ``reset`` endpoint which replaces the full job config.
+    """
+    payload = {
+        "job_id": job_id,
+        "new_settings": {
+            "name": job_name,
+            "git_source": {
+                "git_url": _PIXELS_GIT_URL,
+                "git_provider": "gitHub",
+                "git_branch": _PIXELS_GIT_BRANCH,
+            },
+            "tasks": [
+                {
+                    "task_key": "stow_split",
+                    "notebook_task": {
+                        "notebook_path": "workflow/stow_split",
+                        "source": "GIT",
+                    },
+                    "environment_key": "default",
+                    "disable_auto_optimization": False,
+                },
+                {
+                    "task_key": "stow_meta_extract",
+                    "notebook_task": {
+                        "notebook_path": "workflow/stow_meta_extract",
+                        "source": "GIT",
+                    },
+                    "depends_on": [{"task_key": "stow_split"}],
+                    "environment_key": "default",
+                    "disable_auto_optimization": False,
+                },
+            ],
+            "environments": [
+                {
+                    "environment_key": "default",
+                    "spec": {
+                        "client": "4",
+                        "dependencies": [
+                            "git+https://github.com/databricks-industry-solutions/pixels.git"
+                        ],
+                    },
+                }
+            ],
+            "max_concurrent_runs": 1,
+            "tags": {
+                "app": os.getenv("DATABRICKS_APP_NAME", ""),
+                "purpose": "stow_processor",
+            },
+            "parameters": [
+                {"name": "pixels_table", "default": _stow_catalog_table or ""},
+                {"name": "volume", "default": _stow_volume_uc or ""},
+            ],
+        },
+    }
+
+    try:
+        resp = _requests.post(
+            f"https://{host}/api/2.1/jobs/reset",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+        if resp.ok:
+            logger.info(f"STOW-RS: job update SUCCEEDED — job_id={job_id}")
+        else:
+            logger.error(
+                f"STOW-RS: job update FAILED (HTTP {resp.status_code}): {resp.text[:300]}"
+            )
+    except Exception as exc:
+        logger.error(f"STOW-RS: job update FAILED with exception: {exc}")
 
 
 def _ensure_job_manage_permissions(host: str, headers: dict, job_id: int) -> None:
@@ -558,6 +638,7 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
             if jobs:
                 _stow_job_id = jobs[0]["job_id"]
                 logger.info(f"STOW-RS: resolved job '{job_name}' → id {_stow_job_id}")
+                _update_stow_job(host, headers, _stow_job_id, job_name)
             else:
                 logger.warning(
                     f"STOW-RS: no job found with name '{job_name}' — attempting creation"
