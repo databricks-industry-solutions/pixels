@@ -160,6 +160,14 @@ if _stow_volume_path_env:
         _stow_volume_uc = f"{_vol_parts[1]}.{_vol_parts[2]}.{_vol_parts[3]}"
 
 
+def _volume_uc_from_path(volume_path: str) -> str | None:
+    """Derive ``catalog.schema.volume`` UC name from a ``/Volumes/...`` path."""
+    parts = volume_path.strip("/").split("/")
+    if len(parts) >= 4 and parts[0] == "Volumes":
+        return f"{parts[1]}.{parts[2]}.{parts[3]}"
+    return None
+
+
 def _derive_stow_table(catalog_table: str) -> str | None:
     """Convert ``catalog.schema.table`` into ``catalog.schema.stow_operations``."""
     parts = catalog_table.split(".")
@@ -862,13 +870,12 @@ def _fire_stow_job(
 
         effective_table = pixels_table or _stow_catalog_table
         effective_volume = volume or _stow_volume_uc
-        if effective_table or effective_volume:
-            job_params: dict[str, str] = {}
-            if effective_table:
-                job_params["pixels_table"] = effective_table
-            if effective_volume:
-                job_params["volume"] = effective_volume
-            run_payload["job_parameters"] = job_params
+        assert effective_volume, "volume is required"
+
+        job_params: dict[str, str] = {"volume": effective_volume}
+        if effective_table:
+            job_params["pixels_table"] = effective_table
+        run_payload["job_parameters"] = job_params
 
         resp = _requests.post(
             run_now_url,
@@ -1332,7 +1339,10 @@ async def _handle_streaming(
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
+        volume_uc = _volume_uc_from_path(stow_base) or _stow_volume_uc
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, app_token_provider(), pixels_table=catalog_table, volume=volume_uc
+        )
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -1503,11 +1513,15 @@ async def _handle_legacy_spark(
 
     # ── Fire Spark job in the background — do NOT await ────────────────
 
+    volume_uc = _volume_uc_from_path(stow_base) or _stow_volume_uc
+
     async def _background_fire():
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, app_token_provider(), pixels_table=catalog_table, volume=volume_uc
+        )
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
