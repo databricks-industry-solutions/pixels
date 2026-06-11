@@ -23,6 +23,7 @@ from ._wado import (
     dicomweb_wado_instance,
     dicomweb_wado_instance_frames,
     dicomweb_wado_series_metadata,
+    dicomweb_wado_study_metadata,
     dicomweb_wado_uri,
 )
 
@@ -34,6 +35,7 @@ __all__ = [
     "dicomweb_qido_instances",
     # WADO-RS / WADO-URI
     "dicomweb_wado_series_metadata",
+    "dicomweb_wado_study_metadata",
     "dicomweb_wado_instance",
     "dicomweb_wado_instance_frames",
     "dicomweb_wado_uri",
