@@ -550,10 +550,13 @@ def _update_stow_job(host: str, headers: dict, job_id: int, job_name: str) -> No
 
 
 def _ensure_job_manage_permissions(host: str, headers: dict, job_id: int) -> None:
-    """Grant CAN_MANAGE to groups listed in STOW_MANAGER_GROUPS."""
+    """Grant CAN_MANAGE to principals listed in STOW_MANAGER_GROUPS.
+
+    Each entry can be a group name or a user email (detected by presence of ``@``).
+    """
     raw = os.getenv("STOW_MANAGER_GROUPS", "")
-    groups = [g.strip() for g in raw.split(",") if g.strip()]
-    if not groups:
+    principals = [p.strip() for p in raw.split(",") if p.strip()]
+    if not principals:
         return
 
     try:
@@ -569,22 +572,27 @@ def _ensure_job_manage_permissions(host: str, headers: dict, job_id: int) -> Non
             return
 
         existing = resp.json().get("access_control_list", [])
-        already_managed = set()
+        already_managed: set[str] = set()
         for entry in existing:
-            if entry.get("group_name"):
-                for perm in entry.get("all_permissions", []):
-                    if perm.get("permission_level") == "CAN_MANAGE":
+            for perm in entry.get("all_permissions", []):
+                if perm.get("permission_level") == "CAN_MANAGE":
+                    if entry.get("group_name"):
                         already_managed.add(entry["group_name"])
+                    if entry.get("user_name"):
+                        already_managed.add(entry["user_name"])
 
-        missing = [g for g in groups if g not in already_managed]
+        missing = [p for p in principals if p not in already_managed]
         if not missing:
             return
 
-        patch_payload = {
-            "access_control_list": [
-                {"group_name": g, "permission_level": "CAN_MANAGE"} for g in missing
-            ]
-        }
+        acl_entries = []
+        for p in missing:
+            if "@" in p:
+                acl_entries.append({"user_name": p, "permission_level": "CAN_MANAGE"})
+            else:
+                acl_entries.append({"group_name": p, "permission_level": "CAN_MANAGE"})
+
+        patch_payload = {"access_control_list": acl_entries}
         patch_resp = _requests.patch(
             f"https://{host}/api/2.0/permissions/jobs/{job_id}",
             headers=headers,
