@@ -36,6 +36,10 @@ env:
     value: "100"
   - name: "STOW_SQL_FLUSH_INTERVAL_S"
     value: "2.0"
+  - name: "STOW_MANAGER_GROUPS"
+    value: ""
+  - name: "STOW_RUN_POLL_INTERVAL_S"
+    value: "120"
 
   # ── In-memory caches ────────────────────────────────────────────────────────
   - name: "PIXELS_BOT_CACHE_MAX_ENTRIES"
