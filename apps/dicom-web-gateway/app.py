@@ -592,9 +592,9 @@ async def store_instances(request: Request):
 
 # ── NIfTI Overlay ────────────────────────────────────────────────────────
 #
-# Optional: gated by NIFTI_SEGMENTATION_TABLE. When unset both routes
-# return 404 with a "feature disabled" detail (see handlers in
-# utils/handlers/_nifti.py).
+# Optional: gated by a derived table from pixels_table/DATABRICKS_PIXELS_TABLE,
+# or by NIFTI_SEGMENTATION_TABLE. When none are available both routes return
+# 404 with a "feature disabled" detail (see handlers in utils/handlers/_nifti.py).
 
 
 @app.get("/api/dicomweb/nifti/related", tags=["NIfTI Overlay"])

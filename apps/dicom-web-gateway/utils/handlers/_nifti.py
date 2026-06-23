@@ -17,10 +17,12 @@ exactly. In OBO mode the user's forwarded access token is propagated to
 both the SQL warehouse and the Files API so Unity Catalog ACLs on the
 Delta table and the UC Volume apply uniformly.
 
-Feature gate: activated when ``NIFTI_SEGMENTATION_TABLE`` is set. When
-unset (or when ``DATABRICKS_WAREHOUSE_ID`` is missing) both handlers
-raise :class:`fastapi.HTTPException` so the gateway is functionally a no-op
-for callers that haven't onboarded the feature.
+Feature gate: activated when the request carries a ``pixels_table`` cookie
+(multi-table mode), ``DATABRICKS_PIXELS_TABLE`` is configured, or
+``NIFTI_SEGMENTATION_TABLE`` is set. When none are available (or when
+``DATABRICKS_WAREHOUSE_ID`` is missing) both handlers raise
+:class:`fastapi.HTTPException` so the gateway is functionally a no-op for
+callers that haven't onboarded the feature.
 """
 
 import json
@@ -40,7 +42,7 @@ from ..queries_nifti import (
     build_find_for_series,
     build_resolve_for_fetch,
 )
-from ..sql_client import USE_USER_AUTH
+from ..sql_client import USE_USER_AUTH, validate_table_name
 from ._common import app_token_provider, get_sql_client, resolve_user_token
 
 logger = logging.getLogger("DICOMweb.Gateway")
@@ -52,6 +54,7 @@ logger = logging.getLogger("DICOMweb.Gateway")
 _FILES_API_PREFIX = "/api/2.0/fs/files"
 _FILES_API_TIMEOUT_S = 300
 _FILES_API_CHUNK_BYTES = 65_536
+_DEFAULT_NIFTI_TABLE_NAME = "nifti_segmentations"
 
 
 # ---------------------------------------------------------------------------
@@ -59,15 +62,41 @@ _FILES_API_CHUNK_BYTES = 65_536
 # ---------------------------------------------------------------------------
 
 
-def _resolve_table() -> str:
-    """Return the configured Delta table; HTTP 404 when feature disabled."""
-    table = os.getenv("NIFTI_SEGMENTATION_TABLE")
+def _derive_nifti_table(pixels_table: str) -> str:
+    """Convert ``catalog.schema.table`` into ``catalog.schema.nifti_segmentations``."""
+    validate_table_name(pixels_table)
+    catalog, schema, _ = pixels_table.split(".", 2)
+    return f"{catalog}.{schema}.{_DEFAULT_NIFTI_TABLE_NAME}"
+
+
+def _resolve_table(request: Request) -> str:
+    """Return the effective Delta table; HTTP 404 when feature disabled."""
+    cookie_pixels_table = request.cookies.get("pixels_table", "").strip()
+    env_pixels_table = os.getenv("DATABRICKS_PIXELS_TABLE", "").strip()
+
+    for source, pixels_table in (
+        ("pixels_table cookie", cookie_pixels_table),
+        ("DATABRICKS_PIXELS_TABLE", env_pixels_table),
+    ):
+        if not pixels_table:
+            continue
+        try:
+            return _derive_nifti_table(pixels_table)
+        except ValueError:
+            logger.warning(
+                "NIfTI overlay: invalid %s '%s'; trying next table source",
+                source,
+                pixels_table,
+            )
+
+    table = os.getenv("NIFTI_SEGMENTATION_TABLE", "").strip()
     if not table:
         raise HTTPException(
             status_code=404,
             detail=(
                 "NIfTI overlay routes are disabled "
-                "(NIFTI_SEGMENTATION_TABLE is not configured on this gateway)"
+                "(no pixels_table cookie, DATABRICKS_PIXELS_TABLE, "
+                "or NIFTI_SEGMENTATION_TABLE is configured)"
             ),
         )
     return table
@@ -179,7 +208,7 @@ def nifti_related(
     exclude any row whose ``status = 'archived'``. The internal ``path``
     column is intentionally **not** projected.
     """
-    table = _resolve_table()
+    table = _resolve_table(request)
     sql_client = get_sql_client()
     user_token: Optional[str] = resolve_user_token(request) if USE_USER_AUTH else None
 
@@ -213,7 +242,7 @@ def nifti_fetch(
     ``Cache-Control: private, max-age=3600``, and ``ETag: "<sha256>"`` when
     the row carries a hash.
     """
-    table = _resolve_table()
+    table = _resolve_table(request)
     sql_client = get_sql_client()
     user_token: Optional[str] = resolve_user_token(request) if USE_USER_AUTH else None
 
