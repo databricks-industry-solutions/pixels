@@ -44,7 +44,7 @@ window.config = {
   niftiOverlay: {
     // Master switch. When false, the extension is loaded but the panel is hidden.
     // Flipped to true once the backend route and the extension UI land.
-    enabled: false,
+    enabled: true,
 
     // Where to talk to.
     //   null   -> inherit from the active data source's qidoRoot (production default;
