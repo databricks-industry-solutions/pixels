@@ -66,6 +66,8 @@ env:
     value: "100"
   - name: "DICOMWEB_METRICS_INTERVAL"
     value: "1"
+  - name: "PIXELS_QIDO_MAX_LIMIT"
+    value: "1000"
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"

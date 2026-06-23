@@ -6,6 +6,7 @@ with semantic column names while still producing spec-compliant DICOMweb JSON.
 """
 
 import json
+import re
 from typing import Any, Dict, List
 
 # -------------------------------------------------------------------------
@@ -52,6 +53,9 @@ DICOM_TAGS: Dict[str, str] = {
 }
 
 TAG_TO_ID: Dict[str, str] = {v: k for k, v in DICOM_TAGS.items()}
+
+# Matches standard DICOM tag IDs — 8 hex characters (e.g. "0020000D").
+_DICOM_TAG_RE = re.compile(r"^[0-9A-Fa-f]{8}$")
 
 # -------------------------------------------------------------------------
 # Value Representation (VR) lookup
@@ -164,6 +168,26 @@ def format_dicomweb_response(results: List[List[Any]], columns: List[str]) -> Li
         formatted.append(item)
 
     return formatted
+
+
+# -------------------------------------------------------------------------
+# Raw metadata filtering
+# -------------------------------------------------------------------------
+
+
+def filter_dicom_json(raw_json: str) -> str:
+    """Strip non-DICOM keys from a raw JSON metadata object.
+
+    The ``meta`` VARIANT column may contain extra fields injected by the
+    ingestion pipeline (``file_size``, ``hash``, ``has_pixel``, …).  These
+    are not valid DICOMweb attributes and cause deserialization failures
+    in strict viewers (e.g. MedDream's ``AttributeElement`` parser).
+
+    Only keys matching the 8-hex-character DICOM tag format are kept.
+    """
+    obj = json.loads(raw_json)
+    filtered = {k: v for k, v in obj.items() if _DICOM_TAG_RE.match(k)}
+    return json.dumps(filtered)
 
 
 # -------------------------------------------------------------------------

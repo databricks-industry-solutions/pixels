@@ -916,6 +916,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `DICOMWEB_METRICS_INTERVAL`           | No             | `1`                       | Metrics push interval (s)                                     |
 | `DICOMWEB_ANYIO_THREAD_TOKENS`        | No             | `128`                     | AnyIO thread limiter for sync workloads                       |
 | `DICOMWEB_ENABLE_WADO_SERIES_PRIMING` | No             | `false`                   | Enable opportunistic series-level pre-priming                 |
+| `PIXELS_QIDO_MAX_LIMIT`               | No             | `1000`                    | Hard cap on QIDO-RS study-search rows (applies even when `?limit` is omitted)  |
 | `PIXELS_WADO_PREFETCH_WAIT_S`         | No             | `0.05`                    | Max wait to consume prefetched bytes before fallback          |
 | `PIXELS_BACKGROUND_POOL_WORKERS`      | No             | `16`                      | Worker count for background frame reads                       |
 | `PIXELS_FILES_POOL_CONNECTIONS`       | No             | `20`                      | Requests adapter pooled host entries                          |
