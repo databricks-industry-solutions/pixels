@@ -84,6 +84,8 @@ env:
     value: "128"
   - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
     value: "false"
+  - name: "PIXELS_QIDO_MAX_LIMIT"
+    value: "1000"
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"
