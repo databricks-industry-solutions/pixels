@@ -160,6 +160,14 @@ if _stow_volume_path_env:
         _stow_volume_uc = f"{_vol_parts[1]}.{_vol_parts[2]}.{_vol_parts[3]}"
 
 
+def _volume_uc_from_path(volume_path: str) -> str | None:
+    """Derive ``catalog.schema.volume`` UC name from a ``/Volumes/...`` path."""
+    parts = volume_path.strip("/").split("/")
+    if len(parts) >= 4 and parts[0] == "Volumes":
+        return f"{parts[1]}.{parts[2]}.{parts[3]}"
+    return None
+
+
 def _derive_stow_table(catalog_table: str) -> str | None:
     """Convert ``catalog.schema.table`` into ``catalog.schema.stow_operations``."""
     parts = catalog_table.split(".")
@@ -434,6 +442,9 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
                 "environment_key": "default",
                 "spec": {
                     "client": "4",
+                    "dependencies": [
+                        "git+https://github.com/databricks-industry-solutions/pixels.git"
+                    ],
                 },
             }
         ],
@@ -469,6 +480,147 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
     return None
 
 
+def _update_stow_job(host: str, headers: dict, job_id: int, job_name: str) -> None:
+    """
+    Update an existing STOW processor job to ensure its configuration
+    (environments, tasks, parameters) matches the current expected state.
+
+    Uses the Jobs ``reset`` endpoint which replaces the full job config.
+    """
+    payload = {
+        "job_id": job_id,
+        "new_settings": {
+            "name": job_name,
+            "git_source": {
+                "git_url": _PIXELS_GIT_URL,
+                "git_provider": "gitHub",
+                "git_branch": _PIXELS_GIT_BRANCH,
+            },
+            "tasks": [
+                {
+                    "task_key": "stow_split",
+                    "notebook_task": {
+                        "notebook_path": "workflow/stow_split",
+                        "source": "GIT",
+                    },
+                    "environment_key": "default",
+                    "disable_auto_optimization": False,
+                },
+                {
+                    "task_key": "stow_meta_extract",
+                    "notebook_task": {
+                        "notebook_path": "workflow/stow_meta_extract",
+                        "source": "GIT",
+                    },
+                    "depends_on": [{"task_key": "stow_split"}],
+                    "environment_key": "default",
+                    "disable_auto_optimization": False,
+                },
+            ],
+            "environments": [
+                {
+                    "environment_key": "default",
+                    "spec": {
+                        "client": "4",
+                        "dependencies": [
+                            "git+https://github.com/databricks-industry-solutions/pixels.git"
+                        ],
+                    },
+                }
+            ],
+            "max_concurrent_runs": 1,
+            "tags": {
+                "app": os.getenv("DATABRICKS_APP_NAME", ""),
+                "purpose": "stow_processor",
+            },
+            "parameters": [
+                {"name": "pixels_table", "default": _stow_catalog_table or ""},
+                {"name": "volume", "default": _stow_volume_uc or ""},
+            ],
+        },
+    }
+
+    try:
+        resp = _requests.post(
+            f"https://{host}/api/2.1/jobs/reset",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+        if resp.ok:
+            logger.info(f"STOW-RS: job update SUCCEEDED — job_id={job_id}")
+        else:
+            logger.error(
+                f"STOW-RS: job update FAILED (HTTP {resp.status_code}): {resp.text[:300]}"
+            )
+    except Exception as exc:
+        logger.error(f"STOW-RS: job update FAILED with exception: {exc}")
+
+
+def _ensure_job_manage_permissions(host: str, headers: dict, job_id: int) -> None:
+    """Grant CAN_MANAGE to principals listed in STOW_MANAGER_GROUPS.
+
+    Each entry can be a group name or a user email (detected by presence of ``@``).
+    """
+    raw = os.getenv("STOW_MANAGER_GROUPS", "")
+    principals = [p.strip() for p in raw.split(",") if p.strip()]
+    if not principals:
+        return
+
+    try:
+        resp = _requests.get(
+            f"https://{host}/api/2.0/permissions/jobs/{job_id}",
+            headers=headers,
+            timeout=5,
+        )
+        if not resp.ok:
+            logger.error(
+                f"STOW-RS: permission read FAILED (HTTP {resp.status_code}): {resp.text[:200]}"
+            )
+            return
+
+        existing = resp.json().get("access_control_list", [])
+        already_managed: set[str] = set()
+        for entry in existing:
+            for perm in entry.get("all_permissions", []):
+                if perm.get("permission_level") == "CAN_MANAGE":
+                    if entry.get("group_name"):
+                        already_managed.add(entry["group_name"])
+                    if entry.get("user_name"):
+                        already_managed.add(entry["user_name"])
+
+        missing = [p for p in principals if p not in already_managed]
+        if not missing:
+            return
+
+        acl_entries = []
+        for p in missing:
+            if "@" in p:
+                acl_entries.append({"user_name": p, "permission_level": "CAN_MANAGE"})
+            else:
+                acl_entries.append({"group_name": p, "permission_level": "CAN_MANAGE"})
+
+        patch_payload = {"access_control_list": acl_entries}
+        patch_resp = _requests.patch(
+            f"https://{host}/api/2.0/permissions/jobs/{job_id}",
+            headers=headers,
+            json=patch_payload,
+            timeout=5,
+        )
+        if patch_resp.ok:
+            logger.info(
+                f"STOW-RS: permission update SUCCEEDED — granted CAN_MANAGE on job {job_id} "
+                f"to {missing}"
+            )
+        else:
+            logger.error(
+                f"STOW-RS: permission update FAILED (HTTP {patch_resp.status_code}): "
+                f"{patch_resp.text[:200]}"
+            )
+    except Exception as exc:
+        logger.error(f"STOW-RS: permission update FAILED with exception: {exc}")
+
+
 def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
     """
     Resolve the STOW processor job ID by name, creating it if absent.
@@ -502,6 +654,7 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
             if jobs:
                 _stow_job_id = jobs[0]["job_id"]
                 logger.info(f"STOW-RS: resolved job '{job_name}' → id {_stow_job_id}")
+                _update_stow_job(host, headers, _stow_job_id, job_name)
             else:
                 logger.warning(
                     f"STOW-RS: no job found with name '{job_name}' — attempting creation"
@@ -514,8 +667,107 @@ def _resolve_stow_job_id(host: str, headers: dict) -> int | None:
     except Exception as exc:
         logger.warning(f"STOW-RS: job name resolution failed: {exc}")
 
+    if _stow_job_id is not None:
+        _ensure_job_manage_permissions(host, headers, _stow_job_id)
+
     _stow_job_resolved = True
     return _stow_job_id
+
+
+# ---------------------------------------------------------------------------
+# Background run-status monitor
+# ---------------------------------------------------------------------------
+
+_STOW_RUN_POLL_INTERVAL_S = int(os.getenv("STOW_RUN_POLL_INTERVAL_S", "120"))
+
+_pending_runs: list[tuple[int, int]] = []  # [(job_id, run_id), ...]
+_pending_runs_lock = _threading.Lock()
+_run_monitor_started = False
+
+
+def _track_run(job_id: int, run_id: int) -> None:
+    """Register a run_id to be monitored for terminal status."""
+    global _run_monitor_started
+    with _pending_runs_lock:
+        _pending_runs.append((job_id, run_id))
+    if not _run_monitor_started:
+        _run_monitor_started = True
+        t = _threading.Thread(target=_run_status_monitor, daemon=True, name="stow-run-monitor")
+        t.start()
+
+
+def _run_status_monitor() -> None:
+    """Background thread that polls tracked runs until they reach a terminal state."""
+    while True:
+        time.sleep(_STOW_RUN_POLL_INTERVAL_S)
+
+        with _pending_runs_lock:
+            if not _pending_runs:
+                continue
+            snapshot = list(_pending_runs)
+
+        host = (
+            os.environ.get("DATABRICKS_HOST", "")
+            .replace("https://", "")
+            .replace("http://", "")
+            .rstrip("/")
+        )
+        if not host:
+            continue
+
+        token = os.environ.get("DATABRICKS_TOKEN", "")
+        if not token:
+            try:
+                from ._common import app_token_provider
+
+                token = app_token_provider()
+            except Exception:
+                continue
+        if not token:
+            continue
+
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        resolved: list[tuple[int, int]] = []
+
+        for job_id, run_id in snapshot:
+            try:
+                resp = _requests.get(
+                    f"https://{host}/api/2.1/jobs/runs/get",
+                    headers=headers,
+                    params={"run_id": run_id},
+                    timeout=10,
+                )
+                if not resp.ok:
+                    logger.warning(
+                        f"STOW-RS: run monitor — failed to get run {run_id} "
+                        f"(HTTP {resp.status_code})"
+                    )
+                    continue
+
+                state = resp.json().get("state", {})
+                life_cycle = state.get("life_cycle_state", "")
+                result_state = state.get("result_state", "")
+                state_message = state.get("state_message", "")
+
+                if life_cycle in ("TERMINATED", "SKIPPED", "INTERNAL_ERROR"):
+                    if result_state == "SUCCESS":
+                        logger.info(
+                            f"STOW-RS: run SUCCEEDED — job_id={job_id}, run_id={run_id}"
+                        )
+                    else:
+                        logger.error(
+                            f"STOW-RS: run FAILED — job_id={job_id}, run_id={run_id}, "
+                            f"result_state={result_state}, message={state_message[:200]}"
+                        )
+                    resolved.append((job_id, run_id))
+            except Exception as exc:
+                logger.warning(f"STOW-RS: run monitor — error checking run {run_id}: {exc}")
+
+        if resolved:
+            with _pending_runs_lock:
+                for item in resolved:
+                    if item in _pending_runs:
+                        _pending_runs.remove(item)
 
 
 # ---------------------------------------------------------------------------
@@ -618,13 +870,12 @@ def _fire_stow_job(
 
         effective_table = pixels_table or _stow_catalog_table
         effective_volume = volume or _stow_volume_uc
-        if effective_table or effective_volume:
-            job_params: dict[str, str] = {}
-            if effective_table:
-                job_params["pixels_table"] = effective_table
-            if effective_volume:
-                job_params["volume"] = effective_volume
-            run_payload["job_parameters"] = job_params
+        assert effective_volume, "volume is required"
+
+        job_params: dict[str, str] = {"volume": effective_volume}
+        if effective_table:
+            job_params["pixels_table"] = effective_table
+        run_payload["job_parameters"] = job_params
 
         resp = _requests.post(
             run_now_url,
@@ -640,6 +891,9 @@ def _fire_stow_job(
         run_id = resp.json().get("run_id")
         action = "triggered" if active_count == 0 else "queued"
         logger.info(f"STOW-RS: {action} job {job_id}, run_id={run_id}")
+
+        if run_id:
+            _track_run(job_id, run_id)
 
         return {
             "action": action,
@@ -1085,7 +1339,10 @@ async def _handle_streaming(
     # ── Fire Spark job for Phase 2 only (metadata extraction) ──────────
     job_status: dict = {"action": "skipped", "reason": "no auth token"}
     if token:
-        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
+        volume_uc = _volume_uc_from_path(stow_base) or _stow_volume_uc
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, app_token_provider(), pixels_table=catalog_table, volume=volume_uc
+        )
 
     job_action = job_status.get("action", "?")
     logger.info(f"STOW-RS [streaming]: job {job_action} for Phase 2")
@@ -1256,11 +1513,15 @@ async def _handle_legacy_spark(
 
     # ── Fire Spark job in the background — do NOT await ────────────────
 
+    volume_uc = _volume_uc_from_path(stow_base) or _stow_volume_uc
+
     async def _background_fire():
         if not token:
             logger.info(f"STOW-RS [legacy]: skipping job trigger for {file_id} — no auth token")
             return
-        job_status = await asyncio.to_thread(_fire_stow_job, app_token_provider(), pixels_table=catalog_table)
+        job_status = await asyncio.to_thread(
+            _fire_stow_job, app_token_provider(), pixels_table=catalog_table, volume=volume_uc
+        )
         job_action = job_status.get("action", "?")
         logger.info(f"STOW-RS [legacy]: background job {job_action} for file_id={file_id}")
 
