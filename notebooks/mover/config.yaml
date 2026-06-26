@@ -1,0 +1,31 @@
+# ── Compute Mode ──────────────────────────────────────────────────────────────
+# Options: "serverless" or "dedicated"
+COMPUTE_MODE: "dedicated"
+
+# ── Dedicated Cluster Config (used only when COMPUTE_MODE is "dedicated") ─────
+DEDICATED_CLUSTER:
+  node_type_id: "Standard_D8ds_v5"
+  spark_version: "18.x-scala2.13"
+  num_workers: 0
+  data_security_mode: "SINGLE_USER"
+
+# ── Configurable ──────────────────────────────────────────────────────────────
+TOTAL_FILES:        256    # Total virtual files in manifest
+PAGE_SIZE:          32           # Files per page = threads per worker instance
+NUM_WORKERS:        32         # Matches PAGE_SIZE
+MANIFEST_TABLE:     "<user>.demo.file_copy_manifest"
+DEST_VOLUME:        "/Volumes/<user>/demo/perf_uploads/ddsm"
+MLFLOW_EXPERIMENT:  "/Users/<user>/file_copy_benchmark"
+NOTEBOOK_PATH:      "/Workspace/Users/<user>/pixels-mover/notebooks/mover/Large File Copy Benchmark v6"
+
+# ── AWS Credentials (Databricks Secrets) ──────────────────────────────────────
+SECRETS_SCOPE:                  "dm-aws-credentials"
+SECRETS_KEY_ACCESS_KEY_ID:      "AWS_ACCESS_KEY_ID"
+SECRETS_KEY_SECRET_ACCESS_KEY:  "AWS_SECRET_ACCESS_KEY"
+REGION:                         "us-east-1"
+BUCKET:                         "databricks-largefile-<account>-us-east-1-an"
+PREFIX:                         "dicom/ddsm"
+SCHEME:                         "s3://"
+
+# Regional Format: https://[bucket-name].s3.[region].amazonaws.com
+ENDPOINT_URL:                   "https://databricks-largefile-<account>-us-east-1-an.s3.us-east-1.amazonaws.com"
