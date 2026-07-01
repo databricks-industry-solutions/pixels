@@ -1822,7 +1822,7 @@ _PIXEL_DATA_MARKER = b"\xe0\x7f\x10\x00"
 # 64 KB covers virtually all files without touching pixel data.
 _HEADER_INITIAL_BYTES = 64 * 1024
 # Fallback for files with very large private headers.
-_HEADER_EXTENDED_BYTES = 2 * 1024 * 1024
+_HEADER_EXTENDED_BYTES = 50 * 1024 * 1024
 
 
 def _pixel_data_header_size(raw: bytes, pixel_data_pos: int) -> int:
