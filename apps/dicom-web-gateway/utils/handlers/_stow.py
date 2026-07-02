@@ -32,6 +32,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import requests as _requests
 from fastapi import HTTPException, Request, Response
@@ -398,6 +399,29 @@ _stow_job_resolved = False
 
 _PIXELS_GIT_URL = "https://github.com/databricks-industry-solutions/pixels"
 _PIXELS_GIT_BRANCH = "main"
+_GATEWAY_REQUIREMENTS_PATH = Path(__file__).resolve().parents[2] / "requirements.txt"
+
+
+def _resolve_pixels_wheel_dependency() -> str:
+    """Return the UC Volume wheel path injected into the app requirements file."""
+    try:
+        requirements = _GATEWAY_REQUIREMENTS_PATH.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise RuntimeError(f"Unable to read {_GATEWAY_REQUIREMENTS_PATH}") from exc
+
+    for line in requirements:
+        dependency = line.strip()
+        if (
+            dependency.startswith("/Volumes/")
+            and "databricks_pixels-" in dependency
+            and dependency.endswith(".whl")
+        ):
+            return dependency
+
+    raise RuntimeError(
+        "No injected databricks_pixels wheel path found in "
+        f"{_GATEWAY_REQUIREMENTS_PATH}; run deploy-prep before creating STOW jobs"
+    )
 
 
 def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
@@ -442,9 +466,7 @@ def _create_stow_job(host: str, headers: dict, job_name: str) -> int | None:
                 "environment_key": "default",
                 "spec": {
                     "client": "4",
-                    "dependencies": [
-                        "git+https://github.com/databricks-industry-solutions/pixels.git"
-                    ],
+                    "dependencies": [_resolve_pixels_wheel_dependency()],
                 },
             }
         ],
@@ -522,9 +544,7 @@ def _update_stow_job(host: str, headers: dict, job_id: int, job_name: str) -> No
                     "environment_key": "default",
                     "spec": {
                         "client": "4",
-                        "dependencies": [
-                            "git+https://github.com/databricks-industry-solutions/pixels.git"
-                        ],
+                        "dependencies": [_resolve_pixels_wheel_dependency()],
                     },
                 }
             ],
