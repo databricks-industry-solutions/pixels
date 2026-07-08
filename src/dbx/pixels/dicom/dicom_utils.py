@@ -1,5 +1,6 @@
 import base64
 import copy
+import hashlib
 import io
 import os
 
@@ -110,25 +111,38 @@ def extract_metadata(ds: Dataset, deep: bool = True, remove_un_tags: bool = Fals
     return js
 
 
+def fp_tweak_from_path(file_path: str) -> str:
+    """Derive an FF1 tweak from the file path for per-file domain separation."""
+    return hashlib.sha256(file_path.encode()).hexdigest()
+
+
 def anonymize_metadata(
-    ds: Dataset, fp_key: str, fp_tweak: str, keep_tags: tuple, encrypt_tags: tuple
+    ds: Dataset,
+    fp_key: str,
+    keep_tags: tuple,
+    encrypt_tags: tuple,
+    file_path: str,
+    fp_tweak: str | None = None,
 ):
     """
     Anonymizes metadata of a DICOM file.
     Args:
         ds (Dataset): DICOM dataset.
         fp_key (str): Key for encryption.
-        fp_tweak (str): Tweak for encryption.
         keep_tags (tuple): Tuple of DICOM tags to keep unchanged.
         encrypt_tags (tuple): Tuple of DICOM tags to encrypt.
+        file_path (str): Source file path; used to derive the FF1 tweak when fp_tweak is not set.
+        fp_tweak (str | None): Optional FF1 tweak hex string. Defaults to a SHA-256 hash of file_path.
     Returns:
         Dataset: Anonymized DICOM dataset.
     """
     import dicognito.anonymizer
-    from ff3 import FF3Cipher
+    from fastfpe import ff1
 
-    c = FF3Cipher(fp_key, fp_tweak)
+    tweak = fp_tweak if fp_tweak is not None else fp_tweak_from_path(file_path)
     anonymizer = dicognito.anonymizer.Anonymizer()
+    uid_alphabet = "0123456789"
+    text_alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^_-"
 
     keep_values = [copy.deepcopy(ds[element]) for element in keep_tags if element in ds]
     encrypted_values = []
@@ -136,17 +150,17 @@ def anonymize_metadata(
     for element in encrypt_tags:
         if element in ds:
             if "UID" in element:
-                c.alphabet = "0123456789"
                 ds[element].value = ".".join(
                     [
-                        c.encrypt(element) if len(element) > 5 else element
-                        for element in ds[element].value.split(".")
+                        (ff1.encrypt(fp_key, tweak, uid_alphabet, part) if len(part) > 5 else part)
+                        for part in ds[element].value.split(".")
                     ]
                 )
             else:
-                c.alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,^_-"
                 ds[element].value = (
-                    c.encrypt(ds[element].value) if len(ds[element].value) > 5 else ""
+                    ff1.encrypt(fp_key, tweak, text_alphabet, ds[element].value)
+                    if len(ds[element].value) > 5
+                    else ""
                 )
 
         encrypted_values.append(copy.deepcopy(ds[element]))

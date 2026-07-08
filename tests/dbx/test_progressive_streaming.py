@@ -364,9 +364,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -434,9 +432,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -482,9 +478,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state1 = streamer.get_or_start_stream(
@@ -532,9 +526,7 @@ class TestProgressiveFileStreamer:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
             results = {}
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
