@@ -145,17 +145,16 @@ Pixels provides a feature to anonymize DICOM metadata to ensure patient privacy 
 
 To enable metadata anonymization, you can use the following extractor:
 ```python
-metadata_df = DicomMetaAnonymizerExtractor(
+metadata_df = DicomAnonymizerExtractor(
    catalog,
    anonym_mode="METADATA",
    fp_key=<fp_key>, #ONLY HEX STRING ALLOWED - 128, 192 or 256 bits
-   fp_tweak=<fp_tweak>,   #ONLY HEX STRING ALLOWED - 64 bits
    anonymization_base_path=<anonym_path>
 ).transform(catalog_df)
 ```
 `fp_key` is the format preserving encryption key used to ensure that the anonymization process is consistent across different runs. This key is used to generate pseudonyms for sensitive data fields, ensuring that the same input value always maps to the same pseudonym. This is useful for maintaining the ability to link records across datasets without revealing the original sensitive information.
 
-`fp_tweak` is an optional parameter that can be used to add an additional layer of randomness to the pseudonymization process. This can be useful for further enhancing privacy.
+`fp_tweak` is optional. When omitted, the FF1 tweak is derived automatically from a SHA-256 hash of each file path. Provide a hex string tweak to override per-file derivation.
 
 By setting the `anonym_mode` parameter to `"METADATA"`, the DICOM metadata will be anonymized during the ingestion process. This ensures that sensitive patient information is not stored in the catalog.
 The default configuration will save the anonymized DICOM files under `anonymization_base_path` property's path.
@@ -281,7 +280,7 @@ DICOM® is recognized by the International Organization for Standardization as t
 | OHIF Viewer          | Medical image viewer                | MIT                           | https://github.com/OHIF/Viewers                         |
 | MONAILabel           | Intelligent open source image labeling and learning tool | Apache-2.0 license  | https://github.com/Project-MONAI/MONAILabel |
 | DICOGNITO            | A library and command line tool for anonymizing DICOM files | MIT  | https://github.com/blairconrad/dicognito |
-| FF3                  | FPE - Format Preserving Encryption with FF3 in Python | Apache-2.0 license  | https://github.com/mysto/python-fpe |
+| fastfpe              | FPE - Format Preserving Encryption with FF1 in Rust/Python | MIT license  | https://github.com/pjwerneck/fastfpe |
 | Vista3D              | MONAI Versatile Imaging SegmenTation and Annotation model | Apache-2.0 license (code) - NCLS v1 (model weight) | https://github.com/Project-MONAI/VISTA/tree/main/vista3d |
 
 
