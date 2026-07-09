@@ -559,7 +559,7 @@ env:
 
 ```js
 niftiOverlay: {
-  enabled: false,           // master switch — flip to true to show the panel
+  enabled: true,            // master switch — set to false to hide the panel
   baseUrl: null,            // null -> inherit from active data source's qidoRoot
   pathPrefix: '/nifti',
   endpoints: {
@@ -578,10 +578,10 @@ niftiOverlay: {
 }
 ```
 
-`enabled: false` is the shipping default while the backend stabilises.
-When you flip it to `true`, the panel appears on the right of the
-viewport and the extension automatically calls `/related` on every
-series open.
+`enabled: true` is the shipping default. The panel appears on the right
+of the viewport and the extension automatically calls `/related` on
+every series open. Set to `false` to hide the panel without removing
+the backend routes.
 
 ---
 
