@@ -36,6 +36,8 @@ resources:
           default: ${var.vector_search_embedding}
         - name: lakebase_instance_name
           default: ${var.lakebase_instance_name}
+        - name: nifti_segmentation_table
+          default: ${var.nifti_segmentation_table}
 
       tasks:
         # ── Initialize UC schema, volume, empty table ──────────────
@@ -200,6 +202,6 @@ resources:
       environments:
         - environment_key: serverless
           spec:
-            environment_version: "4"
+            environment_version: "5"
             dependencies:
               - -r ../requirements.txt
