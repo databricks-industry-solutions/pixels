@@ -1,0 +1,12 @@
+targets:
+  dev:
+    default: true
+    mode: development
+    presets:
+      source_linked_deployment: false
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      source_linked_deployment: false
