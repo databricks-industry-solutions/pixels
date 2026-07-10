@@ -202,6 +202,6 @@ resources:
       environments:
         - environment_key: serverless
           spec:
-            environment_version: "4"
+            environment_version: "5"
             dependencies:
               - -r ../requirements.txt
