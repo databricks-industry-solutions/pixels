@@ -1,0 +1,11 @@
+SOURCE_PATH: /Volumes/hls_radiology_east/<project>/sample
+PATTERN: "*.tiff"
+INDEX: <catalog>.tiff.object_catalog
+PHI_ASSESSMENT_TABLE: <catalog>.tiff.phi_assessment
+
+# MLflow
+MLFLOW_EXPERIMENT_NAME: /Users/<user@example.com>/tiff
+MLFLOW_ARTIFACT_PATH: /Volumes/<catalog>/tiff/<volume_name>/mlflow
+
+# VLM
+VLM_ENDPOINT: databricks-llama-4-maverick
