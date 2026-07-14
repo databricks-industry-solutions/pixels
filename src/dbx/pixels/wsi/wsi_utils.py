@@ -33,6 +33,7 @@ logger = LoggerProvider()
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _normalize_to_uint8_rgb(arr: np.ndarray) -> np.ndarray:
     """Coerce any numpy array to uint8 RGB suitable for JPEG encoding.
 
@@ -103,6 +104,7 @@ def _pil_to_output(
 # OpenSlide backend
 # ---------------------------------------------------------------------------
 
+
 def _wsi_openslide(
     path: str,
     series: str = "tissue",
@@ -144,6 +146,7 @@ def _wsi_openslide(
 # ---------------------------------------------------------------------------
 # tifffile fallback
 # ---------------------------------------------------------------------------
+
 
 def _wsi_tifffile(
     path: str,
@@ -205,6 +208,7 @@ def _wsi_tifffile(
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def wsi_to_image(
     path: str,
     max_width: int = 768,
@@ -247,7 +251,6 @@ def wsi_to_image(
             "wsi_to_image: preferred openslide not available. "
             "Install openslide-python openslide-bin."
         )
-        pass
     except Exception:
         pass
 
@@ -270,6 +273,7 @@ def wsi_detect_format(path: str) -> Optional[str]:
     """
     try:
         import openslide
+
         return openslide.OpenSlide.detect_format(path)
     except ImportError:
         return None
@@ -285,6 +289,7 @@ def wsi_get_properties(path: str) -> dict:
     """
     try:
         import openslide
+
         slide = openslide.OpenSlide(path)
         props = dict(slide.properties)
         slide.close()

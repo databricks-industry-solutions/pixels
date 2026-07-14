@@ -33,23 +33,31 @@ from __future__ import annotations
 # Supported WSI file extensions (OpenSlide + tifffile fallback)
 # ---------------------------------------------------------------------------
 SUPPORTED_EXTENSIONS: set[str] = {
-    ".svs",       # Aperio
-    ".tif",       # Generic TIFF, Trestle, Ventana
-    ".tiff",      # Generic TIFF, Philips
-    ".bif",       # Ventana
-    ".ndpi",      # Hamamatsu
-    ".mrxs",      # MIRAX (index file)
-    ".vms",       # Hamamatsu (virtual microscope slide)
-    ".vmu",       # Hamamatsu (virtual microscope uncompressed)
-    ".scn",       # Leica
-    ".svslide",   # Sakura
-    ".dcm",       # DICOM WSI
+    ".svs",  # Aperio
+    ".tif",  # Generic TIFF, Trestle, Ventana
+    ".tiff",  # Generic TIFF, Philips
+    ".bif",  # Ventana
+    ".ndpi",  # Hamamatsu
+    ".mrxs",  # MIRAX (index file)
+    ".vms",  # Hamamatsu (virtual microscope slide)
+    ".vmu",  # Hamamatsu (virtual microscope uncompressed)
+    ".scn",  # Leica
+    ".svslide",  # Sakura
+    ".dcm",  # DICOM WSI
 }
 
 # Glob patterns for use with Spark binaryFile reader or Catalog.catalog()
 OPENSLIDE_PATTERNS: list[str] = [
-    "*.svs", "*.tif", "*.tiff", "*.bif", "*.ndpi",
-    "*.mrxs", "*.vms", "*.vmu", "*.scn", "*.svslide",
+    "*.svs",
+    "*.tif",
+    "*.tiff",
+    "*.bif",
+    "*.ndpi",
+    "*.mrxs",
+    "*.vms",
+    "*.vmu",
+    "*.scn",
+    "*.svslide",
 ]
 
 # ---------------------------------------------------------------------------
@@ -79,17 +87,17 @@ PHI_TAGS: set[str] = {
     "Diagnosis",
     "Id",
     # --- Hamamatsu NDPI ---
-    "hamamatsu.SourceLens",       # Operator-configured; may encode tech ID
-    "hamamatsu.Reference",        # Patient/case reference
+    "hamamatsu.SourceLens",  # Operator-configured; may encode tech ID
+    "hamamatsu.Reference",  # Patient/case reference
     # --- Leica SCN ---
-    "leica.device-model",         # Sometimes contains operator info
+    "leica.device-model",  # Sometimes contains operator info
     # --- Philips ---
-    "philips.PIM_DP_UFS_BARCODE", # Barcode text (patient label)
+    "philips.PIM_DP_UFS_BARCODE",  # Barcode text (patient label)
     # --- Sakura ---
     "sakura.NominalLensMagnification",  # Technical, but barcode fields below
     # --- Generic TIFF tags (from tifffile) ---
-    "Artist",            # tag 315 — person who created the image
-    "HostComputer",      # tag 316 — workstation/operator ID
+    "Artist",  # tag 315 — person who created the image
+    "HostComputer",  # tag 316 — workstation/operator ID
 }
 
 # ---------------------------------------------------------------------------
@@ -115,8 +123,8 @@ QUESTIONABLE_TAGS: set[str] = {
     "User",
     "ImageID",
     # --- Hamamatsu ---
-    "hamamatsu.Created",          # Scan timestamp
-    "hamamatsu.Updated",          # Modification timestamp
+    "hamamatsu.Created",  # Scan timestamp
+    "hamamatsu.Updated",  # Modification timestamp
     # --- Leica ---
     "leica.creation-date",
     "leica.device-version",
@@ -133,10 +141,10 @@ QUESTIONABLE_TAGS: set[str] = {
     "mirax.GENERAL.SLIDE_NAME",
     # --- Generic TIFF ---
     "ImageDescription",  # tag 270 — free-text; may embed patient info
-    "DateTime",          # tag 306 — creation timestamp
-    "Copyright",         # tag 33432
+    "DateTime",  # tag 306 — creation timestamp
+    "Copyright",  # tag 33432
     "DateTimeOriginal",  # EXIF 36867
-    "DateTimeDigitized", # EXIF 36868
+    "DateTimeDigitized",  # EXIF 36868
     # --- OpenSlide common ---
     "openslide.comment",  # May contain free-text with PHI
     # --- Artist/Copyright short keys ---
@@ -229,6 +237,7 @@ NOT_PHI_TAGS: set[str] = {
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def classify_tag(key: str) -> str:
     """Classify a single WSI metadata property key.

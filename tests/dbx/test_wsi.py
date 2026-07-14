@@ -79,11 +79,13 @@ def all_wsi_files(svs_files, tiff_files):
 # Test: phi_tags module
 # ---------------------------------------------------------------------------
 
+
 class TestPhiTags:
     """Tests for wsi_phi_tags.py"""
 
     def test_classify_phi_tag(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
         assert classify_tag("aperio.Patient") == "PHI"
         assert classify_tag("Patient") == "PHI"
         assert classify_tag("Artist") == "PHI"
@@ -91,6 +93,7 @@ class TestPhiTags:
 
     def test_classify_questionable_tag(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
         assert classify_tag("aperio.Date") == "QUESTIONABLE"
         assert classify_tag("DateTime") == "QUESTIONABLE"
         assert classify_tag("ImageDescription") == "QUESTIONABLE"
@@ -98,12 +101,14 @@ class TestPhiTags:
 
     def test_classify_not_phi_tag(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
         assert classify_tag("openslide.mpp-x") == "NOT_PHI"
         assert classify_tag("ImageWidth") == "NOT_PHI"
         assert classify_tag("SomeUnknownTag") == "NOT_PHI"
 
     def test_classify_tags_returns_only_phi_and_questionable(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tags
+
         props = {
             "aperio.Patient": "John Doe",
             "aperio.AppMag": "40",
@@ -119,6 +124,7 @@ class TestPhiTags:
 
     def test_scrub_image_description_aperio_format(self):
         from dbx.pixels.wsi.wsi_phi_tags import scrub_image_description
+
         desc = "Aperio Image Library v12.0.15|Patient = John Doe|AppMag = 40|Date = 2024-01-01"
         scrubbed = scrub_image_description(desc)
         assert "John Doe" not in scrubbed
@@ -127,6 +133,7 @@ class TestPhiTags:
 
     def test_supported_extensions(self):
         from dbx.pixels.wsi.wsi_phi_tags import SUPPORTED_EXTENSIONS
+
         assert ".svs" in SUPPORTED_EXTENSIONS
         assert ".tiff" in SUPPORTED_EXTENSIONS
         assert ".bif" in SUPPORTED_EXTENSIONS
@@ -135,6 +142,7 @@ class TestPhiTags:
 
     def test_openslide_patterns(self):
         from dbx.pixels.wsi.wsi_phi_tags import OPENSLIDE_PATTERNS
+
         assert "*.svs" in OPENSLIDE_PATTERNS
         assert "*.tiff" in OPENSLIDE_PATTERNS
 
@@ -143,11 +151,13 @@ class TestPhiTags:
 # Test: wsi_utils module
 # ---------------------------------------------------------------------------
 
+
 class TestWSIUtils:
     """Tests for wsi_utils.py — requires real files."""
 
     def test_detect_format_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_detect_format
+
         # All SVS files should be detected as 'aperio'
         for f in svs_files:
             fmt = wsi_detect_format(f)
@@ -155,6 +165,7 @@ class TestWSIUtils:
 
     def test_detect_format_tiff(self, tiff_files):
         from dbx.pixels.wsi.wsi_utils import wsi_detect_format
+
         # TIFF files should be detected as some OpenSlide vendor or None
         for f in tiff_files:
             fmt = wsi_detect_format(f)
@@ -163,6 +174,7 @@ class TestWSIUtils:
 
     def test_get_properties_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_get_properties
+
         props = wsi_get_properties(svs_files[0])
         assert len(props) > 0
         assert "openslide.vendor" in props
@@ -170,6 +182,7 @@ class TestWSIUtils:
 
     def test_wsi_to_image_tissue_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
         result = wsi_to_image(svs_files[0], max_width=256, series="tissue")
         assert result is not None
         assert isinstance(result, str)  # base64 string
@@ -177,6 +190,7 @@ class TestWSIUtils:
 
     def test_wsi_to_image_label_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
         # CMU-1.svs has a label image
         cmu1 = next((f for f in svs_files if "CMU-1.svs" in f), svs_files[0])
         result = wsi_to_image(cmu1, max_width=256, series="label")
@@ -185,6 +199,7 @@ class TestWSIUtils:
 
     def test_wsi_to_image_macro_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
         cmu1 = next((f for f in svs_files if "CMU-1.svs" in f), svs_files[0])
         result = wsi_to_image(cmu1, max_width=256, series="macro")
         assert result is not None
@@ -192,6 +207,7 @@ class TestWSIUtils:
 
     def test_wsi_to_image_binary_output(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
         result = wsi_to_image(svs_files[0], max_width=128, return_type="binary")
         assert result is not None
         assert isinstance(result, bytes)
@@ -199,6 +215,7 @@ class TestWSIUtils:
 
     def test_wsi_to_image_tiff(self, tiff_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
         result = wsi_to_image(tiff_files[0], max_width=256, series="tissue")
         assert result is not None
         assert isinstance(result, str)
@@ -208,11 +225,13 @@ class TestWSIUtils:
 # Test: WSIMetaExtractor module (standalone, no Spark)
 # ---------------------------------------------------------------------------
 
+
 class TestWSIMetaExtractorStandalone:
     """Tests for the static extraction methods (no Spark required)."""
 
     def test_process_openslide_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         result = WSIMetaExtractor._process_openslide(svs_files[0])
         meta = json.loads(result)
         assert "error" not in meta, f"Error: {meta.get('error')}"
@@ -227,6 +246,7 @@ class TestWSIMetaExtractorStandalone:
 
     def test_process_openslide_has_mpp(self, svs_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         result = WSIMetaExtractor._process_openslide(svs_files[0])
         meta = json.loads(result)
         # CMU SVS files have MPP defined
@@ -234,6 +254,7 @@ class TestWSIMetaExtractorStandalone:
 
     def test_process_openslide_svs_associated_images(self, svs_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         # CMU-1.svs should have label and macro
         cmu1 = next((f for f in svs_files if "CMU-1.svs" in f), svs_files[0])
         result = WSIMetaExtractor._process_openslide(cmu1)
@@ -243,12 +264,14 @@ class TestWSIMetaExtractorStandalone:
 
     def test_process_file_dispatches_to_openslide_for_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         result = WSIMetaExtractor._process_file(svs_files[0])
         meta = json.loads(result)
         assert meta["_wsi_backend"] == "openslide"
 
     def test_process_tifffile_fallback(self, tiff_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         # Force tifffile path
         result = WSIMetaExtractor._process_tifffile(tiff_files[0])
         meta = json.loads(result)
@@ -258,8 +281,10 @@ class TestWSIMetaExtractorStandalone:
         assert meta["_wsi_height"] > 0
 
     def test_process_file_tiff_uses_openslide_when_possible(self, tiff_files):
-        from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
         import openslide
+
+        from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         # Find a TIFF that OpenSlide recognizes
         for f in tiff_files:
             fmt = openslide.OpenSlide.detect_format(f)
@@ -272,6 +297,7 @@ class TestWSIMetaExtractorStandalone:
 
     def test_all_svs_files_extract_without_error(self, svs_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         for f in svs_files:
             result = WSIMetaExtractor._process_file(f)
             meta = json.loads(result)
@@ -279,6 +305,7 @@ class TestWSIMetaExtractorStandalone:
 
     def test_all_tiff_files_extract_without_error(self, tiff_files):
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
         for f in tiff_files:
             result = WSIMetaExtractor._process_file(f)
             meta = json.loads(result)
@@ -289,11 +316,13 @@ class TestWSIMetaExtractorStandalone:
 # Test: Format constants and patterns
 # ---------------------------------------------------------------------------
 
+
 class TestConstants:
     """Verify module constants are consistent."""
 
     def test_openslide_patterns_match_extensions(self):
         from dbx.pixels.wsi.wsi_phi_tags import OPENSLIDE_PATTERNS, SUPPORTED_EXTENSIONS
+
         for pat in OPENSLIDE_PATTERNS:
             ext = "." + pat.lstrip("*.")
             assert ext in SUPPORTED_EXTENSIONS, f"Pattern {pat} not in SUPPORTED_EXTENSIONS"
@@ -303,18 +332,7 @@ class TestConstants:
         from dbx.pixels.wsi import (
             WSICatalog,
             WSIMetaExtractor,
-            wsi_to_image,
-            wsi_detect_format,
-            wsi_get_properties,
-            classify_tag,
-            classify_tags,
-            scrub_image_description,
-            PHI_TAGS,
-            QUESTIONABLE_TAGS,
-            NOT_PHI_TAGS,
-            LARGE_TAGS,
-            SUPPORTED_EXTENSIONS,
-            OPENSLIDE_PATTERNS,
         )
+
         assert WSICatalog is not None
         assert WSIMetaExtractor is not None

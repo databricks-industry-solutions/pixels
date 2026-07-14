@@ -21,7 +21,6 @@ from pyspark.sql import DataFrame
 from dbx.pixels.catalog import Catalog
 from dbx.pixels.wsi.wsi_phi_tags import OPENSLIDE_PATTERNS
 
-
 # Default patterns for common WSI formats
 _DEFAULT_PATTERNS = OPENSLIDE_PATTERNS
 

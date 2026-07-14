@@ -36,8 +36,6 @@ import pyspark.sql.types as t
 from pyspark.ml.pipeline import Transformer
 from pyspark.sql.functions import expr
 
-from dbx.pixels.wsi.wsi_phi_tags import LARGE_TAGS, classify_tags
-
 
 class WSIMetaExtractor(Transformer):
     """Extract metadata from any WSI file into the ``meta VARIANT`` column.
@@ -164,7 +162,11 @@ class WSIMetaExtractor(Transformer):
                     "_wsi_format": _detect_tifffile_format(tif),
                     "_wsi_width": page.imagewidth,
                     "_wsi_height": page.imagelength,
-                    "_wsi_level_count": len(tif.series[0].levels) if tif.series and hasattr(tif.series[0], "levels") else len(tif.pages),
+                    "_wsi_level_count": (
+                        len(tif.series[0].levels)
+                        if tif.series and hasattr(tif.series[0], "levels")
+                        else len(tif.pages)
+                    ),
                     "_wsi_level_dimensions": None,
                     "_wsi_level_downsamples": None,
                     "_wsi_mpp_x": None,
@@ -229,8 +231,7 @@ class WSIMetaExtractor(Transformer):
         filter_large = self.filterLargeTags
 
         out_schema = t.StructType(
-            list(df.schema.fields)
-            + [t.StructField(output_col, t.StringType(), True)]
+            list(df.schema.fields) + [t.StructField(output_col, t.StringType(), True)]
         )
 
         def _extract_meta_batch(
@@ -262,6 +263,7 @@ class WSIMetaExtractor(Transformer):
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+
 
 def _detect_format_name(path: str, vendor: str) -> str:
     """Return a human-readable format name based on vendor + extension."""
