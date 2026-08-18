@@ -655,7 +655,8 @@ class CachePriorityScorer:
         hl_used = self.half_lives["last_used"] * 3600.0  # hours → seconds
         hl_ins = self.half_lives["inserted"] * 3600.0
 
-        query = sql.SQL("""
+        query = sql.SQL(
+            """
             SELECT
                 filename,
                 COUNT(*)                             AS frame_count,
@@ -685,7 +686,8 @@ class CachePriorityScorer:
             GROUP BY filename
             ORDER BY priority_score DESC
             LIMIT %s
-            """).format(
+            """
+        ).format(
             table=sql.Identifier(self.lb.schema, "dicom_frames"),
             w_used=sql.Literal(w_used),
             w_ins=sql.Literal(w_ins),

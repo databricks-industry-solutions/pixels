@@ -42,7 +42,7 @@ test:
 	pytest -s tests  --import-mode=importlib -W ignore::DeprecationWarning
 
 style:
-	pre-commit run --all-files
+	PATH="$(CURDIR)/.venv/bin:$$PATH" .venv/bin/pre-commit run --all-files
 
 check: style test
 
