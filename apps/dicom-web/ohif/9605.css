@@ -1,0 +1,363 @@
+/*
+ * Styles for the NIfTI Segmentation Overlay panel. Color tokens follow the
+ * MonaiLabelPanel convention: dark backdrop, aqua accent, white text. Lifted
+ * the structural ideas (bordered rows, accent-on-active) but rewrote the
+ * stylesheet from scratch — no shared selectors with `.monaiLabelPanel`.
+ */
+
+.niftiOverlayPanel {
+  background-color: #000;
+  height: 100%;
+  width: 100%;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  color: var(--text-primary-color, #fff);
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+.niftiOverlayPanel__header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #2c3e50;
+}
+
+.niftiOverlayPanel__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.niftiOverlayPanel__refresh {
+  background: transparent;
+  color: #aab8c2;
+  border: 1px solid #2c3e50;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  -webkit-transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.niftiOverlayPanel__refresh:hover:not(:disabled) {
+  border-color: #00a4d9;
+  color: #fff;
+}
+
+.niftiOverlayPanel__refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.niftiOverlayPanel__series {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #aab8c2;
+  word-break: break-all;
+}
+
+.niftiOverlayPanel__options {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #0e1820;
+  border: 1px solid #2c3e50;
+  border-radius: 4px;
+}
+
+.niftiOverlayPanel__toggle {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #cde3f5;
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+}
+
+.niftiOverlayPanel__toggle input[type='checkbox'] {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 auto;
+          flex: 0 0 auto;
+  cursor: pointer;
+  margin: 0;
+  accent-color: #00a4d9;
+}
+
+.niftiOverlayPanel__series strong {
+  color: #fff;
+  font-weight: 500;
+}
+
+.niftiOverlayPanel__notice {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.niftiOverlayPanel__notice--error {
+  background: #3b1e1e;
+  border: 1px solid #c0392b;
+  color: #ffd1d1;
+}
+
+.niftiOverlayPanel__notice--warn {
+  background: #2c2410;
+  border: 1px solid #c08838;
+  color: #ffe6b8;
+}
+
+.niftiOverlayPanel__notice--info {
+  background: #102032;
+  border: 1px solid #2c5d80;
+  color: #cde3f5;
+}
+
+.niftiOverlayPanel__list {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+  margin: 8px 0 0 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.niftiOverlayPanel__row {
+  border: 1px solid #2c3e50;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: #0e1820;
+  -webkit-transition: border-color 0.15s;
+  transition: border-color 0.15s;
+}
+
+.niftiOverlayPanel__row--loaded {
+  border-color: #2e7d32;
+}
+
+.niftiOverlayPanel__row--error {
+  border-color: #c0392b;
+}
+
+.niftiOverlayPanel__row--warning {
+  border-color: #c08838;
+}
+
+.niftiOverlayPanel__rowHeader {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.niftiOverlayPanel__rowName {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  word-break: break-word;
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 auto;
+          flex: 1 1 auto;
+}
+
+.niftiOverlayPanel__rowMeta {
+  margin: 0;
+  font-size: 10px;
+  color: #aab8c2;
+  word-break: break-word;
+}
+
+.niftiOverlayPanel__rowActions {
+  margin-top: 6px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 6px;
+}
+
+.niftiOverlayPanel__loadButton {
+  background-color: #00a4d9;
+  color: #000;
+  border: 1px solid #007ea0;
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-transition: background-color 0.15s, opacity 0.15s;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.niftiOverlayPanel__loadButton:hover:not(:disabled) {
+  background-color: #1ec0f5;
+}
+
+.niftiOverlayPanel__loadButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.niftiOverlayPanel__status {
+  font-size: 10px;
+  color: #aab8c2;
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 4px;
+}
+
+.niftiOverlayPanel__spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #2c3e50;
+  border-top-color: #00a4d9;
+  -webkit-animation: niftiOverlayPanel-spin 0.8s linear infinite;
+          animation: niftiOverlayPanel-spin 0.8s linear infinite;
+}
+
+@-webkit-keyframes niftiOverlayPanel-spin {
+  to {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+  }
+}
+
+@keyframes niftiOverlayPanel-spin {
+  to {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+  }
+}
+
+.niftiOverlayPanel__badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+  border: 1px solid currentColor;
+}
+
+.niftiOverlayPanel__badge--exact {
+  color: #7fdb88;
+}
+
+.niftiOverlayPanel__badge--resampled {
+  color: #f5c060;
+}
+
+.niftiOverlayPanel__rowError {
+  margin: 6px 0 0 0;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: #2a1414;
+  font-size: 10px;
+  color: #ffb1b1;
+  word-break: break-word;
+}
+
+.niftiOverlayPanel__rowWarning {
+  margin: 6px 0 0 0;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background: #2c2410;
+  font-size: 10px;
+  color: #ffe6b8;
+  word-break: break-word;
+}
+
+.niftiOverlayPanel__empty {
+  margin-top: 12px;
+  text-align: center;
+  color: #6c7a89;
+  font-size: 11px;
+}
+
+.niftiOverlayPanel__footer {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #6c7a89;
+  border-top: 1px solid #2c3e50;
+  padding-top: 6px;
+}
+
+.niftiOverlayPanel__legendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.niftiOverlayPanel__labelInfo {
+  margin: 4px 0 0 0;
+  padding: 0;
+  list-style: none;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 6px;
+}
+
+.niftiOverlayPanel__labelInfo li {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  font-size: 10px;
+  color: #aab8c2;
+}
+

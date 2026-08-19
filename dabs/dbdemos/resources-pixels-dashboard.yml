@@ -1,9 +1,0 @@
-resources:
-  dashboards:
-      pixels_dashboard:
-          display_name: 'Pixels Medical Imaging Cohorts'
-          file_path: "../../ai-bi/Pixels Object Catalog dashboard.lvdash.json"
-          warehouse_id: ${var.sql_warehouse}
-          permissions: 
-            - level: CAN_RUN
-              group_name: "account users"

@@ -13,12 +13,14 @@ logging.getLogger('py4j.java_gateway').setLevel(logging.ERROR)
 
 # COMMAND ----------
 
-import dbx
 import pytest
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath("../"+dbx.__file__))))
+# Add src/ to path so dbx.pixels is importable
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+sys.path.insert(0, os.path.join(_nb_dir, "src"))
 
 os.environ['DATABRICKS_HOST'] = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiUrl().get()
 os.environ['DATABRICKS_TOKEN'] = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
