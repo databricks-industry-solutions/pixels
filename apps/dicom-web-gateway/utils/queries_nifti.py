@@ -102,6 +102,7 @@ def build_find_for_series(
           AND  series_instance_uid = %(series)s
           AND  (status IS NULL OR status <> 'archived')
         ORDER BY version DESC NULLS LAST, created_at DESC
+        LIMIT 25
     """
     params: Dict[str, Any] = {
         "nifti_table": nifti_table,
@@ -130,6 +131,7 @@ def build_resolve_for_fetch(
         WHERE  study_instance_uid  = %(study)s
           AND  series_instance_uid = %(series)s
           AND  id                  = %(id)s
+        ORDER BY version DESC NULLS LAST
         LIMIT 1
     """
     params: Dict[str, Any] = {
