@@ -1,13 +1,13 @@
 from pyspark.sql import SparkSession
 
-from conftest import (
+from dbx.pixels import Catalog
+from test_constants import (
     CHECKPOINT_BASE_PATH,
     TABLE,
     UNZIP_BASE_PATH,
     VOLUME_UC,
     ZIP_FILE_PATH,
 )
-from dbx.pixels import Catalog
 
 
 def test_catalog_unzip(spark: SparkSession):

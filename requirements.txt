@@ -9,7 +9,7 @@ matplotlib>=3.8.4
 pyarrow==21.0.0
 python-magic==0.4.27
 dicognito==0.17.0
-ff3==1.0.2
+fastfpe==0.2.1
 typing_extensions>=4.12.2
 psycopg[binary,pool]==3.2.13
 psycopg2-binary==2.9.11

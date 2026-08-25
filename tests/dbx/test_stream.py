@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 
-from conftest import CHECKPOINT_BASE_PATH, DICOM_FILE_PATH, TABLE, VOLUME_UC
 from dbx.pixels import Catalog
+from test_constants import CHECKPOINT_BASE_PATH, DICOM_FILE_PATH, TABLE, VOLUME_UC
 
 
 def test_catalog_stream(spark: SparkSession):

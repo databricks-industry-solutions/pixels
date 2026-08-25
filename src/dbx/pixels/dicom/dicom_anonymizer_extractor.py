@@ -31,7 +31,7 @@ class DicomAnonymizerExtractor(Transformer):
     - basePath: The base path for accessing Dicom files.
     - anonym_mode: The mode of anonymization to apply. Options are "COMPLETE", "METADATA", "IMAGE".
     - fp_key: A format-preserving key used for encryption during the anonymization process.
-    - fp_tweak: A tweak string used for encryption during the anonymization process.
+    - fp_tweak: Optional FF1 tweak hex string. When omitted, a SHA-256 hash of each file path is used.
     - encrypt_tags: A tuple of Dicom tags to be encrypted during anonymization.
     - keep_tags: A tuple of Dicom tags to be retained during anonymization.
     - anonymization_base_path: The base path where anonymized Dicom files will be saved.
@@ -87,8 +87,8 @@ class DicomAnonymizerExtractor(Transformer):
 
         if not re.match(hex_pattern, fp_key) or len(fp_key) * 4 not in [128, 192, 256]:
             raise Exception("Invalid hex string for fp_key")
-        if not re.match(hex_pattern, fp_tweak) or len(fp_tweak) * 4 not in [64]:
-            raise Exception("Invalid hex string for fp_teak")
+        if fp_tweak is not None and not re.match(hex_pattern, fp_tweak):
+            raise Exception("Invalid hex string for fp_tweak")
 
         if anonymization_base_path is not None:
             self.anonymization_base_path = anonymization_base_path
@@ -149,9 +149,10 @@ class DicomAnonymizerExtractor(Transformer):
                             anonymize_metadata(
                                 dataset,
                                 fp_key=fp_key,
-                                fp_tweak=fp_tweak,
-                                encrypt_tags=encrypt_tags,
                                 keep_tags=keep_tags,
+                                encrypt_tags=encrypt_tags,
+                                file_path=path,
+                                fp_tweak=fp_tweak,
                             )
                             # APPLY IMAGE READACTION
                             # dataset.PixelData = anonymize_image(dataset.PixelData, ...)
@@ -159,9 +160,10 @@ class DicomAnonymizerExtractor(Transformer):
                             anonymize_metadata(
                                 dataset,
                                 fp_key=fp_key,
-                                fp_tweak=fp_tweak,
-                                encrypt_tags=encrypt_tags,
                                 keep_tags=keep_tags,
+                                encrypt_tags=encrypt_tags,
+                                file_path=path,
+                                fp_tweak=fp_tweak,
                             )
                         case "IMAGE":
                             # APPLY IMAGE READACTION

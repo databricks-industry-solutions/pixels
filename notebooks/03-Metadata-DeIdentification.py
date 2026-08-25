@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # DICOM Metadata Anonymization and Processing
 # MAGIC
-# MAGIC This notebook is designed to facilitate the anonymization and processing of dicom metadata. It leverages specific Python packages ([DICOGNITO](https://github.com/blairconrad/dicognito), [FPE](https://github.com/mysto/python-fpe)) to ensure that sensitive patient information is protected while maintaining the integrity of the medical images.
+# MAGIC This notebook is designed to facilitate the anonymization and processing of dicom metadata. It leverages specific Python packages ([DICOGNITO](https://github.com/blairconrad/dicognito), [fastfpe](https://github.com/pjwerneck/fastfpe)) to ensure that sensitive patient information is protected while maintaining the integrity of the medical images.
 # MAGIC
 # MAGIC [Exactly what does dicognito do?](https://github.com/blairconrad/dicognito?tab=readme-ov-file#exactly-what-does-dicognito-do)
 # MAGIC
@@ -21,7 +21,7 @@ path,table,volume,write_mode = init_widgets()
 # MAGIC %md
 # MAGIC # Generate key for encryption
 # MAGIC
-# MAGIC The Format Preserving Encryption (FPE) library in Python uses two key components for encryption:
+# MAGIC The Format Preserving Encryption (FF1) library in Python uses two key components for encryption:
 # MAGIC
 # MAGIC ### Key (fp_key)
 # MAGIC
@@ -29,10 +29,9 @@ path,table,volume,write_mode = init_widgets()
 # MAGIC Must be provided as a hexadecimal string<br>
 # MAGIC Used as the main encryption key for the FPE algorithm
 # MAGIC
-# MAGIC ###Tweak (fp_tweak)
-# MAGIC An additional input parameter that adds randomness to the encryption process<br>
-# MAGIC It must be exactly 64 bits long<br>
-# MAGIC Must be provided as a hexadecimal string
+# MAGIC ### Tweak (fp_tweak, optional)
+# MAGIC An additional input parameter that adds domain separation to the encryption process<br>
+# MAGIC Optional hex string; when omitted, derived automatically as the SHA-256 hex digest of each DICOM file path
 # MAGIC
 # MAGIC ### TWEAK - Additional details
 # MAGIC The tweak is a parameter that synthetically increases the domain space of the encryption, making it more secure. It acts as an additional input parameter alongside the key to add an extra layer of security.
@@ -60,17 +59,13 @@ scope_name = "pixels-scope"
 #pixels_fp_key length must be 128, 192 or 256 bits
 pixels_fp_key = None
 
-#pixels_fp_tweak length must be 64 bits
-pixels_fp_tweak = None
-
 if scope_name not in [scope.name for scope in w.secrets.list_scopes()]:
   w.secrets.create_scope(scope=scope_name)
 
 w.secrets.put_secret(scope=scope_name, key="pixels_fp_key", string_value=pixels_fp_key)
-w.secrets.put_secret(scope=scope_name, key="pixels_fp_tweak", string_value=pixels_fp_tweak)
 
 fp_key = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_key")
-fp_tweak = dbutils.secrets.get(scope="pixels-scope", key="pixels_fp_tweak")
+#tweak will be generated from file path
 
 # COMMAND ----------
 
@@ -80,7 +75,7 @@ from dbx.pixels.dicom.dicom_anonymizer_extractor import DicomAnonymizerExtractor
 catalog = Catalog(spark, table=table+"_anonym", volume=volume)
 catalog_df = catalog.catalog(path=path, extractZip=True)
 
-metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key, fp_tweak=fp_tweak).transform(catalog_df)
+metadata_df = DicomAnonymizerExtractor(catalog, anonym_mode="METADATA", fp_key=fp_key).transform(catalog_df)
 
 display(metadata_df)
 
