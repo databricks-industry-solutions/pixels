@@ -41,7 +41,12 @@ DICOM_TAGS = {
     "Columns":           "00280011",
 }
 
-HTJ2K_UID = "1.2.840.10008.1.2.4.201"
+# DICOM compressed transfer syntax identifiers
+# All image/video compression lives under 1.2.840.10008.1.2.4.*
+# (JPEG, JPEG-LS, JPEG 2000, HTJ2K, MPEG, HEVC, etc.)
+# RLE Lossless is 1.2.840.10008.1.2.5
+COMPRESSED_TS_PREFIX = "1.2.840.10008.1.2.4."
+RLE_TS_UID = "1.2.840.10008.1.2.5"
 
 
 def create_results_table(spark, table_name: str):
@@ -234,7 +239,8 @@ def process_batch_delta(
         & _F.col("Columns").isNotNull()
     )
 
-    # Optionally filter out already-encoded HTJ2K files
+    # Optionally filter out already-compressed files (JPEG, JPEG-LS,
+    # JPEG 2000, HTJ2K, RLE, MPEG, HEVC, etc.) — keep only uncompressed.
     filter_encoded = True
     extra_filter = ""
     if input_cfg is not None:
@@ -243,8 +249,11 @@ def process_batch_delta(
 
     if filter_encoded:
         batch_df = batch_df.filter(
-            (_F.col("TransferSyntaxUID") != HTJ2K_UID)
-            | _F.col("TransferSyntaxUID").isNull()
+            _F.col("TransferSyntaxUID").isNull()
+            | (
+                ~_F.col("TransferSyntaxUID").startswith(COMPRESSED_TS_PREFIX)
+                & (_F.col("TransferSyntaxUID") != RLE_TS_UID)
+            )
         )
 
     if extra_filter:

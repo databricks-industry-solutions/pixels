@@ -188,34 +188,46 @@ def gpu_process_datasets(datasets, transcode_cfg, merge_cfg):
     os.dup2(tmp.fileno(), stderr_fd)
 
     try:
-        if do_merge and do_transcode:
+        # Attempt multiframe merge if requested
+        if do_merge:
             from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
-            out = convert_to_enhanced_dicom(
-                series_datasets=[datasets],
-                transfer_syntax_uid=htj2k_ts,
-                num_resolutions=transcode_cfg.get("num_resolutions", 6),
-                code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
-                progression_order=transcode_cfg.get("progression_order", "RPCL"),
-            )
-            return out, "multiframe+htj2k", True
+            try:
+                ts = htj2k_ts if do_transcode else None
+                extra_kw = {}
+                if do_transcode:
+                    extra_kw = dict(
+                        num_resolutions=transcode_cfg.get("num_resolutions", 6),
+                        code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
+                        progression_order=transcode_cfg.get("progression_order", "RPCL"),
+                    )
+                out = convert_to_enhanced_dicom(
+                    series_datasets=[datasets],
+                    transfer_syntax_uid=ts,
+                    **extra_kw,
+                )
+                mode = "multiframe+htj2k" if do_transcode else "multiframe"
+                return out, mode, do_transcode
+            except Exception as merge_err:
+                # Merge failed (e.g. XR, MG, DX — not supported by highdicom)
+                # Fall back to transcode-only if transcode is enabled
+                print(
+                    f"  \u26a0 Merge failed ({type(merge_err).__name__}: "
+                    f"{str(merge_err)[:200]}), falling back to transcode-only"
+                )
+                if not do_transcode:
+                    # Merge-only requested but failed — nothing to fall back to
+                    raise
 
-        elif do_merge and not do_transcode:
-            from nvidia.nvimgcodec.tools.dicom.convert_multiframe import convert_to_enhanced_dicom
-            out = convert_to_enhanced_dicom(
-                series_datasets=[datasets], transfer_syntax_uid=None,
-            )
-            return out, "multiframe", False
-
-        else:  # do_transcode and not do_merge
-            from nvidia.nvimgcodec.tools.dicom.convert_htj2k import transcode_datasets_to_htj2k
-            out = transcode_datasets_to_htj2k(
-                datasets=datasets,
-                num_resolutions=transcode_cfg.get("num_resolutions", 6),
-                code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
-                progression_order=transcode_cfg.get("progression_order", "RPCL"),
-                max_batch_size=transcode_cfg.get("max_batch_size", 256),
-            )
-            return out, "htj2k", True
+        # Transcode-only (either originally requested, or merge fallback)
+        from nvidia.nvimgcodec.tools.dicom.convert_htj2k import transcode_datasets_to_htj2k
+        out = transcode_datasets_to_htj2k(
+            datasets=datasets,
+            num_resolutions=transcode_cfg.get("num_resolutions", 6),
+            code_block_size=tuple(transcode_cfg.get("code_block_size", (64, 64))),
+            progression_order=transcode_cfg.get("progression_order", "RPCL"),
+            max_batch_size=transcode_cfg.get("max_batch_size", 256),
+        )
+        return out, "htj2k", True
 
     except Exception as e:
         # Read captured C-level stderr
