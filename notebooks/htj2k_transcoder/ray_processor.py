@@ -147,17 +147,17 @@ def transcode_pending_series(
 
         items.sort(key=lambda x: x["num_files"], reverse=True)
 
-        _NUM_BLOCKS = max(total_actors * 4, len(items))
+        _NUM_BLOCKS = min(total_actors * 4, len(items)) or 1
         buckets = [[] for _ in range(_NUM_BLOCKS)]
         for i, item in enumerate(items):
             buckets[i % _NUM_BLOCKS].append(item)
 
         balanced = [item for bucket in buckets for item in bucket]
 
-        ds = ray.data.from_items(balanced).repartition(_NUM_BLOCKS)
+        ds = ray.data.from_items(balanced)
         print(
-            f"✓ Ray dataset: {ds.count()} series in {_NUM_BLOCKS} blocks "
-            f"(bin-packed, {total_actors} actors)"
+            f"✓ Ray dataset: {len(balanced)} series, {total_actors} actors "
+            f"(bin-packed, no repartition)"
         )
 
         # GPU Actor with prefetch I/O overlap
@@ -201,6 +201,12 @@ def transcode_pending_series(
             def __call__(self, batch):
                 n = len(batch["study_uid"])
                 if n == 0:
+                    yield {k: [] for k in (
+                        "study_uid", "series_uid", "status", "detail",
+                        "output_path", "num_frames", "num_files",
+                        "original_size", "compressed_size", "encode_time",
+                        "transcoded",
+                    )}
                     return
 
                 next_read = self._submit_read(batch, 0)
@@ -270,12 +276,15 @@ def transcode_pending_series(
                         )
 
         # Run distributed processing
+        # num_cpus=0: actors are GPU-bound; I/O uses OS thread pools
+        # (not Ray tasks), so CPU reservations only starve Ray Data
+        # operators (source, sink) and cause deadlock.
         t0 = _time.time()
         processed_ds = ds.map_batches(
             DicomSeriesProcessor,
             batch_size=batch_size,
             num_gpus=(1.0 / actors_per_gpu),
-            num_cpus=num_cpus_per_actor,
+            num_cpus=0,
             concurrency=total_actors,
         )
 
