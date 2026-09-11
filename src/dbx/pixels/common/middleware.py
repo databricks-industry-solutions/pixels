@@ -207,25 +207,36 @@ _STATIC_ASSET_SUFFIXES = (
 )
 
 
+# Large static assets stored as ``*.<ext>.gz`` to stay under git / DAB size limits.
+# Served with Content-Encoding: gzip when the uncompressed file is missing.
+_GZIP_ASSET_MEDIA_TYPES = {
+    ".wasm": "application/wasm",
+    ".js": "text/javascript",
+}
+
+
 class DBStaticFiles(StaticFiles):
     """StaticFiles subclass that serves ``index.html`` on 404 (SPA fallback).
 
-    ONNX Runtime WASM binaries are stored as ``*.wasm.gz`` (to stay under git /
-    DAB size limits).  Requests for ``*.wasm`` are served from the pre-compressed
-    file with ``Content-Encoding: gzip`` so browsers transparently decompress.
+    Pre-compressed ``*.wasm.gz`` and ``*.js.gz`` assets are served when the
+    uncompressed originals are absent, with ``Content-Encoding: gzip`` so
+    browsers transparently decompress.
     """
 
     async def get_response(self, path: str, scope):
-        if path.endswith(".wasm"):
-            wasm_full = os.path.join(self.directory, path)
-            if not os.path.isfile(wasm_full):
-                gz_full = wasm_full + ".gz"
-                if os.path.isfile(gz_full):
-                    stat_result = await anyio.to_thread.run_sync(os.stat, gz_full)
-                    response = self.file_response(gz_full, stat_result, scope)
-                    response.media_type = "application/wasm"
+        for suffix, media_type in _GZIP_ASSET_MEDIA_TYPES.items():
+            if not path.endswith(suffix):
+                continue
+            full_path = os.path.join(self.directory, path)
+            if not os.path.isfile(full_path):
+                gz_path = full_path + ".gz"
+                if os.path.isfile(gz_path):
+                    stat_result = await anyio.to_thread.run_sync(os.stat, gz_path)
+                    response = self.file_response(gz_path, stat_result, scope)
+                    response.media_type = media_type
                     response.headers["content-encoding"] = "gzip"
                     return response
+            break
 
         try:
             return await super().get_response(path, scope)
