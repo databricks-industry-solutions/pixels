@@ -15,6 +15,7 @@ overhead that compounds on asset-heavy pages.  Pure ASGI middleware calls
 ``app(scope, receive, send)`` directly with zero extra task scheduling.
 """
 
+import os
 import time
 from functools import lru_cache
 
@@ -190,13 +191,47 @@ class LoggingMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
+# Asset extensions that must not fall back to index.html on 404.
+_STATIC_ASSET_SUFFIXES = (
+    ".wasm",
+    ".js",
+    ".css",
+    ".map",
+    ".json",
+    ".png",
+    ".svg",
+    ".ico",
+    ".woff",
+    ".woff2",
+    ".ttf",
+)
+
+
 class DBStaticFiles(StaticFiles):
-    """StaticFiles subclass that serves ``index.html`` on 404 (SPA fallback)."""
+    """StaticFiles subclass that serves ``index.html`` on 404 (SPA fallback).
+
+    ONNX Runtime WASM binaries are stored as ``*.wasm.gz`` (to stay under git /
+    DAB size limits).  Requests for ``*.wasm`` are served from the pre-compressed
+    file with ``Content-Encoding: gzip`` so browsers transparently decompress.
+    """
 
     async def get_response(self, path: str, scope):
+        if path.endswith(".wasm"):
+            wasm_full = os.path.join(self.directory, path)
+            if not os.path.isfile(wasm_full):
+                gz_full = wasm_full + ".gz"
+                if os.path.isfile(gz_full):
+                    stat_result = await anyio.to_thread.run_sync(os.stat, gz_full)
+                    response = self.file_response(gz_full, stat_result, scope)
+                    response.media_type = "application/wasm"
+                    response.headers["content-encoding"] = "gzip"
+                    return response
+
         try:
             return await super().get_response(path, scope)
         except (HTTPException, StarletteHTTPException) as ex:
             if ex.status_code == 404:
+                if any(path.endswith(suffix) for suffix in _STATIC_ASSET_SUFFIXES):
+                    raise
                 return await super().get_response("index.html", scope)
             raise
