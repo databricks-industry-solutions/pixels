@@ -1,3 +1,7 @@
+command: 
+  - "hypercorn"
+  - "app:app"
+
 env:
   # ── Required ────────────────────────────────────────────────────────────────
   - name: "DICOMWEB_GATEWAY_URL"
