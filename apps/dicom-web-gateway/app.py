@@ -26,6 +26,16 @@ Environment variables (set in ``app.yml``)::
     # ── STOW-RS ─────────────────────────────────────────────────────────────
     DATABRICKS_STOW_VOLUME_PATH     Base Volumes path for STOW-RS uploads
 
+    # ── NIfTI segmentation overlay (optional) ───────────────────────────────
+    NIFTI_SEGMENTATION_TABLE        Fully-qualified UC Delta table holding
+                                    NIfTI overlay metadata
+                                    (catalog.schema.table). When set, the
+                                    gateway exposes the read-only routes
+                                    GET /api/dicomweb/nifti/related and
+                                    GET /api/dicomweb/nifti/fetch. When
+                                    unset, those routes are not registered
+                                    and the gateway behaves as before.
+
     # ── In-memory caches ────────────────────────────────────────────────────
     PIXELS_BOT_CACHE_MAX_ENTRIES    Max BOT (frame-offset) cache entries
                                     (default: 100 000).
@@ -78,7 +88,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 import psutil
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from utils.cache import bot_cache, instance_path_cache
 from utils.dicom_io import file_prefetcher
@@ -96,6 +106,8 @@ from utils.handlers import (
     dicomweb_wado_series_metadata,
     dicomweb_wado_study_metadata,
     dicomweb_wado_uri,
+    nifti_fetch,
+    nifti_related,
 )
 
 from dbx.pixels.common.middleware import LoggingMiddleware
@@ -587,6 +599,32 @@ async def store_instances(request: Request):
     return await dicomweb_stow_studies(request)
 
 
+# ── NIfTI Overlay ────────────────────────────────────────────────────────
+#
+# Optional: gated by a derived table from pixels_table/DATABRICKS_PIXELS_TABLE,
+# or by NIFTI_SEGMENTATION_TABLE. When none are available both routes return
+# 404 with a "feature disabled" detail (see handlers in utils/handlers/_nifti.py).
+
+
+@app.get("/api/dicomweb/nifti/related", tags=["NIfTI Overlay"])
+def get_nifti_related(
+    request: Request,
+    study: str = Query(..., description="StudyInstanceUID (DICOM 0020,000D)"),
+    series: str = Query(..., description="SeriesInstanceUID (DICOM 0020,000E)"),
+):
+    return nifti_related(request, study, series)
+
+
+@app.get("/api/dicomweb/nifti/fetch", tags=["NIfTI Overlay"])
+def get_nifti_fetch(
+    request: Request,
+    study: str = Query(..., description="StudyInstanceUID"),
+    series: str = Query(..., description="SeriesInstanceUID"),
+    id: str = Query(..., description="Overlay id returned by /nifti/related"),
+):
+    return nifti_fetch(request, study, series, id)
+
+
 # ── Auxiliary ────────────────────────────────────────────────────────────
 
 
@@ -631,6 +669,10 @@ def dicomweb_root():
             ],
             "WADO-URI": [
                 "GET /api/dicomweb/wado?requestType=WADO&studyUID=...&seriesUID=...&objectUID=...",
+            ],
+            "NIfTI Overlay (optional)": [
+                "GET /api/dicomweb/nifti/related?study=...&series=...",
+                "GET /api/dicomweb/nifti/fetch?study=...&series=...&id=...",
             ],
         },
     }

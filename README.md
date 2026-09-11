@@ -10,6 +10,7 @@
 </br> ✅  One button push to launch model training from OHIF viewer.
 </br> ✅  NVIDIA's [MONAI](https://docs.nvidia.com/monai/index.html) Integration, AI to automatically segment medical images and train custom models.
 </br> ✅  Leverage Databricks' [Model Serving](https://docs.databricks.com/en/machine-learning/model-serving/index.html) with serverless GPU enabled clusters for real-time segmentation.
+</br> ✅  NIfTI segmentation overlays — load `.nii.gz` masks (Vista3D, MONAI, manual) on top of DICOM volumes in OHIF, served from a Delta-table-backed gateway with UC ACLs end-to-end.
 
 ---
 ## Secure Lakehouse integrated DICOM Viewer powered by OHIF
@@ -87,7 +88,8 @@ This architecture is designed to handle healthcare imaging data securely while e
 For the Databricks Apps architecture and operations guide (viewer app, gateway app,
 QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
-- [`docs/DICOMWEB.md`](docs/DICOMWEB.md)
+- [`docs/DICOMWEB.md`](docs/DICOMWEB.md) — DICOMweb (QIDO/WADO/STOW) architecture, caching tiers, metrics
+- [`docs/NIFTI_OVERLAY.md`](docs/NIFTI_OVERLAY.md) — Optional NIfTI segmentation overlay feature (OHIF extension, gateway routes, Delta schema, deployment)
 
 The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
 workspace workflows. For production DICOMweb deployments with the split
@@ -209,10 +211,11 @@ The `permissive` parameter is also available on `DicomAnonymizerExtractor`.
 OHIF Viewer and MONAILabel auto-segmentation are deployed by the DAB install job — no notebook execution required:
 
 - **`pixels-dicomweb` app** — OHIF viewer + MONAI proxy + measurements/segmentations export to UC Volume (`/ohif/exports/`)
-- **`pixels-dicomweb-gateway` app** — DICOMweb QIDO/WADO/STOW server backed by Lakebase
+- **`pixels-dicomweb-gateway` app** — DICOMweb QIDO/WADO/STOW server backed by Lakebase, plus optional NIfTI segmentation overlay routes
 - **`pixels-monai-uc` model serving endpoint** — Vista3D / MONAILabel inference on Databricks-managed GPU
+- **NIfTI segmentation overlay** (optional) — gateway exposes `GET /api/dicomweb/nifti/{related,fetch}` over a Delta-table-backed registry of `.nii.gz` masks; the OHIF viewer ships an `@ohif/extension-nifti-segmentation` panel that lists, fetches, aligns, and injects them as labelmaps. Enable by setting the `nifti_segmentation_table` bundle variable.
 
-See [docs/INSTALL.md](docs/INSTALL.md) for deployment, and [docs/DICOMWEB.md](docs/DICOMWEB.md) for the DICOMweb apps architecture and operations guide.
+See [docs/INSTALL.md](docs/INSTALL.md) for deployment, [docs/DICOMWEB.md](docs/DICOMWEB.md) for the DICOMweb apps architecture and operations guide, and [docs/NIFTI_OVERLAY.md](docs/NIFTI_OVERLAY.md) for the NIfTI overlay feature.
 
 #### Auto Segmentation with Lakehouse App and Serving Endpoint
 

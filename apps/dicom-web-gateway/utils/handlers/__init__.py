@@ -7,8 +7,10 @@ _common   — Shared singletons, authentication, and wrapper factory
 _qido     — QIDO-RS (study / series / instance search)
 _wado     — WADO-RS, WADO-URI, and path resolution
 _stow     — STOW-RS (instance storage with early return + caching)
+_nifti    — NIfTI segmentation overlay routes (optional, feature-gated)
 """
 
+from ._nifti import nifti_fetch, nifti_related
 from ._qido import (
     dicomweb_qido_all_series,
     dicomweb_qido_instances,
@@ -46,4 +48,7 @@ __all__ = [
     "dicomweb_resolve_frame_ranges",
     # Priming (cache warm-up)
     "dicomweb_prime_series",
+    # NIfTI segmentation overlays
+    "nifti_related",
+    "nifti_fetch",
 ]

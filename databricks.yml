@@ -33,6 +33,9 @@ variables:
     default: "${var.catalog}.${var.schema}.monai_pixels_model"
   lakebase_instance_name:
     default: "pixels-lakebase"
+  nifti_segmentation_table:
+    description: "UC Delta table for NIfTI segmentation overlay metadata. Leave empty to disable the /nifti/related and /nifti/fetch gateway routes."
+    default: "${var.catalog}.${var.schema}.nifti_segmentations"
   vlm_image_analysis:
     description: "Foundation model for VLM image analysis"
     default: "databricks-claude-sonnet-4"
