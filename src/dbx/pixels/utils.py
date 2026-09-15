@@ -164,6 +164,80 @@ def unzip_map_func(path_col="path", volume_base_path="", max_workers=DEFAULT_UNZ
     return _unzip_map
 
 
+def unzip_inmemory_map_func(path_col="path", content_col="content", max_workers=DEFAULT_UNZIP_WORKERS):
+    """Factory returning a mapInPandas-compatible iterator for in-memory zip extraction.
+
+    Instead of extracting zip files to disk, this reads zip contents into memory
+    and yields one row per file inside the zip with the binary content included.
+    Non-zip files are passed through unchanged.
+
+    The output DataFrame has the same schema as the input (which must include a
+    binary 'content' column from binaryFile format). For zip entries:
+    - `path` is set to a synthetic path: <original_zip_path>::<entry_name>
+    - `content` carries the raw bytes of the entry
+    - `length` is updated to the entry's uncompressed size
+    - `modificationTime` is preserved from the original zip file row
+
+    Args:
+        path_col: Name of the column containing file paths.
+        content_col: Name of the binary content column.
+        max_workers: Maximum number of concurrent threads for reading zip entries.
+
+    Usage:
+        df.mapInPandas(
+            unzip_inmemory_map_func("path", "content"),
+            schema=df.schema,
+        )
+    """
+
+    def _unzip_inmemory_map(iterator: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
+        for pdf in iterator:
+            rows = []
+            for _, row in pdf.iterrows():
+                path = row[path_col]
+                content = row[content_col]
+
+                # Check if this file is a zip archive
+                if content is not None and len(content) > 0:
+                    content_bytes = bytes(content) if not isinstance(content, bytes) else content
+                    bio = BytesIO(content_bytes)
+                    if zipfile.is_zipfile(bio):
+                        bio.seek(0)
+                        with zipfile.ZipFile(bio, "r") as zf:
+                            for entry_name in zf.namelist():
+                                # Skip directories and hidden files
+                                if entry_name.endswith("/") or os.path.basename(
+                                    entry_name
+                                ).startswith("."):
+                                    continue
+                                try:
+                                    entry_data = zf.read(entry_name)
+                                    new_row = row.copy()
+                                    new_row[path_col] = f"{path}::{entry_name}"
+                                    new_row[content_col] = entry_data
+                                    if "length" in new_row.index:
+                                        new_row["length"] = len(entry_data)
+                                    rows.append(new_row)
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Failed to read zip entry {entry_name} from {path}: {e}"
+                                    )
+                    else:
+                        # Not a zip file, pass through as-is
+                        rows.append(row)
+                else:
+                    # No content (shouldn't happen with binaryFile), pass through
+                    rows.append(row)
+
+            if rows:
+                yield pd.DataFrame(rows)
+            else:
+                # Yield empty DataFrame with same columns to maintain schema
+                yield pdf.iloc[0:0]
+
+    return _unzip_inmemory_map
+
+
 # ── PySpark UDFs are created lazily (only when accessed) ─────────────
 def __getattr__(name):
     if name == "identify_type_udf":

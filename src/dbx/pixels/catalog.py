@@ -4,7 +4,12 @@ from pyspark.sql import DataFrame, functions as f
 from pyspark.sql.streaming.query import StreamingQuery
 
 from dbx.pixels.logging import LoggerProvider
-from dbx.pixels.utils import DEFAULT_UNZIP_WORKERS, identify_type_udf, unzip_map_func
+from dbx.pixels.utils import (
+    DEFAULT_UNZIP_WORKERS,
+    identify_type_udf,
+    unzip_inmemory_map_func,
+    unzip_map_func,
+)
 
 # dfZipWithIndex helper function
 
@@ -128,14 +133,16 @@ class Catalog:
     def __repr__(self):
         return f'Catalog(spark, table="{self._table}")'
 
-    def __reader(self, path: str, pattern: str = "*", recurse: bool = True):
-        return (
+    def __reader(self, path: str, pattern: str = "*", recurse: bool = True, keepContent: bool = False):
+        df = (
             self._spark.read.format("binaryFile")
             .option("pathGlobFilter", pattern)
             .option("recursiveFileLookup", str(recurse).lower())
             .load(path)
-            .drop("content")
         )
+        if not keepContent:
+            df = df.drop("content")
+        return df
 
     def __streamReader(
         self,
@@ -147,6 +154,7 @@ class Catalog:
         includeExistingFiles: bool = True,
         allowOverwrites: bool = False,
         maxFileAge: str = None,
+        keepContent: bool = False,
     ):
         reader = (
             self._spark.readStream.format("cloudFiles")
@@ -164,7 +172,10 @@ class Catalog:
         if useManagedFileEvents:
             reader = reader.option("cloudFiles.useManagedFileEvents", "true")
 
-        return reader.load(path).drop("content")
+        df = reader.load(path)
+        if not keepContent:
+            df = df.drop("content")
+        return df
 
     def catalog(
         self,
@@ -175,7 +186,9 @@ class Catalog:
         streamCheckpointBasePath: str = None,
         triggerProcessingTime: str = None,
         triggerAvailableNow: bool = None,
-        extractZip: bool = False,
+        skipZip: bool = False,
+        extractZipToDisk: bool = False,
+        extractZipInMemory: bool = False,
         extractZipBasePath: str = None,
         maxFilesPerTrigger: int = 50000,
         maxUnzippedRecordsPerFile: int = 102400,
@@ -199,8 +212,15 @@ class Catalog:
         - streamCheckpointBasePath (str, optional): The path for saving streaming progress. Defaults to volume location + "/checkpoints/".
         - triggerProcessingTime (str, optional): The processing time interval for streaming triggers, e.g., '5 seconds', '1 minute'.
         - triggerAvailableNow (bool, optional): If True, processes all available data in multiple batches then terminates the query.
-        - extractZip (bool, optional): Whether to extract zip files found in the path. Defaults to False.
-        - extractZipBasePath (str, optional): The base path for extracted zip files. Defaults to volume location + "/unzipped/".
+        - skipZip (bool, optional): Explicitly skip zip files; they are listed as-is but not extracted.
+          When no flag is set, skip is the default behavior.
+        - extractZipToDisk (bool, optional): Extract zip files to disk (at extractZipBasePath), then process
+          extracted files via a Spark job. Defaults to False.
+        - extractZipInMemory (bool, optional): Extract zip files in memory during the Spark job; extracted
+          content is available in the 'content' column. Defaults to False.
+        Note: skipZip, extractZipToDisk, and extractZipInMemory are mutually exclusive; only one may be True.
+        - extractZipBasePath (str, optional): The base path for extracted zip files (used only with
+          extractZipToDisk=True). Defaults to volume location + "/unzipped/".
         - maxFilesPerTrigger (int, optional): The maximum number of files to process per trigger in streaming. Defaults to 1000.
         - maxUnzippedRecordsPerFile (int, optional): The maximum number of records per file when unzipping. Defaults to 102400.
         - maxZipElementsPerPartition (int, optional): The maximum number of zip elements per partition. Defaults to 32.
@@ -214,7 +234,8 @@ class Catalog:
           Defaults to False.
         - maxFileAge (str, optional): Maximum age of files considered for ingestion by Auto Loader (for example: "90 days").
           Defaults to None (Auto Loader default).
-        - maxUnzipWorkers (int, optional): The maximum number of workers for parallel unzip. Defaults to 16.
+        - maxUnzipWorkers (int, optional): The maximum number of workers for parallel unzip (used only with
+          extractZipToDisk=True). Defaults to 16.
 
         Returns:
         DataFrame: A DataFrame of the cataloged data, with metadata and optionally extracted contents from zip files.
@@ -222,6 +243,15 @@ class Catalog:
 
         assert self._spark is not None
         assert self._spark.version is not None
+
+        _zip_flag_count = sum([skipZip, extractZipToDisk, extractZipInMemory])
+        if _zip_flag_count > 1:
+            raise ValueError(
+                "Only one of skipZip, extractZipToDisk, extractZipInMemory can be True at a time. "
+                "These options are mutually exclusive."
+            )
+        if _zip_flag_count == 0:
+            skipZip = True
 
         self._anon = self._is_anon(path)
 
@@ -261,10 +291,11 @@ class Catalog:
                 includeExistingFiles,
                 allowOverwrites,
                 maxFileAge,
+                keepContent=extractZipInMemory,
             ).withColumn("original_path", f.col("path"))
 
-            if extractZip:
-                logger.info("Started unzip process")
+            if extractZipToDisk:
+                logger.info("Started disk unzip process")
 
                 if zipRepartition is not None:
                     df = df.repartition(zipRepartition)
@@ -277,7 +308,8 @@ class Catalog:
                     .writeStream.format("delta")
                     .outputMode("append")
                     .option(
-                        "checkpointLocation", f"{self.streamCheckpointBasePath}/{self._table}_unzip"
+                        "checkpointLocation",
+                        f"{self.streamCheckpointBasePath}/{self._table}_unzip",
                     )
                     .option("maxRecordsPerFile", maxUnzippedRecordsPerFile)
                     .option("mergeSchema", "true")
@@ -292,19 +324,37 @@ class Catalog:
                 if self._triggerAvailableNow:
                     unzip_stream.awaitTermination()
 
-                logger.info("Unzip process completed")
+                logger.info("Disk unzip process completed")
 
                 df = self._spark.readStream.option("maxFilesPerTrigger", "1").table(
                     f"{self._table}_unzip"
                 )
 
                 # Rebalance the extracted files among workers
-                df = df.repartition(int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition))
+                df = df.repartition(
+                    int(maxUnzippedRecordsPerFile // maxZipElementsPerPartition)
+                )
+
+            elif extractZipInMemory:
+                logger.info("Started in-memory unzip process")
+
+                if zipRepartition is not None:
+                    df = df.repartition(zipRepartition)
+
+                df = df.mapInPandas(
+                    unzip_inmemory_map_func("path", "content"),
+                    schema=df.schema,
+                )
+
+                logger.info("In-memory unzip process configured")
 
         else:
-            df = self.__reader(path, pattern, recurse).withColumn("original_path", f.col("path"))
-            if extractZip:
-                logger.info("Started unzip process")
+            df = self.__reader(
+                path, pattern, recurse, keepContent=extractZipInMemory
+            ).withColumn("original_path", f.col("path"))
+
+            if extractZipToDisk:
+                logger.info("Started disk unzip process")
 
                 if zipRepartition is not None:
                     df = df.repartition(zipRepartition)
@@ -314,7 +364,7 @@ class Catalog:
                     schema=df.schema,
                 ).write.format("delta").mode("append").saveAsTable(f"{self._table}_unzip")
 
-                logger.info("Unzip process completed")
+                logger.info("Disk unzip process completed")
 
                 df = self._spark.read.table(f"{self._table}_unzip")
 
@@ -322,6 +372,19 @@ class Catalog:
                 df = df.repartition(
                     int(records // maxZipElementsPerPartition) | maxZipElementsPerPartition
                 )
+
+            elif extractZipInMemory:
+                logger.info("Started in-memory unzip process")
+
+                if zipRepartition is not None:
+                    df = df.repartition(zipRepartition)
+
+                df = df.mapInPandas(
+                    unzip_inmemory_map_func("path", "content"),
+                    schema=df.schema,
+                )
+
+                logger.info("In-memory unzip process completed")
 
         # Generate paths
         df = Catalog._with_path_meta(df)
