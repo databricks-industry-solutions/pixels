@@ -29,6 +29,9 @@ variables:
     description: "Whether the serving endpoint scales to zero when idle"
     type: complex
     default: true
+  serving_workload_type:
+    description: "GPU serving workload type. Empty auto-selects GPU_MEDIUM (AWS/GCP) or GPU_LARGE then GPU_SMALL (Azure)."
+    default: ""
   model_uc_name:
     default: "${var.catalog}.${var.schema}.monai_pixels_model"
   lakebase_instance_name:
