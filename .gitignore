@@ -147,3 +147,4 @@ test_dbconnect.py
 models/monai/model/
 
 .claude/
+.isaac/config.json

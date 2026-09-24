@@ -80,7 +80,7 @@ def build_study_query(pixels_table: str, params: Dict[str, Any]) -> tuple[str, d
     # Study Instance UID
     if "StudyInstanceUID" in params or "0020000D" in params:
         uid = params.get("StudyInstanceUID", params.get("0020000D", ""))
-        filters.append("meta:['0020000D'].Value[0]::String = %(study_uid)s")
+        filters.append("study_uid = %(study_uid)s")
         sql_params["study_uid"] = uid
 
     # Modalities in Study (variable-length IN clause)
@@ -145,13 +145,13 @@ def build_study_query(pixels_table: str, params: Dict[str, Any]) -> tuple[str, d
     SELECT
         first(meta:['00100010'].Value[0].Alphabetic::String, true) as PatientName,
         meta:['00100020'].Value[0]::String as PatientID,
-        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
+        study_uid as StudyInstanceUID,
         meta:['00080020'].Value[0]::String as StudyDate,
         meta:['00080050'].Value[0]::String as AccessionNumber,
         first(meta:['00081030'].Value[0]::String, true) as StudyDescription,
         array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
         nullif(array_join(collect_set(meta:['00080061'].Value[0]::String), '/'), '') as ModalitiesInStudy,
-        COUNT(DISTINCT meta:['0020000E'].Value[0]::String) as NumberOfStudyRelatedSeries,
+        COUNT(DISTINCT series_uid) as NumberOfStudyRelatedSeries,
         COUNT(*) as NumberOfStudyRelatedInstances
     FROM IDENTIFIER(%(pixels_table)s)
     WHERE {where}
@@ -176,8 +176,8 @@ def build_all_series_query(
 
     query = """
     SELECT
-        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
-        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        study_uid as StudyInstanceUID,
+        series_uid as SeriesInstanceUID,
         array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
         first(meta:['00200011'].Value[0]::String, true) as SeriesNumber,
         first(meta:['0008103E'].Value[0]::String, true) as SeriesDescription,
@@ -198,13 +198,13 @@ def build_series_query(
 ) -> tuple[str, dict[str, Any]]:
     """Build a QIDO-RS *series-level* search query within a study."""
     validate_table_name(pixels_table)
-    filters = ["meta:['0020000D'].Value[0]::String = %(study_uid)s"]
+    filters = ["study_uid = %(study_uid)s"]
     sql_params: dict[str, Any] = {"pixels_table": pixels_table, "study_uid": study_instance_uid}
 
     if params:
         if "SeriesInstanceUID" in params or "0020000E" in params:
             uid = params.get("SeriesInstanceUID", params.get("0020000E", ""))
-            filters.append("meta:['0020000E'].Value[0]::String = %(series_uid)s")
+            filters.append("series_uid = %(series_uid)s")
             sql_params["series_uid"] = uid
         if "Modality" in params or "00080060" in params:
             mod = params.get("Modality", params.get("00080060", ""))
@@ -219,8 +219,8 @@ def build_series_query(
 
     query = f"""
     SELECT
-        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
-        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        study_uid as StudyInstanceUID,
+        series_uid as SeriesInstanceUID,
         array_join(collect_set(meta:['00080060'].Value[0]::String), '/') as Modality,
         first(meta:['00200011'].Value[0]::String, true) as SeriesNumber,
         first(meta:['0008103E'].Value[0]::String, true) as SeriesDescription,
@@ -244,8 +244,8 @@ def build_instances_query(
     """Build a QIDO-RS *instance-level* search query within a series."""
     validate_table_name(pixels_table)
     filters = [
-        "meta:['0020000D'].Value[0]::String = %(study_uid)s",
-        "meta:['0020000E'].Value[0]::String = %(series_uid)s",
+        "study_uid = %(study_uid)s",
+        "series_uid = %(series_uid)s",
     ]
     sql_params: dict[str, Any] = {
         "pixels_table": pixels_table,
@@ -263,8 +263,8 @@ def build_instances_query(
 
     query = f"""
     SELECT
-        meta:['0020000D'].Value[0]::String as StudyInstanceUID,
-        meta:['0020000E'].Value[0]::String as SeriesInstanceUID,
+        study_uid as StudyInstanceUID,
+        series_uid as SeriesInstanceUID,
         meta:['00080018'].Value[0]::String as SOPInstanceUID,
         meta:['00080016'].Value[0]::String as SOPClassUID,
         meta:['00200013'].Value[0]::INT as InstanceNumber,
@@ -301,8 +301,8 @@ def build_series_metadata_query(
     query = """
     SELECT meta
     FROM IDENTIFIER(%(pixels_table)s)
-    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+    WHERE study_uid = %(study_uid)s
+      AND series_uid = %(series_uid)s
     """
     sql_params: dict[str, Any] = {
         "pixels_table": pixels_table,
@@ -327,7 +327,7 @@ def build_study_metadata_query(
     query = """
     SELECT meta
     FROM IDENTIFIER(%(pixels_table)s)
-    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
+    WHERE study_uid = %(study_uid)s
     """
     sql_params: dict[str, Any] = {
         "pixels_table": pixels_table,
@@ -354,8 +354,8 @@ def build_instance_path_query(
     SELECT local_path,
            ifnull(meta:['00280008'].Value[0]::integer, 1) as NumberOfFrames
     FROM IDENTIFIER(%(pixels_table)s)
-    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+    WHERE study_uid = %(study_uid)s
+      AND series_uid = %(series_uid)s
       AND meta:['00080018'].Value[0]::String = %(sop_uid)s
     LIMIT 1
     """
@@ -385,8 +385,8 @@ def build_series_instance_paths_query(
            local_path,
            ifnull(meta:['00280008'].Value[0]::integer, 1) AS NumberOfFrames
     FROM IDENTIFIER(%(pixels_table)s)
-    WHERE meta:['0020000D'].Value[0]::String = %(study_uid)s
-      AND meta:['0020000E'].Value[0]::String = %(series_uid)s
+    WHERE study_uid = %(study_uid)s
+      AND series_uid = %(series_uid)s
     """
     sql_params: dict[str, Any] = {
         "pixels_table": pixels_table,
