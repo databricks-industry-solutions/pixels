@@ -165,6 +165,7 @@ Defined in `databricks.yml`. Override with `--var key=value`.
 | `volume_name` | `pixels_volume` |
 | `serving_endpoint_name` | `pixels-monai-uc` |
 | `scale_to_zero_enabled` | `true` |
+| `serving_workload_type` | `""` (auto: GPU_MEDIUM on AWS/GCP, GPU_LARGE then GPU_SMALL on Azure) |
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` |
 | `lakebase_instance_name` | `pixels-lakebase` |
 | `nifti_segmentation_table` | `""` (empty disables `/api/dicomweb/nifti/*` routes) |

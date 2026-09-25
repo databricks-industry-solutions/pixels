@@ -370,7 +370,7 @@ endpoint = client.create_endpoint(
                 'entity_name': model_uc_name,
                 "entity_version": model_version,
                 "workload_size": "Small",
-                "workload_type": "GPU_MEDIUM",
+                "workload_type": serving_gpu_workload_types()[0],
                 "scale_to_zero_enabled": True,
                 'environment_vars': conf_vars,
             }

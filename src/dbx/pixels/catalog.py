@@ -344,7 +344,13 @@ class Catalog:
         table: str,
         mode: str = "append",
     ):
-        return df.write.format("delta").mode(mode).options(**options).saveAsTable(table)
+        return (
+            df.write.format("delta")
+            .mode(mode)
+            .clusterBy("study_uid")
+            .options(**options)
+            .saveAsTable(table)
+        )
 
     def __streamWriter(
         self,
@@ -356,6 +362,7 @@ class Catalog:
         return (
             df.writeStream.format("delta")
             .outputMode(mode)
+            .clusterBy("study_uid")
             .options(**options)
             .option("checkpointLocation", f"{self.streamCheckpointBasePath}/{table}")
             .queryName(self._queryName)
