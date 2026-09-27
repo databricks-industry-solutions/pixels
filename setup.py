@@ -90,7 +90,7 @@ setup(
             "databricks-connect==16.1.0",
             "databricks-sdk==0.88.0",
             "autoflake==2.3.1",
-            "black==24.10.0",
+            "black==26.3.1",
             "isort==6.0.1",
             "mypy==1.14.1",
             "pdoc==15.0.1",
