@@ -1,6 +1,7 @@
 import hashlib
 import os
 import subprocess
+import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -179,7 +180,7 @@ def call_llm_serving_endpoint(
     prompt: str,
     system_prompt: str,
     base64_image: str = None,
-    model_name: str = "databricks-claude-sonnet-4",
+    model_name: str = "databricks-claude-sonnet-4-5",
     max_tokens: int = 500,
     temperature: float = 0.8,
 ) -> dict:
@@ -219,12 +220,40 @@ def call_llm_serving_endpoint(
             }
         )
 
-    try:
-        result = get_deploy_client("databricks").predict(endpoint=model_name, inputs=to_send)
-        return result
-
-    except Exception as e:
-        raise Exception(f"Error calling LLM serving endpoint: {str(e)}")
+    # The pay-per-token FM gateway intermittently returns a transient upstream
+    # error ("The server received an invalid response from an upstream server",
+    # INTERNAL_ERROR / 502 / 503 / 504). With no retry a single blip surfaces as
+    # a 500 and the OHIF UI falls back to its "simulated response" mock. Retry
+    # transient failures with a short backoff so the analysis path is reliable.
+    _TRANSIENT = (
+        "invalid response from an upstream",
+        "INTERNAL_ERROR",
+        "500 Server Error",
+        "502",
+        "503",
+        "504",
+        "Bad Gateway",
+        "Service Unavailable",
+        "Gateway Time-out",
+        "timed out",
+        "timeout",
+        "Read timed out",
+    )
+    client = get_deploy_client("databricks")
+    max_attempts = 4
+    last_err = None
+    for attempt in range(max_attempts):
+        try:
+            return client.predict(endpoint=model_name, inputs=to_send)
+        except Exception as e:
+            last_err = e
+            msg = str(e)
+            is_transient = any(s in msg for s in _TRANSIENT)
+            if attempt < max_attempts - 1 and is_transient:
+                time.sleep(1.2 * (attempt + 1))
+                continue
+            raise Exception(f"Error calling LLM serving endpoint: {msg}")
+    raise Exception(f"Error calling LLM serving endpoint: {str(last_err)}")
 
 
 DICOM_MAGIC_STRING = "DICOM medical imaging data"
