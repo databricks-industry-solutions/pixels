@@ -38,6 +38,7 @@ def run_batch(
     transcode_cfg,
     merge_cfg,
     num_gpus: int = 8,
+    gpu_type: str = "a10",
 ):
     """Full batch: discover -> group -> Ray dispatch.
 
@@ -47,11 +48,17 @@ def run_batch(
         transcode_cfg: TranscodeConfig (or dict with to_dict())
         merge_cfg: MergeConfig (or dict with to_dict())
         num_gpus: number of GPUs to use
+        gpu_type: GPU type for ray_launch
 
     Returns:
         list of result dicts (one per series)
     """
     from serverless_gpu.ray import ray_launch
+
+    from .ray_processor import _register_modules_for_pickle_by_value
+
+    # Ray / serverless_gpu workers don't have htj2k_transcoder installed
+    _register_modules_for_pickle_by_value()
 
     groups = discover_and_group(root_dir)
     if not groups:
@@ -63,10 +70,7 @@ def run_batch(
     _items = groups
     _ngpus = num_gpus
 
-    @ray_launch(
-        num_gpus_per_worker=1, num_cpus_per_worker=4,
-        min_workers=_ngpus, max_workers=_ngpus,
-    )
+    @ray_launch(gpus=_ngpus, gpu_type=gpu_type, remote=True)
     def _run():
         import ray
         import time as _time
@@ -113,4 +117,4 @@ def run_batch(
 
         return all_results
 
-    return _run()
+    return _run.distributed()

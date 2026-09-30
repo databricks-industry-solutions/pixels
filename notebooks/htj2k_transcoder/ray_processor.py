@@ -51,6 +51,7 @@ def transcode_pending_series(
     num_cpus_per_actor: int = 3,
     io_pool_size: int = 64,
     gpu_type: str = "a10",
+    max_series: int = None,
 ):
     """Run Phase 2: read pending rows, dispatch to Ray GPU actors, persist results.
 
@@ -66,6 +67,9 @@ def transcode_pending_series(
         num_cpus_per_actor: CPUs reserved per GPU actor
         io_pool_size: threads per actor for I/O
         gpu_type: GPU type for ray_launch
+        max_series: cap on pending series collected to the driver per run
+            (default: None = all). Re-run to process the remaining backlog;
+            only rows still ``pending`` are picked up.
     """
     # Register modules so cloudpickle serializes functions by value
     # (Ray / serverless_gpu workers don't have htj2k_transcoder installed)
@@ -76,11 +80,14 @@ def transcode_pending_series(
     _mc = merge_cfg.to_dict() if hasattr(merge_cfg, "to_dict") else dict(merge_cfg)
 
     # Read pending rows
-    pending_rows = (
+    pending_df = (
         spark.table(results_table)
         .filter("status = 'pending'")
-        .collect()
+        .select("study_uid", "series_uid", "source_paths", "source_meta")
     )
+    if max_series is not None:
+        pending_df = pending_df.limit(max_series)
+    pending_rows = pending_df.collect()
 
     if not pending_rows:
         print("No pending series to process.")

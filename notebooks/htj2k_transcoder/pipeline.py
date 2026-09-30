@@ -12,9 +12,9 @@ import hashlib
 import logging
 import os
 import shutil
+import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 logger = logging.getLogger("dicom_pipeline")
 logger.setLevel(logging.INFO)
