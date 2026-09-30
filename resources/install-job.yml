@@ -26,6 +26,8 @@ resources:
           default: ${var.model_uc_name}
         - name: scale_to_zero_enabled
           default: ${var.scale_to_zero_enabled}
+        - name: serving_workload_type
+          default: ${var.serving_workload_type}
         - name: vlm_image_analysis
           default: ${var.vlm_image_analysis}
         - name: metadata_redaction

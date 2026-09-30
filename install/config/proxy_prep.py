@@ -47,8 +47,34 @@ def init_model_serving_widgets():
   serving_endpoint_name = dbutils.widgets.get("serving_endpoint_name")
   dbutils.widgets.dropdown("scale_to_zero_enabled", defaultValue="true", choices=["true", "false"], label="5.0 Scale serving endpoint to zero when idle")
   scale_to_zero_enabled = dbutils.widgets.get("scale_to_zero_enabled").lower() == "true"
+  dbutils.widgets.text(
+      "serving_workload_type",
+      "",
+      label="5.1 GPU workload type (empty = cloud default)",
+  )
 
   return model_uc_name, serving_endpoint_name, scale_to_zero_enabled
+
+
+def serving_gpu_workload_types(host=None):
+  """GPU serving types to try, ordered by preference for this cloud.
+
+  Databricks GPU SKUs are cloud-specific: GPU_MEDIUM (A10G / L4) exists on
+  AWS and GCP but not Azure, where Vista3D needs GPU_LARGE (A100) rather
+  than GPU_SMALL (T4 16GB). An explicit serving_workload_type widget/job
+  parameter, if set, is used alone.
+  """
+  try:
+    override = dbutils.widgets.get("serving_workload_type").strip()
+  except Exception:
+    override = ""
+  if override:
+    return [override]
+
+  host = (host or os.environ.get("DATABRICKS_HOST") or getattr(ctx, "apiUrl", "") or "").lower()
+  if "azuredatabricks.net" in host:
+    return ["GPU_LARGE", "GPU_SMALL"]
+  return ["GPU_MEDIUM", "GPU_SMALL"]
 
 # COMMAND ----------
 
