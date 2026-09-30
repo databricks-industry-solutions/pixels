@@ -515,7 +515,14 @@ def register_vlm_routes(app: FastAPI):
         metadata = json.dumps(body.get("metadata"))
         max_tokens = body.get("max_tokens", 1000)
         temperature = body.get("temperature", 0.7)
-        model = body.get("model", "databricks-claude-sonnet-4")
+        model = body.get("model", "databricks-claude-sonnet-4-5")
+        # The bundled OHIF UI hardcodes databricks-claude-sonnet-4, which is deprecated
+        # on many workspaces. Remap known-deprecated Claude FMAPI ids to a supported one.
+        _DEPRECATED = {
+            "databricks-claude-sonnet-4": "databricks-claude-sonnet-4-5",
+            "databricks-claude-3-7-sonnet": "databricks-claude-sonnet-4-5",
+        }
+        model = _DEPRECATED.get(model, model)
 
         system_prompt = get_prompt("vlm_ohif", "vlm_analyzer")
 
