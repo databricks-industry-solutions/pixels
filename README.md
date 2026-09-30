@@ -38,7 +38,11 @@ catalog = Catalog(spark)                                    # 03
 catalog_df = catalog.catalog(<path>)                        # 04
 
 # extract the DICOM metadata
-meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
+meta_df = DicomMetaExtractor(
+  catalog, 
+  permissive=True,
+  remove_un_tags=True
+).transform(catalog_df)                                     # 05
 
 # save your work for SQL access
 catalog.save(meta_df)                                       # 06
