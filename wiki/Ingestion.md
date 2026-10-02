@@ -25,9 +25,9 @@ File contents are never loaded into the table. Only paths and file attributes ar
 
 Rules of thumb:
 
-- **Batch does not remember what it already ingested.** Every run lists the whole path again, and `save()` appends by default, so running a batch job twice produces duplicate rows. If you'll run the job more than once, use streaming.
-- **Streaming processes each file exactly once.** The checkpoint records which files have been processed, so reruns only pick up new files. With the default `availableNow` trigger the job processes the backlog and then stops, which suits a scheduled Databricks job.
-- **Managed file events** make discovery cheap: instead of listing the directory on every trigger, Auto Loader reads a change feed that Unity Catalog keeps for the external location. Consider it once listing time starts to dominate your runs.
+- **Batch does not remember what it already ingested.** Every run lists the whole path again, and `save()` appends by default, so running a batch job twice produces duplicate rows. If you'll run the job more than once or handling large ingestion (ex. > 100k files), use streaming.
+- **Streaming processes each file exactly once.** The checkpoint records which files have been processed, so reruns only pick up new files. With the default `availableNow` trigger the job processes the backlog and then stops, which suits a scheduled Databricks job. Built-in checkpointing and write-ahead logs track metadata and offsets, providing end-to-end exactly-once processing guarantees even if nodes fail.
+- **Managed file events** make discovery cheap: instead of listing the directory on every trigger, Auto Loader reads a change feed that Unity Catalog keeps for the external location. Consider it for production workloads.
 
 ---
 
