@@ -47,17 +47,29 @@ class Catalog:
         return anon
 
     def __init__(
-        self, spark, table: str = "main.pixels_solacc.object_catalog", volume: str = DEFAULT_VOLUME
+        self,
+        spark,
+        table: str = "main.pixels_solacc.object_catalog",
+        volume: str = DEFAULT_VOLUME,
+        cluster_by="auto",
     ):
         """Catalog objects and files, collect metadata and thumbnails. The catalog can be used with multiple object types.
         Parameters:
             spark - Spark context
             table - Delta table that stores the object catalog
             volume - The volume that will be used to store the catalog checkpoints and unzipped files.
+            cluster_by - Liquid-clustering key for the catalog table. One of:
+                "auto" (default) - cluster by ``study_uid`` when that column is present
+                    (DICOM), otherwise write without clustering (e.g. WSI, which has
+                    no study/series hierarchy);
+                a column name or list of column names - cluster by those columns
+                    (missing columns are warned about and skipped);
+                None/False/"" - never cluster.
         """
         assert spark is not None
         self._spark = spark
         self._table = table
+        self._cluster_by = cluster_by
         self._volume = volume
         self._volume_path = f"/Volumes/{volume.replace('.','/')}"
         self._anonymization_base_path = f"{self._volume_path}/anonymized/"
@@ -337,6 +349,28 @@ class Catalog:
         """
         return self._spark.table(self._table if not table else table)
 
+    def _resolve_cluster_cols(self, df: DataFrame) -> list:
+        """Resolve the liquid-clustering columns for a write based on ``cluster_by``.
+
+        See :meth:`__init__` for the accepted ``cluster_by`` values. Columns that
+        are not present in ``df`` are dropped (with a warning) so a catalog that
+        lacks ``study_uid`` (e.g. WSI) does not fail the write.
+        """
+        setting = self._cluster_by
+        if not setting:
+            return []
+        if setting == "auto":
+            return ["study_uid"] if "study_uid" in df.columns else []
+        cols = [setting] if isinstance(setting, str) else list(setting)
+        present = [c for c in cols if c in df.columns]
+        missing = [c for c in cols if c not in df.columns]
+        if missing:
+            logger.warning(
+                f"cluster_by column(s) {missing} not found in catalog columns {df.columns}; "
+                "skipping clustering on them"
+            )
+        return present
+
     def __writer(
         self,
         df: DataFrame,
@@ -344,7 +378,11 @@ class Catalog:
         table: str,
         mode: str = "append",
     ):
-        return df.write.format("delta").mode(mode).options(**options).saveAsTable(table)
+        writer = df.write.format("delta").mode(mode)
+        cluster_cols = self._resolve_cluster_cols(df)
+        if cluster_cols:
+            writer = writer.clusterBy(*cluster_cols)
+        return writer.options(**options).saveAsTable(table)
 
     def __streamWriter(
         self,
@@ -353,10 +391,12 @@ class Catalog:
         table: str,
         mode: str = "append",
     ) -> StreamingQuery:
+        writer = df.writeStream.format("delta").outputMode(mode)
+        cluster_cols = self._resolve_cluster_cols(df)
+        if cluster_cols:
+            writer = writer.clusterBy(*cluster_cols)
         return (
-            df.writeStream.format("delta")
-            .outputMode(mode)
-            .options(**options)
+            writer.options(**options)
             .option("checkpointLocation", f"{self.streamCheckpointBasePath}/{table}")
             .queryName(self._queryName)
             .trigger(

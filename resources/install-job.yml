@@ -26,6 +26,8 @@ resources:
           default: ${var.model_uc_name}
         - name: scale_to_zero_enabled
           default: ${var.scale_to_zero_enabled}
+        - name: serving_workload_type
+          default: ${var.serving_workload_type}
         - name: vlm_image_analysis
           default: ${var.vlm_image_analysis}
         - name: metadata_redaction
@@ -36,6 +38,8 @@ resources:
           default: ${var.vector_search_embedding}
         - name: lakebase_instance_name
           default: ${var.lakebase_instance_name}
+        - name: nifti_segmentation_table
+          default: ${var.nifti_segmentation_table}
 
       tasks:
         # ── Initialize UC schema, volume, empty table ──────────────
@@ -200,6 +204,6 @@ resources:
       environments:
         - environment_key: serverless
           spec:
-            environment_version: "4"
+            environment_version: "5"
             dependencies:
               - -r ../requirements.txt

@@ -37,6 +37,57 @@ window.config = {
     },
   ],
 
+  // NIfTI Segmentation Overlay
+  // Loads .nii.gz segmentation masks fetched from a Delta-table-backed gateway
+  // and displays them on top of the active DICOM volume viewport.
+  // See NIFTI_OVERLAY_PLAN.md and plugins/ohifv3/extensions/nifti-segmentation/README.md.
+  niftiOverlay: {
+    // Master switch. When false, the extension is loaded but the panel is hidden.
+    // Flipped to true once the backend route and the extension UI land.
+    enabled: true,
+
+    // Where to talk to.
+    //   null   -> inherit from the active data source's qidoRoot (production default;
+    //             routes live next to QIDO-RS on the same gateway).
+    //   string -> explicit override (e.g. NIfTI gateway hosted separately).
+    baseUrl: null,
+
+    // Path mount under baseUrl. Override if the gateway exposes the routes elsewhere.
+    pathPrefix: '/nifti',
+
+    // Individual endpoint paths (relative to baseUrl + pathPrefix). Overridable
+    // per-route so a gateway can rename without us touching client code.
+    endpoints: {
+      related: '/related',   // GET ?study=<uid>&series=<uid> -> [ {id, name, label_info, ...} ]
+      fetch:   '/fetch',     // GET ?id=<id>                  -> octet-stream of .nii.gz
+    },
+
+    // Auth.
+    //   'inherit' -> reuse the data source's Authorization header (Bearer token used
+    //                by DatabricksPixelsDicom today). Recommended.
+    //   'none'    -> no Authorization header (open gateway).
+    auth: { mode: 'inherit' },
+
+    // Client-side alignment behavior.
+    alignment: {
+      // Header-equality tolerance for the fast-path (no-resample) check.
+      spacingTolerance: 1e-4,
+      originTolerance:  1e-4,
+      // If true, prompt the user before kicking off the (slow) VTK.js resample.
+      promptOnResample: false,
+      // When true, the panel toggle is initially ON and the loader writes the
+      // NIfTI buffer into the labelmap as-is — the file's affine header is
+      // ignored. Use this when your NIfTI exporter copies DICOM voxel data
+      // but writes an LAS/RAS-style affine that doesn't match the layout.
+      // The user can still flip the panel toggle (persisted to localStorage).
+      // assumeDicomGrid: true,
+    },
+
+    // UI behavior.
+    autoLoadOnSeriesOpen: false,   // load the first overlay automatically when a series opens
+    maxOverlaysListed:    25,
+  },
+
   dataSources: [
     {
       namespace: '@ohif/extension-default.dataSourcesModule.databricksPixelsDicom',
@@ -66,13 +117,13 @@ window.config = {
         imageRendering: "wadors",
         thumbnailRendering: "wadors",
         enableStudyLazyLoad: !0,
-        supportsFuzzyMatching: !1,
+        supportsFuzzyMatching: !0,
         supportsWildcard: !0,
         staticWado: 0,
         singlepart: "bulkdata,video",
         bulkDataURI: {
           enabled: !0,
-          relativeResolution: "studies"
+          relativeResolution: "series"
         }
       }
     },

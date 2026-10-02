@@ -18,19 +18,35 @@
 # COMMAND ----------
 
 # DBTITLE 1,Install dependencies
-# MAGIC %pip install openslide-python openslide-bin tifffile imagecodecs Pillow mlflow openai -q
+# MAGIC %md
+# MAGIC WSI deps come from the `wsi` extra in `setup.py`; `mlflow`/`openai` are the VLM
+# MAGIC PHI-detection deps. On a released version: `%pip install databricks-pixels[wsi] mlflow openai`.
+# MAGIC On this branch (the `[wsi]` extra isn't on PyPI yet), install from the repo root (the
+# MAGIC folder containing `setup.py`), e.g. `%pip install "/Workspace/<path-to-pixels-repo>[wsi]" mlflow openai`.
 
 # COMMAND ----------
 
-# DBTITLE 1,Add src/ to sys.path
+# MAGIC %pip install databricks-pixels[wsi] mlflow openai -q
+
+# COMMAND ----------
+
+# DBTITLE 1,Add src/ to sys.path (editable dev only)
+# Derive the repo root from this notebook's own location (works in Databricks Git
+# folders / Workspace) rather than hardcoding a user path. If src/ isn't found
+# (e.g. running against the pip-installed databricks-pixels[wsi]), use the package.
+import os
 import sys
 
-SRC_PATH = "/Workspace/Users/douglas.moore@databricks.com/pixels-tiff/src"
-if SRC_PATH not in sys.path:
-    sys.path.insert(0, SRC_PATH)
-    print(f"Added to sys.path: {SRC_PATH}")
+_nb_ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+_nb_dir = "/Workspace" + os.path.dirname(_nb_ctx.notebookPath().get())
+_repo_root = os.path.normpath(os.path.join(_nb_dir, "..", ".."))  # notebooks/wsi -> repo root
+_src_path = os.path.join(_repo_root, "src")
+if os.path.isdir(os.path.join(_src_path, "dbx", "pixels")):
+    if _src_path not in sys.path:
+        sys.path.insert(0, _src_path)
+    print(f"Added to sys.path (editable): {_src_path}")
 else:
-    print(f"Already on sys.path: {SRC_PATH}")
+    print("src/ not found next to notebook; using installed databricks-pixels package")
 
 # COMMAND ----------
 
