@@ -15,6 +15,7 @@ overhead that compounds on asset-heavy pages.  Pure ASGI middleware calls
 ``app(scope, receive, send)`` directly with zero extra task scheduling.
 """
 
+import os
 import time
 from functools import lru_cache
 
@@ -190,13 +191,62 @@ class LoggingMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
+# Asset extensions that must NOT fall back to index.html on 404 — a missing
+# asset should surface as a real 404, not silently return the SPA shell.
+_STATIC_ASSET_SUFFIXES = (
+    ".wasm",
+    ".js",
+    ".css",
+    ".map",
+    ".json",
+    ".png",
+    ".svg",
+    ".ico",
+    ".woff",
+    ".woff2",
+    ".ttf",
+)
+
+# Large static assets stored as ``*.<ext>.gz`` to stay under git / DAB size
+# limits.  When the uncompressed original is absent, the pre-compressed file is
+# served with ``Content-Encoding: gzip`` so browsers transparently decompress.
+_GZIP_ASSET_MEDIA_TYPES = {
+    ".wasm": "application/wasm",
+    ".js": "text/javascript",
+}
+
+
 class DBStaticFiles(StaticFiles):
-    """StaticFiles subclass that serves ``index.html`` on 404 (SPA fallback)."""
+    """StaticFiles subclass that serves ``index.html`` on 404 (SPA fallback).
+
+    Pre-compressed ``*.wasm.gz`` and ``*.js.gz`` assets are served when the
+    uncompressed originals are absent, with ``Content-Encoding: gzip`` so
+    browsers transparently decompress them.
+    """
 
     async def get_response(self, path: str, scope):
+        for suffix, media_type in _GZIP_ASSET_MEDIA_TYPES.items():
+            if not path.endswith(suffix):
+                continue
+            full_path = os.path.join(self.directory, path)
+            if not os.path.isfile(full_path):
+                gz_path = full_path + ".gz"
+                if os.path.isfile(gz_path):
+                    stat_result = await anyio.to_thread.run_sync(os.stat, gz_path)
+                    response = self.file_response(gz_path, stat_result, scope)
+                    # FileResponse freezes headers at construction from the
+                    # ``.gz`` path, so override the sent Content-Type header
+                    # (not just ``.media_type``) and add Content-Encoding.
+                    response.headers["content-type"] = media_type
+                    response.headers["content-encoding"] = "gzip"
+                    return response
+            break
+
         try:
             return await super().get_response(path, scope)
         except (HTTPException, StarletteHTTPException) as ex:
             if ex.status_code == 404:
+                if any(path.endswith(suffix) for suffix in _STATIC_ASSET_SUFFIXES):
+                    raise
                 return await super().get_response("index.html", scope)
             raise
