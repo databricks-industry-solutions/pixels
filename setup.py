@@ -86,6 +86,16 @@ setup(
         ]
     },
     extras_require={
+        # Whole Slide Imaging (pathology) deps — kept OUT of the core wheel so the
+        # DICOM deployment stays lean. Install with `pip install databricks-pixels[wsi]`
+        # (openslide-bin bundles the native OpenSlide C libraries).
+        # TODO: pin to `==` versions after in-workspace integration testing resolves them.
+        "wsi": [
+            "openslide-python",
+            "openslide-bin",
+            "tifffile",
+            "imagecodecs",
+        ],
         "dev": [
             "databricks-connect==16.1.0",
             "databricks-sdk==0.88.0",
