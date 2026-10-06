@@ -88,12 +88,22 @@ setup(
     extras_require={
         # Whole Slide Imaging (pathology) deps — kept OUT of the core wheel so the
         # DICOM deployment stays lean. Install with `pip install databricks-pixels[wsi]`
-        # (openslide-bin bundles the native OpenSlide C libraries).
-        # TODO: pin to `==` versions after in-workspace integration testing resolves them.
+        # (openslide-bin bundles the native OpenSlide C libraries). Validated to install
+        # cleanly on Databricks serverless (environment_version 5); tifffile is pure-Python
+        # and only used to read TIFF *metadata* in the fallback path.
+        # TODO: pin to `==` versions after a release locks known-good versions.
         "wsi": [
             "openslide-python",
             "openslide-bin",
             "tifffile",
+        ],
+        # Optional: only needed to DECODE pixels from *compressed* generic TIFFs in the
+        # tifffile fallback image path (wsi_utils._wsi_tifffile → .asarray(), used by
+        # thumbnailing and the VLM PHI detector on non-OpenSlide TIFFs). The OpenSlide
+        # path and all metadata extraction do NOT need this. imagecodecs ships C
+        # extensions and has failed to build on serverless env v5 — install it only where
+        # a prebuilt wheel is available: `pip install databricks-pixels[wsi,wsi-codecs]`.
+        "wsi-codecs": [
             "imagecodecs",
         ],
         "dev": [

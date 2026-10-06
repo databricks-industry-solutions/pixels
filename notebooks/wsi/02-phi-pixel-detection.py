@@ -20,7 +20,10 @@
 # DBTITLE 1,Install dependencies
 # MAGIC %md
 # MAGIC WSI deps come from the `wsi` extra in `setup.py`; `mlflow`/`openai` are the VLM
-# MAGIC PHI-detection deps. On a released version: `%pip install databricks-pixels[wsi] mlflow openai`.
+# MAGIC PHI-detection deps. `[wsi]` is serverless-clean. If your slides are *compressed
+# MAGIC generic TIFFs* (not OpenSlide formats), the label/macro image extraction decodes
+# MAGIC pixels and needs `imagecodecs` — use `[wsi,wsi-codecs]` instead (may not build on
+# MAGIC serverless env v5). On a released version: `%pip install databricks-pixels[wsi] mlflow openai`.
 # MAGIC On this branch (the `[wsi]` extra isn't on PyPI yet), install from the repo root (the
 # MAGIC folder containing `setup.py`), e.g. `%pip install "/Workspace/<path-to-pixels-repo>[wsi]" mlflow openai`.
 

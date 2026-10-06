@@ -23,6 +23,9 @@
 # DBTITLE 1,Install dependencies
 # MAGIC %md
 # MAGIC WSI deps come from the `wsi` extra defined in `setup.py` — single source of truth.
+# MAGIC The `[wsi]` extra (openslide-python, openslide-bin, tifffile) installs cleanly on
+# MAGIC serverless. Only add `[wsi,wsi-codecs]` if you need to DECODE compressed generic
+# MAGIC TIFFs (imagecodecs) — it is NOT needed for OpenSlide formats or metadata extraction.
 # MAGIC On a released version: `%pip install databricks-pixels[wsi]`. On this branch (the
 # MAGIC `[wsi]` extra isn't on PyPI yet), install from the repo root instead (the folder
 # MAGIC containing `setup.py`), e.g. `%pip install "/Workspace/<path-to-pixels-repo>[wsi]"`.
