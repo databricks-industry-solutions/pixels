@@ -1,6 +1,7 @@
 ---
 name: create-pr
-description: Create a well-structured pull request for the Pixels repo — branch, style checks, integration-test reporting, a PR body following the repo template (summary, changes by theme, breaking changes, testing per surface, release-notes entry), and gh pr create. Use when asked to open, create, or prepare a PR, or to write a PR description.
+description: Pixels pull-request authoring — branch and scope checks, make style/make test, per-surface integration-test reporting, a PR body following the repo template (summary, changes by theme, breaking changes, testing, release-notes entry), and gh pr create. Use when asked to open, create, or prepare a PR, or to write a PR description.
+license: Databricks License
 ---
 
 # Create a Pixels Pull Request
@@ -82,9 +83,18 @@ Guidelines:
 - **Screenshots**: include a screenshot for viewer or UI changes, or ask the user to add one.
 - **Keep the attribution line** as the last line, exactly as written.
 
+Write the finished body to `/tmp/pr-body.md` with a quoted heredoc, so backticks and `$` are kept as written:
+
+```bash
+cat > /tmp/pr-body.md <<'EOF'
+## Summary
+...
+EOF
+```
+
 ## 5. Confirm, push, create
 
-Opening a PR is public, so show the user the title and body and get their approval first. Then:
+Opening a PR is public, so show the user the title and the contents of `/tmp/pr-body.md` and get their approval first. Then:
 
 ```bash
 git push -u origin "$(git branch --show-current)"

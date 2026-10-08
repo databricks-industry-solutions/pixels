@@ -85,7 +85,7 @@ meta_df = DicomMetaExtractor(
 
 ## Querying the `meta` column
 
-`meta` follows the [DICOM JSON model](https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_F.html). Keys are 8-digit hex tags, and each value has `vr` and `Value`:
+`meta` follows the [DICOM JSON model](https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_F.html). Keys are 8-digit hex tags, and each value has `vr` and `Value`, as shown in the query below.
 
 Study and series UIDs are already available as columns. Prefer them in filters so the query benefits from clustering:
 

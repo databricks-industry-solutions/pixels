@@ -1,6 +1,7 @@
 ---
 name: update-release-notes
-description: Update the Pixels wiki Release Notes page (wiki/Release-Notes.md) from PRs merged to main since the last sync, and cut a new version section when a release tag appears. Use when asked to update, refresh, or generate release notes or a changelog, or to prepare the notes for a new release.
+description: Pixels wiki Release Notes (wiki/Release-Notes.md) and changelog sync — reads PRs merged to main since the last synced commit and cuts a new version section when a release tag appears. Use when asked to update, refresh, or generate release notes or a changelog, or to prepare the notes for a new release.
+license: Databricks License
 ---
 
 # Update Release Notes
@@ -35,15 +36,19 @@ Sections inside Unreleased, in this order. Omit a section when it's empty, excep
 ```bash
 git fetch origin --tags
 LAST=$(grep -o 'release-notes:last-synced-commit [0-9a-f]*' wiki/Release-Notes.md | awk '{print $2}')
-git log "$LAST"..origin/main --first-parent --format='%h %ad %s' --date=short
+if [ -z "$LAST" ] || ! git merge-base --is-ancestor "$LAST" origin/main; then
+  echo "last-synced-commit marker missing or not on origin/main: '$LAST'"
+else
+  git log "$LAST"..origin/main --first-parent --format='%h %ad %s' --date=short
+fi
 ```
+
+If the check fails, stop and ask the user which commit or tag to start from. Don't run the `git log` without a valid `LAST`: an empty value silently becomes `HEAD..origin/main`.
 
 - **Merge commits** (`Merge pull request #N …`): fetch each PR with
   `gh pr view N -R databricks-industry-solutions/pixels --json number,title,mergedAt,body,labels,files`.
 - **Squash merges**: the subject ends with `(#N)`. Treat these the same way.
 - **Direct commits with no PR**: read the diff (`git show --stat <sha>`). Include only user-facing ones and cite them by short SHA instead of a PR link.
-
-If `LAST` is missing or not an ancestor of `origin/main`, stop and ask the user which commit or tag to start from.
 
 ### 2. Detect a release
 
@@ -88,11 +93,14 @@ For each PR, read its body and changed files, not only the title. PR titles are 
 
 The wiki is a separate repo, and publishing to it is public. Ask first.
 
+Publish only `Release-Notes.md`. Don't copy the other `wiki/*.md` pages: they may hold unreviewed local edits. If another page changed in the same PR (for example `_Sidebar.md`), list it and copy it only when the user agrees.
+
 ```bash
 TMP=$(mktemp -d)
 git clone https://github.com/databricks-industry-solutions/pixels.wiki.git "$TMP"
-cp wiki/*.md "$TMP"/
-git -C "$TMP" add -A && git -C "$TMP" commit -m "Update release notes through $(git rev-parse --short origin/main)"
+cp wiki/Release-Notes.md "$TMP"/
+git -C "$TMP" diff --stat
+git -C "$TMP" add Release-Notes.md && git -C "$TMP" commit -m "Update release notes through $(git rev-parse --short origin/main)"
 git -C "$TMP" push
 ```
 
