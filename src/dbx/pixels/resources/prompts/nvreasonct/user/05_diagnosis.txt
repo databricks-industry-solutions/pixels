@@ -1,0 +1,3 @@
+# Most likely diagnosis (about 15 s).
+
+What is the most likely diagnosis based on this CT, and what are the main differential diagnoses?

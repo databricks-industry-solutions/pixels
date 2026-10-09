@@ -1,0 +1,3 @@
+# Structured chest CT report: findings by organ system and an impression (about 30 s).
+
+Write a structured chest CT report.

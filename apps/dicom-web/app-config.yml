@@ -11,6 +11,16 @@ env:
   - name: "MONAI_SERVING_ENDPOINT"
     valueFrom: "serving_endpoint"
 
+  # ── VLM analyzer ────────────────────────────────────────────────────────────
+  # 2D vision-language model for the viewport screenshot (non-CT / single images)
+  - name: "VLM_MODEL"
+    value: "{VLM_MODEL}"
+  # NV-Reason-CT for 3D CT series (block removed by deploy-viewer when absent)
+  # >>> nvreasonct
+  - name: "NVREASONCT_SERVING_ENDPOINT"
+    valueFrom: "nvreasonct_endpoint"
+  # <<< nvreasonct
+
   # ── OHIF static viewer assets ────────────────────────────────────────────────
   - name: "OHIF_STATIC_DIR"
     value: "{OHIF_VOLUME_PATH}"

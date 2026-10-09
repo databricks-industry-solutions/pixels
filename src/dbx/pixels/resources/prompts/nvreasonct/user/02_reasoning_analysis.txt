@@ -1,0 +1,3 @@
+# Step-by-step reasoning through the chest CT, organ by organ (about 60 s).
+
+Provide a full reasoning analysis of this chest CT.
