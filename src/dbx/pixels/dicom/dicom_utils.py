@@ -2,6 +2,7 @@ import base64
 import copy
 import io
 import os
+from datetime import datetime, timezone
 
 import numpy as np
 import pydicom
@@ -11,6 +12,13 @@ from pydicom import Dataset
 from dbx.pixels.logging import LoggerProvider
 
 logger = LoggerProvider()
+
+
+def get_current_datetime():
+# Get the current UTC time
+    now_utc = datetime.now(timezone.utc)
+    time_string = now_utc.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    return time_string
 
 
 def cloud_open(path: str, anon: bool = False):
@@ -40,6 +48,7 @@ def check_pixel_data(ds: Dataset) -> Dataset | None:
     """
     try:
         a = ds.pixel_array
+        # shape is (num_frames, pixel_rows, pixel_cols, optional_color_channels)
         return a
     except AttributeError as e:
         logger.error(f"AttributeError: {e}. pixel_array does not exist in ds")

@@ -34,6 +34,7 @@ class DicomPhiPipeline(Pipeline):
         temperature: float = 0.0,
         num_output_tokens: int = 200,
         max_width: int = 768,
+        **kwargs
     ):
         self.output_dir = output_dir
         self.redact_even_if_undetected = redact_even_if_undetected
@@ -59,6 +60,7 @@ class DicomPhiPipeline(Pipeline):
                 inputCol="filtered",
                 outputCol=self.outputCol,
                 output_dir=self.output_dir,
+                **kwargs
             )
             stages = [self.detector, self.filterTransformer, self.redactor]
 
@@ -68,6 +70,7 @@ class DicomPhiPipeline(Pipeline):
                 inputCol=self.inputCol,
                 outputCol=self.outputCol,
                 output_dir=self.output_dir,
+                **kwargs
             )
             stages = [self.detector, self.redactor]
 
