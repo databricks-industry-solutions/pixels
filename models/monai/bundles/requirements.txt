@@ -13,7 +13,7 @@ highdicom==0.26.1
 pynetdicom==2.0.2
 pynrrd==1.0.0
 python-dotenv==1.0.1
-python-multipart==0.0.27
+python-multipart==0.0.31
 requests-toolbelt==1.0.0
 schedule==1.2.1
 shapely==2.0.4
