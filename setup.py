@@ -96,7 +96,7 @@ setup(
             "pdoc==15.0.1",
             "pre-commit==4.1.0",
             "coverage[toml]==7.6.10",
-            "pytest==8.3.4",
+            "pytest==9.0.3",
             "pytest-cov==4.1.0",
             "pytest-mock==3.14.0",
             "build==1.5.0",
