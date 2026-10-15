@@ -27,6 +27,7 @@ Architecture:
 from __future__ import annotations
 
 import base64
+import re
 from dataclasses import dataclass
 from typing import Iterator, List, Optional
 
@@ -51,6 +52,36 @@ DEFAULT_SYSTEM_PROMPT = (
     "If there's no PHI detected, return 'No PHI' and nothing else. "
     "Answer concisely as requested without explanations."
 )
+
+
+# Artifacts some endpoints append to an answer: special tokens like <|end_of_text|>,
+# and XML-style blocks like <budget:token_budget>199969</budget:token_budget>.
+_SPECIAL_TOKEN_RE = re.compile(r"<\|[^|<>]*\|>")
+_TAG_BLOCK_RE = re.compile(r"<([A-Za-z][\w:.-]*)\b[^<>]*>.*?</\1\s*>", re.DOTALL)
+_TAG_RE = re.compile(r"</?[A-Za-z][\w:.-]*\b[^<>]*/?>")
+_ENTITY_SPLIT_RE = re.compile(r"[|\r\n]+")
+_ENTITY_STRIP_CHARS = " \t\r\n'\"`"
+
+
+def _parse_phi_response(content: Optional[str]) -> List[str]:
+    """Parse the VLM's pipe-separated PHI answer into a clean list of entities.
+
+    Removes endpoint artifacts before splitting: special tokens such as
+    ``<|end_of_text|>`` (whose ``|`` characters would otherwise produce bogus entities
+    like ``'<'`` and ``'end_of_text'``) and XML-style tags with their contents. Splits on
+    ``|`` and on line breaks (the prompt asks for a single line), trims whitespace and
+    surrounding quotes from each entity, and drops empty entries. ``'No PHI'`` (any case,
+    optionally quoted) yields ``[]``.
+    """
+    if not content:
+        return []
+    text = _SPECIAL_TOKEN_RE.sub("", content)
+    text = _TAG_BLOCK_RE.sub("", text)
+    text = _TAG_RE.sub("", text).strip(_ENTITY_STRIP_CHARS)
+    if text.lower() == "no phi":
+        return []
+    entities = (e.strip(_ENTITY_STRIP_CHARS) for e in _ENTITY_SPLIT_RE.split(text))
+    return [e for e in entities if e]
 
 
 @dataclass
@@ -160,13 +191,7 @@ def _make_wsi_phi_detector_udf(
                     )
 
                     # --- 3. Parse response ---
-                    content = response.choices[0].message.content
-                    if "|" in content:
-                        phi_list = content.split("|")
-                    elif content.strip().lower() == "no phi":
-                        phi_list = []
-                    else:
-                        phi_list = [content]
+                    phi_list = _parse_phi_response(response.choices[0].message.content)
 
                     results.append(
                         VlmResult(

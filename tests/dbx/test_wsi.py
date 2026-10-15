@@ -1,16 +1,23 @@
 """Tests for dbx.pixels.wsi — Unified WSI handler.
 
-Runs against real SVS and TIFF files in UC Volumes:
-- SVS: /Volumes/hls_radiology_east/orthanc_demo/raw_images/Aperio/
-- TIFF: /Volumes/hls_radiology_east/orthanc_demo/raw_images/Generic-TIFF/
-        /Volumes/hls_radiology_east/orthanc_demo/raw_images/Philips-TIFF/
-        /Volumes/hls_radiology_east/osuwmc/sample/
+Runs against real SVS and TIFF files. Point the tests at your sample folders with
+environment variables (local paths or UC Volume paths):
 
-Requires: openslide-python, openslide-bin, tifffile
+- PIXELS_WSI_SVS_DIR:   folder containing .svs files
+- PIXELS_WSI_TIFF_DIRS: comma-separated folder(s) containing .tif/.tiff files
 
-Usage (from project root):
-    %pip install openslide-python openslide-bin tifffile imagecodecs -q
-    pytest tests/dbx/test_wsi.py -v
+Tests that need sample files are skipped when these are unset or the folders are empty.
+Public sample slides: https://openslide.cs.cmu.edu/download/openslide-testdata/
+
+Requires: openslide-python, openslide-bin, tifffile (the `wsi` extra)
+
+Usage (from project root). These tests don't need Spark or a workspace, so skip the
+repo-level conftest (it opens a Databricks Connect session) with ``--noconftest``, and use
+``--import-mode=append`` so ``tests/dbx`` doesn't shadow the ``dbx`` package in ``src/``:
+
+    pip install -e '.[wsi]' pytest
+    PIXELS_WSI_SVS_DIR=/path/to/svs PIXELS_WSI_TIFF_DIRS=/path/to/tiff \
+        pytest tests/dbx/test_wsi.py --noconftest --import-mode=append -v
 """
 
 import json
@@ -27,15 +34,11 @@ if SRC_PATH not in sys.path:
 
 
 # ---------------------------------------------------------------------------
-# Test fixtures: real file paths from UC Volumes
+# Test fixtures: sample file folders, configured via environment variables
 # ---------------------------------------------------------------------------
 
-SVS_DIR = "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Aperio"
-TIFF_DIRS = [
-    "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Generic-TIFF",
-    "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Philips-TIFF",
-    "/Volumes/hls_radiology_east/osuwmc/sample",
-]
+SVS_DIR = os.environ.get("PIXELS_WSI_SVS_DIR", "")
+TIFF_DIRS = [d.strip() for d in os.environ.get("PIXELS_WSI_TIFF_DIRS", "").split(",") if d.strip()]
 
 
 def _discover_files(directory: str, extensions: tuple) -> list[str]:
@@ -336,3 +339,71 @@ class TestConstants:
 
         assert WSICatalog is not None
         assert WSIMetaExtractor is not None
+
+
+# ---------------------------------------------------------------------------
+# Test: VLM PHI response parsing (no LLM call, no sample files)
+# ---------------------------------------------------------------------------
+
+
+class TestParsePhiResponse:
+    """Verify the VLM answer is parsed into clean PHI entities."""
+
+    @staticmethod
+    def _parse(content):
+        from dbx.pixels.wsi.wsi_vlm_phi_detector import _parse_phi_response
+
+        return _parse_phi_response(content)
+
+    def test_pipe_separated(self):
+        assert self._parse("JANE Q. SAMPLE|03/14/1962|4471923") == [
+            "JANE Q. SAMPLE",
+            "03/14/1962",
+            "4471923",
+        ]
+
+    def test_strips_special_tokens(self):
+        # Observed from a real endpoint: the end-of-text token's pipes leaked into the split.
+        content = "JANE Q. SAMPLE|03/14/1962|ST. EXAMPLE GENERAL HOSPITAL\n<|end_of_text|>"
+        assert self._parse(content) == [
+            "JANE Q. SAMPLE",
+            "03/14/1962",
+            "ST. EXAMPLE GENERAL HOSPITAL",
+        ]
+
+    def test_strips_xml_style_tags(self):
+        # Also observed from a real endpoint, appended after a line break.
+        content = "J. SAMPLE|4471923\n<budget:token_budget>199969</budget:token_budget>"
+        assert self._parse(content) == ["J. SAMPLE", "4471923"]
+        assert self._parse("MRN 4471923<br/>") == ["MRN 4471923"]
+
+    def test_splits_on_line_breaks(self):
+        assert self._parse("John Smith\n04-31-1954\r\n123 Drury Lane") == [
+            "John Smith",
+            "04-31-1954",
+            "123 Drury Lane",
+        ]
+
+    def test_keeps_angle_brackets_that_are_not_tags(self):
+        assert self._parse("Age <90|John Smith") == ["Age <90", "John Smith"]
+
+    def test_strips_quotes_and_whitespace(self):
+        assert self._parse("'John Smith' | '04-31-1954' |\"123 Drury Lane\"") == [
+            "John Smith",
+            "04-31-1954",
+            "123 Drury Lane",
+        ]
+
+    def test_drops_empty_entries(self):
+        assert self._parse("|John Smith||  |") == ["John Smith"]
+
+    def test_no_phi(self):
+        assert self._parse("No PHI") == []
+        assert self._parse("'no phi'<|eot_id|>") == []
+
+    def test_single_entity_without_pipe(self):
+        assert self._parse("MRN 4471923") == ["MRN 4471923"]
+
+    def test_empty_or_none(self):
+        assert self._parse("") == []
+        assert self._parse(None) == []

@@ -34,8 +34,8 @@ class WSICatalog(Catalog):
 
     Args:
         spark: Active SparkSession.
-        table: Fully qualified UC table name (e.g. ``dmoore.wsi.object_catalog``).
-        volume: Fully qualified UC volume name (e.g. ``dmoore.wsi.wsi_volume``).
+        table: Fully qualified UC table name (e.g. ``main.pixels.wsi_object_catalog``).
+        volume: Fully qualified UC volume name (e.g. ``main.pixels.pixels_volume``).
     """
 
     def __init__(self, spark, table: str, volume: str = None):

@@ -33,17 +33,15 @@
 
 # DBTITLE 1,Install dependencies
 # MAGIC %md
-# MAGIC WSI deps come from the `wsi` extra defined in `setup.py` — single source of truth.
-# MAGIC The `[wsi]` extra (openslide-python, openslide-bin, tifffile) installs cleanly on
-# MAGIC serverless. Only add `[wsi,wsi-codecs]` if you need to DECODE compressed generic
-# MAGIC TIFFs (imagecodecs) — it is NOT needed for OpenSlide formats or metadata extraction.
-# MAGIC On a released version: `%pip install databricks-pixels[wsi]`. On this branch (the
-# MAGIC `[wsi]` extra isn't on PyPI yet), install from the repo root instead (the folder
-# MAGIC containing `setup.py`), e.g. `%pip install "/Workspace/<path-to-pixels-repo>[wsi]"`.
+# MAGIC This notebook loads the Pixels code from this repo's `src/` folder (next cell), so it
+# MAGIC only needs the WSI libraries. These match the `wsi` extra in `setup.py` — keep them in
+# MAGIC sync. All three install cleanly on serverless. Add `imagecodecs` (the `wsi-codecs`
+# MAGIC extra) only if you need to decode compressed generic TIFFs; OpenSlide formats and
+# MAGIC metadata extraction don't need it.
 
 # COMMAND ----------
 
-# MAGIC %pip install databricks-pixels[wsi] -q
+# MAGIC %pip install openslide-python openslide-bin tifffile -q
 
 # COMMAND ----------
 
@@ -68,20 +66,25 @@ else:
 # COMMAND ----------
 
 # DBTITLE 1,Configuration
-# --- Source paths (all UC Volume locations with WSI files) ---
-SOURCE_PATHS = [
-    "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Aperio",
-    "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Generic-TIFF",
-    "/Volumes/hls_radiology_east/orthanc_demo/raw_images/Philips-TIFF",
-    "/Volumes/hls_radiology_east/osuwmc/sample",
-    "/Volumes/hls_radiology_east/jsl/samples",
-]
+# Set these with the widgets at the top of the notebook (or as job parameters).
+# Defaults match the bundle defaults in databricks.yml (catalog=main, schema=pixels).
+dbutils.widgets.text(
+    "table", "main.pixels.wsi_object_catalog", label="1.0 Catalog.Schema.Table for WSI metadata"
+)
+dbutils.widgets.text(
+    "volume", "main.pixels.pixels_volume", label="2.0 Catalog.Schema.Volume (checkpoints, scratch)"
+)
+dbutils.widgets.text(
+    "source_paths",
+    "/Volumes/main/pixels/pixels_volume/wsi",
+    label="3.0 Source folder(s) with WSI files, comma-separated",
+)
 
-# --- Target Delta table and volume ---
-TABLE  = "dmoore.wsi.object_catalog"
-VOLUME = "dmoore.wsi.wsi_volume"
+TABLE = dbutils.widgets.get("table").strip()
+VOLUME = dbutils.widgets.get("volume").strip()
+SOURCE_PATHS = [p.strip() for p in dbutils.widgets.get("source_paths").split(",") if p.strip()]
 
-print(f"Source paths: {len(SOURCE_PATHS)}")
+print(f"Source paths: {SOURCE_PATHS}")
 print(f"Target table: {TABLE}")
 print(f"Volume:       {VOLUME}")
 
@@ -144,31 +147,33 @@ print(f"  Rows: {spark.table(TABLE).count()}")
 # COMMAND ----------
 
 # DBTITLE 1,Explore metadata — vendor breakdown
-# MAGIC %sql
-# MAGIC -- Vendor breakdown from extracted metadata
-# MAGIC SELECT 
-# MAGIC   meta:_wsi_vendor::STRING AS vendor,
-# MAGIC   meta:_wsi_format::STRING AS format,
-# MAGIC   meta:_wsi_backend::STRING AS backend,
-# MAGIC   COUNT(*) AS file_count,
-# MAGIC   AVG(meta:_wsi_width::INT) AS avg_width,
-# MAGIC   AVG(meta:_wsi_height::INT) AS avg_height,
-# MAGIC   AVG(meta:_wsi_mpp_x::DOUBLE) AS avg_mpp_x
-# MAGIC FROM dmoore.wsi.object_catalog
-# MAGIC GROUP BY 1, 2, 3
-# MAGIC ORDER BY file_count DESC
+# Vendor breakdown from extracted metadata
+display(spark.sql(f"""
+    SELECT
+      meta:_wsi_vendor::STRING AS vendor,
+      meta:_wsi_format::STRING AS format,
+      meta:_wsi_backend::STRING AS backend,
+      COUNT(*) AS file_count,
+      AVG(meta:_wsi_width::INT) AS avg_width,
+      AVG(meta:_wsi_height::INT) AS avg_height,
+      AVG(meta:_wsi_mpp_x::DOUBLE) AS avg_mpp_x
+    FROM {TABLE}
+    GROUP BY 1, 2, 3
+    ORDER BY file_count DESC
+"""))
 
 # COMMAND ----------
 
 # DBTITLE 1,Explore metadata — PHI exposure
-# MAGIC %sql
-# MAGIC -- PHI tag exposure summary
-# MAGIC SELECT
-# MAGIC   local_path,
-# MAGIC   meta:_wsi_vendor::STRING AS vendor,
-# MAGIC   meta:_wsi_has_label::BOOLEAN AS has_label,
-# MAGIC   meta:_wsi_has_macro::BOOLEAN AS has_macro,
-# MAGIC   SIZE(CAST(meta:phi_tag_report AS ARRAY<STRING>)) AS phi_tag_count
-# MAGIC FROM dmoore.wsi.object_catalog
-# MAGIC WHERE SIZE(CAST(meta:phi_tag_report AS ARRAY<STRING>)) > 0
-# MAGIC ORDER BY phi_tag_count DESC
+# PHI tag exposure summary
+display(spark.sql(f"""
+    SELECT
+      local_path,
+      meta:_wsi_vendor::STRING AS vendor,
+      meta:_wsi_has_label::BOOLEAN AS has_label,
+      meta:_wsi_has_macro::BOOLEAN AS has_macro,
+      SIZE(CAST(meta:phi_tag_report AS ARRAY<STRING>)) AS phi_tag_count
+    FROM {TABLE}
+    WHERE SIZE(CAST(meta:phi_tag_report AS ARRAY<STRING>)) > 0
+    ORDER BY phi_tag_count DESC
+"""))
