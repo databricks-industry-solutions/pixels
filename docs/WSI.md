@@ -213,10 +213,15 @@ TIFFs before running the tests.
 - **Not part of the bundle install.** The install job doesn't create a WSI
   table or ingest sample slides, and WSI metadata isn't synced to Lakebase.
 - **Re-running in the same session can miss new files.** See
-  [Re-running after adding slides](#re-running-after-adding-slides). Streaming
-  mode (`streaming=True`) is designed for folders that keep receiving files,
-  but hasn't been tested with `WSICatalog` yet (it scans once per extension and
-  unions the results).
+  [Re-running after adding slides](#re-running-after-adding-slides). For
+  folders that keep receiving files, use streaming mode (`streaming=True`),
+  which records processed files in a checkpoint and picks up only new ones on
+  each run (tested: a second run in a new session wrote only the one added
+  slide). Two caveats at scale: `WSICatalog` runs one Auto Loader source per
+  file extension (10 in total), so each trigger lists the source folder 10
+  times; and the `dropDuplicates(["path"])` step keeps a de-duplication state
+  that grows with every file seen. Managed file events
+  (`useManagedFileEvents=True`) avoid the repeated listing on large folders.
 - **Microns per pixel can be wrong for generic TIFFs.** The value comes from the
   file's own TIFF resolution tags, which some converters fill with placeholders.
   For example, OpenSlide's `CMU-1.tiff` sample reports 1000 µm/px because it
