@@ -94,6 +94,7 @@ QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
 - [`docs/DICOMWEB.md`](docs/DICOMWEB.md) — DICOMweb (QIDO/WADO/STOW) architecture, caching tiers, metrics
 - [`docs/NIFTI_OVERLAY.md`](docs/NIFTI_OVERLAY.md) — Optional NIfTI segmentation overlay feature (OHIF extension, gateway routes, Delta schema, deployment)
+- [`docs/WSI.md`](docs/WSI.md) — Whole slide image (digital pathology) ingestion, metadata, PHI detection, and known limitations
 
 The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
 workspace workflows. For production DICOMweb deployments with the split

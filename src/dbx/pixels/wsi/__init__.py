@@ -11,14 +11,17 @@ Supports all OpenSlide-recognized WSI formats:
 - Ventana BIF / TIF
 - Generic TIFF
 
-Install alongside ``databricks-pixels`` and extend the ``dbx.pixels`` namespace::
+Install the WSI dependencies with the ``wsi`` extra (``pip install databricks-pixels[wsi]``),
+or, when working from a checkout of this repo, add its ``src/`` folder to ``sys.path``::
 
     import sys
-    SRC_PATH = "/Workspace/Users/<you>/pixels-tiff/src"
+    SRC_PATH = "/Workspace/<path-to-pixels-repo>/src"
     if SRC_PATH not in sys.path:
         sys.path.insert(0, SRC_PATH)
 
     from dbx.pixels.wsi import WSICatalog, WSIMetaExtractor, WSIVLMPhiDetector, wsi_to_image
+
+See ``docs/WSI.md`` for the ingestion guide and known limitations.
 """
 
 from dbx.pixels.wsi.catalog import WSICatalog
