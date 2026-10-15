@@ -20,6 +20,17 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Note — re-attach before re-running
+# MAGIC %md
+# MAGIC > **Re-attach before re-running.** If you add new slides to a source folder and then re-run
+# MAGIC > this notebook in the *same* attached session, the batch `catalog()` scan can reuse the
+# MAGIC > session's earlier file listing and silently miss the new files (no error is raised).
+# MAGIC > Detach and re-attach the notebook (or run it as a job, which always gets a fresh session)
+# MAGIC > before re-running. For folders that keep receiving new files, use `streaming=True`
+# MAGIC > (Auto Loader), which tracks newly arrived files on its own.
+
+# COMMAND ----------
+
 # DBTITLE 1,Install dependencies
 # MAGIC %md
 # MAGIC WSI deps come from the `wsi` extra defined in `setup.py` — single source of truth.
