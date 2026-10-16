@@ -60,8 +60,9 @@ class Catalog:
             volume - The volume that will be used to store the catalog checkpoints and unzipped files.
             cluster_by - Liquid-clustering key for the catalog table. One of:
                 "auto" (default) - cluster by ``study_uid`` when that column is present
-                    (DICOM), otherwise write without clustering (e.g. WSI, which has
-                    no study/series hierarchy);
+                    (DICOM), else by ``case_id`` when present (whole slide images, see
+                    ``WSIMetaExtractor``), otherwise write without clustering (e.g. raw
+                    ``catalog()`` output);
                 a column name or list of column names - cluster by those columns
                     (missing columns are warned about and skipped);
                 None/False/"" - never cluster.
@@ -354,13 +355,17 @@ class Catalog:
 
         See :meth:`__init__` for the accepted ``cluster_by`` values. Columns that
         are not present in ``df`` are dropped (with a warning) so a catalog that
-        lacks ``study_uid`` (e.g. WSI) does not fail the write.
+        lacks the clustering column (e.g. raw ``catalog()`` output) does not fail
+        the write.
         """
         setting = self._cluster_by
         if not setting:
             return []
         if setting == "auto":
-            return ["study_uid"] if "study_uid" in df.columns else []
+            for col in ("study_uid", "case_id"):
+                if col in df.columns:
+                    return [col]
+            return []
         cols = [setting] if isinstance(setting, str) else list(setting)
         present = [c for c in cols if c in df.columns]
         missing = [c for c in cols if c not in df.columns]

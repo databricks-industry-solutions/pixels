@@ -26,7 +26,7 @@ catalog.save(meta_df, mode="overwrite")                                # persist
 | Step | Class | What it does |
 |------|-------|--------------|
 | Discover | `WSICatalog.catalog()` | Lists slide files of every supported extension (any case), one row per file |
-| Extract | `WSIMetaExtractor` | Reads each slide's header with OpenSlide (or tifffile) and adds `meta` |
+| Extract | `WSIMetaExtractor` | Reads each slide's header with OpenSlide (or tifffile) and adds `meta` and `case_id` |
 | Persist | `WSICatalog.save()` | Writes to Delta. See [Clustering](#clustering) |
 | Detect PHI (optional) | `WSIVLMPhiDetector` | Sends label, macro and tissue images to a vision model and returns the PHI it finds |
 
@@ -129,7 +129,7 @@ For folders that keep receiving slides, use `streaming=True`. The checkpoint rec
 
 ## What gets written
 
-One row per slide, with the standard catalog columns (see [Output columns](Ingestion#output-columns)) plus `meta`. `modificationTime` is the file's last-modified time on the volume, not when the row was written. Use `DESCRIBE HISTORY` on the table to see write times.
+One row per slide, with the standard catalog columns (see [Output columns](Ingestion#output-columns)) plus `meta` and `case_id` (see [Clustering](#clustering)). `modificationTime` is the file's last-modified time on the volume, not when the row was written. Use `DESCRIBE HISTORY` on the table to see write times.
 
 `meta` holds every property the reader exposes (for OpenSlide, vendor keys such as `aperio.*` and `hamamatsu.*`), plus these derived fields:
 
@@ -167,24 +167,31 @@ WHERE meta:error IS NOT NULL;
 
 ### Clustering
 
-`WSICatalog` and `Catalog` take a `cluster_by` argument, `"auto"` by default (see [Ingestion](Ingestion#constructor)). With `"auto"`, a table is liquid-clustered by `study_uid` when that column exists (DICOM) and written without clustering when it doesn't. WSI rows have no `study_uid`, so WSI tables aren't clustered by default.
+`WSIMetaExtractor` adds a **`case_id`** column, the WSI counterpart of DICOM's `study_uid`, so a case's slides can be stored together:
 
-Native WSI formats have no equivalent of a study key (see [Known limitations](#known-limitations)), but labs often encode the case or accession number in folder or file names. To cluster a case's slides together, add that key as a column and pass it to `cluster_by`:
+1. the slide **barcode**, when the file has one (`openslide.barcode`, e.g. Philips; labs often encode the accession number in it), otherwise
+2. the name of the **folder that contains the slide**, so `/Volumes/…/S26-10457/A2-1.svs` gets `S26-10457`.
+
+The folder rule assumes slides are stored in a folder per case. Slides from many cases in one flat folder all get that folder's name. Files that can't be read still get a `case_id` from their folder.
+
+`WSICatalog` and `Catalog` take a `cluster_by` argument, `"auto"` by default (see [Ingestion](Ingestion#constructor)). `"auto"` clusters by `study_uid` when the column exists (DICOM), else by `case_id` (WSI), else not at all. Pass a column name or list to choose other columns, or `None` to disable clustering.
+
+To derive the case differently, for example with your lab's naming pattern, replace the column before saving:
 
 ```python
 from pyspark.sql import functions as F
 from dbx.pixels.wsi import WSICatalog, WSIMetaExtractor
 
-catalog = WSICatalog(spark, table="main.pixels.wsi_object_catalog", cluster_by=["case_id"])
+catalog = WSICatalog(spark, table="main.pixels.wsi_object_catalog")
 df = WSIMetaExtractor(catalog).transform(catalog.catalog("/Volumes/main/pixels/pixels_volume/wsi"))
 
-# Case number from the path, e.g. .../S26-10457/A2-1.svs -> S26-10457 (null when there's no match)
-df = df.withColumn("case_id", F.expr(r"nullif(regexp_extract(path, '/(S[0-9]{2}-[0-9]+)/', 1), '')"))
+# Case number anywhere in the path, e.g. .../2026/S26-10457_A2-1.svs -> S26-10457
+df = df.withColumn("case_id", F.expr(r"nullif(regexp_extract(path, '(S[0-9]{2}-[0-9]+)', 1), '')"))
 
 catalog.save(df, mode="overwrite")
 ```
 
-Change the pattern to match your lab's naming. Clustering columns are set when the table is created; use `mode="overwrite"` (or `ALTER TABLE … CLUSTER BY`) to change them on an existing table. Case and accession numbers are PHI, so treat the column accordingly.
+Clustering columns are set when the table is created; use `mode="overwrite"` (or `ALTER TABLE … CLUSTER BY`) to change them on an existing table. Case and accession numbers are PHI, so treat `case_id` accordingly.
 
 ---
 
@@ -259,4 +266,4 @@ Measured on Databricks serverless with public OpenSlide test slides read from a 
 - **Missing label or macro images fall back to the tissue thumbnail.** `wsi_to_image(series="label")` returns the tissue thumbnail, with a warning, when a slide has no label. Check `_wsi_has_label` / `_wsi_has_macro` first, as the PHI notebook does.
 - **Compressed generic TIFF pixels need `imagecodecs`**, which may not install on serverless.
 - **Slow tissue thumbnails for large NDPI slides.** See [Large slides](#large-slides).
-- **No case or study key.** Native WSI formats have no equivalent of DICOM's `study_uid`. The closest fields are the slide barcode (`openslide.barcode`, Philips) and Aperio's `ImageID` and `Filename`; NDPI, Ventana and generic TIFF carry none. WSI tables are therefore not clustered by default.
+- **No case or study key in the files.** Native WSI formats have no equivalent of DICOM's `study_uid`; only some carry a slide barcode (Philips does; NDPI, Ventana, Aperio and generic TIFF don't). `case_id` therefore falls back to the slide's folder, which only identifies the case when slides are stored in a folder per case. See [Clustering](#clustering).

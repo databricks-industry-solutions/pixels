@@ -21,11 +21,11 @@ or, when working from a checkout of this repo, add its ``src/`` folder to ``sys.
 
     from dbx.pixels.wsi import WSICatalog, WSIMetaExtractor, WSIVLMPhiDetector, wsi_to_image
 
-See ``docs/WSI.md`` for the ingestion guide and known limitations.
+See the Whole Slide Imaging wiki page (``wiki/Whole-Slide-Imaging.md``) for the guide.
 """
 
 from dbx.pixels.wsi.catalog import WSICatalog
-from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor, derive_case_id
 from dbx.pixels.wsi.wsi_phi_tags import (
     LARGE_TAGS,
     NOT_PHI_TAGS,
@@ -53,6 +53,7 @@ __all__ = [
     "wsi_to_image",
     "wsi_detect_format",
     "wsi_get_properties",
+    "derive_case_id",
     # PHI tags
     "classify_tag",
     "classify_tags",

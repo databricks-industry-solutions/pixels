@@ -48,7 +48,7 @@ catalog = Catalog(
 | `spark` | `SparkSession` | *required* | Active Spark session. |
 | `table` | `str` | `"main.pixels_solacc.object_catalog"` | Fully qualified (`catalog.schema.table`) name of the object catalog table. Related tables (`<table>_unzip`, `<table>_redaction`, …) are derived from this name. |
 | `volume` | `str` | `"main.pixels_solacc.pixels_volume"` | Fully qualified UC Volume used for checkpoints (`/checkpoints/`), unzipped files (`/unzipped/`), anonymized output (`/anonymized/`) and redacted output (`/redacted/`). If the volume doesn't exist, the constructor only logs a warning. |
-| `cluster_by` | `str`, `list[str]` or `None` | `"auto"` | Liquid-clustering columns for `save()`. `"auto"` clusters by `study_uid` when the DataFrame has that column (DICOM) and writes without clustering when it doesn't (for example raw `catalog()` output or [whole slide images](Whole-Slide-Imaging)). A column name or list clusters by those columns (missing ones are skipped with a warning); `None` never clusters. |
+| `cluster_by` | `str`, `list[str]` or `None` | `"auto"` | Liquid-clustering columns for `save()`. `"auto"` clusters by `study_uid` when the DataFrame has that column (DICOM), else by `case_id` ([whole slide images](Whole-Slide-Imaging#clustering)), and writes without clustering when it has neither (for example raw `catalog()` output). A column name or list clusters by those columns (missing ones are skipped with a warning); `None` never clusters. |
 
 ### `init_tables()`
 
@@ -68,7 +68,7 @@ catalog_df = catalog.catalog(path, **options)
 
 It returns a DataFrame, streaming or static depending on `streaming`. Nothing is written until you call `save()`.
 
-> Pass the result through [`DicomMetaExtractor`](Metadata-Extraction) before saving DICOM. `save()` clusters the table by `study_uid`, a column only the extractor adds. Raw `catalog()` output has no `study_uid`, so with the default `cluster_by="auto"` it's saved without clustering.
+> Pass the result through [`DicomMetaExtractor`](Metadata-Extraction) before saving DICOM. `save()` clusters the table by `study_uid`, a column only the extractor adds. Raw `catalog()` output has neither `study_uid` nor `case_id`, so with the default `cluster_by="auto"` it's saved without clustering.
 
 ### General parameters (all modes)
 

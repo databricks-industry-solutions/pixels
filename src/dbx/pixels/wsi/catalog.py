@@ -49,9 +49,9 @@ class WSICatalog(Catalog):
             to ``<catalog>.<schema>.pixels_volume`` from ``table``, the volume the
             bundle creates.
         cluster_by: Liquid-clustering columns, as for :class:`Catalog`. The default
-            ``"auto"`` clusters by ``study_uid`` when present, which WSI rows don't
-            have, so WSI tables are written without clustering. Pass a column name
-            or list (for example a ``case_id`` column you add) to cluster by it.
+            ``"auto"`` clusters WSI tables by ``case_id``, the column
+            :class:`WSIMetaExtractor` adds (slide barcode, else the slide's folder).
+            Pass a column name or list to cluster by something else, or ``None``.
     """
 
     def __init__(self, spark, table: str, volume: str = None, cluster_by="auto"):

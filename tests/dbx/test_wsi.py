@@ -482,6 +482,36 @@ class TestConstants:
             ext = "." + pat.lstrip("*.")
             assert ext in SUPPORTED_EXTENSIONS, f"Pattern {pat} not in SUPPORTED_EXTENSIONS"
 
+    def test_derive_case_id(self):
+        from dbx.pixels.wsi import derive_case_id
+
+        # Barcode wins when the slide has one.
+        assert (
+            derive_case_id("/Volumes/c/s/v/S26-10457/A2-1.svs", {"openslide.barcode": "4012590"})
+            == "4012590"
+        )
+        # Otherwise the folder that contains the slide.
+        assert derive_case_id("/Volumes/c/s/v/S26-10457/A2-1.svs") == "S26-10457"
+        assert derive_case_id("dbfs:/Volumes/c/s/v/S26-10457/A2-1.svs", {}) == "S26-10457"
+        assert (
+            derive_case_id("/Volumes/c/s/v/S26-10457/A2-1.svs", {"openslide.barcode": "  "})
+            == "S26-10457"
+        )
+        # Nothing to use.
+        assert derive_case_id("slide.svs") is None
+        assert derive_case_id("/slide.svs") is None
+
+    def test_extracted_meta_includes_case_id(self, all_wsi_files):
+        from dbx.pixels.wsi import derive_case_id
+        from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
+        for f in all_wsi_files:
+            meta = json.loads(WSIMetaExtractor._process_file(f))
+            assert meta["_wsi_case_id"] == derive_case_id(f, meta), f
+        # Unreadable files still get a case_id from their folder.
+        bad = json.loads(WSIMetaExtractor._process_file("/no/such/S26-1/x.svs"))
+        assert bad.get("error") and bad["_wsi_case_id"] == "S26-1"
+
     def test_wsicatalog_accepts_cluster_by(self):
         import inspect
 
@@ -502,8 +532,10 @@ class TestConstants:
             return cat._resolve_cluster_cols(SimpleNamespace(columns=columns))
 
         wsi_cols = ["path", "local_path", "meta"]
-        assert resolve("auto", wsi_cols) == []
-        assert resolve("auto", wsi_cols + ["study_uid"]) == ["study_uid"]
+        assert resolve("auto", wsi_cols) == []  # e.g. raw catalog() output
+        assert resolve("auto", wsi_cols + ["case_id"]) == ["case_id"]  # WSI
+        assert resolve("auto", wsi_cols + ["study_uid"]) == ["study_uid"]  # DICOM
+        assert resolve("auto", wsi_cols + ["case_id", "study_uid"]) == ["study_uid"]
         assert resolve(["case_id"], wsi_cols + ["case_id"]) == ["case_id"]
         assert resolve("case_id", wsi_cols) == []  # missing -> skipped with a warning
         assert resolve(None, wsi_cols + ["study_uid"]) == []

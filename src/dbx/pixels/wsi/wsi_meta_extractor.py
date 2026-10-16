@@ -18,7 +18,7 @@ Architecture mirrors ``SVSMetaExtractor`` and ``TiffMetaExtractor``:
 - Extends ``pyspark.ml.pipeline.Transformer``
 - Implements ``_transform(df)``
 - Uses ``mapInPandas`` with ``ThreadPoolExecutor`` for concurrent I/O
-- Outputs a single ``meta`` column as a parsed VARIANT
+- Outputs a ``meta`` column (parsed VARIANT) and a top-level ``case_id`` column
 
 All derived fields (vendor, dimensions, levels, associated images, mpp,
 magnification, phi_tag_report) are merged into the properties dict before
@@ -28,6 +28,7 @@ JSON serialisation.
 from __future__ import annotations
 
 import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Iterator
 
@@ -43,6 +44,11 @@ class WSIMetaExtractor(Transformer):
     Uses ``openslide`` as the primary backend; falls back to ``tifffile``
     for files that OpenSlide cannot detect (plain TIFFs, OME-TIFF without
     WSI structure).
+
+    Also adds a top-level ``case_id`` column (see :func:`derive_case_id`): the
+    slide barcode when the file has one, otherwise the name of the folder that
+    contains the slide. ``Catalog``'s default ``cluster_by="auto"`` clusters the
+    table by it.
 
     Args:
         catalog:         Catalog instance (provides path/anon context).
@@ -113,6 +119,7 @@ class WSIMetaExtractor(Transformer):
                 "_wsi_has_thumbnail": "thumbnail" in associated,
                 "_wsi_associated_images": associated,
                 "_wsi_backend": "openslide",
+                "_wsi_case_id": derive_case_id(path, props),
                 "phi_tag_report": classify_tags(props),
             }
             slide.close()
@@ -120,7 +127,12 @@ class WSIMetaExtractor(Transformer):
 
         except Exception as err:
             return json.dumps(
-                {"error": str(err), "udf": "wsi_meta_extractor_openslide", "path": path}
+                {
+                    "error": str(err),
+                    "udf": "wsi_meta_extractor_openslide",
+                    "path": path,
+                    "_wsi_case_id": derive_case_id(path),
+                }
             )
 
     # ------------------------------------------------------------------
@@ -184,13 +196,19 @@ class WSIMetaExtractor(Transformer):
                     "_wsi_is_svs": tif.is_svs,
                     "_wsi_is_ndpi": getattr(tif, "is_ndpi", False),
                     "_wsi_series": series_info,
+                    "_wsi_case_id": derive_case_id(path, tags),
                     "phi_tag_report": classify_tags(tags),
                 }
                 return json.dumps(meta, default=str)
 
         except Exception as err:
             return json.dumps(
-                {"error": str(err), "udf": "wsi_meta_extractor_tifffile", "path": path}
+                {
+                    "error": str(err),
+                    "udf": "wsi_meta_extractor_tifffile",
+                    "path": path,
+                    "_wsi_case_id": derive_case_id(path),
+                }
             )
 
     # ------------------------------------------------------------------
@@ -256,13 +274,35 @@ class WSIMetaExtractor(Transformer):
                 self.outputCol,
                 expr(f"parse_json(`{self.outputCol}`)"),
             )
+            case_id = f"`{self.outputCol}`:_wsi_case_id::string"
+        else:
+            case_id = f"get_json_object(`{self.outputCol}`, '$._wsi_case_id')"
 
-        return df
+        # Top-level grouping key, the WSI counterpart of DICOM's study_uid
+        return df.withColumn("case_id", expr(case_id))
 
 
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+
+
+def derive_case_id(path: str, properties: dict = None):
+    """Case identifier for a slide, used to group a case's slides together.
+
+    Uses the slide barcode when the file has one (``openslide.barcode``; labs often
+    encode the accession number in it), otherwise the name of the folder that
+    contains the slide, so ``.../S26-10457/A2-1.svs`` gives ``S26-10457``. Returns
+    None when neither is available. The folder rule assumes slides are stored in a
+    folder per case.
+
+    Both sources usually carry the accession number, which is PHI.
+    """
+    barcode = str((properties or {}).get("openslide.barcode") or "").strip()
+    if barcode:
+        return barcode
+    folder = os.path.basename(os.path.dirname(str(path).rstrip("/")))
+    return folder or None
 
 
 def _detect_format_name(path: str, vendor: str) -> str:
