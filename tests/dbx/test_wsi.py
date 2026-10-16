@@ -1,13 +1,15 @@
 """Tests for dbx.pixels.wsi — Unified WSI handler.
 
-Runs against real SVS and TIFF files. Point the tests at your sample folders with
-environment variables (local paths or UC Volume paths):
+Runs against real SVS and TIFF files. By default the tests prepare their own samples in a
+temporary folder: they download one small public Aperio slide (CMU-1-Small-Region.svs,
+1.8 MB, from the OpenSlide test data) and generate two TIFFs (a plain one for the tifffile
+fallback and a tiled pyramid that OpenSlide reads as generic-tiff). If the download isn't
+possible (no network), the SVS-based tests skip.
+
+To use your own slides instead, set (local paths or UC Volume paths):
 
 - PIXELS_WSI_SVS_DIR:   folder containing .svs files
 - PIXELS_WSI_TIFF_DIRS: comma-separated folder(s) containing .tif/.tiff files
-
-Tests that need sample files are skipped when these are unset or the folders are empty.
-Public sample slides: https://openslide.cs.cmu.edu/download/openslide-testdata/
 
 Requires: openslide-python, openslide-bin, tifffile (the `wsi` extra)
 
@@ -16,13 +18,13 @@ repo-level conftest (it opens a Databricks Connect session) with ``--noconftest`
 ``--import-mode=append`` so ``tests/dbx`` doesn't shadow the ``dbx`` package in ``src/``:
 
     pip install -e '.[wsi]' pytest
-    PIXELS_WSI_SVS_DIR=/path/to/svs PIXELS_WSI_TIFF_DIRS=/path/to/tiff \
-        pytest tests/dbx/test_wsi.py --noconftest --import-mode=append -v
+    pytest tests/dbx/test_wsi.py --noconftest --import-mode=append -v
 """
 
 import json
 import os
 import sys
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -34,11 +36,67 @@ if SRC_PATH not in sys.path:
 
 
 # ---------------------------------------------------------------------------
-# Test fixtures: sample file folders, configured via environment variables
+# Test fixtures: sample files (your folders via env vars, or generated samples)
 # ---------------------------------------------------------------------------
 
 SVS_DIR = os.environ.get("PIXELS_WSI_SVS_DIR", "")
 TIFF_DIRS = [d.strip() for d in os.environ.get("PIXELS_WSI_TIFF_DIRS", "").split(",") if d.strip()]
+
+SAMPLE_SVS_URL = (
+    "https://openslide.cs.cmu.edu/download/openslide-testdata/Aperio/CMU-1-Small-Region.svs"
+)
+
+
+def _write_sample_tiffs(dest: Path) -> None:
+    """Write a plain multi-page TIFF (label/macro pages) and a tiled 3-level pyramid."""
+    import numpy as np
+    import tifffile
+
+    rng = np.random.default_rng(0)
+    with tifffile.TiffWriter(dest / "plain.tiff") as tw:
+        tw.write(
+            rng.integers(0, 255, (512, 512, 3), dtype=np.uint8),
+            photometric="rgb",
+            description="main",
+        )
+        tw.write(
+            rng.integers(0, 255, (64, 128, 3), dtype=np.uint8),
+            photometric="rgb",
+            description="label",
+        )
+        tw.write(
+            rng.integers(0, 255, (96, 128, 3), dtype=np.uint8),
+            photometric="rgb",
+            description="macro",
+        )
+
+    y, x = np.mgrid[0:1024, 0:1024]
+    base = np.stack([x % 256, y % 256, (x + y) // 8 % 256], axis=-1).astype(np.uint8)
+    with tifffile.TiffWriter(dest / "pyramid.tif") as tw:
+        tw.write(base, photometric="rgb", tile=(256, 256), compression="zlib")
+        for f in (2, 4):
+            tw.write(
+                np.ascontiguousarray(base[::f, ::f]),
+                photometric="rgb",
+                tile=(256, 256),
+                compression="zlib",
+                subfiletype=1,
+            )
+
+
+@pytest.fixture(scope="session")
+def generated_samples(tmp_path_factory):
+    """Folder with generated sample slides; used when the env vars aren't set."""
+    dest = tmp_path_factory.mktemp("wsi_samples")
+    try:
+        _write_sample_tiffs(dest)
+    except ImportError:
+        pass  # tifffile not installed: TIFF-based tests will skip
+    try:
+        urllib.request.urlretrieve(SAMPLE_SVS_URL, dest / "CMU-1-Small-Region.svs")
+    except Exception as exc:  # no network, proxy, host down
+        print(f"Could not download sample SVS ({exc}); SVS-based tests will skip")
+    return str(dest)
 
 
 def _discover_files(directory: str, extensions: tuple) -> list[str]:
@@ -53,22 +111,24 @@ def _discover_files(directory: str, extensions: tuple) -> list[str]:
 
 
 @pytest.fixture(scope="module")
-def svs_files():
+def svs_files(request):
     """All SVS test files."""
-    files = _discover_files(SVS_DIR, (".svs",))
+    svs_dir = SVS_DIR or request.getfixturevalue("generated_samples")
+    files = _discover_files(svs_dir, (".svs",))
     if not files:
-        pytest.skip(f"No SVS files found in {SVS_DIR}")
+        pytest.skip(f"No SVS files found in {svs_dir}")
     return files
 
 
 @pytest.fixture(scope="module")
-def tiff_files():
+def tiff_files(request):
     """All TIFF test files."""
+    tiff_dirs = TIFF_DIRS or [request.getfixturevalue("generated_samples")]
     files = []
-    for d in TIFF_DIRS:
+    for d in tiff_dirs:
         files.extend(_discover_files(d, (".tiff", ".tif")))
     if not files:
-        pytest.skip(f"No TIFF files found in {TIFF_DIRS}")
+        pytest.skip(f"No TIFF files found in {tiff_dirs}")
     return files
 
 

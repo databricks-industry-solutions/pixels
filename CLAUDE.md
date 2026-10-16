@@ -103,7 +103,7 @@ pixels/
 │   ├── INSTALL.md                  # Installation guide
 │   ├── DICOMWEB.md                 # DICOMweb API reference (QIDO/WADO/STOW)
 │   ├── NIFTI_OVERLAY.md            # NIfTI segmentation overlay architecture
-│   └── WSI.md                      # WSI ingestion guide + known limitations
+│   └── WSI.md                      # WSI overview + file inventory (guide is wiki/Whole-Slide-Imaging.md)
 │
 ├── tests/                          # pytest test suite
 │   ├── db_runner.py
