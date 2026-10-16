@@ -167,7 +167,24 @@ WHERE meta:error IS NOT NULL;
 
 ### Clustering
 
-`Catalog` takes a `cluster_by` argument, `"auto"` by default (see [Ingestion](Ingestion#constructor)). With `"auto"`, a table is liquid-clustered by `study_uid` when that column exists (DICOM) and written without clustering when it doesn't. WSI rows have no `study_uid`, so WSI tables aren't clustered unless you pass `cluster_by` a column name or list.
+`WSICatalog` and `Catalog` take a `cluster_by` argument, `"auto"` by default (see [Ingestion](Ingestion#constructor)). With `"auto"`, a table is liquid-clustered by `study_uid` when that column exists (DICOM) and written without clustering when it doesn't. WSI rows have no `study_uid`, so WSI tables aren't clustered by default.
+
+Native WSI formats have no equivalent of a study key (see [Known limitations](#known-limitations)), but labs often encode the case or accession number in folder or file names. To cluster a case's slides together, add that key as a column and pass it to `cluster_by`:
+
+```python
+from pyspark.sql import functions as F
+from dbx.pixels.wsi import WSICatalog, WSIMetaExtractor
+
+catalog = WSICatalog(spark, table="main.pixels.wsi_object_catalog", cluster_by=["case_id"])
+df = WSIMetaExtractor(catalog).transform(catalog.catalog("/Volumes/main/pixels/pixels_volume/wsi"))
+
+# Case number from the path, e.g. .../S26-10457/A2-1.svs -> S26-10457 (null when there's no match)
+df = df.withColumn("case_id", F.expr(r"nullif(regexp_extract(path, '/(S[0-9]{2}-[0-9]+)/', 1), '')"))
+
+catalog.save(df, mode="overwrite")
+```
+
+Change the pattern to match your lab's naming. Clustering columns are set when the table is created; use `mode="overwrite"` (or `ALTER TABLE … CLUSTER BY`) to change them on an existing table. Case and accession numbers are PHI, so treat the column accordingly.
 
 ---
 

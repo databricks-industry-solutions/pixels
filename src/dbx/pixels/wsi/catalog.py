@@ -48,14 +48,18 @@ class WSICatalog(Catalog):
         volume: Fully qualified UC volume for checkpoints and scratch files. Defaults
             to ``<catalog>.<schema>.pixels_volume`` from ``table``, the volume the
             bundle creates.
+        cluster_by: Liquid-clustering columns, as for :class:`Catalog`. The default
+            ``"auto"`` clusters by ``study_uid`` when present, which WSI rows don't
+            have, so WSI tables are written without clustering. Pass a column name
+            or list (for example a ``case_id`` column you add) to cluster by it.
     """
 
-    def __init__(self, spark, table: str, volume: str = None):
+    def __init__(self, spark, table: str, volume: str = None, cluster_by="auto"):
         if volume is None:
             # Same catalog.schema as the table, bundle's default volume name
             catalog_name, schema_name, _ = table.split(".")
             volume = f"{catalog_name}.{schema_name}.pixels_volume"
-        super().__init__(spark, table=table, volume=volume)
+        super().__init__(spark, table=table, volume=volume, cluster_by=cluster_by)
 
     def catalog(
         self,

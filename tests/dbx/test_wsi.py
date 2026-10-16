@@ -482,6 +482,32 @@ class TestConstants:
             ext = "." + pat.lstrip("*.")
             assert ext in SUPPORTED_EXTENSIONS, f"Pattern {pat} not in SUPPORTED_EXTENSIONS"
 
+    def test_wsicatalog_accepts_cluster_by(self):
+        import inspect
+
+        from dbx.pixels.wsi.catalog import WSICatalog
+
+        param = inspect.signature(WSICatalog.__init__).parameters["cluster_by"]
+        assert param.default == "auto"
+
+    def test_cluster_by_resolution(self):
+        """auto -> study_uid only when present; explicit columns kept if present."""
+        from types import SimpleNamespace
+
+        from dbx.pixels.catalog import Catalog
+
+        def resolve(setting, columns):
+            cat = Catalog.__new__(Catalog)  # skip __init__ (it needs a workspace)
+            cat._cluster_by = setting
+            return cat._resolve_cluster_cols(SimpleNamespace(columns=columns))
+
+        wsi_cols = ["path", "local_path", "meta"]
+        assert resolve("auto", wsi_cols) == []
+        assert resolve("auto", wsi_cols + ["study_uid"]) == ["study_uid"]
+        assert resolve(["case_id"], wsi_cols + ["case_id"]) == ["case_id"]
+        assert resolve("case_id", wsi_cols) == []  # missing -> skipped with a warning
+        assert resolve(None, wsi_cols + ["study_uid"]) == []
+
     def test_default_patterns_match_any_case(self):
         from fnmatch import fnmatchcase
 
