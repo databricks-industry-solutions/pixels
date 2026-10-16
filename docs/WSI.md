@@ -103,8 +103,14 @@ df = WSIMetaExtractor(catalog).transform(df)
 catalog.save(df, mode="overwrite")
 ```
 
+`volume` is optional; it defaults to `pixels_volume` in the table's catalog and
+schema, the volume the bundle creates.
+
 Pass `pattern="*.svs"` (or `patterns=[...]`) to `catalog()` to limit the
-extensions scanned. `WSICatalog` accepts the same options as the base
+extensions scanned. The default patterns match extensions in any case
+(`SLIDE01.SVS`, `case.Ndpi`); patterns you pass are used exactly as given.
+Errors from the scan (a missing path, no permission) are raised; an extension
+with no matching files simply adds no rows. `WSICatalog` accepts the same options as the base
 `Catalog` (`recurse`, `streaming`, trigger and Auto Loader options); see the
 `Catalog.catalog()` docstring.
 
@@ -158,8 +164,14 @@ column name or list to choose clustering columns, or `None` to disable it.
 
 Slides can carry PHI in two places:
 
-- **Metadata.** `phi_tag_report` in `meta` lists vendor keys that are PHI or
-  questionable (for example `aperio.Patient`).
+- **Metadata.** `phi_tag_report` in `meta` lists keys classified as PHI (for
+  example `aperio.Patient`) or questionable. Classification fails closed: any
+  key that isn't a known technical field (OpenSlide's own `openslide.*` keys,
+  structural TIFF tags, and listed scanner settings) is reported as
+  `QUESTIONABLE`, including vendor keys the package doesn't know and
+  `tiff.ImageDescription`, which holds the full Aperio header.
+  `scrub_image_description()` keeps only technical values in an Aperio
+  description and returns `REDACTED` for free-text descriptions.
 - **Images.** The printed label, and sometimes the macro image, can show the
   patient's name, date of birth, MRN, accession number or a barcode.
 
@@ -170,10 +182,13 @@ model serving endpoint. Widgets:
 |--------|---------|---------|
 | `table` | `main.pixels.wsi_object_catalog` | The table written by `01-ingest-wsi` |
 | `vlm_endpoint` | `databricks-claude-sonnet-4-5` | Any vision-capable serving endpoint |
+| `results_table` | `<table>_phi_results` | Delta table the scan results are written to |
 
 For each slide it scans the **label** and **macro** images (only when the
 slide has them) and the **tissue** thumbnail, and reports the PHI entities
-found per image. Foundation Model API endpoint names change as models are
+found per image. Results are written to `results_table` once and the summary
+reads from that table, so each image is sent to the model only once per run.
+Foundation Model API endpoint names change as models are
 released and retired; if the default is missing, pick another vision model
 from **Serving** in your workspace.
 
@@ -212,6 +227,8 @@ TIFFs before running the tests.
   scrubs PHI metadata, or writes de-identified copies of slides.
 - **Not part of the bundle install.** The install job doesn't create a WSI
   table or ingest sample slides, and WSI metadata isn't synced to Lakebase.
+  When WSI is added to the bundle, it should also create a dedicated WSI
+  volume; until then WSI uses the bundle's `pixels_volume`.
 - **Re-running in the same session can miss new files.** See
   [Re-running after adding slides](#re-running-after-adding-slides). For
   folders that keep receiving files, use streaming mode (`streaming=True`),

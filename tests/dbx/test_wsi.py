@@ -106,8 +106,29 @@ class TestPhiTags:
         from dbx.pixels.wsi.wsi_phi_tags import classify_tag
 
         assert classify_tag("openslide.mpp-x") == "NOT_PHI"
+        assert classify_tag("openslide.level[0].width") == "NOT_PHI"  # OpenSlide-generated
         assert classify_tag("ImageWidth") == "NOT_PHI"
-        assert classify_tag("SomeUnknownTag") == "NOT_PHI"
+        assert classify_tag("tiff.XResolution") == "NOT_PHI"
+        assert classify_tag("TileOffsets") == "NOT_PHI"
+
+    def test_classify_lens_magnification_not_phi(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        assert classify_tag("hamamatsu.SourceLens") == "NOT_PHI"
+        assert classify_tag("sakura.NominalLensMagnification") == "NOT_PHI"
+
+    def test_classify_unknown_keys_fail_closed(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        # Not listed anywhere -> flagged for review, not silently treated as safe.
+        assert classify_tag("SomeUnknownTag") == "QUESTIONABLE"
+        assert classify_tag("ventana.CaseID") == "QUESTIONABLE"
+        assert classify_tag("hamamatsu.SomeNewField") == "QUESTIONABLE"
+        # OpenSlide exposes the full Aperio header as tiff.ImageDescription.
+        assert classify_tag("tiff.ImageDescription") == "QUESTIONABLE"
+        assert classify_tag("tiff.DateTime") == "QUESTIONABLE"
+        # openslide.comment copies the description, so it stays flagged.
+        assert classify_tag("openslide.comment") == "QUESTIONABLE"
 
     def test_classify_tags_returns_only_phi_and_questionable(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tags
@@ -133,6 +154,28 @@ class TestPhiTags:
         assert "John Doe" not in scrubbed
         assert "REDACTED" in scrubbed
         assert "AppMag = 40" in scrubbed  # NOT_PHI preserved
+
+    def test_scrub_image_description_keeps_only_technical_aperio_values(self):
+        from dbx.pixels.wsi.wsi_phi_tags import scrub_image_description
+
+        desc = (
+            "Aperio Image Library v10.0.50|AppMag = 20|MPP = 0.4990|Left = 25.69"
+            "|Filename = CMU-1|User = b414003d|CaseRef = S26-10457"
+        )
+        parts = scrub_image_description(desc).split("|")
+        assert parts[0] == "Aperio Image Library v10.0.50"  # header kept
+        assert "AppMag = 20" in parts and "MPP = 0.4990" in parts and "Left = 25.69" in parts
+        # Questionable and unknown keys are redacted, not passed through.
+        assert "Filename = REDACTED" in parts
+        assert "User = REDACTED" in parts
+        assert "CaseRef = REDACTED" in parts
+
+    def test_scrub_image_description_redacts_free_text(self):
+        from dbx.pixels.wsi.wsi_phi_tags import scrub_image_description
+
+        assert scrub_image_description("Patient: John Doe DOB 1954-04-01") == "REDACTED"
+        assert scrub_image_description("") == ""
+        assert scrub_image_description(None) is None
 
     def test_supported_extensions(self):
         from dbx.pixels.wsi.wsi_phi_tags import SUPPORTED_EXTENSIONS
@@ -215,6 +258,28 @@ class TestWSIUtils:
         assert result is not None
         assert isinstance(result, bytes)
         assert result[:2] == b"\xff\xd8"  # JPEG magic bytes
+
+    def test_wsi_to_image_no_resize_uses_smallest_level(self, all_wsi_files):
+        """max_width=0 returns the smallest pyramid level, never the full-resolution slide."""
+        import base64
+        import io
+
+        import openslide
+        from PIL import Image
+
+        from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
+        checked = 0
+        for f in all_wsi_files:
+            if openslide.OpenSlide.detect_format(f) is None:
+                continue
+            with openslide.OpenSlide(f) as slide:
+                smallest = slide.level_dimensions[-1]
+            img = Image.open(io.BytesIO(base64.b64decode(wsi_to_image(f, max_width=0))))
+            assert img.size == smallest, f
+            checked += 1
+        if not checked:
+            pytest.skip("No OpenSlide-readable files available")
 
     def test_wsi_to_image_tiff(self, tiff_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
@@ -329,6 +394,18 @@ class TestConstants:
         for pat in OPENSLIDE_PATTERNS:
             ext = "." + pat.lstrip("*.")
             assert ext in SUPPORTED_EXTENSIONS, f"Pattern {pat} not in SUPPORTED_EXTENSIONS"
+
+    def test_default_patterns_match_any_case(self):
+        from fnmatch import fnmatchcase
+
+        from dbx.pixels.wsi.catalog import _DEFAULT_PATTERNS, _case_insensitive_glob
+
+        assert _case_insensitive_glob("*.svs") == "*.[sS][vV][sS]"
+        svs = _case_insensitive_glob("*.svs")
+        for name in ("slide.svs", "SLIDE01.SVS", "Case.Svs"):
+            assert fnmatchcase(name, svs), name
+        assert not fnmatchcase("slide.svsx", svs)
+        assert len(_DEFAULT_PATTERNS) == 10
 
     def test_imports(self):
         """Verify the package imports cleanly."""

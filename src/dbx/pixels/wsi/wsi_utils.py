@@ -132,9 +132,15 @@ def _wsi_openslide(
                 )
 
         # Tissue thumbnail (default)
-        # Use OpenSlide's get_thumbnail which respects the pyramid
-        thumb_size = (max_width, max_width) if max_width > 0 else slide.dimensions
-        img = slide.get_thumbnail(thumb_size)
+        if max_width > 0:
+            # get_thumbnail reads from the closest pyramid level, then downsizes
+            img = slide.get_thumbnail((max_width, max_width))
+        else:
+            # No resizing: return the smallest stored level at its native size.
+            # (get_thumbnail(slide.dimensions) would build a full-resolution image,
+            # which is tens of GB for a large slide.)
+            level = slide.level_count - 1
+            img = slide.read_region((0, 0), level, slide.level_dimensions[level])
         slide.close()
         return _pil_to_output(img, max_width=0, output_path=output_path, return_type=return_type)
 
@@ -224,7 +230,9 @@ def wsi_to_image(
     Args:
         path:        Local path to the WSI file.
         max_width:   Resize thumbnail to this width (default 768).
-                     Set to 0 to skip resize.
+                     Set to 0 to skip resizing: the tissue image is then the slide's
+                     smallest stored pyramid level at its native size (never the
+                     full-resolution slide).
         output_path: If set, also save the JPEG to this path.
         return_type: ``"str"``    — base64-encoded JPEG string (default).
                      ``"binary"`` — raw JPEG bytes.

@@ -63,12 +63,17 @@ dbutils.widgets.text(
 dbutils.widgets.text(
     "vlm_endpoint", "databricks-claude-sonnet-4-5", label="2.0 VLM serving endpoint for PHI detection"
 )
+dbutils.widgets.text(
+    "results_table", "", label="3.0 Table for PHI results (default: <table>_phi_results)"
+)
 
 TABLE = dbutils.widgets.get("table").strip()
 VLM_ENDPOINT = dbutils.widgets.get("vlm_endpoint").strip()
+RESULTS_TABLE = dbutils.widgets.get("results_table").strip() or f"{TABLE}_phi_results"
 
-print(f"Source table: {TABLE}")
-print(f"VLM endpoint: {VLM_ENDPOINT}")
+print(f"Source table:  {TABLE}")
+print(f"VLM endpoint:  {VLM_ENDPOINT}")
+print(f"Results table: {RESULTS_TABLE}")
 
 # COMMAND ----------
 
@@ -119,7 +124,13 @@ for series, series_input in series_inputs.items():
 
 phi_df = results[0].unionByName(results[1]).unionByName(results[2])
 
-print(f"Total scans: {phi_df.count()}")
+# Every Spark action on phi_df re-runs the model calls, so write the results once and
+# read them back for the display and summary below. (DataFrame caching isn't available
+# on serverless.) This also keeps a record of the scan.
+phi_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(RESULTS_TABLE)
+phi_df = spark.table(RESULTS_TABLE)
+
+print(f"Total scans: {phi_df.count()}  (saved to {RESULTS_TABLE})")
 display(phi_df.select("local_path", "vendor", "format", "series", "vlm_phi.*"))
 
 # COMMAND ----------

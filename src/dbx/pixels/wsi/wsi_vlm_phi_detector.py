@@ -237,7 +237,8 @@ class WSIVLMPhiDetector(Transformer):
                            ``"image"``  — path to a JPEG/PNG file.
                            ``"base64"`` — already base64-encoded image string.
         max_width:         Resize thumbnail width before VLM (default 768).
-                           Set to 0 to disable.
+                           Set to 0 to skip resizing (tissue uses the slide's smallest
+                           stored pyramid level at its native size).
         series:            Sub-image to extract from WSI files (default ``"label"``):
                            ``"label"``     — label associated image (rendered PHI text; recommended).
                            ``"macro"``     — macro/overview associated image.
