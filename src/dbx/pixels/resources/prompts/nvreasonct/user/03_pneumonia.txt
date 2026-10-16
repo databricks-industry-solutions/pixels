@@ -1,0 +1,3 @@
+# Yes/No question with the supporting findings (about 15 s).
+
+Is there evidence of pneumonia in this CT? Answer Yes or No, then describe the findings that support the answer.

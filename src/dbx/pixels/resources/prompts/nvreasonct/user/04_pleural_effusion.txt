@@ -1,0 +1,3 @@
+# Yes/No question, answer only (about 10 s).
+
+Is a pleural effusion present in this CT? Answer only Yes or No.

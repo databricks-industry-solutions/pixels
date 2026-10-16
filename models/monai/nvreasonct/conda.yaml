@@ -1,0 +1,36 @@
+channels:
+- conda-forge
+dependencies:
+- python=3.12.13
+- pip<=24.2
+- pip:
+  - --extra-index-url https://download.pytorch.org/whl/cu128
+  - mlflow==3.11.1
+  - torch==2.8.0+cu128
+  - torchvision==0.23.0+cu128
+  - torchaudio==2.8.0+cu128
+  - numpy>=1.24.4
+  # --- NV-Reason-CT model deps (validated via the 1xH100 smoke test) ---
+  - transformers>=4.57
+  - accelerate
+  - einops
+  - dynamic_network_architectures
+  - monai>=1.4.0
+  - huggingface_hub
+  # --- Pixels DICOMweb datastore (series_to_nifti) deps ---
+  # custom monailabel wheel ships the DatabricksClient; path resolved from the
+  # extracted vista3d archive at log time (see register-nvreasonct.py).
+  - ./artifacts/monailabel-0.8.5-py3-none-any.whl
+  - pydicom==3.0.2
+  - dicomweb-client[gcp]>=0.59.1
+  - simpleitk
+  - itk==5.4.3
+  - pynrrd>=1.0.0
+  - nibabel
+  - pydantic>=2.7.0
+  - pydantic-settings>=2.2.1
+  - python-dotenv>=1.0.1
+  - requests-toolbelt>=1.0.0
+  - databricks-sdk==0.84
+  - pylibjpeg-openjpeg==2.3.0
+name: mlflow-env

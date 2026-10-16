@@ -44,6 +44,19 @@ def get_monai_endpoint() -> str:
     return os.environ.get("MONAI_SERVING_ENDPOINT", "")
 
 
+DEFAULT_VLM_MODEL = "databricks-claude-sonnet-4-6"
+
+
+def get_nvreasonct_endpoint() -> str:
+    """Return the NV-Reason-CT serving-endpoint name (empty string if not set)."""
+    return os.environ.get("NVREASONCT_SERVING_ENDPOINT", "")
+
+
+def get_vlm_model() -> str:
+    """Return the 2D vision-language model used by the VLM analyzer."""
+    return os.environ.get("VLM_MODEL") or DEFAULT_VLM_MODEL
+
+
 def get_warehouse_id() -> str:
     """Return the Databricks SQL Warehouse ID (raises if unset)."""
     wid = os.getenv("DATABRICKS_WAREHOUSE_ID", None)

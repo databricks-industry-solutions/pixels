@@ -1,0 +1,3 @@
+# Plain-language summary for a patient (about 15 s).
+
+Summarize the findings of this chest CT in plain language for a patient.

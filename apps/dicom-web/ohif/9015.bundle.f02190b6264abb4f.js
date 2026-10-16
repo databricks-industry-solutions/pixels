@@ -12127,6 +12127,66 @@ const CornerstoneVLMViewportForm = ({
   const [showExamplePrompts, setShowExamplePrompts] = (0,react.useState)(true);
   const [showPromptDropdown, setShowPromptDropdown] = (0,react.useState)(false);
 
+  // Model selection. The backend lists the available models (GET /vlm/models); a model
+  // limited to some modalities or a minimum image count (e.g. NV-Reason-CT needs a CT
+  // volume) is greyed out when the current series doesn't fit.
+  const [vlmModels, setVlmModels] = (0,react.useState)([]);
+  const [selectedModel, setSelectedModel] = (0,react.useState)('');
+  const [showReasoning, setShowReasoning] = (0,react.useState)(false);
+  const userPickedModel = (0,react.useRef)(false);
+  const getVlmApiBase = () => {
+    const dataSource = getConfig().dataSources?.find(ds => ds.sourceName === 'databricksPixelsDicom');
+    const serverHostname = dataSource?.configuration?.serverHostname || 'http://localhost:8010';
+    return serverHostname.replace("/sqlwarehouse", "");
+  };
+  const isModelAvailable = model => {
+    if (!model) return false;
+    if (model.modalities?.length && !model.modalities.includes(imageMetadata?.modality)) return false;
+    return !model.min_images || (imageMetadata?.numberOfImages || 0) >= model.min_images;
+  };
+  (0,react.useEffect)(() => {
+    axios/* ["default"].get */.Ay.get(`${getVlmApiBase()}/vlm/models`).then(response => {
+      setVlmModels(Array.isArray(response.data) ? response.data : []);
+    }).catch(error => console.warn('VLM model list unavailable:', error));
+  }, []);
+  (0,react.useEffect)(() => {
+    if (!vlmModels.length) return;
+    if (userPickedModel.current && isModelAvailable(vlmModels.find(m => m.id === selectedModel))) return;
+    // Prefer a specialized model that fits this series, else the first available one
+    const preferred = vlmModels.find(m => m.type !== '2d' && isModelAvailable(m)) || vlmModels.find(isModelAvailable) || vlmModels[0];
+    setSelectedModel(preferred.id);
+  }, [vlmModels, imageMetadata]);
+  const selectedModelInfo = vlmModels.find(m => m.id === selectedModel);
+
+  // A served model that scales to zero takes minutes to start. Selecting it wakes it up
+  // (POST /vlm/warmup); while it starts, the dialog says so and checks again.
+  const [modelStatus, setModelStatus] = (0,react.useState)('');
+  (0,react.useEffect)(() => {
+    setModelStatus('');
+    if (!selectedModelInfo || selectedModelInfo.type === '2d') return;
+    let cancelled = false;
+    let timer;
+    const check = () => axios/* ["default"].post */.Ay.post(`${getVlmApiBase()}/vlm/warmup`, {
+      model: selectedModel
+    }).then(response => {
+      if (cancelled) return;
+      setModelStatus(response.data?.status || '');
+      if (response.data?.status === 'starting') timer = setTimeout(check, 15000);
+    }).catch(error => console.warn('VLM model warmup failed:', error));
+    check();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [selectedModel, vlmModels]);
+  const resultRef = (0,react.useRef)(null);
+  (0,react.useEffect)(() => {
+    if (analysisResult) resultRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [analysisResult]);
+
   // Resolve the active viewport's DOM element. For Cornerstone viewports the
   // OHIF state map gives us a direct reference; for non-Cornerstone viewports
   // (e.g. the DICOM ECG viewport, which renders into its own <canvas> and
@@ -12237,6 +12297,7 @@ const CornerstoneVLMViewportForm = ({
           seriesNumber: metadata.SeriesNumber,
           studyInstanceUID: metadata.StudyInstanceUID,
           seriesInstanceUID: metadata.SeriesInstanceUID,
+          numberOfImages: activeDisplaySet.instances?.length ?? activeDisplaySet.numImageFrames ?? 1,
           sopInstanceUID: metadata.SOPInstanceUID,
           sopClassUID: metadata.SOPClassUID,
           segmentationInfo: segmentationInfo,
@@ -12367,7 +12428,8 @@ const CornerstoneVLMViewportForm = ({
       setCapturedImage(imageDataUrl);
       const base64Data = imageDataUrl.split(',')[1];
       const apiPayload = {
-        model: 'databricks-claude-sonnet-4',
+        model: selectedModel || 'databricks-claude-sonnet-4',
+        show_reasoning: showReasoning && !!selectedModelInfo?.reasoning,
         prompt,
         image: base64Data,
         metadata: {
@@ -12405,8 +12467,18 @@ const CornerstoneVLMViewportForm = ({
       });
     } catch (error) {
       console.error('VLM Analysis Error:', error);
+      if (error.response) {
+        const detail = error.response.data?.detail || error.response.data;
+        setAnalysisResult(`Analysis failed (HTTP ${error.response.status}): ${(typeof detail === 'string' ? detail : JSON.stringify(detail)).slice(0, 500)}`);
+        uiNotificationService.show({
+          title: 'VLM Analyzer',
+          message: 'Analysis failed',
+          type: 'error'
+        });
+        return;
+      }
 
-      // Fallback to mock response for development
+      // Fallback to mock response for development (API not reachable)
       const mockResult = `Based on the analysis of the medical image with the prompt "${prompt}", here are the findings:
 
 • The image appears to show anatomical structures consistent with the requested analysis
@@ -12431,7 +12503,19 @@ Note: This is a simulated response. API endpoint not available or configured.`;
     setShowPromptDropdown(false);
   };
   return /*#__PURE__*/react.createElement("div", {
-    className: "p-4"
+    className: "p-4",
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: 'calc(100vh - 10rem)'
+    }
+  }, /*#__PURE__*/react.createElement("div", {
+    className: "ohif-scrollbar",
+    style: {
+      overflowY: 'auto',
+      minHeight: 0,
+      flex: '1 1 auto'
+    }
   }, /*#__PURE__*/react.createElement("div", {
     className: "mb-4"
   }, /*#__PURE__*/react.createElement("h3", {
@@ -12455,8 +12539,44 @@ Note: This is a simulated response. API endpoint not available or configured.`;
   }, /*#__PURE__*/react.createElement("img", {
     src: capturedImage,
     alt: "Captured viewport",
-    className: "max-w-full h-auto max-h-64 object-contain block bg-white"
-  })))), /*#__PURE__*/react.createElement("div", {
+    className: "max-w-full h-auto max-h-64 object-contain block bg-white",
+    style: analysisResult ? {
+      maxHeight: '8rem'
+    } : undefined
+  })))), vlmModels.length > 0 && /*#__PURE__*/react.createElement("div", {
+    className: "mb-4"
+  }, /*#__PURE__*/react.createElement("label", {
+    htmlFor: "vlm-model",
+    className: "block text-sm font-medium mb-2 text-white"
+  }, "Model"), /*#__PURE__*/react.createElement("select", {
+    id: "vlm-model",
+    value: selectedModel,
+    onChange: e => {
+      userPickedModel.current = true;
+      setSelectedModel(e.target.value);
+    },
+    disabled: isAnalyzing || isCapturing,
+    className: "w-full p-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+  }, vlmModels.map(model => /*#__PURE__*/react.createElement("option", {
+    key: model.id,
+    value: model.id,
+    disabled: !isModelAvailable(model)
+  }, isModelAvailable(model) ? model.label : `${model.label} (needs a ${(model.modalities || []).join('/')} series with at least ${model.min_images} images)`))), selectedModelInfo && /*#__PURE__*/react.createElement("p", {
+    className: "text-xs text-gray-400 mt-1"
+  }, selectedModelInfo.description), modelStatus === 'starting' && /*#__PURE__*/react.createElement("p", {
+    className: "text-xs mt-1",
+    style: {
+      color: '#facc15'
+    }
+  }, "Starting the model. It scales to zero when idle and takes about 4 minutes to start; you can analyze once it is up."), /*#__PURE__*/react.createElement("label", {
+    className: `flex items-center mt-2 text-sm ${selectedModelInfo?.reasoning ? 'text-white' : 'text-gray-500'}`
+  }, /*#__PURE__*/react.createElement("input", {
+    type: "checkbox",
+    className: "mr-2",
+    checked: showReasoning && !!selectedModelInfo?.reasoning,
+    onChange: e => setShowReasoning(e.target.checked),
+    disabled: isAnalyzing || isCapturing || !selectedModelInfo?.reasoning
+  }), "Show reasoning steps")), /*#__PURE__*/react.createElement("div", {
     className: "mb-4"
   }, /*#__PURE__*/react.createElement("label", {
     htmlFor: "vlm-prompt",
@@ -12472,10 +12592,18 @@ Note: This is a simulated response. API endpoint not available or configured.`;
   }, /*#__PURE__*/react.createElement("span", null, "\uD83D\uDCDD Quick Prompts"), /*#__PURE__*/react.createElement("span", {
     className: "text-xs"
   }, showPromptDropdown ? '▲' : '▼')), showPromptDropdown && /*#__PURE__*/react.createElement("div", {
-    className: "absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-64 overflow-y-auto"
+    className: "mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-64 overflow-y-auto"
   }, /*#__PURE__*/react.createElement("div", {
     className: "p-2"
-  }, /*#__PURE__*/react.createElement("div", {
+  }, selectedModelInfo?.prompts?.length ? /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("div", {
+    className: "text-xs font-semibold text-gray-600 mb-2"
+  }, `For ${selectedModelInfo.label}:`), selectedModelInfo.prompts.map((modelPrompt, index) => /*#__PURE__*/react.createElement("button", {
+    key: `model-${index}`,
+    onClick: () => handleExamplePrompt(modelPrompt.prompt),
+    title: modelPrompt.description,
+    className: "w-full text-left px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded mb-1",
+    disabled: isAnalyzing || isCapturing
+  }, modelPrompt.prompt))) : /*#__PURE__*/react.createElement(react.Fragment, null, /*#__PURE__*/react.createElement("div", {
     className: "text-xs font-semibold text-gray-600 mb-2"
   }, "For Radiologists:"), examplePrompts.radiologist.map((examplePrompt, index) => /*#__PURE__*/react.createElement("button", {
     key: `rad-${index}`,
@@ -12496,7 +12624,7 @@ Note: This is a simulated response. API endpoint not available or configured.`;
     onClick: () => handleExamplePrompt(examplePrompt),
     className: "w-full text-left px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded mb-1",
     disabled: isAnalyzing || isCapturing
-  }, examplePrompt)))))), /*#__PURE__*/react.createElement("textarea", {
+  }, examplePrompt))))))), /*#__PURE__*/react.createElement("textarea", {
     id: "vlm-prompt",
     value: prompt,
     onChange: e => setPrompt(e.target.value),
@@ -12505,6 +12633,7 @@ Note: This is a simulated response. API endpoint not available or configured.`;
     rows: 4,
     disabled: isAnalyzing || isCapturing
   })), analysisResult && /*#__PURE__*/react.createElement("div", {
+    ref: resultRef,
     className: "mb-4"
   }, /*#__PURE__*/react.createElement("div", {
     className: "flex justify-between items-center mb-2"
@@ -12515,11 +12644,11 @@ Note: This is a simulated response. API endpoint not available or configured.`;
     className: "text-xs text-gray-400 hover:text-gray-300 underline",
     disabled: isAnalyzing || isCapturing
   }, "Clear Results")), /*#__PURE__*/react.createElement("div", {
-    className: "bg-white border border-gray-300 rounded-md p-4 max-h-64 overflow-y-auto"
+    className: "bg-white border border-gray-300 rounded-md p-4"
   }, /*#__PURE__*/react.createElement("div", {
     className: "text-sm text-gray-800 whitespace-pre-wrap"
-  }, analysisResult))), /*#__PURE__*/react.createElement("div", {
-    className: "flex justify-end space-x-2"
+  }, analysisResult)))), /*#__PURE__*/react.createElement("div", {
+    className: "flex justify-end space-x-2 pt-4"
   }, /*#__PURE__*/react.createElement("button", {
     onClick: hide,
     className: "px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200",
