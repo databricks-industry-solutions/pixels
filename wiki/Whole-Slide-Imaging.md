@@ -43,9 +43,11 @@ Each file is read with **OpenSlide** when it recognizes the format (Aperio, Hama
 | Format | Tested in Pixels |
 |--------|------------------|
 | Aperio SVS | Yes |
-| Hamamatsu NDPI | Yes |
+| Hamamatsu NDPI | Yes (up to 6.9 GB) |
+| Philips TIFF | Yes (3.3 GB) |
+| Ventana BIF | Yes (3.9 GB) |
 | Generic TIFF (`.tiff`, `.tif`), tiled and plain | Yes |
-| Leica SCN, MIRAX MRXS, Philips TIFF, Sakura SVSLIDE, Trestle, Ventana BIF | Supported by OpenSlide, not yet tested |
+| Leica SCN, MIRAX MRXS, Sakura SVSLIDE, Trestle | Supported by OpenSlide, not yet tested |
 
 MRXS slides span several files; keep the companion folder next to the `.mrxs` file.
 
@@ -213,6 +215,22 @@ pytest tests/dbx/test_wsi.py --noconftest --import-mode=append -v
 
 ---
 
+## Large slides
+
+Measured on Databricks serverless with public OpenSlide test slides read from a UC Volume:
+
+| Slide | Size | Levels | Metadata extraction | Tissue thumbnail (768 px) | Peak memory |
+|-------|------|--------|---------------------|---------------------------|-------------|
+| Hamamatsu NDPI (`Hamamatsu-1.ndpi`) | 6.9 GB | 9 | 3.1 s | 140 s | 259 MB |
+| Ventana BIF (`OS-1.bif`) | 3.9 GB | 10 | 1.8 s | 0.3 s | 271 MB |
+| Philips TIFF (`Philips-3.tiff`) | 3.3 GB | 9 | 2.2 s | 0.2 s | 228 MB |
+| Hamamatsu NDPI (`OS-1.ndpi`) | 2.0 GB | 13 | 1.9 s | 11 s | 242 MB |
+
+- **Ingest doesn't depend on slide size.** Metadata extraction reads headers only, so it takes a few seconds and about 250 MB per slide whether the file is 2 GB or 7 GB. The Spark pipeline (`WSICatalog` + `WSIMetaExtractor` + `save()`) cataloged all four slides (16 GB) in 48 s. Files over Spark's 2 GB `binaryFile` limit are fine, because file contents are never read into the table.
+- **Thumbnails of large NDPI slides are slow.** NDPI files store few real pyramid levels, so OpenSlide decodes large JPEG strips to build a small image: about 11 s for a 2 GB slide and over 2 minutes for a 7 GB one. Memory stays flat. Label and macro images are unaffected (an NDPI macro takes 0.2 s). Plan for this when scanning NDPI tissue thumbnails for PHI.
+
+---
+
 ## Known limitations
 
 - **No viewing yet.** No tile-serving routes in the gateway and no slide viewer. A follow-up will choose between a tile adapter in the gateway and storing slides as DICOM-WSI for the OHIF microscopy viewer.
@@ -223,3 +241,5 @@ pytest tests/dbx/test_wsi.py --noconftest --import-mode=append -v
 - **Microns per pixel can be wrong for generic TIFFs.** The value comes from the file's own resolution tags, which some converters fill with placeholders (OpenSlide's `CMU-1.tiff` sample reports 1000 µm/px).
 - **Missing label or macro images fall back to the tissue thumbnail.** `wsi_to_image(series="label")` returns the tissue thumbnail, with a warning, when a slide has no label. Check `_wsi_has_label` / `_wsi_has_macro` first, as the PHI notebook does.
 - **Compressed generic TIFF pixels need `imagecodecs`**, which may not install on serverless.
+- **Slow tissue thumbnails for large NDPI slides.** See [Large slides](#large-slides).
+- **No case or study key.** Native WSI formats have no equivalent of DICOM's `study_uid`. The closest fields are the slide barcode (`openslide.barcode`, Philips) and Aperio's `ImageID` and `Filename`; NDPI, Ventana and generic TIFF carry none. WSI tables are therefore not clustered by default.

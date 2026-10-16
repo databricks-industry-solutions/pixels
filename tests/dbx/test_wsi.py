@@ -189,6 +189,33 @@ class TestPhiTags:
         assert classify_tag("tiff.DateTime") == "QUESTIONABLE"
         # openslide.comment copies the description, so it stays flagged.
         assert classify_tag("openslide.comment") == "QUESTIONABLE"
+        # Only OpenSlide's documented technical keys are safe; new ones are flagged.
+        assert classify_tag("openslide.some-future-key") == "QUESTIONABLE"
+
+    def test_classify_barcodes_are_phi(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        # Seen on a real Philips slide: OpenSlide exposes the label barcode here.
+        assert classify_tag("openslide.barcode") == "PHI"
+        assert classify_tag("philips.PIM_DP_UFS_BARCODE") == "PHI"
+
+    def test_classify_openslide_technical_keys(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        for key in (
+            "openslide.level-count",
+            "openslide.level[3].tile-width",
+            "openslide.region[0].x",
+            "openslide.bounds-height",
+            "openslide.mpp-y",
+            "openslide.objective-power",
+            "openslide.vendor",
+            "openslide.quickhash-1",
+            "openslide.icc-size",
+            "openslide.background-color",
+            "openslide.associated.label.width",
+        ):
+            assert classify_tag(key) == "NOT_PHI", key
 
     def test_classify_tags_returns_only_phi_and_questionable(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tags
