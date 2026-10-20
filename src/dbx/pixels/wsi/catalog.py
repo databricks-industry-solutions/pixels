@@ -5,34 +5,22 @@ OpenSlide-supported formats (Aperio SVS, Hamamatsu NDPI/VMS/VMU, Leica SCN,
 MIRAX MRXS, Philips TIFF, Sakura SVSLIDE, Trestle TIF, Ventana BIF/TIF,
 generic TIFF).
 
-Overrides:
-    - catalog() uses a multi-extension pattern by default
-    - Supports per-format or all-format discovery
-
-When multiple extensions are needed, WSICatalog issues one catalog() call per
-extension and unions them. (Whether a single brace pattern such as
-``*.{svs,tiff}`` would work instead is untested; see docs/WSI.md.)
+By default ``catalog()`` lists the source folder once and keeps the files whose
+extension (in any case) is a WSI extension, so batch runs list the folder once and
+streaming uses a single Auto Loader source with no de-duplication state.
 """
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, functions as f
 
 from dbx.pixels.catalog import Catalog
 from dbx.pixels.wsi.wsi_phi_tags import OPENSLIDE_PATTERNS
 
-
-def _case_insensitive_glob(pattern: str) -> str:
-    """Turn ``*.svs`` into ``*.[sS][vV][sS]`` so ``SLIDE01.SVS`` also matches.
-
-    ``pathGlobFilter`` matching is case-sensitive, and scanner exports often use
-    upper-case extensions.
-    """
-    return "".join(f"[{c.lower()}{c.upper()}]" if c.isalpha() else c for c in pattern)
-
-
-# Default patterns for common WSI formats, matched regardless of case
-_DEFAULT_PATTERNS = [_case_insensitive_glob(p) for p in OPENSLIDE_PATTERNS]
+# Lower-case WSI extensions without the dot ("svs", "ndpi", ...), matched against the
+# catalog's ``extension`` column. Derived from OPENSLIDE_PATTERNS so ".dcm" (handled by
+# the DICOM path) is not included.
+WSI_EXTENSIONS = sorted({p.lstrip("*.").lower() for p in OPENSLIDE_PATTERNS})
 
 
 class WSICatalog(Catalog):
@@ -72,38 +60,33 @@ class WSICatalog(Catalog):
 
         Args:
             path:     Root directory to scan.
-            pattern:  Single glob pattern (e.g. ``'*.svs'``). If provided,
-                      only this pattern is used.
-            patterns: List of glob patterns to scan. Defaults to all
-                      OpenSlide-supported extensions, matched regardless of
-                      case. Each pattern triggers a separate scan; results are
-                      unioned. Patterns you pass are used exactly as given.
+            pattern:  Single glob pattern (e.g. ``'*.svs'``), used exactly as given.
+            patterns: List of glob patterns, used exactly as given. Each pattern is a
+                      separate scan; results are unioned and de-duplicated by path.
             **kwargs: Additional arguments forwarded to
                       :meth:`Catalog.catalog` (recurse, streaming, etc.).
+
+        Without ``pattern`` or ``patterns``, the folder is scanned once and filtered to
+        files whose extension is in ``WSI_EXTENSIONS``, in any case
+        (``SLIDE01.SVS``, ``case.Ndpi``).
 
         Returns:
             DataFrame with cataloged file metadata.
 
         Errors from the underlying scans (a missing path, no permission, a bad
-        checkpoint) are raised, not hidden; a pattern that matches no files simply
-        contributes no rows.
+        checkpoint) are raised, not hidden; no matching files simply gives no rows.
         """
         if pattern is not None:
-            # Single pattern mode (backward-compatible)
             return super().catalog(path, pattern=pattern, **kwargs)
 
         if patterns is None:
-            patterns = _DEFAULT_PATTERNS
+            df = super().catalog(path, pattern="*", **kwargs)
+            return df.filter(f.lower(f.col("extension")).isin(WSI_EXTENSIONS))
 
-        # Multi-pattern mode: scan each extension and union results
         dfs = [super().catalog(path, pattern=pat, **kwargs) for pat in patterns]
-
         if not dfs:
-            # Return empty DataFrame with correct schema
-            return super().catalog(path, pattern="*.NONEXISTENT_EXTENSION_PLACEHOLDER", **kwargs)
-
+            raise ValueError("patterns is empty; pass None to scan all WSI extensions")
         result = dfs[0]
         for df in dfs[1:]:
             result = result.union(df)
-
         return result.dropDuplicates(["path"])

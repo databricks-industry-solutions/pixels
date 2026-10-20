@@ -82,7 +82,7 @@ Open [`notebooks/wsi/01-ingest-wsi.py`](https://github.com/databricks-industry-s
 | `volume` | `main.pixels.pixels_volume` | UC Volume for checkpoints and scratch files |
 | `source_paths` | `/Volumes/main/pixels/pixels_volume/wsi` | Folder(s) containing slides, comma-separated |
 
-Run all cells. The notebook catalogs every slide in the source folders, extracts metadata, overwrites the table, and shows a vendor breakdown.
+Run all cells. The notebook catalogs every slide in the source folders, extracts metadata, overwrites the table, and shows a vendor breakdown. If any source folder can't be read, or no slides are found, the notebook stops before writing, so a temporarily unreachable folder doesn't wipe its rows from the table.
 
 ### `WSICatalog`
 
@@ -114,16 +114,16 @@ df = catalog.catalog(path, streaming=True)                             # Auto Lo
 |-----------|------|---------|-------------|
 | `path` | `str` | *required* | Folder to scan (recursively by default). |
 | `pattern` | `str` | `None` | A single glob pattern. Used exactly as given. |
-| `patterns` | `list[str]` | all WSI extensions, any case | Glob patterns to scan. Each pattern is a separate scan and the results are unioned. Patterns you pass are used exactly as given. |
+| `patterns` | `list[str]` | `None` | Glob patterns to scan, used exactly as given. Each pattern is a separate scan; the results are unioned. |
 | `**kwargs` | | | Any [`Catalog.catalog()`](Ingestion#catalog-discover-files) option: `recurse`, `streaming`, trigger and Auto Loader options. |
 
-Errors from a scan (a missing path, no permission) are raised. An extension with no matching files adds no rows.
+Without `pattern` or `patterns`, the folder is listed **once** and filtered to files with a WSI extension in any case (the `extension` column, compared in lower case; `.dcm` files are left to the DICOM path). Errors from a scan (a missing path, no permission) are raised. No matching files gives no rows.
 
 ### Re-running after adding slides
 
 A batch `catalog()` lists the whole folder again on every run. When you re-run in the **same attached notebook session** after adding files, the listing can come from the session's earlier scan and miss the new files, with no error. Detach and re-attach the notebook, or run it as a job, before re-running.
 
-For folders that keep receiving slides, use `streaming=True`. The checkpoint records processed files, so each run picks up only the new ones (tested: a second run in a new session wrote only the one added slide). See [Streaming](Ingestion#streaming-auto-loader-directory-listing) for the caveats at scale.
+For folders that keep receiving slides, use `streaming=True`. The checkpoint records processed files, so each run picks up only the new ones (tested: a second run in a new session wrote only the one added slide). By default this is a single Auto Loader source. See [Streaming](Ingestion#streaming-auto-loader-directory-listing) and [Managed file events](Ingestion#managed-file-events) for very large folders.
 
 ---
 
@@ -222,6 +222,8 @@ ORDER BY file, r.classification;
 
 For each slide it scans the **label** and **macro** images (only when the slide has them) and the **tissue** thumbnail, and records the PHI it finds per image. Results are written to `results_table` once and the summary reads from that table, so each image goes to the model once per run. Foundation Model API endpoint names change as models are released and retired; if the default is missing, pick another vision model from **Serving** in your workspace.
 
+The model's answer is parsed into a list of values. Special tokens and reasoning blocks (`<think>`, `<budget:…>`) are removed, and text inside any other tag is kept, so PHI isn't lost to an unexpected wrapper. An answer with no values that isn't an explicit "No PHI" is recorded as an `error`, not as a clean scan. A slide without a label or macro image gets an error for that series rather than a result computed from the tissue image.
+
 This step **detects** PHI. It doesn't remove it yet.
 
 ---
@@ -261,9 +263,9 @@ Measured on Databricks serverless with public OpenSlide test slides read from a 
 - **PHI is detected, not removed.** Nothing yet strips label or macro images, scrubs metadata in the files, or writes de-identified copies.
 - **Not part of the bundle install.** The install job doesn't create a WSI table or ingest sample slides, and WSI metadata isn't synced to Lakebase. When WSI joins the bundle, it should also create a dedicated WSI volume; until then WSI uses `pixels_volume`.
 - **Re-running in the same session can miss new files.** See [Re-running after adding slides](#re-running-after-adding-slides).
-- **Streaming at scale.** `WSICatalog` runs one Auto Loader source per extension (10 in total), so each trigger lists the folder 10 times, and the de-duplication step keeps state that grows with every file seen. Managed file events (`useManagedFileEvents=True`) avoid the repeated listing.
 - **Microns per pixel can be wrong for generic TIFFs.** The value comes from the file's own resolution tags, which some converters fill with placeholders (OpenSlide's `CMU-1.tiff` sample reports 1000 µm/px).
-- **Missing label or macro images fall back to the tissue thumbnail.** `wsi_to_image(series="label")` returns the tissue thumbnail, with a warning, when a slide has no label. Check `_wsi_has_label` / `_wsi_has_macro` first, as the PHI notebook does.
+- **`wsi_to_image` falls back to the tissue thumbnail by default.** `wsi_to_image(series="label")` returns the tissue thumbnail, with a warning, when a slide has no label. Pass `fallback_to_tissue=False` to get `None` instead; `WSIVLMPhiDetector` does this.
+- **Thumbnails of very large plain TIFFs are skipped.** Plain (non-pyramidal) TIFFs have no smaller stored level, so a thumbnail means decoding the whole image. Above `wsi_utils.MAX_DECODE_PIXELS` (500 megapixels by default) `wsi_to_image` returns `None` and logs an error instead of running out of memory. Ingest and metadata extraction aren't affected; raise the limit if your workers have the memory.
 - **Compressed generic TIFF pixels need `imagecodecs`**, which may not install on serverless.
 - **Slow tissue thumbnails for large NDPI slides.** See [Large slides](#large-slides).
 - **No case or study key in the files.** Native WSI formats have no equivalent of DICOM's `study_uid`; only some carry a slide barcode (Philips does; NDPI, Ventana, Aperio and generic TIFF don't). `case_id` therefore falls back to the slide's folder, which only identifies the case when slides are stored in a folder per case. See [Clustering](#clustering).

@@ -335,6 +335,22 @@ class TestWSIUtils:
         assert isinstance(result, str)  # base64 string
         assert len(result) > 100  # Non-trivial content
 
+    def test_plain_tiff_thumbnail_respects_decode_limit(self, tiff_files, monkeypatch):
+        """Over MAX_DECODE_PIXELS the thumbnail is skipped; metadata is unaffected."""
+        import openslide
+
+        from dbx.pixels.wsi import wsi_utils
+        from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
+        plain = next((f for f in tiff_files if openslide.OpenSlide.detect_format(f) is None), None)
+        if plain is None:
+            pytest.skip("No plain TIFF available")
+        assert wsi_utils.wsi_to_image(plain) is not None  # default limit
+        monkeypatch.setattr(wsi_utils, "MAX_DECODE_PIXELS", 1000)
+        assert wsi_utils.wsi_to_image(plain) is None
+        meta = json.loads(WSIMetaExtractor._process_file(plain))
+        assert "error" not in meta and meta["_wsi_width"] > 0
+
     def test_wsi_to_image_missing_label_without_fallback(self, tiff_files):
         import openslide
 
@@ -593,17 +609,15 @@ class TestConstants:
         assert resolve("case_id", wsi_cols) == []  # missing -> skipped with a warning
         assert resolve(None, wsi_cols + ["study_uid"]) == []
 
-    def test_default_patterns_match_any_case(self):
-        from fnmatch import fnmatchcase
+    def test_wsi_extensions_for_single_scan(self):
+        from dbx.pixels.wsi.catalog import WSI_EXTENSIONS
+        from dbx.pixels.wsi.wsi_phi_tags import OPENSLIDE_PATTERNS
 
-        from dbx.pixels.wsi.catalog import _DEFAULT_PATTERNS, _case_insensitive_glob
-
-        assert _case_insensitive_glob("*.svs") == "*.[sS][vV][sS]"
-        svs = _case_insensitive_glob("*.svs")
-        for name in ("slide.svs", "SLIDE01.SVS", "Case.Svs"):
-            assert fnmatchcase(name, svs), name
-        assert not fnmatchcase("slide.svsx", svs)
-        assert len(_DEFAULT_PATTERNS) == 10
+        # Lower-case, no dot, one per OpenSlide pattern; DICOM is left to the DICOM path.
+        assert len(WSI_EXTENSIONS) == len(OPENSLIDE_PATTERNS) == 10
+        assert all(e == e.lower() and not e.startswith(".") for e in WSI_EXTENSIONS)
+        assert {"svs", "ndpi", "tif", "tiff", "bif", "mrxs"} <= set(WSI_EXTENSIONS)
+        assert "dcm" not in WSI_EXTENSIONS
 
     def test_imports(self):
         """Verify the package imports cleanly."""

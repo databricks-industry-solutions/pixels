@@ -154,6 +154,35 @@ def _wsi_openslide(
 # ---------------------------------------------------------------------------
 
 
+# Largest image the tifffile fallback will decode for a thumbnail (500 megapixels is
+# about 1.5 GB as RGB). Plain, non-pyramidal TIFFs have no smaller stored level, so the
+# whole image must be decoded to make a thumbnail; above this the thumbnail is skipped
+# (wsi_to_image returns None) instead of exhausting worker memory. Metadata extraction
+# never decodes pixels, so it isn't affected. Raise it if your workers have the memory.
+MAX_DECODE_PIXELS = 500_000_000
+
+
+def _pixel_count(obj) -> int:
+    """Pixels in a tifffile page, series or level, from its header (no decoding)."""
+    shape, axes = getattr(obj, "shape", ()), getattr(obj, "axes", "")
+    if "Y" in axes and "X" in axes:
+        return int(shape[axes.index("Y")]) * int(shape[axes.index("X")])
+    return int(getattr(obj, "imagewidth", 0)) * int(getattr(obj, "imagelength", 0))
+
+
+def _decode(obj, path: str):
+    """Decode a tifffile page/series/level, or return None if it exceeds MAX_DECODE_PIXELS."""
+    pixels = _pixel_count(obj)
+    if pixels > MAX_DECODE_PIXELS:
+        logger.error(
+            f"wsi_to_image: {path} image is {pixels:,} pixels, over MAX_DECODE_PIXELS "
+            f"({MAX_DECODE_PIXELS:,}); it has no smaller stored level, so no thumbnail "
+            "was made"
+        )
+        return None
+    return obj.asarray()
+
+
 def _wsi_tifffile(
     path: str,
     series: str = "tissue",
@@ -178,7 +207,9 @@ def _wsi_tifffile(
                         if isinstance(desc, bytes):
                             desc = desc.decode("utf-8", errors="replace")
                         if desc.strip().strip("\x00").lower() == target_lc:
-                            arr = page.asarray()
+                            arr = _decode(page, path)
+                            if arr is None:
+                                return None
                             break
                     except Exception:
                         continue
@@ -196,11 +227,11 @@ def _wsi_tifffile(
                 if tif.series:
                     s = tif.series[0]
                     if hasattr(s, "levels") and len(s.levels) > 1:
-                        arr = s.levels[-1].asarray()
+                        arr = _decode(s.levels[-1], path)
                     else:
-                        arr = s.asarray()
+                        arr = _decode(s, path)
                 else:
-                    arr = tif.pages[0].asarray()
+                    arr = _decode(tif.pages[0], path)
 
         if arr is None:
             return None
