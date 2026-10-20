@@ -1,0 +1,348 @@
+"""WSI utility functions — image conversion for all OpenSlide-supported formats.
+
+Provides ``wsi_to_image()``, the unified WSI equivalent of
+``dbx.pixels.tiff.tiff_utils.tiff_to_image()``.
+
+Uses OpenSlide as the primary backend (handles all 13 WSI formats).
+Falls back to tifffile for non-WSI TIFFs that OpenSlide cannot open.
+
+Key features:
+- Thumbnail extraction at configurable max_width (uses OpenSlide's
+  get_thumbnail() which leverages the pyramid — never loads full-res data)
+- Associated image extraction (label, macro, thumbnail) via OpenSlide
+- Format-agnostic: works with SVS, NDPI, MRXS, SCN, BIF, Philips TIFF, etc.
+
+No dependency on ``dbx.pixels.dicom`` or ``pydicom``.
+"""
+
+from __future__ import annotations
+
+import base64
+import io
+from typing import Optional
+
+import numpy as np
+from PIL import Image
+
+from dbx.pixels.logging import LoggerProvider
+
+logger = LoggerProvider()
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _normalize_to_uint8_rgb(arr: np.ndarray) -> np.ndarray:
+    """Coerce any numpy array to uint8 RGB suitable for JPEG encoding.
+
+    Handles:
+    - 16-bit / float arrays  →  normalise to 0-255
+    - RGBA (4-channel)       →  composite onto white background
+    - Grayscale (2-D)        →  replicate to 3 channels
+    - Single-channel 3-D     →  replicate to 3 channels
+    """
+    # RGBA → RGB with white background composite
+    if arr.ndim == 3 and arr.shape[-1] == 4:
+        # Alpha composite onto white
+        alpha = arr[:, :, 3:4].astype(np.float32) / 255.0
+        rgb = arr[:, :, :3].astype(np.float32)
+        white = np.full_like(rgb, 255.0)
+        arr = (rgb * alpha + white * (1.0 - alpha)).astype(np.uint8)
+
+    # Convert to uint8
+    if arr.dtype != np.uint8:
+        lo, hi = float(arr.min()), float(arr.max())
+        if hi > lo:
+            arr = ((arr.astype(np.float32) - lo) / (hi - lo) * 255).astype(np.uint8)
+        else:
+            arr = np.zeros_like(arr, dtype=np.uint8)
+
+    # Grayscale → RGB
+    if arr.ndim == 2:
+        arr = np.stack([arr, arr, arr], axis=-1)
+    elif arr.ndim == 3 and arr.shape[-1] == 1:
+        arr = np.concatenate([arr, arr, arr], axis=-1)
+
+    return arr
+
+
+def _pil_to_output(
+    img: Image.Image,
+    max_width: int,
+    output_path: Optional[str],
+    return_type: str,
+) -> Optional[str | bytes]:
+    """Resize, encode to JPEG, and return in requested format."""
+    # Resize if needed
+    if max_width > 0 and img.width > max_width:
+        ratio = max_width / img.width
+        new_size = (max_width, int(img.height * ratio))
+        img = img.resize(new_size, Image.LANCZOS)
+
+    # Ensure RGB (not RGBA or palette)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+
+    # Encode to JPEG
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    jpeg_bytes = buf.getvalue()
+
+    # Optionally save to disk
+    if output_path:
+        with open(output_path, "wb") as f:
+            f.write(jpeg_bytes)
+
+    if return_type == "binary":
+        return jpeg_bytes
+    return base64.b64encode(jpeg_bytes).decode("utf-8")
+
+
+# ---------------------------------------------------------------------------
+# OpenSlide backend
+# ---------------------------------------------------------------------------
+
+
+def _wsi_openslide(
+    path: str,
+    series: str = "tissue",
+    max_width: int = 768,
+    output_path: Optional[str] = None,
+    return_type: str = "str",
+    fallback_to_tissue: bool = True,
+) -> Optional[str | bytes]:
+    """Extract image from a WSI using OpenSlide."""
+    import openslide
+
+    try:
+        with openslide.OpenSlide(path) as slide:
+            if series in ("label", "macro", "thumbnail"):
+                # Associated image extraction
+                if series in slide.associated_images:
+                    img = slide.associated_images[series]
+                    return _pil_to_output(img, max_width, output_path, return_type)
+                if not fallback_to_tissue:
+                    logger.info(f"wsi_to_image: no '{series}' associated image in {path}")
+                    return None
+                logger.warning(
+                    f"wsi_to_image: no '{series}' associated image in {path}; "
+                    f"available: {list(slide.associated_images.keys())}. "
+                    f"Falling back to tissue thumbnail."
+                )
+
+            # Tissue thumbnail (default)
+            if max_width > 0:
+                # get_thumbnail reads from the closest pyramid level, then downsizes
+                img = slide.get_thumbnail((max_width, max_width))
+            else:
+                # No resizing: return the smallest stored level at its native size.
+                # (get_thumbnail(slide.dimensions) would build a full-resolution image,
+                # which is tens of GB for a large slide.)
+                level = slide.level_count - 1
+                img = slide.read_region((0, 0), level, slide.level_dimensions[level])
+        return _pil_to_output(img, max_width=0, output_path=output_path, return_type=return_type)
+
+    except Exception as e:
+        logger.exception(f"OpenSlide read failed for {path}: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# tifffile fallback
+# ---------------------------------------------------------------------------
+
+
+# Largest image the tifffile fallback will decode for a thumbnail (500 megapixels is
+# about 1.5 GB as RGB). Plain, non-pyramidal TIFFs have no smaller stored level, so the
+# whole image must be decoded to make a thumbnail; above this the thumbnail is skipped
+# (wsi_to_image returns None) instead of exhausting worker memory. Metadata extraction
+# never decodes pixels, so it isn't affected. Raise it if your workers have the memory.
+MAX_DECODE_PIXELS = 500_000_000
+
+
+def _pixel_count(obj) -> int:
+    """Pixels in a tifffile page, series or level, from its header (no decoding)."""
+    shape, axes = getattr(obj, "shape", ()), getattr(obj, "axes", "")
+    if "Y" in axes and "X" in axes:
+        return int(shape[axes.index("Y")]) * int(shape[axes.index("X")])
+    return int(getattr(obj, "imagewidth", 0)) * int(getattr(obj, "imagelength", 0))
+
+
+def _decode(obj, path: str):
+    """Decode a tifffile page/series/level, or return None if it exceeds MAX_DECODE_PIXELS."""
+    pixels = _pixel_count(obj)
+    if pixels > MAX_DECODE_PIXELS:
+        logger.error(
+            f"wsi_to_image: {path} image is {pixels:,} pixels, over MAX_DECODE_PIXELS "
+            f"({MAX_DECODE_PIXELS:,}); it has no smaller stored level, so no thumbnail "
+            "was made"
+        )
+        return None
+    return obj.asarray()
+
+
+def _wsi_tifffile(
+    path: str,
+    series: str = "tissue",
+    max_width: int = 768,
+    output_path: Optional[str] = None,
+    return_type: str = "str",
+    fallback_to_tissue: bool = True,
+) -> Optional[str | bytes]:
+    """Extract image from a TIFF using tifffile (fallback)."""
+    import tifffile
+
+    try:
+        with tifffile.TiffFile(path) as tif:
+            arr = None
+
+            if series in ("label", "macro"):
+                # Search for labeled IFD
+                target_lc = series.strip().lower()
+                for page in tif.pages:
+                    try:
+                        desc = page.description
+                        if isinstance(desc, bytes):
+                            desc = desc.decode("utf-8", errors="replace")
+                        if desc.strip().strip("\x00").lower() == target_lc:
+                            arr = _decode(page, path)
+                            if arr is None:
+                                return None
+                            break
+                    except Exception:
+                        continue
+
+                if arr is None:
+                    if not fallback_to_tissue:
+                        logger.info(f"wsi_to_image: no '{series}' IFD in {path}")
+                        return None
+                    logger.warning(
+                        f"wsi_to_image: no '{series}' IFD in {path}; falling back to tissue"
+                    )
+
+            # Tissue (default) — smallest level of first series
+            if arr is None:
+                if tif.series:
+                    s = tif.series[0]
+                    if hasattr(s, "levels") and len(s.levels) > 1:
+                        arr = _decode(s.levels[-1], path)
+                    else:
+                        arr = _decode(s, path)
+                else:
+                    arr = _decode(tif.pages[0], path)
+
+        if arr is None:
+            return None
+
+        arr = _normalize_to_uint8_rgb(arr)
+        img = Image.fromarray(arr)
+        return _pil_to_output(img, max_width, output_path, return_type)
+
+    except Exception as e:
+        logger.exception(f"tifffile read failed for {path}: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def wsi_to_image(
+    path: str,
+    max_width: int = 768,
+    output_path: Optional[str] = None,
+    return_type: str = "str",
+    series: str = "tissue",
+    fallback_to_tissue: bool = True,
+) -> Optional[str | bytes]:
+    """Convert a WSI file to a JPEG thumbnail.
+
+    Supports all OpenSlide formats (SVS, NDPI, MRXS, SCN, BIF, Philips TIFF,
+    generic TIFF, etc.) with tifffile fallback for non-WSI TIFFs.
+
+    Args:
+        path:        Local path to the WSI file.
+        max_width:   Resize thumbnail to this width (default 768).
+                     Set to 0 to skip resizing: the tissue image is then the slide's
+                     smallest stored pyramid level at its native size (never the
+                     full-resolution slide).
+        output_path: If set, also save the JPEG to this path.
+        return_type: ``"str"``    — base64-encoded JPEG string (default).
+                     ``"binary"`` — raw JPEG bytes.
+        series:      Which sub-image to extract:
+                     ``"tissue"``    — tissue thumbnail (default; pyramid-aware).
+                     ``"label"``     — label associated image (PHI target).
+                     ``"macro"``     — macro/overview associated image.
+                     ``"thumbnail"`` — built-in thumbnail if available.
+        fallback_to_tissue: When the requested label/macro/thumbnail isn't in the
+                     file, return the tissue thumbnail instead (default, with a
+                     warning). Set to False to get ``None`` instead, e.g. when the
+                     caller reports results per series.
+
+    Returns:
+        Base64 JPEG string, raw JPEG bytes, or ``None`` on failure.
+    """
+    # Try OpenSlide first
+    try:
+        import openslide
+
+        fmt = openslide.OpenSlide.detect_format(path)
+        if fmt is not None:
+            result = _wsi_openslide(
+                path, series, max_width, output_path, return_type, fallback_to_tissue
+            )
+            if result is not None:
+                return result
+    except ImportError:
+        logger.warn(
+            "wsi_to_image: preferred openslide not available. "
+            "Install openslide-python openslide-bin."
+        )
+    except Exception:
+        pass
+
+    # Fallback to tifffile
+    try:
+        return _wsi_tifffile(path, series, max_width, output_path, return_type, fallback_to_tissue)
+    except ImportError:
+        logger.error(
+            "wsi_to_image: neither openslide nor tifffile available. "
+            "Install openslide-python openslide-bin or tifffile."
+        )
+        return None
+
+
+def wsi_detect_format(path: str) -> Optional[str]:
+    """Detect the WSI format of a file without fully opening it.
+
+    Returns the OpenSlide vendor string (e.g. 'aperio', 'hamamatsu',
+    'philips', 'generic-tiff') or None if not a recognized WSI format.
+    """
+    try:
+        import openslide
+
+        return openslide.OpenSlide.detect_format(path)
+    except ImportError:
+        return None
+    except Exception:
+        return None
+
+
+def wsi_get_properties(path: str) -> dict:
+    """Read all OpenSlide properties from a WSI file.
+
+    Returns a dict of property key -> value strings.
+    Returns an empty dict if the file cannot be opened.
+    """
+    try:
+        import openslide
+
+        slide = openslide.OpenSlide(path)
+        props = dict(slide.properties)
+        slide.close()
+        return props
+    except Exception:
+        return {}
