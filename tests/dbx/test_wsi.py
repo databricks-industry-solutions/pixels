@@ -192,6 +192,20 @@ class TestPhiTags:
         # Only OpenSlide's documented technical keys are safe; new ones are flagged.
         assert classify_tag("openslide.some-future-key") == "QUESTIONABLE"
 
+    def test_classify_tiff_prefix_like_bare_tag(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        # OpenSlide reports TIFF tags as tiff.<Name>; they must classify like <Name>.
+        assert classify_tag("Artist") == classify_tag("tiff.Artist") == "PHI"
+        assert classify_tag("HostComputer") == classify_tag("tiff.HostComputer") == "PHI"
+        assert classify_tag("tiff.ImageDescription") == "QUESTIONABLE"
+        assert classify_tag("tiff.XResolution") == "NOT_PHI"
+
+    def test_classify_leica_device_model_questionable(self):
+        from dbx.pixels.wsi.wsi_phi_tags import classify_tag
+
+        assert classify_tag("leica.device-model") == "QUESTIONABLE"
+
     def test_classify_barcodes_are_phi(self):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tag
 
@@ -320,6 +334,24 @@ class TestWSIUtils:
         assert result is not None
         assert isinstance(result, str)  # base64 string
         assert len(result) > 100  # Non-trivial content
+
+    def test_wsi_to_image_missing_label_without_fallback(self, tiff_files):
+        import openslide
+
+        from dbx.pixels.wsi.wsi_utils import wsi_to_image
+
+        no_label = []
+        for f in tiff_files:
+            if openslide.OpenSlide.detect_format(f) is None:
+                continue
+            with openslide.OpenSlide(f) as slide:
+                if "label" not in slide.associated_images:
+                    no_label.append(f)
+        if not no_label:
+            pytest.skip("No OpenSlide-readable slide without a label image")
+        for f in no_label:
+            assert wsi_to_image(f, series="label") is not None  # default: tissue fallback
+            assert wsi_to_image(f, series="label", fallback_to_tissue=False) is None
 
     def test_wsi_to_image_label_svs(self, svs_files):
         from dbx.pixels.wsi.wsi_utils import wsi_to_image
@@ -501,6 +533,27 @@ class TestConstants:
         assert derive_case_id("slide.svs") is None
         assert derive_case_id("/slide.svs") is None
 
+    def test_process_file_falls_back_when_openslide_read_fails(self, tiff_files, monkeypatch):
+        import openslide
+
+        from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
+
+        plain = next((f for f in tiff_files if openslide.OpenSlide.detect_format(f) is None), None)
+        if plain is None:
+            pytest.skip("No plain TIFF available")
+        # Pretend OpenSlide recognizes the file but fails while reading it.
+        monkeypatch.setattr(openslide.OpenSlide, "detect_format", staticmethod(lambda p: "x"))
+        openslide_error = json.dumps({"error": "simulated OpenSlide read failure"})
+        monkeypatch.setattr(
+            WSIMetaExtractor, "_process_openslide", staticmethod(lambda p: openslide_error)
+        )
+        meta = json.loads(WSIMetaExtractor._process_file(plain))
+        assert meta.get("_wsi_backend") == "tifffile" and "error" not in meta
+        # When tifffile can't read it either, OpenSlide's error is kept.
+        assert json.loads(WSIMetaExtractor._process_file("/no/such/x.svs")) == json.loads(
+            openslide_error
+        )
+
     def test_extracted_meta_includes_case_id(self, all_wsi_files):
         from dbx.pixels.wsi import derive_case_id
         from dbx.pixels.wsi.wsi_meta_extractor import WSIMetaExtractor
@@ -598,6 +651,24 @@ class TestParsePhiResponse:
         content = "J. SAMPLE|4471923\n<budget:token_budget>199969</budget:token_budget>"
         assert self._parse(content) == ["J. SAMPLE", "4471923"]
         assert self._parse("MRN 4471923<br/>") == ["MRN 4471923"]
+
+    def test_keeps_text_inside_unknown_tags(self):
+        # Fail closed: PHI wrapped in an unexpected tag must still be reported.
+        assert self._parse("<answer>JANE DOE|03/14/1962</answer>") == ["JANE DOE", "03/14/1962"]
+
+    def test_drops_reasoning_blocks(self):
+        assert self._parse("<think>looking at the label</think>JANE DOE|MRN 4471923") == [
+            "JANE DOE",
+            "MRN 4471923",
+        ]
+
+    def test_says_no_phi_distinguishes_empty_answers(self):
+        from dbx.pixels.wsi.wsi_vlm_phi_detector import _says_no_phi
+
+        assert _says_no_phi("No PHI") and _says_no_phi("<answer>'no phi'</answer>")
+        # These parse to [] but aren't a "No PHI" answer, so the detector reports an error.
+        for content in ("<think>hmm</think>", "", None, "<|end_of_text|>"):
+            assert self._parse(content) == [] and not _says_no_phi(content), content
 
     def test_splits_on_line_breaks(self):
         assert self._parse("John Smith\n04-31-1954\r\n123 Drury Lane") == [

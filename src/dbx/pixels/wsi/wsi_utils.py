@@ -111,37 +111,37 @@ def _wsi_openslide(
     max_width: int = 768,
     output_path: Optional[str] = None,
     return_type: str = "str",
+    fallback_to_tissue: bool = True,
 ) -> Optional[str | bytes]:
     """Extract image from a WSI using OpenSlide."""
     import openslide
 
     try:
-        slide = openslide.OpenSlide(path)
-
-        if series in ("label", "macro", "thumbnail"):
-            # Associated image extraction
-            if series in slide.associated_images:
-                img = slide.associated_images[series]
-                slide.close()
-                return _pil_to_output(img, max_width, output_path, return_type)
-            else:
+        with openslide.OpenSlide(path) as slide:
+            if series in ("label", "macro", "thumbnail"):
+                # Associated image extraction
+                if series in slide.associated_images:
+                    img = slide.associated_images[series]
+                    return _pil_to_output(img, max_width, output_path, return_type)
+                if not fallback_to_tissue:
+                    logger.info(f"wsi_to_image: no '{series}' associated image in {path}")
+                    return None
                 logger.warning(
                     f"wsi_to_image: no '{series}' associated image in {path}; "
                     f"available: {list(slide.associated_images.keys())}. "
                     f"Falling back to tissue thumbnail."
                 )
 
-        # Tissue thumbnail (default)
-        if max_width > 0:
-            # get_thumbnail reads from the closest pyramid level, then downsizes
-            img = slide.get_thumbnail((max_width, max_width))
-        else:
-            # No resizing: return the smallest stored level at its native size.
-            # (get_thumbnail(slide.dimensions) would build a full-resolution image,
-            # which is tens of GB for a large slide.)
-            level = slide.level_count - 1
-            img = slide.read_region((0, 0), level, slide.level_dimensions[level])
-        slide.close()
+            # Tissue thumbnail (default)
+            if max_width > 0:
+                # get_thumbnail reads from the closest pyramid level, then downsizes
+                img = slide.get_thumbnail((max_width, max_width))
+            else:
+                # No resizing: return the smallest stored level at its native size.
+                # (get_thumbnail(slide.dimensions) would build a full-resolution image,
+                # which is tens of GB for a large slide.)
+                level = slide.level_count - 1
+                img = slide.read_region((0, 0), level, slide.level_dimensions[level])
         return _pil_to_output(img, max_width=0, output_path=output_path, return_type=return_type)
 
     except Exception as e:
@@ -160,6 +160,7 @@ def _wsi_tifffile(
     max_width: int = 768,
     output_path: Optional[str] = None,
     return_type: str = "str",
+    fallback_to_tissue: bool = True,
 ) -> Optional[str | bytes]:
     """Extract image from a TIFF using tifffile (fallback)."""
     import tifffile
@@ -183,6 +184,9 @@ def _wsi_tifffile(
                         continue
 
                 if arr is None:
+                    if not fallback_to_tissue:
+                        logger.info(f"wsi_to_image: no '{series}' IFD in {path}")
+                        return None
                     logger.warning(
                         f"wsi_to_image: no '{series}' IFD in {path}; falling back to tissue"
                     )
@@ -221,6 +225,7 @@ def wsi_to_image(
     output_path: Optional[str] = None,
     return_type: str = "str",
     series: str = "tissue",
+    fallback_to_tissue: bool = True,
 ) -> Optional[str | bytes]:
     """Convert a WSI file to a JPEG thumbnail.
 
@@ -241,6 +246,10 @@ def wsi_to_image(
                      ``"label"``     — label associated image (PHI target).
                      ``"macro"``     — macro/overview associated image.
                      ``"thumbnail"`` — built-in thumbnail if available.
+        fallback_to_tissue: When the requested label/macro/thumbnail isn't in the
+                     file, return the tissue thumbnail instead (default, with a
+                     warning). Set to False to get ``None`` instead, e.g. when the
+                     caller reports results per series.
 
     Returns:
         Base64 JPEG string, raw JPEG bytes, or ``None`` on failure.
@@ -251,7 +260,9 @@ def wsi_to_image(
 
         fmt = openslide.OpenSlide.detect_format(path)
         if fmt is not None:
-            result = _wsi_openslide(path, series, max_width, output_path, return_type)
+            result = _wsi_openslide(
+                path, series, max_width, output_path, return_type, fallback_to_tissue
+            )
             if result is not None:
                 return result
     except ImportError:
@@ -264,7 +275,7 @@ def wsi_to_image(
 
     # Fallback to tifffile
     try:
-        return _wsi_tifffile(path, series, max_width, output_path, return_type)
+        return _wsi_tifffile(path, series, max_width, output_path, return_type, fallback_to_tissue)
     except ImportError:
         logger.error(
             "wsi_to_image: neither openslide nor tifffile available. "

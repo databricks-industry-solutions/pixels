@@ -89,42 +89,8 @@ class WSIMetaExtractor(Transformer):
         from dbx.pixels.wsi.wsi_phi_tags import classify_tags
 
         try:
-            slide = openslide.OpenSlide(path)
-            props = dict(slide.properties)
-            associated = list(slide.associated_images.keys())
-
-            # Vendor detection
-            vendor = props.get("openslide.vendor", "unknown")
-
-            # MPP (microns per pixel) — universal across vendors
-            mpp_x = props.get(openslide.PROPERTY_NAME_MPP_X)
-            mpp_y = props.get(openslide.PROPERTY_NAME_MPP_Y)
-            objective_power = props.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)
-
-            meta = {
-                **props,
-                # --- Derived WSI fields ---
-                "_wsi_vendor": vendor,
-                "_wsi_format": _detect_format_name(path, vendor),
-                "_wsi_width": slide.dimensions[0],
-                "_wsi_height": slide.dimensions[1],
-                "_wsi_level_count": slide.level_count,
-                "_wsi_level_dimensions": [list(d) for d in slide.level_dimensions],
-                "_wsi_level_downsamples": list(slide.level_downsamples),
-                "_wsi_mpp_x": float(mpp_x) if mpp_x else None,
-                "_wsi_mpp_y": float(mpp_y) if mpp_y else None,
-                "_wsi_objective_power": float(objective_power) if objective_power else None,
-                "_wsi_has_label": "label" in associated,
-                "_wsi_has_macro": "macro" in associated,
-                "_wsi_has_thumbnail": "thumbnail" in associated,
-                "_wsi_associated_images": associated,
-                "_wsi_backend": "openslide",
-                "_wsi_case_id": derive_case_id(path, props),
-                "phi_tag_report": classify_tags(props),
-            }
-            slide.close()
-            return json.dumps(meta, default=str)
-
+            with openslide.OpenSlide(path) as slide:
+                return WSIMetaExtractor._openslide_meta(slide, path, openslide, classify_tags)
         except Exception as err:
             return json.dumps(
                 {
@@ -134,6 +100,43 @@ class WSIMetaExtractor(Transformer):
                     "_wsi_case_id": derive_case_id(path),
                 }
             )
+
+    @staticmethod
+    def _openslide_meta(slide, path, openslide, classify_tags) -> str:
+        """Build the meta JSON for an open OpenSlide handle."""
+        props = dict(slide.properties)
+        associated = list(slide.associated_images.keys())
+
+        # Vendor detection
+        vendor = props.get("openslide.vendor", "unknown")
+
+        # MPP (microns per pixel) — universal across vendors
+        mpp_x = props.get(openslide.PROPERTY_NAME_MPP_X)
+        mpp_y = props.get(openslide.PROPERTY_NAME_MPP_Y)
+        objective_power = props.get(openslide.PROPERTY_NAME_OBJECTIVE_POWER)
+
+        meta = {
+            **props,
+            # --- Derived WSI fields ---
+            "_wsi_vendor": vendor,
+            "_wsi_format": _detect_format_name(path, vendor),
+            "_wsi_width": slide.dimensions[0],
+            "_wsi_height": slide.dimensions[1],
+            "_wsi_level_count": slide.level_count,
+            "_wsi_level_dimensions": [list(d) for d in slide.level_dimensions],
+            "_wsi_level_downsamples": list(slide.level_downsamples),
+            "_wsi_mpp_x": float(mpp_x) if mpp_x else None,
+            "_wsi_mpp_y": float(mpp_y) if mpp_y else None,
+            "_wsi_objective_power": float(objective_power) if objective_power else None,
+            "_wsi_has_label": "label" in associated,
+            "_wsi_has_macro": "macro" in associated,
+            "_wsi_has_thumbnail": "thumbnail" in associated,
+            "_wsi_associated_images": associated,
+            "_wsi_backend": "openslide",
+            "_wsi_case_id": derive_case_id(path, props),
+            "phi_tag_report": classify_tags(props),
+        }
+        return json.dumps(meta, default=str)
 
     # ------------------------------------------------------------------
     # Internal: tifffile fallback (non-WSI TIFFs)
@@ -228,7 +231,13 @@ class WSIMetaExtractor(Transformer):
                 fmt = None
 
             if fmt is not None:
-                return WSIMetaExtractor._process_openslide(path)
+                result = WSIMetaExtractor._process_openslide(path)
+                if "error" not in json.loads(result):
+                    return result
+                # OpenSlide recognized the file but couldn't read it; try tifffile and
+                # keep OpenSlide's error if that fails too.
+                fallback = WSIMetaExtractor._process_tifffile(path, filter_large)
+                return result if "error" in json.loads(fallback) else fallback
             else:
                 # OpenSlide doesn't recognize it; try tifffile
                 return WSIMetaExtractor._process_tifffile(path, filter_large)

@@ -103,22 +103,34 @@ print(f"WSI patterns: {OPENSLIDE_PATTERNS}")
 from functools import reduce
 from pyspark.sql import DataFrame
 
-# Catalog each source path and union results
-dfs = []
+# Catalog each source path and union results. The table is overwritten below, so stop
+# if any path can't be read: saving only the paths that worked would delete every row
+# previously cataloged from the others.
+dfs, failed = [], []
 for path in SOURCE_PATHS:
     try:
         df = catalog.catalog(path=path)  # Uses all WSI patterns by default
+        df.schema  # resolve now so a bad path fails here (Spark Connect is lazy)
         dfs.append(df)
         print(f"  ✓ {path}")
     except Exception as e:
+        failed.append(path)
         print(f"  ✗ {path}: {e}")
 
-if dfs:
-    catalog_df = reduce(DataFrame.union, dfs).dropDuplicates(["path"]).repartition(8)
-    print(f"\nTotal WSI files discovered: {catalog_df.count()}")
-    display(catalog_df.select("path", "modificationTime", "length", "extension"))
-else:
-    raise ValueError("No WSI files found in any source path")
+if failed:
+    raise RuntimeError(
+        f"Could not read {len(failed)} of {len(SOURCE_PATHS)} source path(s): {failed}. "
+        "Nothing was written. Fix or remove these paths and re-run."
+    )
+if not dfs:
+    raise ValueError("No source paths configured")
+
+catalog_df = reduce(DataFrame.union, dfs).dropDuplicates(["path"]).repartition(8)
+n_files = catalog_df.count()
+if n_files == 0:
+    raise ValueError(f"No WSI files found in {SOURCE_PATHS}. Nothing was written.")
+print(f"\nTotal WSI files discovered: {n_files}")
+display(catalog_df.select("path", "modificationTime", "length", "extension"))
 
 # COMMAND ----------
 

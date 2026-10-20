@@ -54,13 +54,30 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-# Artifacts some endpoints append to an answer: special tokens like <|end_of_text|>,
-# and XML-style blocks like <budget:token_budget>199969</budget:token_budget>.
+# Artifacts some endpoints add to an answer: special tokens like <|end_of_text|>, and
+# non-answer blocks such as <think>...</think> or <budget:token_budget>N</budget:...>.
+# Only these known blocks are dropped with their contents; any other tag (e.g. an
+# <answer>...</answer> wrapper) loses its markup but keeps its text, so PHI inside an
+# unexpected wrapper is still reported.
 _SPECIAL_TOKEN_RE = re.compile(r"<\|[^|<>]*\|>")
-_TAG_BLOCK_RE = re.compile(r"<([A-Za-z][\w:.-]*)\b[^<>]*>.*?</\1\s*>", re.DOTALL)
+_NON_ANSWER_BLOCK_RE = re.compile(
+    r"<(think|thinking|reasoning|reflection|budget:[\w.-]+)\b[^<>]*>.*?</\1\s*>",
+    re.DOTALL | re.IGNORECASE,
+)
 _TAG_RE = re.compile(r"</?[A-Za-z][\w:.-]*\b[^<>]*/?>")
 _ENTITY_SPLIT_RE = re.compile(r"[|\r\n]+")
 _ENTITY_STRIP_CHARS = " \t\r\n'\"`"
+
+
+def _clean_response(content: Optional[str]) -> str:
+    text = _SPECIAL_TOKEN_RE.sub("", content or "")
+    text = _NON_ANSWER_BLOCK_RE.sub("", text)
+    return _TAG_RE.sub("", text).strip(_ENTITY_STRIP_CHARS)
+
+
+def _says_no_phi(content: Optional[str]) -> bool:
+    """True when the model explicitly answered 'No PHI' (any case, optionally quoted)."""
+    return _clean_response(content).lower() == "no phi"
 
 
 def _parse_phi_response(content: Optional[str]) -> List[str]:
@@ -68,17 +85,16 @@ def _parse_phi_response(content: Optional[str]) -> List[str]:
 
     Removes endpoint artifacts before splitting: special tokens such as
     ``<|end_of_text|>`` (whose ``|`` characters would otherwise produce bogus entities
-    like ``'<'`` and ``'end_of_text'``) and XML-style tags with their contents. Splits on
-    ``|`` and on line breaks (the prompt asks for a single line), trims whitespace and
-    surrounding quotes from each entity, and drops empty entries. ``'No PHI'`` (any case,
-    optionally quoted) yields ``[]``.
+    like ``'<'`` and ``'end_of_text'``) and known non-answer blocks (``<think>``,
+    ``<budget:...>``). Other tags keep their inner text. Splits on ``|`` and on line
+    breaks (the prompt asks for a single line), trims whitespace and surrounding quotes
+    from each entity, and drops empty entries. ``'No PHI'`` yields ``[]``.
+
+    An empty list is ambiguous on its own (``'No PHI'`` or an answer with nothing
+    usable in it); use :func:`_says_no_phi` to tell them apart.
     """
-    if not content:
-        return []
-    text = _SPECIAL_TOKEN_RE.sub("", content)
-    text = _TAG_BLOCK_RE.sub("", text)
-    text = _TAG_RE.sub("", text).strip(_ENTITY_STRIP_CHARS)
-    if text.lower() == "no phi":
+    text = _clean_response(content)
+    if not text or text.lower() == "no phi":
         return []
     entities = (e.strip(_ENTITY_STRIP_CHARS) for e in _ENTITY_SPLIT_RE.split(text))
     return [e for e in entities if e]
@@ -146,17 +162,20 @@ def _make_wsi_phi_detector_udf(
                     if input_type == "wsi":
                         # OpenSlide-backed: handles SVS, NDPI, MRXS, SCN, BIF,
                         # Philips TIFF, generic TIFF, etc.
+                        # No tissue fallback: a result labelled "label" must come from
+                        # the label image, so a missing label is reported as an error.
                         b64 = wsi_to_image(
                             path,
                             max_width=max_width,
                             return_type="str",
                             series=series,
+                            fallback_to_tissue=False,
                         )
                         if b64 is None:
                             results.append(
                                 dc_replace(
                                     _null,
-                                    error=f"wsi_to_image returned None: {path}",
+                                    error=f"No '{series}' image could be read from {path}",
                                 )
                             )
                             continue
@@ -191,7 +210,15 @@ def _make_wsi_phi_detector_udf(
                     )
 
                     # --- 3. Parse response ---
-                    phi_list = _parse_phi_response(response.choices[0].message.content)
+                    content = response.choices[0].message.content
+                    phi_list = _parse_phi_response(content)
+                    # Fail closed: an answer with no entities that isn't an explicit
+                    # "No PHI" is an error, not a clean scan.
+                    parse_error = (
+                        None
+                        if phi_list or _says_no_phi(content)
+                        else f"Unrecognized VLM response: {str(content)[:200]!r}"
+                    )
 
                     results.append(
                         VlmResult(
@@ -199,7 +226,7 @@ def _make_wsi_phi_detector_udf(
                             response.usage.completion_tokens,
                             response.usage.prompt_tokens,
                             response.usage.total_tokens,
-                            None,
+                            parse_error,
                         )
                     )
 

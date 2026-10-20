@@ -90,8 +90,6 @@ PHI_TAGS: set[str] = {
     "Id",
     # --- Hamamatsu NDPI ---
     "hamamatsu.Reference",  # Patient/case reference
-    # --- Leica SCN ---
-    "leica.device-model",  # Sometimes contains operator info
     # --- Philips ---
     "philips.PIM_DP_UFS_BARCODE",  # Barcode text (patient label)
     # --- OpenSlide normalized ---
@@ -105,6 +103,7 @@ PHI_TAGS: set[str] = {
 # QUESTIONABLE: May contain PHI depending on site configuration
 # ---------------------------------------------------------------------------
 QUESTIONABLE_TAGS: set[str] = {
+    "leica.device-model",  # Scanner model; sometimes contains operator info
     # --- Aperio ---
     "aperio.Date",
     "aperio.Time",
@@ -309,9 +308,12 @@ def classify_tag(key: str) -> str:
     key, including vendor keys not listed here, is ``'QUESTIONABLE'`` so it shows
     up in the PHI report for review.
     """
-    if key in PHI_TAGS:
+    # OpenSlide reports TIFF tags with a ``tiff.`` prefix (``tiff.Artist``); classify
+    # them like the bare tag names tifffile reports (``Artist``), whichever is stricter.
+    names = (key, key[len("tiff.") :]) if key.startswith("tiff.") else (key,)
+    if any(n in PHI_TAGS for n in names):
         return "PHI"
-    if key in QUESTIONABLE_TAGS:
+    if any(n in QUESTIONABLE_TAGS for n in names):
         return "QUESTIONABLE"
     if _is_technical(key):
         return "NOT_PHI"
