@@ -182,10 +182,13 @@ class StowProcessor:
 
         self.logger.info(f"Phase 2 (meta): reading from {source_table}")
 
+        # No ``startingVersion``: on a fresh checkpoint the CDF stream
+        # emits the current snapshot as ``insert`` rows, then follows new
+        # changes. Pinning to version 0 fails once log retention has
+        # cleaned up early versions (DELTA_VERSION_NOT_FOUND).
         df = (
             self.spark.readStream.format("delta")
             .option("readChangeFeed", "true")
-            .option("startingVersion", "0")
             .option("maxFilesPerTrigger", max_files_per_trigger)
             .table(source_table)
             .filter(fn.col("status") == "completed")
