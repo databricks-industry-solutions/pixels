@@ -57,6 +57,7 @@ pixels/
 │           ├── lakebase.py         # Lakebase Postgres setup
 │           ├── dicom/              # DICOM parsing, metadata extraction
 │           ├── czi/                # CZI format support
+│           ├── wsi/                # Whole slide image (pathology) catalog, metadata, PHI detection
 │           ├── modelserving/       # Client-side inference (Spark Transformers, API clients)
 │           ├── prompt/             # VLM/redaction prompt management
 │           ├── common/             # Shared app code (config, middleware, routes)
@@ -95,12 +96,14 @@ pixels/
 │   ├── 06-OHIF-Viewer.py
 │   ├── data-downloaders/           # TCIA dataset downloaders
 │   ├── DE-ID/                      # De-identification experiments
-│   └── lakebase/                   # Row-level security demo
+│   ├── lakebase/                   # Row-level security demo
+│   └── wsi/                        # WSI ingest (01) and PHI detection (02), widget-driven
 │
 ├── docs/                           # Documentation
 │   ├── INSTALL.md                  # Installation guide
 │   ├── DICOMWEB.md                 # DICOMweb API reference (QIDO/WADO/STOW)
-│   └── NIFTI_OVERLAY.md            # NIfTI segmentation overlay architecture
+│   ├── NIFTI_OVERLAY.md            # NIfTI segmentation overlay architecture
+│   └── WSI.md                      # WSI overview + file inventory (guide is wiki/Whole-Slide-Imaging.md)
 │
 ├── tests/                          # pytest test suite
 │   ├── db_runner.py

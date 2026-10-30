@@ -32,6 +32,7 @@ catalog.save(meta_df)                                                 # persist 
 
 - **[Ingestion](Ingestion)**: the `Catalog` class, how batch, streaming and managed file events differ, when to use each, and every parameter
 - **[Metadata Extraction](Metadata-Extraction)**: the `DicomMetaExtractor` class, its parameters, output format, and how to query the `meta` column
+- **[Whole Slide Imaging](Whole-Slide-Imaging)**: cataloging digital pathology slides (SVS, NDPI, TIFF and other OpenSlide formats), their metadata, and PHI detection
 - **[Release Notes](Release-Notes)**: what changed in each release, including unreleased changes on `main`
 
 More pages are planned for anonymization, redaction, thumbnails, DICOMweb, OHIF/MONAI and NIfTI overlays.

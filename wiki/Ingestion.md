@@ -48,6 +48,7 @@ catalog = Catalog(
 | `spark` | `SparkSession` | *required* | Active Spark session. |
 | `table` | `str` | `"main.pixels_solacc.object_catalog"` | Fully qualified (`catalog.schema.table`) name of the object catalog table. Related tables (`<table>_unzip`, `<table>_redaction`, …) are derived from this name. |
 | `volume` | `str` | `"main.pixels_solacc.pixels_volume"` | Fully qualified UC Volume used for checkpoints (`/checkpoints/`), unzipped files (`/unzipped/`), anonymized output (`/anonymized/`) and redacted output (`/redacted/`). If the volume doesn't exist, the constructor only logs a warning. |
+| `cluster_by` | `str`, `list[str]` or `None` | `"auto"` | Liquid-clustering columns for `save()`. `"auto"` clusters by `study_uid` when the DataFrame has that column (DICOM), else by `case_id` ([whole slide images](Whole-Slide-Imaging#clustering)), and writes without clustering when it has neither (for example raw `catalog()` output). A column name or list clusters by those columns (missing ones are skipped with a warning); `None` never clusters. |
 
 ### `init_tables()`
 
@@ -67,7 +68,7 @@ catalog_df = catalog.catalog(path, **options)
 
 It returns a DataFrame, streaming or static depending on `streaming`. Nothing is written until you call `save()`.
 
-> Pass the result through [`DicomMetaExtractor`](Metadata-Extraction) before saving. `save()` clusters the table by `study_uid`, a column that only the extractor adds, so saving the raw `catalog()` output fails.
+> Pass the result through [`DicomMetaExtractor`](Metadata-Extraction) before saving DICOM. `save()` clusters the table by `study_uid`, a column only the extractor adds. Raw `catalog()` output has neither `study_uid` nor `case_id`, so with the default `cluster_by="auto"` it's saved without clustering.
 
 ### General parameters (all modes)
 
@@ -235,7 +236,7 @@ catalog.save(df, mode="append")
 
 `save()` writes in streaming mode if the most recent `catalog()` call on this instance used `streaming=True`. For streaming it blocks until the query terminates.
 
-Batch and streaming writes both apply **liquid clustering on `study_uid`** (`clusterBy("study_uid")`), so files from the same study are stored together and study-level lookups (e.g. from the DICOMweb gateway or the viewer) scan less data. The DataFrame therefore needs a `study_uid` column, which `DicomMetaExtractor` provides. This also applies when you pass a different `table`.
+Batch and streaming writes both apply **liquid clustering on `study_uid`** when the DataFrame has that column, so files from the same study are stored together and study-level lookups (e.g. from the DICOMweb gateway or the viewer) scan less data. `DicomMetaExtractor` adds the column. This is the default `cluster_by="auto"`; pass `cluster_by` to the constructor to cluster by other columns or not at all. This also applies when you pass a different `table`.
 
 > **Upgrading an existing catalog?** Tables created before liquid clustering was introduced have no `study_uid` / `series_uid` columns. Run [`notebooks/UPGRADE_TO_LIQUID.ipynb`](https://github.com/databricks-industry-solutions/pixels/blob/main/notebooks/UPGRADE_TO_LIQUID.ipynb) once, with the `table` widget set to your catalog table, before writing to it again. It adds and backfills the columns, enables clustering on `study_uid`, and runs `OPTIMIZE`. See [Release Notes](Release-Notes).
 

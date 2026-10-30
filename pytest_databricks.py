@@ -1,6 +1,7 @@
 # Databricks notebook source
 # MAGIC %pip install -r requirements.txt
 # MAGIC %pip install pytest
+# MAGIC %pip install openslide-python openslide-bin tifffile
 
 # COMMAND ----------
 
