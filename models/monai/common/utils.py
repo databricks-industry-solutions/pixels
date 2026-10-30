@@ -266,6 +266,27 @@ def series_to_nifti(datastore, series_uid):
     image_info = datastore.get_image_info(series_uid)
     return nifti_path, image_info
 
+def prefetch_series(datastore, series_uid, study_uid=None):
+    """
+    Download a DICOM series into the datastore cache when its study is known.
+    ``get_image_uri(series_uid)`` alone first runs a series -> study lookup query (a
+    scan of the catalog table) before listing the instances; with ``study_uid`` that
+    lookup is skipped. Afterwards ``get_image_uri`` finds the cached series and
+    returns it without downloading again.
+    Args:
+        datastore (DICOMWebDatastore): MONAI Label Databricks Datastore client.
+        series_uid (str): SeriesInstanceUID to fetch.
+        study_uid (str): StudyInstanceUID of the series; no-op when not provided.
+    """
+    if not study_uid:
+        return
+    from monailabel.datastore.utils.dicom import dicom_web_download_series
+
+    image_dir = os.path.realpath(os.path.join(datastore._datastore.image_path(), series_uid))
+    if not os.path.exists(image_dir) or not os.listdir(image_dir):
+        dicom_web_download_series(study_uid, series_uid, image_dir, datastore._client, datastore._fetch_by_frame)
+
+
 def itk_image_to_dicom_seg(itkbin_path, label, series_dir, template) -> str:
     """
     Convert a NIfTI image to DICOM Segmentation using ITKImageToDICOMSegmentation.

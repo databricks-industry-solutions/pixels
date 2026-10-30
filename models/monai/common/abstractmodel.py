@@ -8,7 +8,7 @@ from base64 import b64encode
 from mlflow.entities import SpanType
 from abc import abstractmethod
 import datetime
-from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal
+from common.utils import init_dicomweb_datastore, nifti_to_dicom_seg, to_nrrd, calculate_volumes_and_overlays, create_token_from_service_principal, prefetch_series
 from monailabel.datastore.databricks_client import DatabricksClient
 
 logger = logging.getLogger(__name__)
@@ -304,7 +304,9 @@ class DBModel(mlflow.pyfunc.PythonModel):
                     span.set_outputs(" - REDACTED B64 FILE CONTENT - ")
                 elif "infer" in model_input['input'][0]:
                     label_prompt, points, point_labels, datastore = self.handle_labels(model_input["input"][0]['infer'])
-                            
+                    # optional study_uid skips the series -> study lookup when fetching the series
+                    prefetch_series(datastore, model_input["input"][0]['infer']['image'], model_input["input"][0]['infer'].get('study_uid'))
+
                     series_dir, out_seg_path = self.model_infer(datastore, model_input["input"][0]['infer']['image'], label_prompt, points, point_labels, file_ext=".nii.gz")
                     to_return = {"file": out_seg_path, 'params' : { 'centroids' : {}}} #ohif 3.8 compatibility
                     span.set_outputs(to_return)
@@ -321,6 +323,10 @@ class DBModel(mlflow.pyfunc.PythonModel):
                 
                 label_prompt, points, point_labels, datastore = self.handle_labels(input_params)
                 dest_dir, export_overlays, export_metrics, torch_device = self.handle_params(input_params)
+
+                # optional study_uid (top-level column or in params) skips the series -> study lookup
+                study_uid = model_input["study_uid"][0] if "study_uid" in model_input else input_params.get("study_uid")
+                prefetch_series(datastore, series_uid, study_uid if isinstance(study_uid, str) else None)
 
                 series_dir, out_seg_path = self.model_infer(datastore, series_uid, label_prompt, points, point_labels, torch_device=torch_device, file_ext=".dcm")
                 final_path = dest_dir + "/segmentations/" + series_uid + ".dcm"
