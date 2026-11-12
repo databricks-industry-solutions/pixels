@@ -1,3 +1,16 @@
+# Two worker processes so one heavy request cannot stall the whole gateway.
+# Each worker keeps its own in-memory caches and metrics reporter.
+command:
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+  - "--workers"
+  - "2"
+  - "--no-access-log"
+
 env:
   # ── Required ────────────────────────────────────────────────────────────────
   - name: "DATABRICKS_WAREHOUSE_ID"
@@ -67,9 +80,11 @@ env:
   - name: "DICOMWEB_MAX_KEEPALIVE"
     value: "100"
   - name: "DICOMWEB_METRICS_INTERVAL"
-    value: "1"
+    value: "5"
   - name: "PIXELS_QIDO_MAX_LIMIT"
     value: "1000"
+  - name: "PIXELS_METADATA_INLINE_BINARY_MAX"
+    value: "4096"
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"

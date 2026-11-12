@@ -1,6 +1,15 @@
-command: 
-  - "hypercorn"
+# Two worker processes so one heavy request cannot stall the whole gateway.
+# Each worker keeps its own in-memory caches and metrics reporter.
+command:
+  - "uvicorn"
   - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+  - "--workers"
+  - "2"
+  - "--no-access-log"
 
 env:
   # ── Required ────────────────────────────────────────────────────────────────
@@ -83,7 +92,7 @@ env:
   - name: "DICOMWEB_MAX_KEEPALIVE"
     value: "100"
   - name: "DICOMWEB_METRICS_INTERVAL"
-    value: "1"
+    value: "5"
   - name: "DICOMWEB_ANYIO_THREAD_TOKENS"
     value: "128"
   - name: "DICOMWEB_ENABLE_WADO_SERIES_PRIMING"
