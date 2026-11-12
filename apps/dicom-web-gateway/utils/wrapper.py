@@ -42,6 +42,7 @@ from .dicom_io import (
 )
 from .dicom_tags import filter_dicom_json, format_dicomweb_response
 from .queries import (
+    METADATA_INLINE_BINARY_MAX,
     build_all_series_query,
     build_instance_path_query,
     build_instances_query,
@@ -66,6 +67,37 @@ _ENABLE_WADO_SERIES_PRIMING = os.environ.get(
 # Keep this short to avoid turning pending prefetches into multi-second tail
 # latency spikes under concurrency bursts.
 _WADO_PREFETCH_WAIT_S = float(os.environ.get("PIXELS_WADO_PREFETCH_WAIT_S", "0.05"))
+
+# WADO-RS metadata streaming: rows fetched per Arrow batch, and instances
+# joined per yielded chunk (each chunk is one threadpool hop).
+_METADATA_FETCH_BATCH_ROWS = 256
+_METADATA_INSTANCES_PER_CHUNK = 64
+
+
+def _stream_metadata_array(
+    first_row: list[Any], row_stream: Iterator[list[Any]], label: str
+) -> Iterator[str]:
+    """Yield a JSON array of filtered ``meta`` objects in batched chunks.
+
+    Closes *row_stream* on exit so an aborted response releases the cursor
+    immediately instead of at garbage collection.
+    """
+    count = 1
+    parts = ["[\n", filter_dicom_json(first_row[0], METADATA_INLINE_BINARY_MAX)]
+    try:
+        for row in row_stream:
+            if row and row[0]:
+                parts.append(",\n")
+                parts.append(filter_dicom_json(row[0], METADATA_INLINE_BINARY_MAX))
+                count += 1
+                if count % _METADATA_INSTANCES_PER_CHUNK == 0:
+                    yield "".join(parts)
+                    parts = []
+        parts.append("\n]")
+        yield "".join(parts)
+    finally:
+        row_stream.close()
+    logger.info(f"WADO-RS: streamed {count} {label} records")
 
 
 # ---------------------------------------------------------------------------
@@ -193,9 +225,13 @@ class DICOMwebDatabricksWrapper:
         """Execute a parameterized query via the SQL client."""
         return self._sql.execute(sql, parameters=params, user_token=self._token)
 
-    def _query_stream(self, sql: str, params: dict[str, Any] | None = None) -> Iterator[list[Any]]:
+    def _query_stream(
+        self, sql: str, params: dict[str, Any] | None = None, batch_size: int = 10_000
+    ) -> Iterator[list[Any]]:
         """Execute a parameterized query and return a lazy row iterator."""
-        return self._sql.execute_stream(sql, parameters=params, user_token=self._token)
+        return self._sql.execute_stream(
+            sql, parameters=params, user_token=self._token, batch_size=batch_size
+        )
 
     # ------------------------------------------------------------------
     # QIDO-RS — search
@@ -530,27 +566,16 @@ class DICOMwebDatabricksWrapper:
             study_instance_uid,
             series_instance_uid,
         )
-        row_stream = self._query_stream(query, params)
+        row_stream = self._query_stream(query, params, batch_size=_METADATA_FETCH_BATCH_ROWS)
 
         # Peek at first row — raise 404 before streaming starts so the
         # HTTP status code is still correct.
         first_row = next(row_stream, None)
         if first_row is None or not first_row[0]:
+            row_stream.close()
             raise HTTPException(status_code=404, detail="Series not found or no instances")
 
-        def _json_chunks() -> Iterator[str]:
-            count = 1
-            yield "[\n"
-            yield filter_dicom_json(first_row[0])
-            for row in row_stream:
-                if row and row[0]:
-                    yield ",\n"
-                    yield filter_dicom_json(row[0])
-                    count += 1
-            yield "\n]"
-            logger.info(f"WADO-RS: streamed {count} metadata records")
-
-        return _json_chunks()
+        return _stream_metadata_array(first_row, row_stream, "metadata")
 
     @timing_decorator
     def retrieve_study_metadata(
@@ -567,25 +592,14 @@ class DICOMwebDatabricksWrapper:
             self._table,
             study_instance_uid,
         )
-        row_stream = self._query_stream(query, params)
+        row_stream = self._query_stream(query, params, batch_size=_METADATA_FETCH_BATCH_ROWS)
 
         first_row = next(row_stream, None)
         if first_row is None or not first_row[0]:
+            row_stream.close()
             raise HTTPException(status_code=404, detail="Study not found or no instances")
 
-        def _json_chunks() -> Iterator[str]:
-            count = 1
-            yield "[\n"
-            yield filter_dicom_json(first_row[0])
-            for row in row_stream:
-                if row and row[0]:
-                    yield ",\n"
-                    yield filter_dicom_json(row[0])
-                    count += 1
-            yield "\n]"
-            logger.info(f"WADO-RS: streamed {count} study metadata records")
-
-        return _json_chunks()
+        return _stream_metadata_array(first_row, row_stream, "study metadata")
 
     @timing_decorator
     def retrieve_instance(

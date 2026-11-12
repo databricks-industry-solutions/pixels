@@ -364,7 +364,7 @@ async def _metrics_reporter():
 
         if store:
             try:
-                store.insert_metrics("gateway", gw_snapshot)
+                await asyncio.to_thread(store.insert_metrics, "gateway", gw_snapshot)
             except Exception as exc:
                 logger.error("Gateway metrics Lakebase write: %s", exc)
 
@@ -372,7 +372,9 @@ async def _metrics_reporter():
             payload: dict = {"gateway": []}
             if store:
                 try:
-                    rows = store.get_latest_metrics(source="gateway", limit=1)
+                    rows = await asyncio.to_thread(
+                        store.get_latest_metrics, source="gateway", limit=1
+                    )
                     payload["gateway"] = rows
                 except Exception as exc:
                     logger.error("Lakebase read for WS broadcast: %s", exc)

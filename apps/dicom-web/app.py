@@ -352,8 +352,10 @@ EXCLUDED_PATHS = ["/instances/"]
 class SelectiveGZipMiddleware:
     def __init__(self, app: ASGIApp, minimum_size: int = 1000):
         self.app = app
-        # Initialize the GZip middleware once, wrapping the base app
-        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size)
+        # Initialize the GZip middleware once, wrapping the base app.
+        # compresslevel=5: the default 9 costs far more CPU on the event loop
+        # for large DICOM JSON with little size gain.
+        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size, compresslevel=5)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         # We only care about HTTP requests

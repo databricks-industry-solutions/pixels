@@ -251,7 +251,7 @@ attribute filters via `utils/queries.py`.
 
 | Method | Path                                                                               | Description                                                           |
 | ------ | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `GET`  | `/api/dicomweb/studies/{study}/series/{series}/metadata`                           | Streaming JSON metadata (Arrow → JSON, no parse/serialize round-trip) |
+| `GET`  | `/api/dicomweb/studies/{study}/series/{series}/metadata`                           | Streaming JSON metadata (oversized binary/private elements dropped)  |
 | `GET`  | `/api/dicomweb/studies/{study}/series/{series}/instances/{sop}`                    | Full DICOM file stream from Volumes                                   |
 | `GET`  | `/api/dicomweb/studies/{study}/series/{series}/instances/{sop}/frames/{frameList}` | Streaming multipart/related frame response                            |
 
@@ -452,8 +452,13 @@ network call.
 
 ### WADO-RS (Web Access to DICOM Objects by RESTful Services)
 
-- Series metadata — streamed directly from Arrow result without JSON
-parse/serialize round-trip
+- Series / study metadata — streamed as a JSON array in batched chunks.
+  Ingestion stores binary elements (OB/OW/UN/…) inline as base64, so vendor
+  private blobs can make one instance tens of MB. The warehouse query drops
+  top-level elements larger than `PIXELS_METADATA_INLINE_BINARY_MAX` characters
+  that are binary or private (odd group) before they reach the gateway; the
+  gateway then removes non-DICOM keys and any remaining oversized
+  `InlineBinary` inside sequences (the element keeps its `vr`)
 - Instance retrieval — full DICOM Part-10 file, streamed, with
 `Content-Length` when available and `Cache-Control: private, max-age=3600`
 - Frame retrieval — `multipart/related` response, one part per frame:
@@ -917,6 +922,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `DICOMWEB_ANYIO_THREAD_TOKENS`        | No             | `128`                     | AnyIO thread limiter for sync workloads                       |
 | `DICOMWEB_ENABLE_WADO_SERIES_PRIMING` | No             | `false`                   | Enable opportunistic series-level pre-priming                 |
 | `PIXELS_QIDO_MAX_LIMIT`               | No             | `1000`                    | Hard cap on QIDO-RS study-search rows (applies even when `?limit` is omitted)  |
+| `PIXELS_METADATA_INLINE_BINARY_MAX`   | No             | `4096`                    | WADO-RS metadata: drop binary/private elements and `InlineBinary` values larger than this (chars) |
 | `PIXELS_WADO_PREFETCH_WAIT_S`         | No             | `0.05`                    | Max wait to consume prefetched bytes before fallback          |
 | `PIXELS_BACKGROUND_POOL_WORKERS`      | No             | `16`                      | Worker count for background frame reads                       |
 | `PIXELS_FILES_POOL_CONNECTIONS`       | No             | `20`                      | Requests adapter pooled host entries                          |

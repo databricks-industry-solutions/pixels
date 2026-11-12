@@ -293,6 +293,7 @@ class DatabricksSQLClient:
         query: str,
         parameters: dict[str, Any] | None = None,
         user_token: str | None = None,
+        batch_size: int = 10_000,
     ) -> Iterator[list[Any]]:
         """
         Execute a **parameterized** SQL query and return a lazy row iterator.
@@ -309,6 +310,8 @@ class DatabricksSQLClient:
             parameters: Bind-parameter dict (values only — never identifiers).
             user_token: The user's forwarded access token.  Used **only** when
                 ``DICOMWEB_USE_USER_AUTH=true``; ignored otherwise.
+            batch_size: Rows per Arrow fetch.  Keep it small for wide rows so
+                each batch conversion holds the GIL only briefly.
 
         Yields:
             ``list[Any]`` — one list of column values per row.
@@ -396,7 +399,7 @@ class DatabricksSQLClient:
             t_stream = time.perf_counter()
             try:
                 while True:
-                    batch = cursor.fetchmany_arrow(10_000)
+                    batch = cursor.fetchmany_arrow(batch_size)
                     if batch.num_rows == 0:
                         break
                     for row in batch.to_pylist():
