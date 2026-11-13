@@ -94,6 +94,9 @@ env:
   # keep freed frame buffers resident and RSS never drops after a burst.
   - name: "MALLOC_ARENA_MAX"
     value: "2"
+  # gzip level for uncompressed (native) frame responses; 0 disables
+  - name: "PIXELS_FRAME_GZIP_LEVEL"
+    value: "1"
 
   # ── Logging ─────────────────────────────────────────────────────────────────
   - name: "DB_PIXELS_LOG_LEVEL"

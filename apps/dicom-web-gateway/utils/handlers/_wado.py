@@ -11,8 +11,11 @@ WADO-RS / WADO-URI / Path-resolution / Prime handlers.
 
 import concurrent.futures
 import json
+import os
 import time
 import uuid
+import zlib
+from collections.abc import Iterable, Iterator
 
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
@@ -29,6 +32,36 @@ from ..request_ctx import current_request_id
 from ._common import get_dicomweb_wrapper, lb_utils
 
 logger = LoggerProvider("DICOMweb.WADO")
+
+# Native (uncompressed) pixel data compresses ~2.5x with gzip level 1 at a few
+# ms per MB, which matters for large raw frames (e.g. ultrasound cine).
+# Encapsulated syntaxes (JPEG, J2K, HTJ2K, …) are already compressed and are
+# sent as-is.  ``PIXELS_FRAME_GZIP_LEVEL=0`` disables frame compression.
+_UNCOMPRESSED_TRANSFER_SYNTAXES = frozenset(
+    {
+        "1.2.840.10008.1.2",  # Implicit VR Little Endian
+        "1.2.840.10008.1.2.1",  # Explicit VR Little Endian
+        "1.2.840.10008.1.2.2",  # Explicit VR Big Endian
+    }
+)
+try:
+    _FRAME_GZIP_LEVEL = min(9, max(0, int(os.getenv("PIXELS_FRAME_GZIP_LEVEL", "1"))))
+except ValueError:
+    _FRAME_GZIP_LEVEL = 1
+
+
+def _accepts_gzip(request: Request) -> bool:
+    return "gzip" in request.headers.get("accept-encoding", "").lower()
+
+
+def _gzip_stream(chunks: Iterable[bytes], level: int) -> Iterator[bytes]:
+    """Gzip *chunks* incrementally, yielding compressed output as it is produced."""
+    compressor = zlib.compressobj(level, zlib.DEFLATED, 31)
+    for chunk in chunks:
+        out = compressor.compress(chunk)
+        if out:
+            yield out
+    yield compressor.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -180,10 +213,21 @@ def dicomweb_wado_instance_frames(
                 yield part_header.encode() + frame_data + b"\r\n"
             yield f"--{boundary}--\r\n".encode()
 
+        body = multipart_generator()
+        headers = {"Cache-Control": "private, max-age=3600"}
+        if (
+            _FRAME_GZIP_LEVEL
+            and transfer_syntax_uid in _UNCOMPRESSED_TRANSFER_SYNTAXES
+            and _accepts_gzip(request)
+        ):
+            body = _gzip_stream(body, _FRAME_GZIP_LEVEL)
+            headers["Content-Encoding"] = "gzip"
+            headers["Vary"] = "Accept-Encoding"
+
         return StreamingResponse(
-            iterate_in_threadpool(multipart_generator()),
+            iterate_in_threadpool(body),
             media_type=f"multipart/related; type={mime_type}; boundary={boundary}",
-            headers={"Cache-Control": "private, max-age=3600"},
+            headers=headers,
         )
     except Exception:
         logger.error(
