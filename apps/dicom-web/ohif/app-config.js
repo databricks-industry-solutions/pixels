@@ -1,7 +1,7 @@
 window.config = {
   routerBasename: '{ROUTER_BASENAME}',
   showStudyList: true,
-  maxCacheSize: 4294967296, // 4GB
+  maxCacheSize: 1073741824, // 1GB — larger caches exhaust the tab on big tomo/CT studies
   extensions: [],
   modes: [],
   // below flag is for performance reasons, but it might not work for all servers
@@ -19,13 +19,14 @@ window.config = {
   useCPURendering: false, // Force GPU rendering when available
 
   // Web Worker Settings for Parallel Decoding
-  maxNumberOfWebWorkers: navigator.hardwareConcurrency || 4, // Use all available CPU cores
+  // Each decoder worker holds its own WASM heap, so cap the count
+  maxNumberOfWebWorkers: Math.min(navigator.hardwareConcurrency || 4, 4),
 
   // Increase concurrent request pool sizes for better parallelism
   maxNumRequests: {
     interaction: 20,  // User interactions (pan, zoom, scroll) - high priority
     thumbnail: 10,    // Thumbnail generation
-    prefetch: 20,     // Background prefetching - INCREASE THIS for parallel loading
+    prefetch: 10,     // Background prefetching
     compute: 10       // Computation tasks
   },
 

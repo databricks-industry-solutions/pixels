@@ -67,7 +67,9 @@ Environment variables (set in ``app.yml``)::
     PIXELS_FRAME_CACHE_DIR          Directory for the on-disk frame cache
                                     (default: /tmp/pixels_frame_cache)
     PIXELS_FRAME_CACHE_MAX_GB       Maximum size of the on-disk cache in GB
-                                    (default: 10 GB)
+                                    (default: 5 GB, oldest files evicted)
+    PIXELS_STREAM_STATES_MAX        Completed stream states kept per worker
+                                    (default: 256)
 
     # ── Gateway tuning ───────────────────────────────────────────────────────
     DICOMWEB_MAX_CONNECTIONS        Max concurrent outbound connections to
@@ -91,7 +93,7 @@ import psutil
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from utils.cache import bot_cache, instance_path_cache
-from utils.dicom_io import file_prefetcher
+from utils.dicom_io import file_prefetcher, progressive_streamer
 from utils.request_ctx import new_request_id, request_id_var
 from utils.handlers import (
     dicomweb_prime_series,
@@ -117,6 +119,7 @@ try:
 except ImportError:
     dicomweb_resolve_frame_ranges = None
 
+from utils.metrics import ContainerCpuMeter, container_resources, malloc_stats
 from utils.metrics_store import get_store
 
 logger = logging.getLogger("DICOMweb.Gateway")
@@ -266,9 +269,27 @@ def _bytes_to_mb(b: int) -> float:
     return round(b / (1024 * 1024), 2)
 
 
-def _collect_system_metrics() -> dict:
+class _CpuSampler:
+    """Non-blocking CPU readings averaged since this sampler's previous call.
+
+    The metrics reporter and ``/api/metrics`` each keep their own sampler so
+    one does not shorten the other's measuring window.
+    """
+
+    def __init__(self):
+        self.proc = psutil.Process()
+        self.proc.cpu_percent(None)  # prime: the next call returns the average since now
+        self.container = ContainerCpuMeter()
+        self.container.sample()
+
+
+_REPORTER_CPU = _CpuSampler()
+_API_CPU = _CpuSampler()
+
+
+def _collect_system_metrics(cpu: _CpuSampler = _REPORTER_CPU) -> dict:
     """Gather CPU, memory, thread, and network connection stats."""
-    proc = psutil.Process()
+    proc = cpu.proc
     mem = proc.memory_info()
     sys_mem = psutil.virtual_memory()
     try:
@@ -276,8 +297,10 @@ def _collect_system_metrics() -> dict:
     except (psutil.AccessDenied, psutil.NoSuchProcess):
         net_conns = -1
     return {
-        "cpu_percent_process": proc.cpu_percent(interval=0.1),
-        "cpu_percent_system": psutil.cpu_percent(interval=0.1),
+        # % of one core, averaged since the previous snapshot of this worker
+        "cpu_percent_process": proc.cpu_percent(None),
+        # Whole container, % of its CPU limit (host cores if unlimited)
+        "container_cpu_used_percent": cpu.container.sample(),
         "cpu_count": os.cpu_count(),
         "memory_rss_mb": _bytes_to_mb(mem.rss),
         "memory_vms_mb": _bytes_to_mb(mem.vms),
@@ -286,6 +309,10 @@ def _collect_system_metrics() -> dict:
         "system_memory_used_percent": sys_mem.percent,
         "threads_active": threading.active_count(),
         "network_connections": net_conns,
+        # The system_* figures above are the host VM's; the app's real
+        # memory / CPU limits come from its container cgroup.
+        **container_resources(),
+        **malloc_stats(),
     }
 
 
@@ -295,6 +322,7 @@ def _collect_cache_metrics() -> dict:
         "bot_cache": bot_cache.stats,
         "instance_path_cache": instance_path_cache.stats,
         "prefetcher": file_prefetcher.stats,
+        "progressive_streams": progressive_streamer.stats,
     }
 
 
@@ -315,6 +343,9 @@ def _snapshot_and_reset() -> dict:
         "latency_sum_s": round(latency_sum_s, 4),
         "avg_latency_s": (round(latency_sum_s / request_count, 4) if request_count else 0),
         "in_flight": in_flight,
+        # Each uvicorn worker reports its own snapshot; the pid lets the
+        # dashboard show per-worker values and totals instead of mixing rows.
+        "worker": {"pid": os.getpid()},
         "system": _collect_system_metrics(),
         "caches": _collect_cache_metrics(),
     }
@@ -364,7 +395,7 @@ async def _metrics_reporter():
 
         if store:
             try:
-                store.insert_metrics("gateway", gw_snapshot)
+                await asyncio.to_thread(store.insert_metrics, "gateway", gw_snapshot)
             except Exception as exc:
                 logger.error("Gateway metrics Lakebase write: %s", exc)
 
@@ -372,7 +403,10 @@ async def _metrics_reporter():
             payload: dict = {"gateway": []}
             if store:
                 try:
-                    rows = store.get_latest_metrics(source="gateway", limit=1)
+                    # Latest few rows so every worker's newest snapshot is included
+                    rows = await asyncio.to_thread(
+                        store.get_latest_metrics, source="gateway", limit=8
+                    )
                     payload["gateway"] = rows
                 except Exception as exc:
                     logger.error("Lakebase read for WS broadcast: %s", exc)
@@ -747,10 +781,11 @@ def metrics(window: str = "5m"):
     rows: list = []
     if store:
         try:
+            # ~300 points per worker (rows from all workers are interleaved)
             rows = store.get_latest_metrics(
                 source="gateway",
                 since=since,
-                max_points=300,
+                max_points=600,
             )
         except Exception as exc:
             logger.error("Metrics Lakebase read: %s", exc)
@@ -758,7 +793,8 @@ def metrics(window: str = "5m"):
         content={
             "gateway": rows,
             "window": window,
-            "system": _collect_system_metrics(),
+            "worker": {"pid": os.getpid()},
+            "system": _collect_system_metrics(_API_CPU),
             "caches": _collect_cache_metrics(),
         }
     )

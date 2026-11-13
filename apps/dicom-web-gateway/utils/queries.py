@@ -33,6 +33,51 @@ except (TypeError, ValueError):
 
 
 # ---------------------------------------------------------------------------
+# WADO-RS metadata guardrail
+# ---------------------------------------------------------------------------
+# Ingestion stores binary elements (OB/OW/UN/…) inline as base64, so vendor
+# private blobs can make a single instance's ``meta`` tens of MB (e.g. Hologic
+# tomosynthesis).  The metadata queries drop, on the warehouse, any top-level
+# element larger than this many characters that is binary or private, so the
+# blobs are never transferred to the gateway.  Override via
+# ``PIXELS_METADATA_INLINE_BINARY_MAX``.
+try:
+    METADATA_INLINE_BINARY_MAX = max(
+        0, int(os.getenv("PIXELS_METADATA_INLINE_BINARY_MAX", "4096"))
+    )
+except (TypeError, ValueError):
+    METADATA_INLINE_BINARY_MAX = 4096
+
+_BINARY_VRS = ("OB", "OD", "OF", "OL", "OV", "OW", "UN")
+
+
+def _slim_meta_sql() -> str:
+    """SQL expression rebuilding ``meta`` as a JSON string without non-DICOM
+    keys and without oversized binary or private elements.
+
+    ``from_json(..., 'map<string,string>')`` keeps each element's value as raw
+    JSON text, so the surviving elements are emitted unchanged.
+    """
+    binary_vrs = ", ".join(f"'{vr}'" for vr in _BINARY_VRS)
+    return f"""
+    concat('{{', array_join(transform(
+        filter(
+            map_entries(from_json(meta::string, 'map<string,string>')),
+            e -> e.key RLIKE '^[0-9A-Fa-f]{{8}}$'
+                 AND NOT (
+                     length(e.value) > {METADATA_INLINE_BINARY_MAX}
+                     AND (
+                         get_json_object(e.value, '$.vr') IN ({binary_vrs})
+                         OR substr(e.key, 4, 1) IN ('1', '3', '5', '7', '9', 'B', 'D', 'F',
+                                                    'b', 'd', 'f')
+                     )
+                 )
+        ),
+        e -> concat('"', e.key, '":', e.value)
+    ), ','), '}}') AS meta"""
+
+
+# ---------------------------------------------------------------------------
 # Public query builders — each returns (query_str, params_dict)
 # ---------------------------------------------------------------------------
 
@@ -294,12 +339,12 @@ def build_series_metadata_query(
     Build a WADO-RS query to retrieve raw DICOM JSON metadata for every
     instance in a series.
 
-    Returns only the ``meta`` VARIANT column — the caller streams it
-    directly as JSON without deserialization.
+    Returns one ``meta`` JSON string per instance, slimmed on the warehouse
+    (see ``_slim_meta_sql``).
     """
     validate_table_name(pixels_table)
-    query = """
-    SELECT meta
+    query = f"""
+    SELECT {_slim_meta_sql()}
     FROM IDENTIFIER(%(pixels_table)s)
     WHERE study_uid = %(study_uid)s
       AND series_uid = %(series_uid)s
@@ -320,12 +365,12 @@ def build_study_metadata_query(
     Build a WADO-RS query to retrieve raw DICOM JSON metadata for every
     instance in a study.
 
-    Returns only the ``meta`` VARIANT column — the caller streams it
-    directly as JSON without deserialization.
+    Returns one ``meta`` JSON string per instance, slimmed on the warehouse
+    (see ``_slim_meta_sql``).
     """
     validate_table_name(pixels_table)
-    query = """
-    SELECT meta
+    query = f"""
+    SELECT {_slim_meta_sql()}
     FROM IDENTIFIER(%(pixels_table)s)
     WHERE study_uid = %(study_uid)s
     """

@@ -5,910 +5,857 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DICOMweb Gateway Metrics</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;600&display=swap"
-        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
+        /* Dark theme from the validated reference palette (dataviz skill). */
         :root {
-            --bg: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --primary: #38bdf8;
-            --secondary: #818cf8;
-            --accent: #f472b6;
-            --teal: #2dd4bf;
-            --orange: #fb923c;
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
-            --success: #4ade80;
-            --warning: #facc15;
-            --error: #fb7185;
+            color-scheme: dark;
+            --page: #0d0d0d;
+            --surface: #1a1a19;
+            --border: rgba(255, 255, 255, 0.10);
+            --grid: #2c2c2a;
+            --axis: #383835;
+            --text-primary: #f0efec;
+            --text-secondary: #c3c2b7;
+            --text-muted: #898781;
+            /* Worker identity: categorical slots 1-4 (dark), fixed order */
+            --worker-1: #3987e5;
+            --worker-2: #d95926;
+            --worker-3: #199e70;
+            --worker-4: #c98500;
+            /* Status (reserved for good / warning / critical meaning) */
+            --good: #0ca30c;
+            --warning: #fab219;
+            --critical: #d03b3b;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            padding: 1.5rem 2rem 2rem;
+            background: var(--page);
+            color: var(--text-primary);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            font-size: 14px;
         }
 
-        h1 {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            font-size: 2.25rem;
-            margin: 0 0 1.5rem 0;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        main { max-width: 1280px; margin: 0 auto; }
 
-        /* ── Status bar ────────────────────────────────────────── */
+        /* ── Header + filter row ──────────────────────────────── */
 
-        .status-bar {
+        header {
             display: flex;
             align-items: center;
             gap: 1.5rem;
-            font-size: 0.85rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-dim);
             flex-wrap: wrap;
-            justify-content: center;
+            margin-bottom: 1.25rem;
         }
 
-        .status-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+        h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
 
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--text-dim);
-            box-shadow: none;
-        }
+        .status { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); }
 
-        .dot.live {
-            background: var(--success);
-            box-shadow: 0 0 8px var(--success);
-            animation: pulse 2s infinite;
-        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+        .dot.live { background: var(--good); }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.4); opacity: 0.5; }
-        }
-
-        /* ── Section headers ──────────────────────────────────── */
-
-        .section-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: var(--text-dim);
-            margin: 1.5rem 0 0.75rem 0;
-            width: 100%;
-            max-width: 1200px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            padding-bottom: 0.4rem;
-        }
-
-        /* ── KPI tiles ─────────────────────────────────────────── */
-
-        .kpi-row {
-            display: grid;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 1200px;
-            margin-bottom: 1rem;
-        }
-
-        .kpi-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
-        .kpi-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
-        .kpi-row.cols-6 { grid-template-columns: repeat(6, 1fr); }
-
-        .kpi {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 0.75rem;
-            padding: 0.6rem 0.8rem;
-            text-align: center;
-            transition: border-color 0.2s;
-        }
-
-        .kpi:hover { border-color: rgba(255, 255, 255, 0.2); }
-
-        .kpi-label {
-            display: block;
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-dim);
-            margin-bottom: 0.25rem;
-        }
-
-        .kpi-value {
-            display: block;
-            font-size: 1.35rem;
-            font-weight: 600;
-            font-family: 'Outfit', sans-serif;
-            color: var(--text);
-            transition: color 0.3s;
-        }
-
-        .kpi-sub {
-            display: block;
-            font-size: 0.55rem;
-            color: var(--text-dim);
-            margin-top: 0.15rem;
-        }
-
-        /* ── Chart grid ────────────────────────────────────────── */
-
-        .chart-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
-            width: 100%;
-            max-width: 1200px;
-            margin-bottom: 1rem;
-        }
-
-        .chart-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1rem;
-            padding: 1rem 1.25rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .chart-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--primary);
-        }
-
-        .chart-card h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 500;
-            margin: 0 0 0.6rem 0;
-            color: var(--text-dim);
-        }
-
-        .chart-wrap {
-            position: relative;
-            height: 180px;
-        }
-
-        .chart-card.full-width {
-            grid-column: 1 / -1;
-        }
-
-        /* ── Time-window selector ─────────────────────────────── */
-
-        .window-bar {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .window-label {
-            font-size: 0.78rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .window-selector {
-            display: flex;
-            gap: 0;
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 2rem;
-            padding: 3px;
-            backdrop-filter: blur(12px);
-        }
+        .window-selector { display: flex; gap: 2px; margin-left: auto; }
 
         .win-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-dim);
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 500;
-            padding: 0.35rem 1rem;
-            border-radius: 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font: inherit;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.18s;
-            white-space: nowrap;
         }
 
-        .win-btn:hover:not(.active) {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.06);
-        }
+        .win-btn:hover:not(.active) { background: #252523; }
+        .win-btn.active { color: var(--text-primary); border-color: var(--text-secondary); font-weight: 600; }
 
-        .win-btn.active {
-            background: var(--primary);
-            color: #0f172a;
+        h2 {
+            font-size: 0.8rem;
             font-weight: 600;
-            box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 1.5rem 0 0.6rem;
         }
 
-        footer {
-            margin-top: 2rem;
-            color: var(--text-dim);
-            font-size: 0.75rem;
+        /* ── Stat tiles ───────────────────────────────────────── */
+
+        .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+
+        .tile {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 0.9rem;
+            min-height: 92px;
         }
 
-        @media (max-width: 900px) {
-            .kpi-row.cols-4 { grid-template-columns: repeat(2, 1fr); }
-            .kpi-row.cols-5 { grid-template-columns: repeat(3, 1fr); }
-            .kpi-row.cols-6 { grid-template-columns: repeat(3, 1fr); }
-            .chart-grid { grid-template-columns: 1fr; }
+        .tile-label { color: var(--text-secondary); font-size: 0.8rem; }
+        .tile-value { font-size: 1.6rem; font-weight: 600; margin: 0.2rem 0; }
+        .tile-sub { color: var(--text-muted); font-size: 0.75rem; }
+
+        .meter { height: 6px; border-radius: 3px; background: #2c2c2a; margin: 0.35rem 0 0.25rem; overflow: hidden; }
+        .meter-fill { height: 100%; border-radius: 3px; width: 0; background: var(--good); }
+
+        .badge { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--text-secondary); }
+        .badge-icon { width: 8px; height: 8px; border-radius: 50%; }
+
+        /* ── Workers table ────────────────────────────────────── */
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
         }
 
-        @media (max-width: 500px) {
-            .kpi-row { grid-template-columns: repeat(2, 1fr) !important; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.45rem 0.6rem; text-align: right; white-space: nowrap; }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.75rem; border-bottom: 1px solid var(--axis); }
+        td { color: var(--text-primary); font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
+        th:first-child, td:first-child { text-align: left; }
+        tr:last-child td { border-bottom: none; }
+        td.muted { color: var(--text-muted); }
+
+        .swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 0.5rem; vertical-align: middle; }
+
+        /* ── Charts ───────────────────────────────────────────── */
+
+        .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+        .chart-card h3 { font-size: 0.9rem; font-weight: 600; margin: 0; color: var(--text-primary); }
+        .chart-card .chart-desc { color: var(--text-muted); font-size: 0.75rem; margin: 0.15rem 0 0.4rem; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 0.9rem; min-height: 1.1rem; margin-bottom: 0.3rem; }
+        .legend-item { display: inline-flex; align-items: center; color: var(--text-secondary); font-size: 0.75rem; }
+
+        .chart-wrap { position: relative; height: 200px; }
+
+        details { margin-top: 0.75rem; }
+        summary { cursor: pointer; color: var(--text-secondary); }
+        .table-scroll { max-height: 320px; overflow: auto; margin-top: 0.5rem; }
+
+        footer { margin-top: 1.5rem; color: var(--text-muted); font-size: 0.75rem; }
+
+        @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 800px) {
+            .charts { grid-template-columns: 1fr; }
+            .tiles { grid-template-columns: repeat(2, 1fr); }
             body { padding: 1rem; }
         }
     </style>
 </head>
 
 <body>
+<main>
 
-    <h1>DICOMweb Gateway Dashboard</h1>
-
-    <div class="status-bar">
-        <div class="status-group">
+    <header>
+        <h1>DICOMweb Gateway</h1>
+        <div class="status">
             <div class="dot" id="status-dot"></div>
             <span id="status-text">Connecting&hellip;</span>
+            <span>&middot;</span>
+            <span>updated <span id="timestamp">&mdash;</span></span>
         </div>
-        <span id="timestamp">&mdash;</span>
-    </div>
-
-    <div class="window-bar">
-        <span class="window-label">View</span>
-        <div class="window-selector">
+        <div class="window-selector" role="group" aria-label="Time window">
             <button class="win-btn active" data-window="5m">5 min</button>
             <button class="win-btn" data-window="30m">30 min</button>
             <button class="win-btn" data-window="1h">1 hour</button>
             <button class="win-btn" data-window="8h">8 hours</button>
         </div>
+    </header>
+
+    <!-- ── Overview ─────────────────────────────────────────── -->
+    <h2>Overview</h2>
+    <div class="tiles">
+        <div class="tile">
+            <div class="tile-label">Workers reporting</div>
+            <div class="tile-value" id="t-workers">&mdash;</div>
+            <div class="tile-sub" id="t-workers-sub"></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Container memory</div>
+            <div class="tile-value" id="t-container">&mdash;</div>
+            <div class="meter"><div class="meter-fill" id="t-container-meter"></div></div>
+            <div class="badge"><span class="badge-icon" id="t-container-icon"></span><span id="t-container-sub"></span></div>
+            <div class="tile-sub" id="t-container-break"></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Frame cache on disk</div>
+            <div class="tile-value" id="t-fcache">&mdash;</div>
+            <div class="meter"><div class="meter-fill" id="t-fcache-meter"></div></div>
+            <div class="tile-sub" id="t-fcache-sub"></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Container CPU</div>
+            <div class="tile-value" id="t-ccpu">&mdash;</div>
+            <div class="meter"><div class="meter-fill" id="t-ccpu-meter"></div></div>
+            <div class="badge"><span class="badge-icon" id="t-ccpu-icon"></span><span id="t-ccpu-sub"></span></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Gateway RSS (all workers)</div>
+            <div class="tile-value" id="t-rss">&mdash;</div>
+            <div class="tile-sub" id="t-rss-sub"></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Requests, last minute</div>
+            <div class="tile-value" id="t-req">&mdash;</div>
+            <div class="tile-sub" id="t-req-sub"></div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Avg latency, last minute</div>
+            <div class="tile-value" id="t-lat">&mdash;</div>
+            <div class="tile-sub">request-weighted, all workers</div>
+        </div>
+        <div class="tile">
+            <div class="tile-label">Errors, last minute</div>
+            <div class="tile-value" id="t-err">&mdash;</div>
+            <div class="badge"><span class="badge-icon" id="t-err-icon"></span><span id="t-err-sub"></span></div>
+        </div>
     </div>
 
-    <!-- ── Request Metrics ────────────────────────────────────── -->
-    <div class="section-title">Request Metrics</div>
-    <div class="kpi-row cols-5">
-        <div class="kpi">
-            <span class="kpi-label">In Flight</span>
-            <span class="kpi-value" id="kpi-inflight">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Completed / tick</span>
-            <span class="kpi-value" id="kpi-req">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Errors / tick</span>
-            <span class="kpi-value" id="kpi-err">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Avg Latency</span>
-            <span class="kpi-value" id="kpi-lat">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Error Rate</span>
-            <span class="kpi-value" id="kpi-erate">&mdash;</span>
-        </div>
+    <!-- ── Per-worker table ──────────────────────────────────── -->
+    <h2>Workers</h2>
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Worker</th>
+                    <th>RSS</th>
+                    <th>RSS change in window</th>
+                    <th>CPU</th>
+                    <th>Threads</th>
+                    <th>Requests / min</th>
+                    <th>In flight</th>
+                    <th>BOT entries</th>
+                    <th>BOT hit rate</th>
+                    <th>Path entries</th>
+                    <th>Path hit rate</th>
+                    <th>Last report</th>
+                </tr>
+            </thead>
+            <tbody id="workers-body">
+                <tr><td class="muted" colspan="12">Waiting for metrics&hellip;</td></tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h2>Request Throughput</h2>
-            <div class="chart-wrap"><canvas id="chart-throughput"></canvas></div>
+    <!-- ── Charts ────────────────────────────────────────────── -->
+    <h2>Over time</h2>
+    <div class="charts">
+        <div class="card chart-card">
+            <h3>Requests completed per worker</h3>
+            <p class="chart-desc">per 5-second report</p>
+            <div class="legend" id="legend-requests"></div>
+            <div class="chart-wrap"><canvas id="chart-requests"></canvas></div>
         </div>
-        <div class="chart-card">
-            <h2>Latency (ms)</h2>
+        <div class="card chart-card">
+            <h3>Average latency, all workers (ms)</h3>
+            <p class="chart-desc">request-weighted per 5-second bucket</p>
+            <div class="legend"></div>
             <div class="chart-wrap"><canvas id="chart-latency"></canvas></div>
         </div>
-    </div>
-
-    <!-- ── System Resources ──────────────────────────────────── -->
-    <div class="section-title">System Resources</div>
-    <div class="kpi-row cols-6">
-        <div class="kpi">
-            <span class="kpi-label">Process CPU</span>
-            <span class="kpi-value" id="kpi-cpu-proc">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">System CPU</span>
-            <span class="kpi-value" id="kpi-cpu-sys">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Process RSS</span>
-            <span class="kpi-value" id="kpi-mem-rss">&mdash;</span>
-            <span class="kpi-sub" id="kpi-mem-vms-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">System Memory</span>
-            <span class="kpi-value" id="kpi-mem-sys">&mdash;</span>
-            <span class="kpi-sub" id="kpi-mem-avail-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Threads</span>
-            <span class="kpi-value" id="kpi-threads">&mdash;</span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Net Connections</span>
-            <span class="kpi-value" id="kpi-conns">&mdash;</span>
-        </div>
-    </div>
-
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h2>CPU Usage (%)</h2>
+        <div class="card chart-card">
+            <h3>CPU per worker (% of one core)</h3>
+            <p class="chart-desc">average over each 5-second report</p>
+            <div class="legend" id="legend-cpu"></div>
             <div class="chart-wrap"><canvas id="chart-cpu"></canvas></div>
         </div>
-        <div class="chart-card">
-            <h2>Memory (MB)</h2>
-            <div class="chart-wrap"><canvas id="chart-memory"></canvas></div>
+        <div class="card chart-card">
+            <h3>Container CPU used (% of vCPU limit)</h3>
+            <p class="chart-desc">whole app container against its CPU limit</p>
+            <div class="legend"></div>
+            <div class="chart-wrap"><canvas id="chart-ccpu"></canvas></div>
+        </div>
+        <div class="card chart-card">
+            <h3>Memory per worker (RSS, MB)</h3>
+            <p class="chart-desc">resident memory of each uvicorn worker process</p>
+            <div class="legend" id="legend-rss"></div>
+            <div class="chart-wrap"><canvas id="chart-rss"></canvas></div>
+        </div>
+        <div class="card chart-card">
+            <h3>Container memory (MB)</h3>
+            <p class="chart-desc">working set of the whole app container by type &middot; <span id="container-limit-note"></span></p>
+            <div class="legend" id="legend-container"></div>
+            <div class="chart-wrap"><canvas id="chart-container"></canvas></div>
+        </div>
+        <div class="card chart-card">
+            <h3>BOT cache entries per worker</h3>
+            <p class="chart-desc">each worker keeps its own copy</p>
+            <div class="legend" id="legend-bot"></div>
+            <div class="chart-wrap"><canvas id="chart-bot"></canvas></div>
+        </div>
+        <div class="card chart-card">
+            <h3>BOT cache hit rate per worker (%)</h3>
+            <p class="chart-desc">cumulative since the worker started</p>
+            <div class="legend" id="legend-hit"></div>
+            <div class="chart-wrap"><canvas id="chart-hit"></canvas></div>
         </div>
     </div>
 
-    <!-- ── Cache Statistics ──────────────────────────────────── -->
-    <div class="section-title">Cache Statistics</div>
-    <div class="kpi-row cols-6">
-        <div class="kpi">
-            <span class="kpi-label">BOT Entries</span>
-            <span class="kpi-value" id="kpi-bot-entries">&mdash;</span>
-            <span class="kpi-sub" id="kpi-bot-max-sub"></span>
+    <details class="card">
+        <summary>Data table (latest samples per worker)</summary>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th><th>Worker</th><th>RSS MB</th><th>Requests</th><th>Avg latency ms</th>
+                        <th>In flight</th><th>CPU %</th><th>BOT entries</th><th>BOT hit %</th><th>Container mem %</th>
+                    </tr>
+                </thead>
+                <tbody id="samples-body"></tbody>
+            </table>
         </div>
-        <div class="kpi">
-            <span class="kpi-label">BOT Hit Rate</span>
-            <span class="kpi-value" id="kpi-bot-hitrate">&mdash;</span>
-            <span class="kpi-sub" id="kpi-bot-hm-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Path Entries</span>
-            <span class="kpi-value" id="kpi-path-entries">&mdash;</span>
-            <span class="kpi-sub" id="kpi-path-max-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Path Hit Rate</span>
-            <span class="kpi-value" id="kpi-path-hitrate">&mdash;</span>
-            <span class="kpi-sub" id="kpi-path-hm-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Prefetcher Cached</span>
-            <span class="kpi-value" id="kpi-pf-cached">&mdash;</span>
-            <span class="kpi-sub" id="kpi-pf-pending-sub"></span>
-        </div>
-        <div class="kpi">
-            <span class="kpi-label">Prefetch Memory</span>
-            <span class="kpi-value" id="kpi-pf-mem">&mdash;</span>
-            <span class="kpi-sub" id="kpi-pf-budget-sub"></span>
-        </div>
-    </div>
+    </details>
 
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h2>Cache Hit Rate (%)</h2>
-            <div class="chart-wrap"><canvas id="chart-hitrate"></canvas></div>
-        </div>
-        <div class="chart-card">
-            <h2>Cache Entries</h2>
-            <div class="chart-wrap"><canvas id="chart-entries"></canvas></div>
-        </div>
-    </div>
+    <footer>Each uvicorn worker reports its own snapshot every few seconds; rows are kept per worker. Data from Lakebase, live via WebSocket.</footer>
 
-    <footer>
-        DICOMweb Gateway Monitoring &bull; Live via WebSocket &bull; Data from Lakebase
-    </footer>
+</main>
 
-    <script>
-        /* ── Configuration ──────────────────────────────────────── */
+<script>
+    /* ── Configuration & state ───────────────────────────────── */
 
-        var REST_ENDPOINT = '/api/metrics';
-        var MAX_POINTS = 300;
+    var REST_ENDPOINT = '/api/metrics';
+    var BUCKET_S = 5;          // DICOMWEB_METRICS_INTERVAL default
+    var MAX_BUCKETS = 300;
+    var LIVE_WINDOW_MS = 3 * BUCKET_S * 1000;   // a worker counts as live if it reported this recently
 
-        /* ── Time-window state ──────────────────────────────────── */
+    var WINDOW_CFG = {
+        '5m':  { refresh: null },
+        '30m': { refresh: 30000 },
+        '1h':  { refresh: 60000 },
+        '8h':  { refresh: 300000 }
+    };
+    var selectedWindow = '5m';
+    var windowRefreshTimer = null;
 
-        var selectedWindow = '5m';
+    var css = getComputedStyle(document.documentElement);
+    function token(name) { return css.getPropertyValue(name).trim(); }
+    var WORKER_COLORS = [token('--worker-1'), token('--worker-2'), token('--worker-3'), token('--worker-4')];
+    var MUTED = token('--text-muted'), SECONDARY = token('--text-secondary');
 
-        // Seconds in each window + how often (ms) to auto-refresh via REST
-        var WINDOW_CFG = {
-            '5m':  { seconds: 300,   refresh: null   },
-            '30m': { seconds: 1800,  refresh: 30000  },
-            '1h':  { seconds: 3600,  refresh: 60000  },
-            '8h':  { seconds: 28800, refresh: 300000 }
+    var rowsByKey = {};      // "pid|recorded_at" -> row
+    var colorByPid = {};     // colour follows the worker, not its rank
+
+    /* ── Row helpers ─────────────────────────────────────────── */
+
+    function pidOf(row) {
+        var w = (row.metrics || {}).worker || {};
+        return w.pid != null ? String(w.pid) : null;   // rows from before per-worker tagging have no pid
+    }
+
+    function addRows(rows) {
+        rows.forEach(function (r) {
+            var pid = pidOf(r);
+            if (pid) rowsByKey[pid + '|' + r.recorded_at] = r;
+        });
+        var keys = Object.keys(rowsByKey);
+        var cap = MAX_BUCKETS * 8;
+        if (keys.length > cap) {
+            keys.sort(function (a, b) { return ms(rowsByKey[a]) - ms(rowsByKey[b]); });
+            keys.slice(0, keys.length - cap).forEach(function (k) { delete rowsByKey[k]; });
+        }
+    }
+
+    function ms(row) { return new Date(row.recorded_at).getTime(); }
+
+    function allRows() {
+        return Object.keys(rowsByKey).map(function (k) { return rowsByKey[k]; })
+            .sort(function (a, b) { return ms(a) - ms(b); });
+    }
+
+    function assignColors(pids, livePids) {
+        var used = {};
+        Object.keys(colorByPid).forEach(function (p) { if (livePids.indexOf(p) >= 0 || pids.indexOf(p) >= 0) used[colorByPid[p]] = true; });
+        pids.forEach(function (p) {
+            if (colorByPid[p] != null) return;
+            for (var i = 0; i < WORKER_COLORS.length; i++) {
+                if (!used[i]) { colorByPid[p] = i; used[i] = true; return; }
+            }
+            colorByPid[p] = -1;   // more workers than slots: neutral, identified by the legend + table
+        });
+    }
+
+    function colorOf(pid) { var i = colorByPid[pid]; return i >= 0 ? WORKER_COLORS[i] : MUTED; }
+
+    function num(v, digits) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString(undefined, { maximumFractionDigits: digits || 0 }); }
+
+    function hitRate(stats) {
+        var h = (stats && stats.hits) || 0, m = (stats && stats.misses) || 0;
+        return h + m > 0 ? (h / (h + m)) * 100 : null;
+    }
+
+    function fmtTime(t) {
+        var d = new Date(t);
+        return selectedWindow === '8h'
+            ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // The app's real memory limit is its container cgroup; psutil's system_*
+    // figures describe the host VM.  Fall back to the host only when no
+    // cgroup limit is reported.
+    function containerMemory(sys) {
+        sys = sys || {};
+        if (sys.container_memory_limit_mb) {
+            return { pct: sys.container_memory_used_percent, usedMb: sys.container_memory_working_set_mb,
+                     limitMb: sys.container_memory_limit_mb, source: 'app limit' };
+        }
+        var total = sys.system_memory_total_mb, avail = sys.system_memory_available_mb;
+        return { pct: sys.system_memory_used_percent, usedMb: total != null && avail != null ? total - avail : null,
+                 limitMb: total, source: 'host' };
+    }
+
+    function gb(mb) { return mb == null ? '—' : (mb / 1024).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+
+    function setText(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
+
+    function statusColor(level) { return token(level === 'good' ? '--good' : level === 'warning' ? '--warning' : '--critical'); }
+
+    /* ── Chart.js setup (single y-axis per chart) ────────────── */
+
+    Chart.defaults.color = MUTED;
+    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+    Chart.defaults.font.size = 11;
+
+    function chartOptions(yOpts) {
+        var y = Object.assign({
+            beginAtZero: true,
+            grid: { color: token('--grid') },
+            border: { color: token('--axis') },
+            ticks: { maxTicksLimit: 5, callback: function (v) { return v >= 1000 ? (v / 1000).toLocaleString() + 'K' : v; } }
+        }, yOpts || {});
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            spanGaps: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },   // HTML legend above each chart
+                tooltip: {
+                    backgroundColor: '#0d0d0d',
+                    borderColor: token('--border'),
+                    borderWidth: 1,
+                    titleColor: SECONDARY,
+                    bodyColor: token('--text-primary'),
+                    usePointStyle: true,
+                    callbacks: {
+                        label: function (ctx) {
+                            return ' ' + (ctx.parsed.y == null ? '—' : num(ctx.parsed.y, 1)) + '  ' + ctx.dataset.label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, border: { color: token('--axis') }, ticks: { maxTicksLimit: 6, maxRotation: 0 } },
+                y: y
+            },
+            elements: {
+                point: { radius: 0, hoverRadius: 4, hitRadius: 12 },
+                line: { borderWidth: 2, tension: 0.2, borderJoinStyle: 'round', borderCapStyle: 'round' }
+            }
         };
+    }
 
-        var windowRefreshTimer = null;
-
-        /* ── WebSocket state ────────────────────────────────────── */
-
-        var ws = null;
-        var reconnectTimer = null;
-        var reconnectDelay = 1000;
-        var MAX_RECONNECT_DELAY = 30000;
-        var restFallback = null;
-
-        /* ── Time-series buffers ───────────────────────────────── */
-
-        var labels = [];
-        var gwBuf   = { req: [], err: [], lat: [], inflight: [] };
-        var cpuBuf  = { proc: [], sys: [] };
-        var memBuf  = { rss: [], sysPct: [] };
-        var cacheBuf = { botHit: [], pathHit: [], botEntries: [], pathEntries: [], pfCached: [] };
-
-        var ALL_BUFS = [
-            labels,
-            gwBuf.req, gwBuf.err, gwBuf.lat, gwBuf.inflight,
-            cpuBuf.proc, cpuBuf.sys,
-            memBuf.rss, memBuf.sysPct,
-            cacheBuf.botHit, cacheBuf.pathHit,
-            cacheBuf.botEntries, cacheBuf.pathEntries, cacheBuf.pfCached
-        ];
-
-        function clearBuffers() {
-            ALL_BUFS.forEach(function (a) { a.length = 0; });
-        }
-
-        /* ── DOM helpers ────────────────────────────────────────── */
-
-        function setKpi(id, text, level) {
-            var el = document.getElementById(id);
-            if (!el) return;
-            el.innerText = text;
-            var palette = { good: '#4ade80', warn: '#facc15', bad: '#fb7185' };
-            el.style.color = palette[level] || '#f8fafc';
-        }
-
-        function setSub(id, text) {
-            var el = document.getElementById(id);
-            if (el) el.innerText = text;
-        }
-
-        function setStatus(state) {
-            var dot = document.getElementById('status-dot');
-            var txt = document.getElementById('status-text');
-            if (state === 'connected') {
-                dot.className = 'dot live';
-                txt.innerText = 'Connected (live)';
-            } else {
-                dot.className = 'dot';
-                txt.innerText = 'Reconnecting\u2026';
-            }
-        }
-
-        function parseHitRate(str) {
-            if (!str || str === 'N/A') return 0;
-            return parseFloat(str.replace('%', '')) || 0;
-        }
-
-        /* ── Timestamp formatting ───────────────────────────────── */
-
-        function fmtTs(isoStr) {
-            var d = isoStr ? new Date(isoStr) : new Date();
-            if (selectedWindow === '5m') {
-                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            }
-            if (selectedWindow === '8h') {
-                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        }
-
-        /* ── Chart.js setup ─────────────────────────────────────── */
-
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.font.size = 11;
-
-        function makeOpts(yOverride) {
-            var base = {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { boxWidth: 10, padding: 10, usePointStyle: true }
-                    },
-                    tooltip: { mode: 'index', intersect: false }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.03)' },
-                        ticks: { maxTicksLimit: 6, maxRotation: 0 }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    }
-                },
-                elements: {
-                    point: { radius: 0, hoverRadius: 3 },
-                    line: { tension: 0.35, borderWidth: 1.5 }
-                }
-            };
-            if (yOverride) Object.assign(base.scales.y, yOverride);
-            return base;
-        }
-
-        function ds(label, data, hex, extra) {
-            var r = parseInt(hex.slice(1, 3), 16);
-            var g = parseInt(hex.slice(3, 5), 16);
-            var b = parseInt(hex.slice(5, 7), 16);
-            var out = {
-                label: label,
-                data: data,
-                borderColor: hex,
-                backgroundColor: 'rgba(' + r + ',' + g + ',' + b + ',0.06)',
-                fill: true
-            };
-            if (extra) Object.assign(out, extra);
-            return out;
-        }
-
-        /* ── Request charts ───────────────────────────────────── */
-
-        var chartThroughput = new Chart(document.getElementById('chart-throughput'), {
+    function makeChart(id, yOpts) {
+        return new Chart(document.getElementById(id), {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('In Flight', gwBuf.inflight, '#34d399', { fill: false }),
-                    ds('Completed', gwBuf.req, '#38bdf8'),
-                    ds('Errors', gwBuf.err, '#fb7185', { fill: false, borderDash: [4, 2] })
-                ]
-            },
-            options: makeOpts()
+            data: { labels: [], datasets: [] },
+            options: chartOptions(yOpts)
         });
+    }
 
-        var chartLatency = new Chart(document.getElementById('chart-latency'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('Avg Latency', gwBuf.lat, '#818cf8')
-                ]
-            },
-            options: makeOpts({ ticks: { callback: function (v) { return v + ' ms'; } } })
+    var pctAxis = { max: 100, ticks: { maxTicksLimit: 5, callback: function (v) { return v + '%'; } } };
+    var charts = {
+        requests: makeChart('chart-requests'),
+        latency: makeChart('chart-latency'),
+        cpu: makeChart('chart-cpu', { ticks: { maxTicksLimit: 5, callback: function (v) { return v + '%'; } } }),
+        ccpu: makeChart('chart-ccpu', pctAxis),
+        rss: makeChart('chart-rss'),
+        container: makeChart('chart-container', { stacked: true }),
+        bot: makeChart('chart-bot'),
+        hit: makeChart('chart-hit', pctAxis)
+    };
+
+    function workerDataset(pid, data) {
+        var c = colorOf(pid);
+        return { label: 'pid ' + pid, data: data, borderColor: c, backgroundColor: c, fill: false, pointStyle: 'line' };
+    }
+
+    var CONTAINER_COLORS = { process: WORKER_COLORS[0], cache: WORKER_COLORS[1], other: WORKER_COLORS[2] };
+
+    // Working set split: process memory (anon), page cache counted in the
+    // working set (active_file, e.g. the /tmp frame cache being re-read), rest.
+    function containerBreakdown(sys) {
+        sys = sys || {};
+        var ws = sys.container_memory_working_set_mb, anon = sys.container_memory_anon_mb;
+        var active = sys.container_memory_active_file_mb;
+        if (ws == null || anon == null || active == null) return null;
+        return { process: anon, cache: active, other: Math.max(0, ws - anon - active),
+                 limit: sys.container_memory_limit_mb, ws: ws };
+    }
+
+    function stackDataset(label, data, color, fill) {
+        return { label: label, data: data, borderColor: color, backgroundColor: color + '33', fill: fill,
+                 pointStyle: 'line', stack: 'ws', borderWidth: 1.5 };
+    }
+
+    function renderStaticLegend(id, items) {
+        var el = document.getElementById(id);
+        if (!el || el.childNodes.length) return;
+        items.forEach(function (it) {
+            var item = document.createElement('span');
+            item.className = 'legend-item';
+            var key = document.createElement('span');
+            key.className = 'swatch';
+            key.style.background = it.dashed ? 'repeating-linear-gradient(90deg,' + it.color + ' 0 4px,transparent 4px 7px)' : it.color;
+            item.appendChild(key);
+            item.appendChild(document.createTextNode(it.label));
+            el.appendChild(item);
         });
+    }
 
-        /* ── System charts ────────────────────────────────────── */
+    function singleDataset(label, data) {
+        var c = WORKER_COLORS[0];
+        return { label: label, data: data, borderColor: c, backgroundColor: c + '1a', fill: true, pointStyle: 'line' };
+    }
 
-        var chartCpu = new Chart(document.getElementById('chart-cpu'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('Process', cpuBuf.proc, '#38bdf8'),
-                    ds('System', cpuBuf.sys, '#fb923c')
-                ]
-            },
-            options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
+    function renderLegend(id, pids) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = '';
+        pids.forEach(function (p) {
+            var item = document.createElement('span');
+            item.className = 'legend-item';
+            var key = document.createElement('span');
+            key.className = 'swatch';
+            key.style.background = colorOf(p);
+            item.appendChild(key);
+            item.appendChild(document.createTextNode('pid ' + p));
+            el.appendChild(item);
         });
+    }
 
-        var chartMemory = new Chart(document.getElementById('chart-memory'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('Process RSS', memBuf.rss, '#818cf8'),
-                    ds('System Used %', memBuf.sysPct, '#f472b6', { yAxisID: 'yPct' })
-                ]
-            },
-            options: (function () {
-                var opts = makeOpts();
-                opts.scales.yPct = {
-                    position: 'right',
-                    beginAtZero: true,
-                    max: 100,
-                    grid: { drawOnChartArea: false },
-                    ticks: { callback: function (v) { return v + '%'; } }
-                };
-                opts.scales.y.title = { display: true, text: 'MB', color: '#94a3b8' };
-                return opts;
-            })()
+    /* ── Aggregation ─────────────────────────────────────────── */
+
+    function buildBuckets(rows) {
+        var buckets = {};
+        rows.forEach(function (r) {
+            var b = Math.floor(ms(r) / 1000 / BUCKET_S);
+            (buckets[b] = buckets[b] || {})[pidOf(r)] = r;
         });
+        return Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; })
+            .slice(-MAX_BUCKETS)
+            .map(function (b) { return { t: b * BUCKET_S * 1000, workers: buckets[b] }; });
+    }
 
-        /* ── Cache charts ─────────────────────────────────────── */
+    /* ── Render ──────────────────────────────────────────────── */
 
-        var chartHitRate = new Chart(document.getElementById('chart-hitrate'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('BOT Hit %', cacheBuf.botHit, '#2dd4bf'),
-                    ds('Path Hit %', cacheBuf.pathHit, '#fb923c')
-                ]
-            },
-            options: makeOpts({ max: 100, ticks: { callback: function (v) { return v + '%'; } } })
+    function render() {
+        var rows = allRows();
+        if (!rows.length) return;
+        var newestMs = ms(rows[rows.length - 1]);
+
+        // Per-worker first / latest rows
+        var first = {}, latest = {};
+        rows.forEach(function (r) {
+            var p = pidOf(r);
+            if (!first[p]) first[p] = r;
+            latest[p] = r;
         });
+        var pids = Object.keys(latest).sort(function (a, b) { return Number(a) - Number(b); });
+        var livePids = pids.filter(function (p) { return newestMs - ms(latest[p]) <= LIVE_WINDOW_MS; });
+        assignColors(pids, livePids);
 
-        var chartEntries = new Chart(document.getElementById('chart-entries'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    ds('BOT Entries', cacheBuf.botEntries, '#2dd4bf'),
-                    ds('Path Entries', cacheBuf.pathEntries, '#fb923c'),
-                    ds('Prefetch Cached', cacheBuf.pfCached, '#818cf8', { borderDash: [4, 2] })
-                ]
-            },
-            options: makeOpts()
-        });
+        var buckets = buildBuckets(rows);
+        var labels = buckets.map(function (b) { return fmtTime(b.t); });
 
-        var allCharts = [chartThroughput, chartLatency, chartCpu, chartMemory, chartHitRate, chartEntries];
-
-        /* ── Append a single row to all rolling buffers ─────────── */
-
-        function appendRowToBuffers(row) {
-            var gm = row.metrics || {};
-            var ts = fmtTs(row.recorded_at);
-
-            if (labels.length >= MAX_POINTS) {
-                ALL_BUFS.forEach(function (a) { a.shift(); });
-            }
-
-            labels.push(ts);
-            gwBuf.req.push(gm.request_count || 0);
-            gwBuf.err.push(gm.error_count || 0);
-            gwBuf.lat.push(Math.round((gm.avg_latency_s || 0) * 1000));
-            gwBuf.inflight.push(gm.in_flight || 0);
-
-            var sys = gm.system || {};
-            cpuBuf.proc.push(sys.cpu_percent_process || 0);
-            cpuBuf.sys.push(sys.cpu_percent_system || 0);
-            memBuf.rss.push(sys.memory_rss_mb || 0);
-            memBuf.sysPct.push(sys.system_memory_used_percent || 0);
-
-            var caches = gm.caches || {};
-            var botStats  = caches.bot_cache          || {};
-            var pathStats = caches.instance_path_cache || {};
-            var pfStats   = caches.prefetcher          || {};
-            cacheBuf.botHit.push(parseHitRate(botStats.hit_rate));
-            cacheBuf.pathHit.push(parseHitRate(pathStats.hit_rate));
-            cacheBuf.botEntries.push(botStats.entries || 0);
-            cacheBuf.pathEntries.push(pathStats.entries || 0);
-            cacheBuf.pfCached.push(pfStats.cached || pfStats.done || 0);
-        }
-
-        /* ── Rebuild charts from a historical batch ─────────────── */
-
-        function rebuildFromHistory(rows) {
-            // rows comes DESC (newest first) from the API — reverse for display
-            var chronoRows = rows.slice().reverse();
-            clearBuffers();
-            chronoRows.forEach(appendRowToBuffers);
-            allCharts.forEach(function (ch) { ch.update('none'); });
-        }
-
-        /* ── Update KPI tiles from a metrics snapshot ────────────── */
-
-        function updateKpis(gm, sys, caches) {
-            gm = gm || {};
-            var reqCount  = gm.request_count || 0;
-            var errCount  = gm.error_count   || 0;
-            var avgLat    = Math.round((gm.avg_latency_s || 0) * 1000);
-            var inFlight  = gm.in_flight != null ? gm.in_flight : '—';
-
-            setKpi('kpi-inflight', inFlight,
-                inFlight === 0 ? null : inFlight < 10 ? 'good' : inFlight < 20 ? 'warn' : 'bad');
-            setKpi('kpi-req', reqCount, reqCount > 0 ? 'good' : null);
-            setKpi('kpi-err', errCount,
-                errCount === 0 ? 'good' : errCount < 5 ? 'warn' : 'bad');
-            setKpi('kpi-lat', avgLat + ' ms',
-                avgLat < 100 ? 'good' : avgLat < 500 ? 'warn' : 'bad');
-
-            var errRatePct = reqCount > 0 ? (errCount / reqCount) * 100 : 0;
-            setKpi('kpi-erate', errRatePct.toFixed(1) + '%',
-                errRatePct < 1 ? 'good' : errRatePct < 5 ? 'warn' : 'bad');
-
-            var cpuProc = 0, cpuSys = 0, memRss = 0, memVms = 0;
-            var sysMemPct = 0, sysMemAvail = 0, threads = 0, conns = 'N/A';
-
-            if (sys) {
-                cpuProc    = sys.cpu_percent_process       || 0;
-                cpuSys     = sys.cpu_percent_system        || 0;
-                memRss     = sys.memory_rss_mb             || 0;
-                memVms     = sys.memory_vms_mb             || 0;
-                sysMemPct  = sys.system_memory_used_percent  || 0;
-                sysMemAvail = sys.system_memory_available_mb || 0;
-                threads    = sys.threads_active            || 0;
-                conns      = sys.network_connections;
-                if (conns < 0) conns = 'N/A';
-            }
-
-            setKpi('kpi-cpu-proc', cpuProc.toFixed(1) + '%',
-                cpuProc < 50 ? 'good' : cpuProc < 80 ? 'warn' : 'bad');
-            setKpi('kpi-cpu-sys', cpuSys.toFixed(1) + '%',
-                cpuSys < 70 ? 'good' : cpuSys < 90 ? 'warn' : 'bad');
-            setKpi('kpi-mem-rss', memRss + ' MB', null);
-            setSub('kpi-mem-vms-sub', 'VMS: ' + memVms + ' MB');
-            setKpi('kpi-mem-sys', sysMemPct.toFixed(1) + '%',
-                sysMemPct < 70 ? 'good' : sysMemPct < 90 ? 'warn' : 'bad');
-            setSub('kpi-mem-avail-sub', 'Avail: ' + sysMemAvail + ' MB');
-            setKpi('kpi-threads', threads, null);
-            setKpi('kpi-conns', conns, null);
-
-            var botStats  = (caches && caches.bot_cache)           || {};
-            var pathStats = (caches && caches.instance_path_cache) || {};
-            var pfStats   = (caches && caches.prefetcher)          || {};
-
-            var botHitPct  = parseHitRate(botStats.hit_rate);
-            var pathHitPct = parseHitRate(pathStats.hit_rate);
-
-            setKpi('kpi-bot-entries', botStats.entries || 0, null);
-            setSub('kpi-bot-max-sub', 'max: ' + (botStats.max_entries || 0));
-            setKpi('kpi-bot-hitrate', botStats.hit_rate || 'N/A',
-                botHitPct > 80 ? 'good' : botHitPct > 50 ? 'warn' : botHitPct > 0 ? 'bad' : null);
-            setSub('kpi-bot-hm-sub', (botStats.hits || 0) + ' hits / ' + (botStats.misses || 0) + ' miss');
-
-            setKpi('kpi-path-entries', pathStats.entries || 0, null);
-            setSub('kpi-path-max-sub', 'max: ' + (pathStats.max_entries || 0));
-            setKpi('kpi-path-hitrate', pathStats.hit_rate || 'N/A',
-                pathHitPct > 80 ? 'good' : pathHitPct > 50 ? 'warn' : pathHitPct > 0 ? 'bad' : null);
-            setSub('kpi-path-hm-sub', (pathStats.hits || 0) + ' hits / ' + (pathStats.misses || 0) + ' miss');
-
-            var pfCached    = pfStats.cached || pfStats.done || 0;
-            var pfPending   = pfStats.pending || 0;
-            var pfMemUsed   = pfStats.memory_used_mb   || 0;
-            var pfMemBudget = pfStats.memory_budget_mb || 0;
-
-            setKpi('kpi-pf-cached', pfCached, null);
-            setSub('kpi-pf-pending-sub', pfPending + ' pending, ' + (pfStats.evicted || 0) + ' evicted');
-            setKpi('kpi-pf-mem', pfMemUsed + ' MB', null);
-            setSub('kpi-pf-budget-sub', 'budget: ' + pfMemBudget + ' MB');
-        }
-
-        /* ── WebSocket live-update handler ──────────────────────── */
-
-        function updateDashboard(data) {
-            var gRows  = data.gateway || [];
-            var gLatest = gRows.length ? gRows[0] : null;
-
-            if (gLatest) {
-                appendRowToBuffers(gLatest);
-                if (gLatest.recorded_at) {
-                    document.getElementById('timestamp').innerText =
-                        new Date(gLatest.recorded_at).toLocaleTimeString();
-                }
-            }
-
-            var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
-            var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
-            updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
-
-            allCharts.forEach(function (ch) { ch.update('none'); });
-            setStatus('connected');
-        }
-
-        /* ── REST history fetch (window selector) ───────────────── */
-
-        function fetchWindowData(win) {
-            fetch(REST_ENDPOINT + '?window=' + win, { credentials: 'include' })
-                .then(function (res) { return res.json(); })
-                .then(function (data) {
-                    var gRows = data.gateway || [];
-                    if (gRows.length) {
-                        rebuildFromHistory(gRows);
-                        var gLatest = gRows[0];
-                        if (gLatest && gLatest.recorded_at) {
-                            document.getElementById('timestamp').innerText =
-                                new Date(gLatest.recorded_at).toLocaleTimeString();
-                        }
-                        var sys    = (gLatest && gLatest.metrics && gLatest.metrics.system)  || data.system  || null;
-                        var caches = (gLatest && gLatest.metrics && gLatest.metrics.caches) || data.caches || null;
-                        updateKpis(gLatest ? gLatest.metrics : {}, sys, caches);
-                    }
-                    setStatus('connected');
-                })
-                .catch(function () { setStatus('disconnected'); });
-        }
-
-        /* ── Window selector logic ──────────────────────────────── */
-
-        function selectWindow(win) {
-            selectedWindow = win;
-
-            document.querySelectorAll('.win-btn').forEach(function (btn) {
-                btn.classList.toggle('active', btn.dataset.window === win);
+        function perWorker(fn) {
+            return pids.map(function (p) {
+                return workerDataset(p, buckets.map(function (b) { var r = b.workers[p]; return r ? fn(r.metrics || {}) : null; }));
             });
-
-            if (windowRefreshTimer) {
-                clearTimeout(windowRefreshTimer);
-                windowRefreshTimer = null;
-            }
-
-            fetchWindowData(win);
-
-            var cfg = WINDOW_CFG[win];
-            if (cfg && cfg.refresh) {
-                (function schedule() {
-                    windowRefreshTimer = setTimeout(function () {
-                        if (selectedWindow === win) {
-                            fetchWindowData(win);
-                            schedule();
-                        }
-                    }, cfg.refresh);
-                })();
-            }
         }
 
-        document.querySelectorAll('.win-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () { selectWindow(btn.dataset.window); });
+        var latency = buckets.map(function (b) {
+            var req = 0, sum = 0;
+            Object.keys(b.workers).forEach(function (p) { var m = b.workers[p].metrics || {}; req += m.request_count || 0; sum += m.latency_sum_s || 0; });
+            return req ? Math.round((sum / req) * 1000) : null;
+        });
+        // Latest container breakdown per bucket (every worker reports the same container)
+        var breakdown = buckets.map(function (b) {
+            var v = null;
+            Object.keys(b.workers).forEach(function (p) { var c = containerBreakdown((b.workers[p].metrics || {}).system); if (c) v = c; });
+            return v;
+        });
+        function part(key) { return breakdown.map(function (c) { return c ? Math.round(c[key]) : null; }); }
+        var container = [
+            stackDataset('Process memory', part('process'), CONTAINER_COLORS.process, 'origin'),
+            stackDataset('Page cache in use', part('cache'), CONTAINER_COLORS.cache, '-1'),
+            stackDataset('Other', part('other'), CONTAINER_COLORS.other, '-1')
+        ];
+        // Draw the limit only once usage gets close to it; otherwise it would
+        // flatten the stack against the bottom of the axis.
+        var peakWs = 0, limitMb = null;
+        breakdown.forEach(function (c) { if (c) { peakWs = Math.max(peakWs, c.ws); limitMb = c.limit || limitMb; } });
+        var showLimit = limitMb && peakWs > 0.5 * limitMb;
+        if (showLimit) {
+            container.push({ label: 'Memory limit', data: part('limit'), borderColor: MUTED, borderDash: [6, 4],
+                             borderWidth: 1.5, fill: false, pointStyle: 'line', stack: 'limit' });
+        }
+        setText('container-limit-note', limitMb ? 'limit ' + gb(limitMb) + ' GB' +
+            (showLimit ? '' : ' (line shown above 50% use)') : '');
+
+        var ccpu = buckets.map(function (b) {
+            var v = null;
+            Object.keys(b.workers).forEach(function (p) { var c = ((b.workers[p].metrics || {}).system || {}).container_cpu_used_percent; if (c != null) v = c; });
+            return v;
         });
 
-        /* ── REST fallback (when WebSocket is down) ─────────────── */
+        var sets = {
+            requests: perWorker(function (m) { return m.request_count || 0; }),
+            latency: [singleDataset('Avg latency (ms)', latency)],
+            cpu: perWorker(function (m) { return (m.system || {}).cpu_percent_process; }),
+            ccpu: [singleDataset('Container CPU used (%)', ccpu)],
+            rss: perWorker(function (m) { return (m.system || {}).memory_rss_mb; }),
+            container: container,
+            bot: perWorker(function (m) { return ((m.caches || {}).bot_cache || {}).entries; }),
+            hit: perWorker(function (m) { var h = hitRate((m.caches || {}).bot_cache); return h == null ? null : Math.round(h * 10) / 10; })
+        };
+        Object.keys(charts).forEach(function (k) {
+            charts[k].data.labels = labels;
+            charts[k].data.datasets = sets[k];
+            charts[k].update('none');
+        });
+        renderStaticLegend('legend-container', [
+            { label: 'Process memory', color: CONTAINER_COLORS.process },
+            { label: 'Page cache in use', color: CONTAINER_COLORS.cache },
+            { label: 'Other', color: CONTAINER_COLORS.other }
+        ]);
+        ['legend-requests', 'legend-cpu', 'legend-rss', 'legend-bot', 'legend-hit'].forEach(function (id) { renderLegend(id, pids); });
 
-        function fetchRest() {
-            fetch(REST_ENDPOINT + '?window=5m', { credentials: 'include' })
-                .then(function (res) { return res.json(); })
-                .then(updateDashboard)
-                .catch(function () { setStatus('disconnected'); });
-        }
+        renderTiles(rows, latest, livePids, newestMs);
+        renderWorkersTable(rows, first, latest, pids, livePids, newestMs);
+        renderSamplesTable(rows);
 
-        /* ── WebSocket with auto-reconnect ──────────────────────── */
+        setText('timestamp', new Date(newestMs).toLocaleTimeString());
+    }
 
-        function connectWebSocket() {
-            var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(proto + '//' + location.host + '/ws/metrics');
+    function lastMinute(rows, newestMs) {
+        var out = {};
+        rows.forEach(function (r) {
+            if (newestMs - ms(r) > 60000) return;
+            var p = pidOf(r), m = r.metrics || {};
+            var o = out[p] = out[p] || { req: 0, err: 0, lat: 0 };
+            o.req += m.request_count || 0; o.err += m.error_count || 0; o.lat += m.latency_sum_s || 0;
+        });
+        return out;
+    }
 
-            ws.onopen = function () {
-                reconnectDelay = 1000;
-                if (restFallback) { clearInterval(restFallback); restFallback = null; }
+    function renderTiles(rows, latest, livePids, newestMs) {
+        setText('t-workers', livePids.length);
+        setText('t-workers-sub', livePids.length ? 'pid ' + livePids.join(', pid ') : 'no recent reports');
+
+        var newest = latest[livePids[livePids.length - 1]] || rows[rows.length - 1];
+        var cm = containerMemory((newest.metrics || {}).system);
+        var pct = cm.pct;
+        var level = pct == null ? 'good' : pct < 70 ? 'good' : pct < 90 ? 'warning' : 'critical';
+        setText('t-container', pct == null ? '—' : num(pct, 1) + '%');
+        var meter = document.getElementById('t-container-meter');
+        meter.style.width = Math.min(100, pct || 0) + '%';
+        meter.style.background = statusColor(level);
+        document.getElementById('t-container-icon').style.background = statusColor(level);
+        setText('t-container-sub', (level === 'good' ? 'OK' : level === 'warning' ? 'High' : 'Critical') +
+            ' · ' + gb(cm.usedMb) + ' of ' + gb(cm.limitMb) + ' GB (' + cm.source + ')');
+        var br = containerBreakdown((newest.metrics || {}).system);
+        setText('t-container-break', br ? 'process ' + gb(br.process) + ' · page cache ' + gb(br.cache) +
+            ' · other ' + gb(br.other) + ' GB' : '');
+
+        var fc = ((newest.metrics || {}).caches || {}).progressive_streams || {};
+        var fcPct = fc.cache_max_mb ? (fc.cache_mb / fc.cache_max_mb) * 100 : null;
+        setText('t-fcache', fc.cache_mb == null ? '\u2014' : gb(fc.cache_mb) + ' GB');
+        var fcMeter = document.getElementById('t-fcache-meter');
+        fcMeter.style.width = Math.min(100, fcPct || 0) + '%';
+        fcMeter.style.background = WORKER_COLORS[1];
+        setText('t-fcache-sub', fc.cache_max_mb ? num(fc.cache_files) + ' files · limit ' + gb(fc.cache_max_mb) + ' GB' : '');
+
+        var nsys = (newest.metrics || {}).system || {};
+        var cpuPct = nsys.container_cpu_used_percent;
+        var cpuLevel = cpuPct == null || cpuPct < 70 ? 'good' : cpuPct < 90 ? 'warning' : 'critical';
+        setText('t-ccpu', cpuPct == null ? '\u2014' : num(cpuPct, 1) + '%');
+        var cpuMeter = document.getElementById('t-ccpu-meter');
+        cpuMeter.style.width = Math.min(100, cpuPct || 0) + '%';
+        cpuMeter.style.background = statusColor(cpuLevel);
+        document.getElementById('t-ccpu-icon').style.background = statusColor(cpuLevel);
+        setText('t-ccpu-sub', (cpuLevel === 'good' ? 'OK' : cpuLevel === 'warning' ? 'High' : 'Critical') +
+            (nsys.container_cpu_limit ? ' \u00b7 limit ' + num(nsys.container_cpu_limit, 1) + ' vCPU' : ' \u00b7 host cores'));
+
+        var rss = 0, perWorkerRss = [];
+        livePids.forEach(function (p) {
+            var v = ((latest[p].metrics || {}).system || {}).memory_rss_mb || 0;
+            rss += v; perWorkerRss.push(num(v) + ' MB');
+        });
+        setText('t-rss', num(rss) + ' MB');
+        setText('t-rss-sub', perWorkerRss.length ? perWorkerRss.join(' + ') : '');
+
+        var lm = lastMinute(rows, newestMs), req = 0, err = 0, lat = 0;
+        Object.keys(lm).forEach(function (p) { req += lm[p].req; err += lm[p].err; lat += lm[p].lat; });
+        setText('t-req', num(req));
+        setText('t-req-sub', Object.keys(lm).sort().map(function (p) { return 'pid ' + p + ': ' + num(lm[p].req); }).join(' · '));
+        setText('t-lat', req ? num((lat / req) * 1000) + ' ms' : '—');
+        setText('t-err', num(err));
+        var errPct = req ? (err / req) * 100 : 0;
+        var errLevel = err === 0 ? 'good' : errPct < 5 ? 'warning' : 'critical';
+        document.getElementById('t-err-icon').style.background = statusColor(errLevel);
+        setText('t-err-sub', (err === 0 ? 'No errors' : num(errPct, 1) + '% of requests'));
+    }
+
+    function td(text, cls) {
+        var c = document.createElement('td');
+        c.textContent = text;
+        if (cls) c.className = cls;
+        return c;
+    }
+
+    function renderWorkersTable(rows, first, latest, pids, livePids, newestMs) {
+        var body = document.getElementById('workers-body');
+        body.textContent = '';
+        var lm = lastMinute(rows, newestMs);
+        pids.slice().sort(function (a, b) { return (livePids.indexOf(b) >= 0) - (livePids.indexOf(a) >= 0) || Number(a) - Number(b); })
+            .forEach(function (p) {
+                var m = latest[p].metrics || {}, s = m.system || {}, c = m.caches || {};
+                var bot = c.bot_cache || {}, path = c.instance_path_cache || {};
+                var live = livePids.indexOf(p) >= 0;
+                var rssStart = ((first[p].metrics || {}).system || {}).memory_rss_mb;
+                var delta = (s.memory_rss_mb != null && rssStart != null) ? s.memory_rss_mb - rssStart : null;
+                var tr = document.createElement('tr');
+
+                var name = document.createElement('td');
+                var sw = document.createElement('span');
+                sw.className = 'swatch';
+                sw.style.background = colorOf(p);
+                name.appendChild(sw);
+                name.appendChild(document.createTextNode('pid ' + p + (live ? '' : ' (stopped)')));
+                if (!live) name.className = 'muted';
+                tr.appendChild(name);
+
+                var bh = hitRate(bot), ph = hitRate(path);
+                tr.appendChild(td(num(s.memory_rss_mb) + ' MB'));
+                tr.appendChild(td(delta == null ? '—' : (delta >= 0 ? '+' : '−') + num(Math.abs(delta)) + ' MB', 'muted'));
+                tr.appendChild(td(num(s.cpu_percent_process, 1) + '%'));
+                tr.appendChild(td(num(s.threads_active)));
+                tr.appendChild(td(num((lm[p] || {}).req || 0)));
+                tr.appendChild(td(num(m.in_flight || 0)));
+                tr.appendChild(td(num(bot.entries)));
+                tr.appendChild(td(bh == null ? 'N/A' : num(bh, 1) + '%'));
+                tr.appendChild(td(num(path.entries)));
+                tr.appendChild(td(ph == null ? 'N/A' : num(ph, 1) + '%'));
+                tr.appendChild(td(Math.round((newestMs - ms(latest[p])) / 1000) + ' s ago', 'muted'));
+                body.appendChild(tr);
+            });
+    }
+
+    function renderSamplesTable(rows) {
+        var body = document.getElementById('samples-body');
+        body.textContent = '';
+        rows.slice(-40).reverse().forEach(function (r) {
+            var m = r.metrics || {}, s = m.system || {}, bot = (m.caches || {}).bot_cache || {};
+            var bh = hitRate(bot);
+            var tr = document.createElement('tr');
+            [new Date(ms(r)).toLocaleTimeString(), 'pid ' + pidOf(r), num(s.memory_rss_mb), num(m.request_count || 0),
+             m.request_count ? num((m.latency_sum_s / m.request_count) * 1000) : '—', num(m.in_flight || 0),
+             num(s.cpu_percent_process, 1), num(bot.entries), bh == null ? 'N/A' : num(bh, 1),
+             num(containerMemory(s).pct, 1)].forEach(function (v) { tr.appendChild(td(v)); });
+            body.appendChild(tr);
+        });
+    }
+
+    /* ── Status ──────────────────────────────────────────────── */
+
+    function setStatus(state) {
+        document.getElementById('status-dot').className = state === 'connected' ? 'dot live' : 'dot';
+        setText('status-text', state === 'connected' ? 'Live' : 'Reconnecting…');
+    }
+
+    /* ── Data loading: REST history + WebSocket live updates ─── */
+
+    function fetchWindowData(win) {
+        fetch(REST_ENDPOINT + '?window=' + win, { credentials: 'include' })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                rowsByKey = {};
+                addRows(data.gateway || []);
+                render();
                 setStatus('connected');
-            };
+            })
+            .catch(function () { setStatus('disconnected'); });
+    }
 
-            ws.onmessage = function (event) {
-                updateDashboard(JSON.parse(event.data));
-            };
-
-            ws.onclose = function () {
-                setStatus('disconnected');
-                scheduleReconnect();
-            };
-
-            ws.onerror = function () { ws.close(); };
+    function selectWindow(win) {
+        selectedWindow = win;
+        document.querySelectorAll('.win-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.window === win);
+        });
+        if (windowRefreshTimer) { clearTimeout(windowRefreshTimer); windowRefreshTimer = null; }
+        fetchWindowData(win);
+        var cfg = WINDOW_CFG[win];
+        if (cfg && cfg.refresh) {
+            (function schedule() {
+                windowRefreshTimer = setTimeout(function () {
+                    if (selectedWindow === win) { fetchWindowData(win); schedule(); }
+                }, cfg.refresh);
+            })();
         }
+    }
 
-        function scheduleReconnect() {
-            if (reconnectTimer) return;
-            if (!restFallback) {
-                restFallback = setInterval(fetchRest, 3000);
-            }
-            reconnectTimer = setTimeout(function () {
-                reconnectTimer = null;
-                connectWebSocket();
-            }, reconnectDelay);
-            reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
-        }
+    document.querySelectorAll('.win-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { selectWindow(btn.dataset.window); });
+    });
 
-        /* ── Bootstrap ──────────────────────────────────────────── */
+    var ws = null, reconnectTimer = null, reconnectDelay = 1000, restFallback = null;
+    var MAX_RECONNECT_DELAY = 30000;
 
-        fetchWindowData('5m');
-        connectWebSocket();
-    </script>
+    function onLive(data) {
+        addRows(data.gateway || []);
+        render();
+        setStatus('connected');
+    }
+
+    function fetchRest() {
+        fetch(REST_ENDPOINT + '?window=5m', { credentials: 'include' })
+            .then(function (res) { return res.json(); })
+            .then(onLive)
+            .catch(function () { setStatus('disconnected'); });
+    }
+
+    function connectWebSocket() {
+        var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(proto + '//' + location.host + '/ws/metrics');
+        ws.onopen = function () {
+            reconnectDelay = 1000;
+            if (restFallback) { clearInterval(restFallback); restFallback = null; }
+            setStatus('connected');
+        };
+        ws.onmessage = function (event) { onLive(JSON.parse(event.data)); };
+        ws.onclose = function () { setStatus('disconnected'); scheduleReconnect(); };
+        ws.onerror = function () { ws.close(); };
+    }
+
+    function scheduleReconnect() {
+        if (reconnectTimer) return;
+        if (!restFallback) restFallback = setInterval(fetchRest, 3000);
+        reconnectTimer = setTimeout(function () { reconnectTimer = null; connectWebSocket(); }, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
+    }
+
+    fetchWindowData('5m');
+    connectWebSocket();
+</script>
 
 </body>
-
 </html>

@@ -175,7 +175,25 @@ def format_dicomweb_response(results: List[List[Any]], columns: List[str]) -> Li
 # -------------------------------------------------------------------------
 
 
-def filter_dicom_json(raw_json: str) -> str:
+def _strip_inline_binary(element: Any, max_len: int) -> Any:
+    """Drop ``InlineBinary`` values longer than *max_len*, recursing into SQ items."""
+    if not isinstance(element, dict):
+        return element
+    inline = element.get("InlineBinary")
+    if isinstance(inline, str) and len(inline) > max_len:
+        element = {k: v for k, v in element.items() if k != "InlineBinary"}
+    items = element.get("Value")
+    if element.get("vr") == "SQ" and isinstance(items, list):
+        element["Value"] = [
+            {k: _strip_inline_binary(v, max_len) for k, v in item.items()}
+            if isinstance(item, dict)
+            else item
+            for item in items
+        ]
+    return element
+
+
+def filter_dicom_json(raw_json: str, inline_binary_max: int | None = None) -> str:
     """Strip non-DICOM keys from a raw JSON metadata object.
 
     The ``meta`` VARIANT column may contain extra fields injected by the
@@ -183,10 +201,14 @@ def filter_dicom_json(raw_json: str) -> str:
     are not valid DICOMweb attributes and cause deserialization failures
     in strict viewers (e.g. MedDream's ``AttributeElement`` parser).
 
-    Only keys matching the 8-hex-character DICOM tag format are kept.
+    Only keys matching the 8-hex-character DICOM tag format are kept.  When
+    *inline_binary_max* is set, ``InlineBinary`` values longer than it are
+    removed at any depth (the element keeps its ``vr``).
     """
     obj = json.loads(raw_json)
     filtered = {k: v for k, v in obj.items() if _DICOM_TAG_RE.match(k)}
+    if inline_binary_max is not None:
+        filtered = {k: _strip_inline_binary(v, inline_binary_max) for k, v in filtered.items()}
     return json.dumps(filtered)
 
 
