@@ -331,7 +331,8 @@ See §7 for the detailed dual-path design.
 | `PIXELS_PREFETCH_MAX_MEMORY_MB` | —                                                     | Hard cap on prefetch buffer in MB                                                  |
 | `PIXELS_PREFETCH_MAX_FILE_MB`   | `512`                                                 | Skip prefetching files larger than this                                            |
 | `PIXELS_FRAME_CACHE_DIR`        | `/tmp/pixels_frame_cache`                             | Directory for on-disk frame cache                                                  |
-| `PIXELS_FRAME_CACHE_MAX_GB`     | `50`                                                  | Max size of on-disk frame cache                                                    |
+| `PIXELS_FRAME_CACHE_MAX_GB`     | `5`                                                   | Max size of on-disk frame cache (oldest files evicted; counts as page cache)       |
+| `PIXELS_STREAM_STATES_MAX`      | `256`                                                 | Completed progressive-stream states kept per worker                                |
 | `DICOMWEB_MAX_CONNECTIONS`      | `200`                                                 | Max concurrent outbound HTTP connections to Volumes                                |
 | `DICOMWEB_MAX_KEEPALIVE`        | `100`                                                 | Max keepalive connections                                                          |
 | `DICOMWEB_METRICS_INTERVAL`     | `1`                                                   | Seconds between metrics snapshots                                                  |
@@ -915,7 +916,8 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `PIXELS_PREFETCH_MAX_MEMORY_MB`       | No             | —                         | Hard RAM cap                                                  |
 | `PIXELS_PREFETCH_MAX_FILE_MB`         | No             | `512`                     | Per-file prefetch cap                                         |
 | `PIXELS_FRAME_CACHE_DIR`              | No             | `/tmp/pixels_frame_cache` | Disk cache dir                                                |
-| `PIXELS_FRAME_CACHE_MAX_GB`           | No             | `50`                      | Disk cache cap                                                |
+| `PIXELS_FRAME_CACHE_MAX_GB`           | No             | `5`                       | Disk cache cap (enforced, oldest files evicted)               |
+| `PIXELS_STREAM_STATES_MAX`            | No             | `256`                     | Completed stream states kept per worker                       |
 | `DICOMWEB_MAX_CONNECTIONS`            | No             | `200`                     | Volumes connection pool                                       |
 | `DICOMWEB_MAX_KEEPALIVE`              | No             | `100`                     | Volumes keepalive pool                                        |
 | `DICOMWEB_METRICS_INTERVAL`           | No             | `1`                       | Metrics push interval (s)                                     |
@@ -923,6 +925,7 @@ downsampling to ≤ `max_points` (default 300) for lean responses.
 | `DICOMWEB_ENABLE_WADO_SERIES_PRIMING` | No             | `false`                   | Enable opportunistic series-level pre-priming                 |
 | `PIXELS_QIDO_MAX_LIMIT`               | No             | `1000`                    | Hard cap on QIDO-RS study-search rows (applies even when `?limit` is omitted)  |
 | `PIXELS_METADATA_INLINE_BINARY_MAX`   | No             | `4096`                    | WADO-RS metadata: drop binary/private elements and `InlineBinary` values larger than this (chars) |
+| `MALLOC_ARENA_MAX`                    | No             | `2`                       | glibc malloc arenas per worker; keeps RSS from staying high after frame bursts |
 | `PIXELS_WADO_PREFETCH_WAIT_S`         | No             | `0.05`                    | Max wait to consume prefetched bytes before fallback          |
 | `PIXELS_BACKGROUND_POOL_WORKERS`      | No             | `16`                      | Worker count for background frame reads                       |
 | `PIXELS_FILES_POOL_CONNECTIONS`       | No             | `20`                      | Requests adapter pooled host entries                          |

@@ -320,9 +320,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch(
-            "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-        ) as mock_session:
+        with patch("utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(
@@ -365,9 +363,7 @@ class TestComputeBotViaStream:
         db_file.to_api_url.return_value = "https://example.com/file.dcm"
         db_file.file_path = "/test/file.dcm"
 
-        with patch(
-            "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-        ) as mock_session:
+        with patch("utils.dicom_io._session") as mock_session:
             mock_session.get.return_value = mock_response
 
             frames, captured = _compute_bot_via_stream(

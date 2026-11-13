@@ -333,6 +333,42 @@ class TestGetFilePartLocal:
         finally:
             os.unlink(local_path)
 
+    def test_read_multi_fragment_frame(self):
+        data_start = 0
+        frag_a = b"A" * 40
+        frag_b = b"B" * 60
+        pixel_data = _make_item(frag_a) + _make_item(frag_b)
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(pixel_data)
+            local_path = f.name
+
+        try:
+            frame = {
+                "start_pos": 8,
+                "frame_size": 100,
+                "fragments": [
+                    {"start": 8, "length": 40},
+                    {"start": 8 + 40 + 8, "length": 60},
+                ],
+            }
+            # Item headers between fragments must not leak into the frame
+            assert get_file_part_local(local_path, data_start, frame) == frag_a + frag_b
+        finally:
+            os.unlink(local_path)
+
+    def test_short_read_raises(self):
+        """A truncated cache file must fail instead of serving a short frame."""
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(b"X" * 50)
+            local_path = f.name
+
+        try:
+            with pytest.raises(ValueError, match="Short local cache read"):
+                get_file_part_local(local_path, 0, {"start_pos": 0, "frame_size": 100})
+        finally:
+            os.unlink(local_path)
+
 
 # ---------------------------------------------------------------------------
 # ProgressiveFileStreamer integration test (mocked HTTP)
@@ -364,9 +400,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -434,9 +468,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -482,9 +514,7 @@ class TestProgressiveFileStreamer:
         with tempfile.TemporaryDirectory() as tmpdir:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state1 = streamer.get_or_start_stream(
@@ -497,18 +527,22 @@ class TestProgressiveFileStreamer:
                     transfer_syntax_uid="1.2.840.10008.1.2.4.70",
                 )
 
-            # Second call should return the same state object
-            state2 = streamer.get_or_start_stream(
-                filename="/test/dedup.dcm",
-                token="test-token",
-                db_file=db_file,
-                pixel_data_pos=pixel_data_pos,
-                number_of_frames=1,
-                header_raw=raw,
-                transfer_syntax_uid="1.2.840.10008.1.2.4.70",
-            )
+                # Second call should return the same state object
+                state2 = streamer.get_or_start_stream(
+                    filename="/test/dedup.dcm",
+                    token="test-token",
+                    db_file=db_file,
+                    pixel_data_pos=pixel_data_pos,
+                    number_of_frames=1,
+                    header_raw=raw,
+                    transfer_syntax_uid="1.2.840.10008.1.2.4.70",
+                )
+
+                # Keep the patch active until the background worker is done
+                state1.wait_for_frame(0, timeout=5.0)
 
             assert state1 is state2
+            assert mock_session.get.call_count == 1
 
     def test_concurrent_frame_waiters(self):
         """Multiple threads wait for different frames from the same stream."""
@@ -532,9 +566,7 @@ class TestProgressiveFileStreamer:
             streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
             results = {}
 
-            with patch(
-                "dbx.pixels.resources.dicom_web_gateway.utils.dicom_io._session"
-            ) as mock_session:
+            with patch("utils.dicom_io._session") as mock_session:
                 mock_session.get.return_value = mock_response
 
                 state = streamer.get_or_start_stream(
@@ -562,3 +594,131 @@ class TestProgressiveFileStreamer:
                 assert results[i] is not None
                 assert results[i]["frame_number"] == i
                 assert results[i]["frame_size"] == len(frames_data[i])
+
+    def test_cache_file_renamed_into_place(self):
+        """The stream tees to a per-process .part file and renames it when complete."""
+        f0 = b"A" * 50
+        raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[f0])
+        bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+        stream_data = raw[bot_pos:]
+
+        mock_response = MagicMock()
+        mock_response.status_code = 206
+        mock_response.iter_content.return_value = iter([stream_data])
+
+        db_file = MagicMock()
+        db_file.to_api_url.return_value = "https://example.com/part.dcm"
+        db_file.file_path = "/test/part.dcm"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
+
+            with patch("utils.dicom_io._session") as mock_session:
+                mock_session.get.return_value = mock_response
+                state = streamer.get_or_start_stream(
+                    filename="/test/part.dcm",
+                    token="test-token",
+                    db_file=db_file,
+                    pixel_data_pos=pixel_data_pos,
+                    number_of_frames=1,
+                    header_raw=raw,
+                    transfer_syntax_uid="1.2.840.10008.1.2.4.70",
+                )
+                meta = state.wait_for_frame(0, timeout=5.0)
+
+            # Frames are published only after the cache file is in place
+            assert os.listdir(tmpdir) == [os.path.basename(state.local_path)]
+            assert get_file_part_local(state.local_path, state.data_start, meta) == f0
+
+    def test_failed_stream_leaves_no_cache_file(self):
+        """A failed stream removes its .part file and never touches the final path."""
+        raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[b"A" * 50])
+
+        mock_response = MagicMock()
+        mock_response.status_code = 206
+        mock_response.iter_content.return_value = iter([b"\x00" * 16])  # not a BOT item
+
+        db_file = MagicMock()
+        db_file.to_api_url.return_value = "https://example.com/bad.dcm"
+        db_file.file_path = "/test/bad.dcm"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
+
+            with patch("utils.dicom_io._session") as mock_session:
+                mock_session.get.return_value = mock_response
+                state = streamer.get_or_start_stream(
+                    filename="/test/bad.dcm",
+                    token="test-token",
+                    db_file=db_file,
+                    pixel_data_pos=pixel_data_pos,
+                    number_of_frames=1,
+                    header_raw=raw,
+                    transfer_syntax_uid="1.2.840.10008.1.2.4.70",
+                )
+                with pytest.raises(ValueError):
+                    state.wait_for_frame(0, timeout=5.0)
+
+            assert state.has_error
+            assert os.listdir(tmpdir) == []
+
+
+# ---------------------------------------------------------------------------
+# Bounded state and disk cache
+# ---------------------------------------------------------------------------
+
+
+def _stream_file(streamer, name, frame_bytes):
+    raw, pixel_data_pos = _make_encapsulated_pixel_data(frames=[frame_bytes])
+    bot_pos, _ = _find_bot_item(raw, pixel_data_pos)
+    mock_response = MagicMock()
+    mock_response.status_code = 206
+    mock_response.iter_content.return_value = iter([raw[bot_pos:]])
+    db_file = MagicMock()
+    db_file.to_api_url.return_value = f"https://example.com/{name}"
+    db_file.file_path = name
+    with patch("utils.dicom_io._session") as mock_session:
+        mock_session.get.return_value = mock_response
+        state = streamer.get_or_start_stream(
+            filename=name,
+            token="test-token",
+            db_file=db_file,
+            pixel_data_pos=pixel_data_pos,
+            number_of_frames=1,
+            header_raw=raw,
+            transfer_syntax_uid="1.2.840.10008.1.2.4.50",
+        )
+        state.wait_for_frame(0, timeout=5.0)
+        deadline = time.monotonic() + 5.0
+        while not state.is_complete and time.monotonic() < deadline:
+            time.sleep(0.01)
+    return state
+
+
+class TestStreamerBounds:
+
+    def test_completed_states_are_capped(self, monkeypatch):
+        monkeypatch.setenv("PIXELS_STREAM_STATES_MAX", "3")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            streamer = ProgressiveFileStreamer(cache_dir=tmpdir)
+            for i in range(6):
+                _stream_file(streamer, f"/test/cap_{i}.dcm", bytes([i]) * 100)
+            assert len(streamer._states) <= 3
+            assert "/test/cap_5.dcm" in streamer._states  # newest kept
+            assert "/test/cap_0.dcm" not in streamer._states  # oldest dropped
+            assert streamer.stats["evicted_states"] >= 3
+
+    def test_disk_cache_budget_evicts_oldest_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            streamer = ProgressiveFileStreamer(cache_dir=tmpdir, max_cache_bytes=2500)
+            streamer._DISK_CHECK_INTERVAL_S = 0.0
+            for i in range(5):
+                _stream_file(streamer, f"/test/disk_{i}.dcm", bytes([i]) * 1000)
+                time.sleep(0.02)  # distinct mtimes
+            files = [f for f in os.listdir(tmpdir) if f.endswith(".pixeldata")]
+            total = sum(os.path.getsize(os.path.join(tmpdir, f)) for f in files)
+            assert total <= 2500
+            newest = streamer.get_state("/test/disk_4.dcm")
+            assert newest is not None and os.path.exists(newest.local_path)
+            assert streamer.get_state("/test/disk_0.dcm") is None
+            assert streamer.stats["evicted_files"] >= 2

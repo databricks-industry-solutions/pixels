@@ -207,9 +207,11 @@ class BufferedStreamReader:
     the streaming scan — enabling subsequent frame reads from local
     storage instead of remote HTTP byte-range requests.
 
-    The reader maintains a small internal buffer (at most one chunk
-    plus a partial leftover from the previous read) — memory usage is
-    O(chunk_size), not O(stream_size).
+    The reader keeps the current chunk plus a read offset, so a read copies
+    only the bytes it returns and a skip copies nothing.  Chunks are joined
+    only when a read spans a chunk boundary.  Re-slicing the buffer on every
+    read (the previous approach) copied up to a whole chunk per 8-byte tag,
+    churning large short-lived allocations that fragment the C heap.
     """
 
     def __init__(
@@ -222,6 +224,7 @@ class BufferedStreamReader:
         self._iter = response.iter_content(chunk_size=chunk_size)
         self._response = response
         self._buf = b""
+        self._off = 0
         self._position = start_position
         self._tee_file = tee_file
 
@@ -230,25 +233,36 @@ class BufferedStreamReader:
         """Current absolute file position."""
         return self._position
 
+    def _available(self) -> int:
+        return len(self._buf) - self._off
+
     def read_exact(self, n: int) -> bytes:
         """Read exactly *n* bytes from the stream.
 
         Raises ``EOFError`` if the stream ends before *n* bytes are
         available.
         """
-        while len(self._buf) < n:
-            try:
-                chunk = next(self._iter)
+        if self._available() < n:
+            parts = [memoryview(self._buf)[self._off :]]
+            have = self._available()
+            while have < n:
+                try:
+                    chunk = next(self._iter)
+                except StopIteration:
+                    raise EOFError(
+                        f"Unexpected end of stream at position {self._position} "
+                        f"(wanted {n} bytes, have {have})"
+                    )
                 if chunk:
-                    self._buf += chunk
-            except StopIteration:
-                raise EOFError(
-                    f"Unexpected end of stream at position {self._position} "
-                    f"(wanted {n} bytes, have {len(self._buf)})"
-                )
+                    parts.append(chunk)
+                    have += len(chunk)
+            self._buf = b"".join(parts)
+            self._off = 0
 
-        result = self._buf[:n]
-        self._buf = self._buf[n:]
+        result = self._buf[self._off : self._off + n]
+        self._off += n
+        if self._off == len(self._buf):
+            self._buf, self._off = b"", 0
         self._position += n
         if self._tee_file is not None:
             self._tee_file.write(result)
@@ -259,42 +273,42 @@ class BufferedStreamReader:
 
         Raises ``EOFError`` if the stream ends prematurely.
         """
-        remaining = n
+        available = self._available()
 
         # Drain from internal buffer first
-        if self._buf:
-            if len(self._buf) >= remaining:
-                drained = self._buf[:remaining]
-                self._buf = self._buf[remaining:]
-                self._position += n
-                if self._tee_file is not None:
-                    self._tee_file.write(drained)
-                return
+        if available >= n:
             if self._tee_file is not None:
-                self._tee_file.write(self._buf)
-            remaining -= len(self._buf)
-            self._buf = b""
+                self._tee_file.write(memoryview(self._buf)[self._off : self._off + n])
+            self._off += n
+            if self._off == len(self._buf):
+                self._buf, self._off = b"", 0
+            self._position += n
+            return
+        if available and self._tee_file is not None:
+            self._tee_file.write(memoryview(self._buf)[self._off :])
+        remaining = n - available
+        self._buf, self._off = b"", 0
 
         # Drain from the underlying iterator
         while remaining > 0:
             try:
                 chunk = next(self._iter)
-                if not chunk:
-                    continue
-                if len(chunk) <= remaining:
-                    if self._tee_file is not None:
-                        self._tee_file.write(chunk)
-                    remaining -= len(chunk)
-                else:
-                    if self._tee_file is not None:
-                        self._tee_file.write(chunk[:remaining])
-                    self._buf = chunk[remaining:]
-                    remaining = 0
             except StopIteration:
                 raise EOFError(
                     f"Unexpected end of stream at position {self._position + n - remaining} "
                     f"(wanted to skip {n} bytes, {remaining} remaining)"
                 )
+            if not chunk:
+                continue
+            if len(chunk) <= remaining:
+                if self._tee_file is not None:
+                    self._tee_file.write(chunk)
+                remaining -= len(chunk)
+            else:
+                if self._tee_file is not None:
+                    self._tee_file.write(memoryview(chunk)[:remaining])
+                self._buf, self._off = chunk, remaining
+                remaining = 0
 
         self._position += n
 
@@ -367,34 +381,14 @@ def get_file_part(token: str, db_file: DatabricksFile, frame: dict | None = None
     Retrieve a specific byte range or set of fragments from Databricks Volumes.
     """
     if frame is not None and "fragments" in frame:
-        joined = b""
-        for frag in frame["fragments"]:
-            raw = _fetch_bytes_range(token, db_file, frag["start"], frag["start"] + frag["length"])
-            joined += raw
-        return joined
+        return b"".join(
+            _fetch_bytes_range(token, db_file, frag["start"], frag["start"] + frag["length"])
+            for frag in frame["fragments"]
+        )
 
     if frame is not None:
         return _fetch_bytes_range(token, db_file, frame["start_pos"], frame["end_pos"] + 1)
     return _fetch_bytes_range(token, db_file)
-
-
-def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
-    """
-    Read frame pixel bytes from a local cache file, joining fragments if needed.
-    """
-    if "fragments" in frame:
-        joined = b""
-        with open(local_path, "rb") as f:
-            for frag in frame["fragments"]:
-                local_offset = frag["start"] - data_start
-                f.seek(local_offset)
-                joined += f.read(frag["length"])
-        return joined
-
-    local_offset = frame["start_pos"] - data_start
-    with open(local_path, "rb") as f:
-        f.seek(local_offset)
-        return f.read(frame["frame_size"])
 
 
 # ---------------------------------------------------------------------------
@@ -1132,15 +1126,25 @@ class ProgressiveFileStreamer:
     """
 
     _DEFAULT_CACHE_DIR = "/tmp/pixels_frame_cache"
-    _DEFAULT_MAX_CACHE_BYTES = 50 * 1024**3  # 50 GB
+    _DEFAULT_MAX_CACHE_BYTES = 5 * 1024**3  # 5 GB
+    _DEFAULT_MAX_STATES = 256
+    _DISK_CHECK_INTERVAL_S = 10.0
 
     def __init__(
         self,
         cache_dir: str | None = None,
         max_cache_bytes: int | None = None,
     ):
-        self._states: dict[str, _FileStreamState] = {}
+        # LRU of stream states.  Completed states only serve local-cache reads
+        # (their BOT is already in the bounded BOT cache), so beyond
+        # PIXELS_STREAM_STATES_MAX the oldest completed ones are dropped.
+        self._states: OrderedDict[str, _FileStreamState] = OrderedDict()
         self._lock = threading.Lock()
+        self._max_states = max(1, int(os.environ.get("PIXELS_STREAM_STATES_MAX", self._DEFAULT_MAX_STATES)))
+        self._evicted_states = 0
+        self._evicted_files = 0
+        self._last_disk_check = 0.0
+        self._disk_lock = threading.Lock()
         self._cache_dir = cache_dir or os.environ.get(
             "PIXELS_FRAME_CACHE_DIR",
             self._DEFAULT_CACHE_DIR,
@@ -1190,6 +1194,7 @@ class ProgressiveFileStreamer:
             existing = self._states.get(filename)
             if existing is not None:
                 if not existing.has_error:
+                    self._states.move_to_end(filename)
                     return existing
                 del self._states[filename]
 
@@ -1202,6 +1207,7 @@ class ProgressiveFileStreamer:
             state = _FileStreamState(local_path, data_start)
             state.transfer_syntax_uid = transfer_syntax_uid
             self._states[filename] = state
+            self._prune_states_locked()
 
         file_prefetcher._pool.submit(
             self._stream_worker,
@@ -1221,7 +1227,69 @@ class ProgressiveFileStreamer:
     def get_state(self, filename: str) -> _FileStreamState | None:
         """Return the stream state for *filename* (or ``None``)."""
         with self._lock:
-            return self._states.get(filename)
+            state = self._states.get(filename)
+            if state is not None:
+                self._states.move_to_end(filename)
+            return state
+
+    def _prune_states_locked(self) -> None:
+        """Drop the oldest completed states beyond the cap (caller holds the lock)."""
+        excess = len(self._states) - self._max_states
+        if excess <= 0:
+            return
+        for name in [n for n, st in self._states.items() if st.is_complete][:excess]:
+            del self._states[name]
+            self._evicted_states += 1
+
+    def _enforce_disk_budget(self) -> None:
+        """Keep the shared on-disk cache under PIXELS_FRAME_CACHE_MAX_GB.
+
+        Scans the cache directory (shared by every gateway worker) and deletes
+        the oldest-written files until the total is below 90 % of the budget.
+        Readers of a deleted file fall back to remote byte-range reads.
+        """
+        now = time.monotonic()
+        if now - self._last_disk_check < self._DISK_CHECK_INTERVAL_S:
+            return
+        if not self._disk_lock.acquire(blocking=False):
+            return
+        try:
+            self._last_disk_check = now
+            files, total = [], 0
+            try:
+                with os.scandir(self._cache_dir) as it:
+                    for entry in it:
+                        if entry.is_file() and entry.name.endswith(".pixeldata"):
+                            st = entry.stat()
+                            files.append((st.st_mtime, st.st_size, entry.path))
+                            total += st.st_size
+            except OSError:
+                return
+            if total <= self._max_cache_bytes:
+                return
+            target = self._max_cache_bytes * 0.9
+            removed = set()
+            for _, size, path in sorted(files):
+                if total <= target:
+                    break
+                try:
+                    os.unlink(path)
+                except OSError:
+                    continue
+                total -= size
+                removed.add(path)
+            if removed:
+                with self._lock:
+                    for name in [n for n, st in self._states.items()
+                                 if st.is_complete and st.local_path in removed]:
+                        del self._states[name]
+                self._evicted_files += len(removed)
+                logger.info(
+                    f"Frame cache over budget: removed {len(removed)} files, "
+                    f"{total / 1024**3:.2f} GB left (max {self._max_cache_bytes / 1024**3:.1f} GB)"
+                )
+        finally:
+            self._disk_lock.release()
 
     def _stream_worker(
         self,
@@ -1236,6 +1304,7 @@ class ProgressiveFileStreamer:
         headers = _auth_headers(token)
         headers["Range"] = f"bytes={data_start}-"
 
+        part_path = f"{state.local_path}.{os.getpid()}.part"
         tee_fh = None
         try:
             response = _session.get(
@@ -1251,7 +1320,10 @@ class ProgressiveFileStreamer:
                     f"for {db_file.file_path}: {body}"
                 )
 
-            tee_fh = open(state.local_path, "wb")
+            # Write to a per-process temp file and rename it into place when
+            # complete, so another gateway worker sharing the cache dir never
+            # truncates or reads a partially written file.
+            tee_fh = open(part_path, "wb")
             reader = BufferedStreamReader(
                 response,
                 chunk_size=_STREAM_CHUNK_SIZE,
@@ -1322,15 +1394,18 @@ class ProgressiveFileStreamer:
                     f"bot_offsets={bot_offsets[:5]})"
                 )
 
+            reader.close()
+            tee_fh.close()
+            tee_fh = None
+            os.replace(part_path, state.local_path)
+
             for f in frames_list:
                 state.publish_frame(f["frame_number"], f)
 
-            reader.close()
-            if tee_fh:
-                tee_fh.close()
-                tee_fh = None
-
             state.mark_complete()
+            with self._lock:
+                self._prune_states_locked()
+            self._enforce_disk_budget()
             logger.info(
                 f"Progressive stream complete: "
                 f"{len(frames_list)} frames indexed for {db_file.file_path}"
@@ -1338,14 +1413,14 @@ class ProgressiveFileStreamer:
 
         except Exception as exc:
             logger.error(f"Progressive stream failed for {db_file.file_path}: {exc}")
-            state.mark_complete(error=exc)
             if tee_fh:
                 tee_fh.close()
             try:
-                if os.path.exists(state.local_path):
-                    os.unlink(state.local_path)
+                if os.path.exists(part_path):
+                    os.unlink(part_path)
             except OSError:
                 pass
+            state.mark_complete(error=exc)
 
     @property
     def stats(self) -> dict:
@@ -1354,13 +1429,29 @@ class ProgressiveFileStreamer:
             active = sum(1 for s in self._states.values() if not s.is_complete)
             complete = sum(1 for s in self._states.values() if s.is_complete and not s.has_error)
             errored = sum(1 for s in self._states.values() if s.has_error)
-            return {
-                "cache_dir": self._cache_dir,
-                "total_streams": len(self._states),
-                "active": active,
-                "complete": complete,
-                "errored": errored,
-            }
+            total = len(self._states)
+        cache_files = cache_bytes = 0
+        try:
+            with os.scandir(self._cache_dir) as it:
+                for entry in it:
+                    if entry.is_file():
+                        cache_files += 1
+                        cache_bytes += entry.stat().st_size
+        except OSError:
+            pass
+        return {
+            "cache_dir": self._cache_dir,
+            "total_streams": total,
+            "active": active,
+            "complete": complete,
+            "errored": errored,
+            "cache_files": cache_files,
+            "cache_mb": round(cache_bytes / (1024 * 1024), 1),
+            "cache_max_mb": round(self._max_cache_bytes / (1024 * 1024), 1),
+            "max_states": self._max_states,
+            "evicted_states": self._evicted_states,
+            "evicted_files": self._evicted_files,
+        }
 
 
 # Module-level singleton
@@ -1383,10 +1474,23 @@ def get_file_part_local(local_path: str, data_start: int, frame: dict) -> bytes:
     Returns:
         Raw pixel bytes of the frame (without Item header).
     """
-    local_offset = frame["start_pos"] - data_start
+    if "fragments" in frame:
+        spans = [(frag["start"], frag["length"]) for frag in frame["fragments"]]
+    else:
+        spans = [(frame["start_pos"], frame["frame_size"])]
+
+    parts = []
     with open(local_path, "rb") as f:
-        f.seek(local_offset)
-        return f.read(frame["frame_size"])
+        for start, length in spans:
+            f.seek(start - data_start)
+            data = f.read(length)
+            if len(data) != length:
+                raise ValueError(
+                    f"Short local cache read from {local_path}: "
+                    f"wanted {length} bytes at {start}, got {len(data)}"
+                )
+            parts.append(data)
+    return parts[0] if len(parts) == 1 else b"".join(parts)
 
 
 # ---------------------------------------------------------------------------
