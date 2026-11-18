@@ -38,7 +38,11 @@ catalog = Catalog(spark)                                    # 03
 catalog_df = catalog.catalog(<path>)                        # 04
 
 # extract the DICOM metadata
-meta_df = DicomMetaExtractor(catalog).transform(catalog_df) # 05
+meta_df = DicomMetaExtractor(
+  catalog, 
+  permissive=True,
+  remove_un_tags=True
+).transform(catalog_df)                                     # 05
 
 # save your work for SQL access
 catalog.save(meta_df)                                       # 06
@@ -90,6 +94,7 @@ QIDO/WADO/STOW implementation, caching, metrics, and config reference), see:
 
 - [`docs/DICOMWEB.md`](docs/DICOMWEB.md) — DICOMweb (QIDO/WADO/STOW) architecture, caching tiers, metrics
 - [`docs/NIFTI_OVERLAY.md`](docs/NIFTI_OVERLAY.md) — Optional NIfTI segmentation overlay feature (OHIF extension, gateway routes, Delta schema, deployment)
+- [`docs/WSI.md`](docs/WSI.md) — Whole slide image (digital pathology) ingestion, metadata, PHI detection, and known limitations
 
 The notebook-driven OHIF/MONAI sections in this README remain valid for interactive
 workspace workflows. For production DICOMweb deployments with the split

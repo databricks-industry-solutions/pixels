@@ -62,7 +62,7 @@ All install tasks run on **serverless compute**. No GPU clusters are required �
 | Component | Compute Type | Details |
 |-----------|-------------|---------|
 | Install job (15 tasks) | Serverless notebook | End-to-end wall time ~30–45 min on a fresh workspace |
-| Model serving endpoint | Databricks-managed GPU | GPU_MEDIUM, scale-to-zero, ~15–30 min initial provisioning |
+| Model serving endpoint | Databricks-managed GPU | GPU_MEDIUM (AWS/GCP) or GPU_LARGE (Azure A100; falls back to GPU_SMALL), scale-to-zero, ~15–30 min initial provisioning |
 | Lakebase instance | Auto-created | Min 0.5 CU / Max 2.0 CU, autoscaling |
 | Runtime (apps, dashboard, Genie) | Serverless SQL Warehouse | Used at query time |
 
@@ -126,6 +126,7 @@ All variables have sensible defaults. Override with `--var key=value` on the CLI
 | `volume` | `${catalog}.${schema}.${volume_name}` | Fully qualified volume name |
 | `serving_endpoint_name` | `pixels-monai-uc` | Model serving endpoint name |
 | `scale_to_zero_enabled` | `true` | Whether the serving endpoint scales to zero when idle |
+| `serving_workload_type` | *(empty = auto)* | GPU type. Auto: `GPU_MEDIUM` on AWS/GCP; Azure tries `GPU_LARGE` then `GPU_SMALL`. `GPU_MEDIUM` is not available on Azure. |
 | `model_uc_name` | `${catalog}.${schema}.monai_pixels_model` | UC model path |
 | `lakebase_instance_name` | `pixels-lakebase` | Lakebase instance name |
 | `sql_warehouse` | Serverless Starter Warehouse | SQL warehouse (lookup by name) |
@@ -161,7 +162,7 @@ Per-task runtimes below are typical wall times on a fresh workspace. Critical-pa
 ### Model serving (parallel branch)
 
 - **`register_model`** (~3–5 min) — wraps Vista3D in an MLflow pyfunc and registers it in UC with a `champion` alias.
-- **`deploy_endpoint`** (~1 min, plus 15–30 min async provisioning) — creates/updates GPU serving endpoint `pixels-monai-uc` (reads `scale_to_zero_enabled`).
+- **`deploy_endpoint`** (~1 min, plus 15–30 min async provisioning) — creates/updates GPU serving endpoint `pixels-monai-uc` (reads `scale_to_zero_enabled` and cloud-specific `serving_workload_type`).
 - **`validate_model`** (up to 30 min) — polls and inferences against the endpoint; retries up to 10× at 3-min intervals while the GPU endpoint warms.
 
 ### Apps (parallel branch)
@@ -188,7 +189,7 @@ Per-task runtimes below are typical wall times on a fresh workspace. Critical-pa
 - **Unity Catalog**: schema, volume, `object_catalog` table, `dicom_tags` table, UDFs, views
 - **Lakebase**: `pixels-lakebase` instance with `dicom_frames`, `endpoint_metrics`, and `instance_paths` (Reverse ETL sync) tables
 - **Apps**: `pixels-dicomweb` (OHIF viewer), `pixels-dicomweb-gateway` (DICOMweb server)
-- **Model Serving**: `pixels-monai-uc` endpoint (Vista3D segmentation, GPU_MEDIUM)
+- **Model Serving**: `pixels-monai-uc` endpoint (Vista3D segmentation; GPU_MEDIUM on AWS/GCP, GPU_LARGE on Azure)
 - **Jobs**: STOW-RS processor job (created by `stow_processor`)
 - **Dashboard**: "Pixels Medical Imaging Cohorts" Lakeview dashboard
 - **Genie Space**: "Pixels - Genie" with vector search over DICOM tags

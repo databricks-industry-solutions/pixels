@@ -112,13 +112,16 @@ else:
     conf_vars["CLIENT_APP_ID"] = client_app_id_ref
     conf_vars["CLIENT_SECRET"] = client_secret_ref
 
+_gpu_types = serving_gpu_workload_types()
+print(f"GPU workload type candidates for this workspace: {_gpu_types}")
+
 endpoint_config = {
     "served_entities": [
         {
             "entity_name": model_uc_name,
             "entity_version": model_version,
             "workload_size": "Small",
-            "workload_type": "GPU_MEDIUM",
+            "workload_type": _gpu_types[0],
             "scale_to_zero_enabled": scale_to_zero_enabled,
             "environment_vars": conf_vars,
         }
@@ -148,22 +151,55 @@ if _ep_check.status_code == 200:
         print(f"Endpoint {serving_endpoint_name} already serving {model_uc_name} v{model_version} — no update needed")
         dbutils.notebook.exit(f"SUCCESS: endpoint already configured with {model_uc_name} v{model_version}")
 
-try:
-    endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
-    print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
-except Exception as e:
-    err_msg = str(e).lower()
-    if "already exists" in err_msg or "resource_conflict" in err_msg:
-        print(f"Endpoint {serving_endpoint_name} already exists, updating config")
-        try:
-            endpoint = client.update_endpoint(endpoint=serving_endpoint_name, config=endpoint_config)
-        except Exception as e2:
-            if "resource_conflict" in str(e2).lower():
-                print(f"Endpoint is mid-update, skipping: {e2}")
-            else:
+def _is_unsupported_workload(err):
+    msg = str(err).lower()
+    return "workload type" in msg and "not supported" in msg
+
+
+def _is_already_exists(err):
+    msg = str(err).lower()
+    return "already exists" in msg or "resource_conflict" in msg
+
+
+_created = False
+_last_workload_err = None
+for _wt in _gpu_types:
+    endpoint_config["served_entities"][0]["workload_type"] = _wt
+    try:
+        endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
+        print(f"SERVING ENDPOINT CREATED: {serving_endpoint_name} (workload_type={_wt})")
+        _created = True
+        break
+    except Exception as e:
+        if _is_unsupported_workload(e):
+            print(f"workload_type={_wt} is not supported in this workspace, trying next: {e}")
+            _last_workload_err = e
+            continue
+        if _is_already_exists(e):
+            print(f"Endpoint {serving_endpoint_name} already exists, updating config (workload_type={_wt})")
+            try:
+                endpoint = client.update_endpoint(endpoint=serving_endpoint_name, config=endpoint_config)
+                _created = True
+                break
+            except Exception as e2:
+                if _is_unsupported_workload(e2):
+                    print(f"workload_type={_wt} is not supported in this workspace, trying next: {e2}")
+                    _last_workload_err = e2
+                    continue
+                if "resource_conflict" in str(e2).lower():
+                    print(f"Endpoint is mid-update, skipping: {e2}")
+                    _created = True
+                    break
                 raise
-    else:
-        raise
+        else:
+            raise
+
+if not _created:
+    raise RuntimeError(
+        f"No supported GPU workload type from {_gpu_types}. "
+        "Override with --var serving_workload_type=<type> "
+        "(Azure: GPU_LARGE or GPU_SMALL; AWS/GCP: GPU_MEDIUM)."
+    ) from _last_workload_err
 
 # Wait for the endpoint config update to complete so 03c doesn't have to
 # retry while the container is still building (GPU builds take 20-30 min).

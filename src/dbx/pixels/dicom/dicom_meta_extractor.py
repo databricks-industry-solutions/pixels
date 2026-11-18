@@ -75,9 +75,14 @@ class DicomMetaExtractor(Transformer):
         max_workers = self.maxWorkers
         remove_un_tags = self.remove_un_tags
 
-        # Build output schema: all existing columns + the new meta column (as StringType initially)
+        # Build output schema: all existing columns + study_uid, series_uid, and the new meta column
         out_schema = t.StructType(
-            list(df.schema.fields) + [t.StructField(output_col, t.StringType(), True)]
+            list(df.schema.fields)
+            + [
+                t.StructField("study_uid", t.StringType(), True),
+                t.StructField("series_uid", t.StringType(), True),
+                t.StructField(output_col, t.StringType(), True),
+            ]
         )
 
         def _extract_meta(iterator: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
@@ -85,7 +90,7 @@ class DicomMetaExtractor(Transformer):
             import simplejson as json
             from pydicom import dcmread
 
-            def _process_file(path: str, deep: bool, anon: bool, remove_un_tags: bool) -> str:
+            def _process_file(path: str, deep: bool, anon: bool, remove_un_tags: bool):
                 try:
                     fp, fsize = cloud_open(path, anon)
                     with dcmread(fp, defer_size=1000, stop_before_pixels=(not deep)) as dataset:
@@ -93,7 +98,15 @@ class DicomMetaExtractor(Transformer):
                         if deep:
                             meta_js["hash"] = hashlib.sha1(fp.read()).hexdigest()
                         meta_js["file_size"] = fsize
-                        return json.dumps(meta_js, ignore_nan=True)
+                        study_uid = (
+                            str(dataset.StudyInstanceUID) if "StudyInstanceUID" in dataset else None
+                        )
+                        series_uid = (
+                            str(dataset.SeriesInstanceUID)
+                            if "SeriesInstanceUID" in dataset
+                            else None
+                        )
+                        return json.dumps(meta_js, ignore_nan=True), study_uid, series_uid
                 except Exception as err:
                     except_str = str(
                         {
@@ -103,21 +116,23 @@ class DicomMetaExtractor(Transformer):
                             "path": path,
                         }
                     )
-                    return json.dumps(except_str)
+                    return json.dumps(except_str), None, None
 
             for pdf in iterator:
                 paths = pdf[input_col].tolist()
                 anon_flags = pdf["is_anon"].tolist()
 
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    meta_results = list(
+                    results = list(
                         executor.map(
                             lambda args: _process_file(args[0], deep, args[1], remove_un_tags),
                             zip(paths, anon_flags),
                         )
                     )
 
-                pdf[output_col] = meta_results
+                pdf[output_col] = [r[0] for r in results]
+                pdf["study_uid"] = [r[1] for r in results]
+                pdf["series_uid"] = [r[2] for r in results]
                 yield pdf
 
         df = df.mapInPandas(_extract_meta, schema=out_schema)
