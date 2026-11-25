@@ -75,9 +75,9 @@ with tarfile.open(_vista3d_tar, "r:gz") as tar:
 print(f"Extracted vista3d model artifacts to {_model_dir}")
 
 subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", f"{_model_dir}/vista3d/requirements.txt"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.5-py3-none-any.whl", "--no-deps"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", f"{_model_dir}/artifacts/monailabel-0.8.6-py3-none-any.whl", "--no-deps"])
 subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.5.1", "torchvision==0.20.1", "torchaudio==2.5.1", "--index-url", "https://download.pytorch.org/whl/cpu"])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "monai==1.5.2", "pytorch-ignite", "--no-deps"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "monai==1.6.2", "pytorch-ignite", "--no-deps"])
 
 # COMMAND ----------
 
@@ -302,7 +302,7 @@ with mlflow.start_run():
         input_example=input_examples[4],
         code_paths=["./vista3d", "./common", "./lib"],
         artifacts={
-            "monailabel-0.8.5": "./artifacts/monailabel-0.8.5-py3-none-any.whl",
+            "monailabel-0.8.6": "./artifacts/monailabel-0.8.6-py3-none-any.whl",
             "itkimage2segimage": "./artifacts/itkimage2segimage",
         },
     )

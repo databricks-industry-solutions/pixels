@@ -1,4 +1,12 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# dependencies = [
+#   "../models/monai/artifacts/monailabel-0.8.6-py3-none-any.whl",
+#   "databricks-sdk",
+# ]
+# ///
 # MAGIC %md
 # MAGIC # Introduction
 # MAGIC
@@ -14,9 +22,16 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install uv -q
+
+# COMMAND ----------
+
 # DBTITLE 1,Install MONAILabel_Pixels and databricks-sdk
-# MAGIC %pip install git+https://github.com/erinaldidb/MONAILabel_Pixels databricks-sdk --upgrade -q
-# MAGIC dbutils.library.restartPython()
+# MAGIC %uv pip install ../models/monai/artifacts/monailabel-0.8.6-py3-none-any.whl databricks-sdk
+
+# COMMAND ----------
+
+dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -43,7 +58,7 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 
 # DBTITLE 1,Downloading Radiology Apps with MonaiLabel
 # MAGIC %sh
-# MAGIC monailabel apps --download --name radiology --output /local_disk0/monai/apps/
+# MAGIC monailabel apps --download --name radiology --output /tmp/monai/apps/
 
 # COMMAND ----------
 
@@ -56,7 +71,7 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 
 # DBTITLE 1,Monailabel Radiology Segmentation
 # MAGIC %sh
-# MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --table $DATABRICKS_PIXELS_TABLE
+# MAGIC monailabel start_server --app /tmp/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --table $DATABRICKS_PIXELS_TABLE
 
 # COMMAND ----------
 
@@ -68,4 +83,4 @@ displayHTML(f"<h1>Use the following link as MONAILabel server address</h1><br><h
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC monailabel start_server --app /local_disk0/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --conf labels '{"lung_left":1,"lung_right":2}' --conf use_pretrained_model false --table $DATABRICKS_PIXELS_TABLE
+# MAGIC monailabel start_server --app /tmp/monai/apps/radiology --studies $DATABRICKS_HOST --conf models segmentation --conf labels '{"lung_left":1,"lung_right":2}' --conf use_pretrained_model false --table $DATABRICKS_PIXELS_TABLE
