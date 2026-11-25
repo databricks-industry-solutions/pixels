@@ -24,24 +24,50 @@ from dbx.pixels.logging import LoggerProvider
 logger = LoggerProvider("DICOMweb.Viewer")
 
 # ---------------------------------------------------------------------------
-# OHIF bootstrap — download static viewer assets from UC Volume on first start
+# OHIF bootstrap — download static viewer assets from UC Volume on start
 # ---------------------------------------------------------------------------
 _OHIF_DIR = os.environ.get("OHIF_STATIC_DIR", "")
 if _OHIF_DIR.startswith("/Volumes/"):
+    import shutil
     import tarfile
 
-    _local_ohif = "/tmp/ohif"
-    if not os.path.isdir(_local_ohif):
-        from databricks.sdk import WorkspaceClient
+    from databricks.sdk import WorkspaceClient
 
-        _archive_path = _OHIF_DIR.rstrip("/") + ".tar.gz"
+    _local_ohif = "/tmp/ohif"
+    _stamp_file = "/tmp/ohif.archive-stamp"
+    _archive_path = _OHIF_DIR.rstrip("/") + ".tar.gz"
+    _w = WorkspaceClient()
+
+    # /tmp survives redeploys while the app compute keeps running, so compare
+    # the archive's size + mtime with the stamp from the last extraction and
+    # re-extract when a new OHIF build has been uploaded.
+    try:
+        _meta = _w.files.get_metadata(_archive_path)
+        _stamp = f"{_meta.content_length}:{_meta.last_modified}"
+    except Exception as _exc:
+        # Never block startup on the freshness check: keep an extracted copy
+        # if there is one, otherwise fall through to the download below.
+        logger.warning("Could not read OHIF archive metadata (%s): %s", _archive_path, _exc)
+        _stamp = None
+    try:
+        with open(_stamp_file) as _f:
+            _current = _f.read()
+    except OSError:
+        _current = ""
+
+    _stale = _stamp is not None and _current != _stamp
+    if _stale or not os.path.isdir(_local_ohif):
         logger.info("Downloading OHIF from %s ...", _archive_path)
-        _resp = WorkspaceClient().files.download(_archive_path)
+        _resp = _w.files.download(_archive_path)
         with open("/tmp/ohif.tar.gz", "wb") as _f:
-            _f.write(_resp.contents.read())
+            shutil.copyfileobj(_resp.contents, _f)
+        shutil.rmtree(_local_ohif, ignore_errors=True)
         with tarfile.open("/tmp/ohif.tar.gz", "r:gz") as _tar:
             _tar.extractall("/tmp")
         os.remove("/tmp/ohif.tar.gz")
+        if _stamp is not None:
+            with open(_stamp_file, "w") as _f:
+                _f.write(_stamp)
         logger.info("OHIF extracted to %s (%d entries)", _local_ohif, len(os.listdir(_local_ohif)))
     os.environ["OHIF_STATIC_DIR"] = _local_ohif
 
@@ -352,8 +378,10 @@ EXCLUDED_PATHS = ["/instances/"]
 class SelectiveGZipMiddleware:
     def __init__(self, app: ASGIApp, minimum_size: int = 1000):
         self.app = app
-        # Initialize the GZip middleware once, wrapping the base app
-        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size)
+        # Initialize the GZip middleware once, wrapping the base app.
+        # compresslevel=5: the default 9 costs far more CPU on the event loop
+        # for large DICOM JSON with little size gain.
+        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size, compresslevel=5)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         # We only care about HTTP requests

@@ -1,6 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # MONAILabel Server Initialization - DBR 16.4 LTS ML - CUDA 12
+# MAGIC # MONAILabel Server Initialization
+# MAGIC # DBR 16.4 LTS ML - CUDA 12 
+# MAGIC # Serverless GPU >= A10 
 # MAGIC
 # MAGIC This notebook is designed to **initialize the Databricks customized version of the MONAILabel server**. It wraps the server in an **MLflow Python custom model** and registers it for use in a **serving endpoint**. The process involves:
 # MAGIC
@@ -17,9 +19,9 @@
 # COMMAND ----------
 
 # MAGIC %pip install -r bundles/requirements.txt
-# MAGIC %pip install ./artifacts/monailabel-0.8.5-py3-none-any.whl --no-deps
-# MAGIC %pip install monai==1.5.2 pytorch-ignite --no-deps
-# MAGIC %pip install databricks-sdk==0.84 --upgrade
+# MAGIC %pip install ./artifacts/monailabel-0.8.6-py3-none-any.whl --no-deps
+# MAGIC %pip install monai==1.6.2 pytorch-ignite torch --no-deps
+# MAGIC %pip install databricks-sdk==0.170 --upgrade
 
 # COMMAND ----------
 
@@ -28,6 +30,11 @@ dbutils.library.restartPython()
 # COMMAND ----------
 
 # MAGIC %run ../../install/config/proxy_prep
+
+# COMMAND ----------
+
+import sys
+sys.path.insert(0, '../../src/')
 
 # COMMAND ----------
 
@@ -248,7 +255,7 @@ with mlflow.start_run():
         input_example=input_examples[4],
         code_paths=["./bundles", "./common", "./lib"],
         artifacts={
-            "monailabel-0.8.5": "./artifacts/monailabel-0.8.5-py3-none-any.whl",
+            "monailabel-0.8.6": "./artifacts/monailabel-0.8.6-py3-none-any.whl",
             "itkimage2segimage": "./artifacts/itkimage2segimage"
         }
     )
@@ -362,24 +369,27 @@ else:
     conf_vars['CLIENT_APP_ID'] = client_app_id
     conf_vars['CLIENT_SECRET'] = client_secret
 
-endpoint = client.create_endpoint(
-    name=serving_endpoint_name,
-    config={
-        "served_entities": [
-            {
-                'entity_name': model_uc_name,
-                "entity_version": model_version,
-                "workload_size": "Small",
-                "workload_type": serving_gpu_workload_types()[0],
-                "scale_to_zero_enabled": True,
-                'environment_vars': conf_vars,
-            }
-        ]
-    }
-)
+endpoint_config = {
+    "served_entities": [
+        {
+            'entity_name': model_uc_name,
+            "entity_version": model_version,
+            "workload_size": "Small",
+            "workload_type": serving_gpu_workload_types()[0],
+            "scale_to_zero_enabled": True,
+            'environment_vars': conf_vars,
+        }
+    ]
+}
 
-print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
-
+try:
+    endpoint = client.create_endpoint(name=serving_endpoint_name, config=endpoint_config)
+    print("SERVING ENDPOINT CREATED:", serving_endpoint_name)
+except Exception as e:
+    if "already exists" not in str(e).lower():
+        raise
+    endpoint = client.update_endpoint(endpoint=serving_endpoint_name, config=endpoint_config)
+    print("SERVING ENDPOINT UPDATED:", serving_endpoint_name)
 
 # COMMAND ----------
 

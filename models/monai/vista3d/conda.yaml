@@ -10,7 +10,7 @@ dependencies:
   - torchvision==0.23.0+cu128
   - torchaudio==2.8.0+cu128
   - numpy>=1.24.4
-  - ./artifacts/monailabel-0.8.5-py3-none-any.whl
+  - ./artifacts/monailabel-0.8.6-py3-none-any.whl
   - pydantic>=2.7.0
   - numba==0.59
   - dicomweb-client[gcp]>=0.59.1
@@ -39,6 +39,6 @@ dependencies:
   - cucim-cu12
   - huggingface_hub
   - simpleitk
-  - databricks-sdk==0.84
+  - databricks-sdk==0.170.0
   - pylibjpeg-openjpeg==2.3.0
 name: mlflow-env
